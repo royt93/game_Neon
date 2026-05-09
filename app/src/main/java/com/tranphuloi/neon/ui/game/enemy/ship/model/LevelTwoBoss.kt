@@ -27,6 +27,7 @@ data class LevelTwoBoss(
     override var outOfScreen: Boolean = false
         private set
     override val drawableId: Int = R.drawable.enemy_green_boss
+    override var lastImpactMillis: Long = 0L
     private val bossMovementSpeed = 0.5f
 
     private val maxXOffset = screenWidth - width
@@ -90,6 +91,7 @@ data class LevelTwoBoss(
 
     override fun onObjectImpact(impactPower: Float) {
         hp -= impactPower
+        lastImpactMillis = System.currentTimeMillis()
     }
 
     private enum class Movement {

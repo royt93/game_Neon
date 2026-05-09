@@ -16,6 +16,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.R
+import com.tranphuloi.neon.common.NeonCyan
+import com.tranphuloi.neon.common.NeonGold
+import com.tranphuloi.neon.common.NeonRedAlert
+import com.tranphuloi.neon.common.neonGlow
 
 @Composable
 fun IndicatorStatus(
@@ -29,16 +33,24 @@ fun IndicatorStatus(
     val buttonPaddingTop = buttonPaddingEnd * 2
     val height = 60.dp
 
+    val hpColor = when {
+        hp >= 700 -> NeonCyan
+        hp >= 300 -> NeonGold
+        else -> NeonRedAlert
+    }
+
     Column(modifier = modifier.padding(start = buttonPaddingEnd, top = buttonPaddingTop)) {
         Box(modifier = modifier.height(height = height)) {
             Image(
                 painter = painterResource(id = R.drawable.button_hp_indicator),
                 contentDescription = stringResource(id = R.string.game_hp_indicator),
-                modifier = Modifier.align(Alignment.Center)
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .neonGlow(color = hpColor, intensity = 0.35f, radiusFactor = 1.2f)
             )
             Text(
                 text = "${hp}hp",
-                color = Color.White,
+                color = hpColor,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
@@ -47,7 +59,7 @@ fun IndicatorStatus(
             )
             Text(
                 text = gameTime,
-                color = Color.White.copy(alpha = 0.8f),
+                color = Color.White.copy(alpha = 0.85f),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
@@ -63,12 +75,15 @@ fun IndicatorStatus(
                 painter = painterResource(id = R.drawable.ic_mineral),
                 contentDescription = stringResource(id = R.string.mineral_content_description),
                 tint = Color.Unspecified,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier
+                    .size(22.dp)
+                    .neonGlow(color = NeonGold, intensity = 0.5f, radiusFactor = 1.6f)
             )
             Text(
                 text = mineralsEarnedTotal,
                 fontWeight = FontWeight.SemiBold,
-                style = MaterialTheme.typography.h5
+                style = MaterialTheme.typography.h5,
+                color = NeonGold
             )
         }
     }

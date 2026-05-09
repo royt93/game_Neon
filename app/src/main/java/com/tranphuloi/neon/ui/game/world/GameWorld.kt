@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -37,8 +38,14 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import com.tranphuloi.neon.R
+import com.tranphuloi.neon.common.NeonCyan
+import com.tranphuloi.neon.common.NeonGold
+import com.tranphuloi.neon.common.NeonMagenta
+import com.tranphuloi.neon.common.NeonRedAlert
+import com.tranphuloi.neon.common.NeonViolet
 import com.tranphuloi.neon.common.ShipShieldOne
 import com.tranphuloi.neon.common.ShipShieldTwo
+import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.ui.game.booster.BoosterUI
 import com.tranphuloi.neon.ui.game.constellation.Star
 import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyUI
@@ -85,6 +92,7 @@ fun GameWorld(
                 modifier = Modifier
                     .absoluteOffset(x = it.xOffset.dp, y = it.yOffset.dp)
                     .size(width = it.width.dp, height = it.height.dp)
+                    .neonGlow(color = NeonCyan, intensity = 0.7f, radiusFactor = 2.4f)
                     .align(Alignment.BottomStart)
             )
         }
@@ -95,6 +103,7 @@ fun GameWorld(
                 modifier = Modifier
                     .absoluteOffset(x = it.xOffset.dp, y = it.yOffset.dp)
                     .size(width = it.width.dp, height = it.height.dp)
+                    .neonGlow(color = NeonGold, intensity = 0.85f, radiusFactor = 2.0f)
                     .align(Alignment.BottomStart)
                     .rotate(degrees = it.rotation)
             )
@@ -121,6 +130,7 @@ fun GameWorld(
                 modifier = Modifier
                     .size(it.size.dp)
                     .offset(x = it.xOffset.dp, y = it.yOffset.dp)
+                    .neonGlow(color = NeonViolet, intensity = 0.35f, radiusFactor = 1.4f)
                     .rotate(degrees = it.rotation)
             )
         }
@@ -131,6 +141,7 @@ fun GameWorld(
                 modifier = Modifier
                     .size(it.size.dp)
                     .offset(x = it.xOffset.dp, y = it.yOffset.dp)
+                    .neonGlow(color = NeonGold, intensity = 0.6f, radiusFactor = 1.8f)
             )
         }
         Box(
@@ -172,9 +183,15 @@ fun GameWorld(
                 modifier = Modifier
                     .width(ship.width.dp)
                     .height(ship.height.dp)
+                    .neonGlow(color = NeonCyan, intensity = 0.5f, radiusFactor = 1.5f)
             )
         }
+        val nowMillis = System.currentTimeMillis()
         enemies.forEach {
+            val sinceHit = nowMillis - it.lastImpactMillis
+            val hitFlash = if (it.lastImpactMillis > 0L && sinceHit in 0..120) {
+                (1f - sinceHit / 120f).coerceIn(0f, 1f)
+            } else 0f
             Column(modifier = Modifier.offset(x = it.xOffset.dp, y = it.yOffset.dp)) {
                 Box(
                     modifier = Modifier
@@ -186,15 +203,34 @@ fun GameWorld(
                         modifier = Modifier
                             .clip(MaterialTheme.shapes.small)
                             .size(width = it.hpBarWidth.dp, height = 5.dp)
-                            .background(Color.Red)
+                            .background(NeonRedAlert)
                     )
                 }
-                Image(
-                    painterResource(id = it.drawableId),
-                    contentDescription = stringResource(id = R.string.enemy),
-                    contentScale = ContentScale.FillBounds,
-                    modifier = Modifier.size(width = it.width.dp, height = it.height.dp)
-                )
+                Box {
+                    Image(
+                        painterResource(id = it.drawableId),
+                        contentDescription = stringResource(id = R.string.enemy),
+                        contentScale = ContentScale.FillBounds,
+                        modifier = Modifier
+                            .size(width = it.width.dp, height = it.height.dp)
+                            .neonGlow(
+                                color = NeonMagenta,
+                                intensity = 0.45f + hitFlash * 0.4f,
+                                radiusFactor = 1.4f + hitFlash * 0.4f
+                            )
+                    )
+                    if (hitFlash > 0f) {
+                        Image(
+                            painterResource(id = it.drawableId),
+                            contentDescription = null,
+                            contentScale = ContentScale.FillBounds,
+                            colorFilter = ColorFilter.tint(
+                                Color.White.copy(alpha = hitFlash)
+                            ),
+                            modifier = Modifier.size(width = it.width.dp, height = it.height.dp)
+                        )
+                    }
+                }
             }
         }
         minerals.forEach {
@@ -235,6 +271,7 @@ fun GameWorld(
                 modifier = Modifier
                     .size(width = it.width.dp, height = it.height.dp)
                     .offset(x = it.xOffset.dp, y = it.yOffset.dp)
+                    .neonGlow(color = NeonRedAlert, intensity = 0.55f, radiusFactor = 1.8f)
             )
         }
     }

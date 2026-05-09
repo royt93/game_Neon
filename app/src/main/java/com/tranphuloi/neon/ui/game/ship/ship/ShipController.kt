@@ -19,6 +19,7 @@ class ShipController(
     private var ship: Ship,
     private val setShip: (Ship) -> Unit,
     private val onShipDestroyed: () -> Unit = {},
+    private val onShipDamaged: () -> Unit = {},
 ) {
 
     private val spaceShipCollidePower: Float = 100f
@@ -235,6 +236,9 @@ class ShipController(
             Logger.d("Ship hp: $before → ${ship.hp} (Δ=$hpChange)")
         }
         setShip(ship)
+        if (hpChange < 0) {
+            onShipDamaged()
+        }
         if (before > 0 && newHp == 0) {
             Logger.w("Ship destroyed (hp=0) → onShipDestroyed()")
             onShipDestroyed()

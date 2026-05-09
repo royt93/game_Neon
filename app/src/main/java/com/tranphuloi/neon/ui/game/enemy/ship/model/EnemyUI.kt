@@ -15,4 +15,5 @@ data class EnemyUI(
     val yOffset: Float,
     val hpBarWidth: Float,
     @DrawableRes val drawableId: Int,
+    val lastImpactMillis: Long = 0L,
 ) : Serializable

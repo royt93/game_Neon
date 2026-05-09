@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -17,16 +18,20 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.tranphuloi.neon.R
-import com.tranphuloi.neon.common.Blue
-import com.tranphuloi.neon.common.Pink
+import com.tranphuloi.neon.common.NeonBgMid
+import com.tranphuloi.neon.common.NeonCyan
+import com.tranphuloi.neon.common.NeonMagenta
+import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.utils.Logger
 
 @Composable
 fun DialogGamePause(onRestartGame: () -> Unit) {
     LaunchedEffect(Unit) { Logger.d("DialogGamePause shown") }
     Card(
-        backgroundColor = Blue,
-        border = BorderStroke(2.dp, Pink)
+        backgroundColor = NeonBgMid,
+        border = BorderStroke(2.dp, NeonCyan),
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.neonGlow(color = NeonCyan, intensity = 0.35f, radiusFactor = 1.2f)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -35,7 +40,8 @@ fun DialogGamePause(onRestartGame: () -> Unit) {
             Text(
                 text = stringResource(id = R.string.game_pause_dialog_title),
                 fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.h4
+                style = MaterialTheme.typography.h4,
+                color = NeonCyan
             )
             Spacer(modifier = Modifier.height(16.dp))
             TextButton(onClick = {
@@ -45,7 +51,8 @@ fun DialogGamePause(onRestartGame: () -> Unit) {
                 Text(
                     text = stringResource(id = R.string.restart_game_button),
                     fontWeight = FontWeight.SemiBold,
-                    style = MaterialTheme.typography.h6
+                    style = MaterialTheme.typography.h6,
+                    color = NeonMagenta
                 )
             }
         }

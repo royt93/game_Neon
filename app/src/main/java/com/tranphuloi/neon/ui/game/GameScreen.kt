@@ -12,11 +12,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.tranphuloi.neon.common.Blue
-import com.tranphuloi.neon.common.Pink
+import com.tranphuloi.neon.common.NeonBgDeep
+import com.tranphuloi.neon.common.NeonBgEdge
+import com.tranphuloi.neon.common.NeonBgMid
+import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.ui.game.audio.AudioPlayer
 import com.tranphuloi.neon.ui.game.controls.ButtonsMovement
 import com.tranphuloi.neon.ui.game.controls.ButtonSettings
@@ -25,6 +28,13 @@ import com.tranphuloi.neon.ui.game.settings.GameStatus
 import com.tranphuloi.neon.ui.game.state.rememberGameState
 import com.tranphuloi.neon.ui.game.world.GameWorld
 import com.tranphuloi.neon.utils.Logger
+import kotlin.math.cos
+import kotlin.math.sin
+
+private const val SHAKE_DURATION_MILLIS = 280L
+private const val FLASH_DURATION_MILLIS = 360L
+private const val SHAKE_MAX_PX = 14f
+private const val FLASH_MAX_ALPHA = 0.45f
 
 @Composable
 fun GameScreen(
@@ -41,10 +51,27 @@ fun GameScreen(
     }
 
     AudioPlayer(gameStatus = gameState.gameStatus)
+
+    val now = System.currentTimeMillis()
+    val damageElapsed = (now - gameState.lastShipDamageMillis).coerceAtLeast(0L)
+    val shakeProgress =
+        (1f - (damageElapsed.toFloat() / SHAKE_DURATION_MILLIS)).coerceIn(0f, 1f)
+    val flashProgress =
+        (1f - (damageElapsed.toFloat() / FLASH_DURATION_MILLIS)).coerceIn(0f, 1f)
+    val shakeAmplitude = SHAKE_MAX_PX * shakeProgress
+    val shakeX =
+        if (shakeAmplitude > 0f) (sin(damageElapsed / 18.0) * shakeAmplitude).toFloat() else 0f
+    val shakeY =
+        if (shakeAmplitude > 0f) (cos(damageElapsed / 21.0) * shakeAmplitude).toFloat() else 0f
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(brush = Brush.verticalGradient(colors = listOf(Blue, Pink)))
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(NeonBgDeep, NeonBgMid, NeonBgEdge)
+                )
+            )
     ) {
         IndicatorStatus(
             gameTime = gameState.gameTimeIndicator,
@@ -81,12 +108,30 @@ fun GameScreen(
                 enemyLasers = gameState.enemyLasers,
                 minerals = gameState.minerals,
                 explosions = gameState.explosions,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .layout { measurable, constraints ->
+                        val placeable = measurable.measure(constraints)
+                        layout(placeable.width, placeable.height) {
+                            placeable.placeRelative(
+                                x = shakeX.toInt(),
+                                y = shakeY.toInt()
+                            )
+                        }
+                    }
             )
             ButtonsMovement(
                 onMoveLeft = { gameState.moveShipLeft(it) },
                 onMoveRight = { gameState.moveShipRight(it) },
                 modifier = Modifier.padding(bottom = 24.dp)
+            )
+        }
+        if (flashProgress > 0f) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(NeonRedAlert.copy(alpha = FLASH_MAX_ALPHA * flashProgress))
+                    .zIndex(250f)
             )
         }
     }

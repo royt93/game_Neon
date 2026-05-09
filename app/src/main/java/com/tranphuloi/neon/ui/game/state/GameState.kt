@@ -80,6 +80,7 @@ fun rememberGameState(): GameState {
         }
         gameStatus = gameStt
     }
+    var lastShipDamageMillis by remember { mutableLongStateOf(0L) }
     val shipController = remember {
         ShipController(
             screenWidth = screenWidth,
@@ -87,6 +88,7 @@ fun rememberGameState(): GameState {
             ship = ship,
             setShip = { ship = it },
             onShipDestroyed = { setGameStatus(GameStatus.GAME_OVER) },
+            onShipDamaged = { lastShipDamageMillis = System.currentTimeMillis() },
         )
     }
 
@@ -226,7 +228,7 @@ fun rememberGameState(): GameState {
     }
 
     var refreshHandler by remember { mutableLongStateOf(0L) }
-    DisposableEffect(lifecycle) {
+    DisposableEffect(Unit) {
         Logger.d("Game loop DisposableEffect setup, screen=${screenWidth}x${screenHeight}")
         var loopRunning = true
         val job = coroutineScope.launch {
@@ -402,6 +404,7 @@ fun rememberGameState(): GameState {
         minerals = minerals.map { mineralToMineralUIMapper(it) },
         mineralsEarnedTotal = mineralsEarnedTotal.toString(),
         explosions = explosions,
+        lastShipDamageMillis = lastShipDamageMillis,
         moveShipLeft = { shipController.movingLeft = it },
         moveShipRight = { shipController.movingRight = it },
         toggleGameStatus = {
@@ -430,6 +433,7 @@ data class GameState(
     val minerals: List<MineralUI>,
     val mineralsEarnedTotal: String,
     val explosions: List<Explosion>,
+    val lastShipDamageMillis: Long,
     val moveShipLeft: (Boolean) -> Unit,
     val moveShipRight: (Boolean) -> Unit,
     val toggleGameStatus: () -> Unit,

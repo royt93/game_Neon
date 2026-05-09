@@ -17,6 +17,7 @@ interface Enemy : Serializable {
     val minerals: Int
     val destroyed: Boolean
     val outOfScreen: Boolean
+    var lastImpactMillis: Long
 
     fun enemyRect(): Rect
     fun process()

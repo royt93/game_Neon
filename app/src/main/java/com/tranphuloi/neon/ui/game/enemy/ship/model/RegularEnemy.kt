@@ -28,6 +28,7 @@ data class RegularEnemy(
         private set
     override var yOffset: Float = 0f
     override val drawableId: Int = type.drawableId
+    override var lastImpactMillis: Long = 0L
     private var moveRight = true
     private val xOffsetMovementSpeed = type.xOffsetSpeed
     private val yOffsetMovementSpeed = type.yOffsetSpeed
@@ -80,5 +81,6 @@ data class RegularEnemy(
 
     override fun onObjectImpact(impactPower: Float) {
         hp -= impactPower
+        lastImpactMillis = System.currentTimeMillis()
     }
 }

@@ -28,6 +28,7 @@ data class LevelOneBoss(
     override var outOfScreen: Boolean = false
         private set
     override val drawableId: Int = R.drawable.enemy_red_boss
+    override var lastImpactMillis: Long = 0L
     private val bossMovementSpeed = 0.5f
 
     private val minXOffset = width
@@ -95,6 +96,7 @@ data class LevelOneBoss(
 
     override fun onObjectImpact(impactPower: Float) {
         hp -= impactPower
+        lastImpactMillis = System.currentTimeMillis()
     }
 
     private enum class Movement {
