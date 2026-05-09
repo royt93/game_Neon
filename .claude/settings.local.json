@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/loitran/Library/Android/sdk/platforms/**)",
+      "Read(//Users/loitran/Library/Android/sdk/build-tools/**)",
+      "Bash(/usr/libexec/java_home -V)",
+      "Bash(xargs sed *)",
+      "Bash(JAVA_HOME=/Users/loitran/Library/Java/JavaVirtualMachines/jbr-17.0.14/Contents/Home ./gradlew --version)",
+      "Bash(JAVA_HOME=/Users/loitran/Library/Java/JavaVirtualMachines/jbr-17.0.14/Contents/Home ./gradlew clean assembleDevDebug --no-daemon)",
+      "Bash(JAVA_HOME=/Users/loitran/Library/Java/JavaVirtualMachines/jbr-17.0.14/Contents/Home ./gradlew assembleDevDebug)",
+      "Bash(JAVA_HOME=/Users/loitran/Library/Java/JavaVirtualMachines/jbr-17.0.14/Contents/Home ./gradlew assembleProductionRelease)",
+      "WebSearch",
+      "Bash(JAVA_HOME=/Users/loitran/Library/Java/JavaVirtualMachines/jbr-17.0.14/Contents/Home ./gradlew clean assembleDevDebug)",
+      "Bash(JAVA_HOME=/Users/loitran/Library/Java/JavaVirtualMachines/jbr-17.0.14/Contents/Home /Users/loitran/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager --list)",
+      "Bash(JAVA_HOME=/Users/loitran/Library/Java/JavaVirtualMachines/jbr-17.0.14/Contents/Home yes)",
+      "Bash(/Users/loitran/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager \"platforms;android-37\")",
+      "Bash(/Users/loitran/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager \"platforms;android-37.0\")",
+      "Bash(JAVA_HOME=/Users/loitran/Library/Java/JavaVirtualMachines/jbr-17.0.14/Contents/Home ./gradlew clean assembleDevDebug assembleProductionRelease)",
+      "Bash(./gradlew :app:compileDevDebugKotlin --warning-mode=all -q)",
+      "Bash(./gradlew :app:lintDevDebug --warning-mode=all)",
+      "Bash(./gradlew :app:compileDevDebugKotlin --warning-mode=all -Werror=false)",
+      "Bash(./gradlew :app:assembleDevDebug --warning-mode=all)"
+    ]
+  }
+}

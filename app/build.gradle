@@ -1,38 +1,34 @@
 plugins {
     id 'com.android.application'
-    id 'kotlin-android'
+    id 'org.jetbrains.kotlin.plugin.compose'
 }
 
 android {
-    namespace "com.tranphuloi.neon"
-    compileSdk 34
+    namespace = "com.tranphuloi.neon"
+    compileSdk = 37
 
     defaultConfig {
-        minSdk 21
-        targetSdk 34
-        versionCode 20231111
-        versionName "2023.11.11"
+        applicationId = "com.tranphuloi.neon"
+        minSdk = 23
+        targetSdk = 37
+        versionCode = 20260509
+        versionName = "2026.05.09"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
-            useSupportLibrary true
+            useSupportLibrary = true
         }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-    kotlinOptions {
-        jvmTarget = '1.8'
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures {
-        compose true
+        compose = true
+        resValues = true
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion "1.2.0-alpha02"
-    }
-    packagingOptions {
+    packaging {
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
@@ -40,9 +36,9 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
-            debuggable false
+            minifyEnabled = true
+            shrinkResources = true
+            debuggable = false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -50,57 +46,54 @@ android {
 
     flavorDimensions.add("type")
     productFlavors {
-        create("dev") {
-            setDimension("type")
-//            buildConfigField("String", "FLAVOR_buildEnv", "dev")
-
-            resValue("string", "app_name", "Sky force 2024 DEV")
-
-            resValue("string", "SDK_KEY", "e75FnQfS9XTTqM1Kne69U7PW_MBgAnGQTFvtwVVui6kRPKs5L7ws9twr5IQWwVfzPKZ5pF2IfDa7lguMgGlCyt")
-            resValue("string", "BANNER", "")
-            resValue("string", "INTER", "")
-
-            resValue("string", "EnableAdInter", "false")
-            resValue("string", "EnableAdBanner", "false")
+        register("dev") {
+            dimension = "type"
+            resValue("string", "app_name", "Sky force U*S*A DEV")
         }
-        create("production") {
-            setDimension("type")
-//            buildConfigField("String", "FLAVOR_buildEnv", "prod")
-
-            resValue("string", "app_name", "Sky force 2024")
-
-            resValue("string", "SDK_KEY", "e75FnQfS9XTTqM1Kne69U7PW_MBgAnGQTFvtwVVui6kRPKs5L7ws9twr5IQWwVfzPKZ5pF2IfDa7lguMgGlCyt")
-            resValue("string", "BANNER", "")
-            resValue("string", "INTER", "")
-
-            resValue("string", "EnableAdInter", "true")
-            resValue("string", "EnableAdBanner", "true")
+        register("production") {
+            dimension = "type"
+            resValue("string", "app_name", "Sky force U*S*A")
         }
+    }
+
+    lint {
+        // material3 is only on the classpath transitively; source uses Material 1 only.
+        disable += "UsingMaterialAndMaterial3Libraries"
+        // Asset-quality hints, not code bugs.
+        disable += "IconLauncherShape"
+        disable += "IconMissingDensityFolder"
+        disable += "GifUsage"
+        // Fullscreen portrait-locked game; Configuration screen size is sufficient.
+        disable += "ConfigurationScreenWidthHeight"
     }
 }
 
 dependencies {
     /*Core*/
-    implementation "androidx.core:core-ktx:1.7.0"
-    implementation "com.google.android.material:material:1.4.0"
-    implementation "androidx.activity:activity-compose:1.4.0"
-    /*Compose*/
-    implementation "androidx.compose.ui:ui:1.2.0-alpha02"
-    implementation "androidx.compose.material:material:1.2.0-alpha02"
-    implementation "androidx.compose.ui:ui-tooling-preview:1.2.0-alpha02"
-//    debugImplementation "androidx.compose.ui:ui-tooling:1.2.0-alpha02"
-    /*Accompanist*/
-    implementation "com.google.accompanist:accompanist-systemuicontroller:0.20.3"
-    /*Tests*/
-//    testImplementation "junit:junit:4.13.2"
-//    testImplementation "org.mockito:mockito-core:5.6.0"
-//    testImplementation "org.mockito:mockito-inline:5.1.0"
-    /*Audio player*/
-    implementation "com.google.android.exoplayer:exoplayer:2.16.1"
-    /*Image*/
-    implementation "io.coil-kt:coil-compose:1.4.0"
-    implementation "io.coil-kt:coil-gif:1.4.0"
+    implementation "androidx.core:core-ktx:1.18.0"
+    implementation "com.google.android.material:material:1.13.0"
+    implementation "androidx.activity:activity-compose:1.13.0"
+    implementation "androidx.lifecycle:lifecycle-runtime-compose:2.10.0"
+    /*Compose (BOM aligns versions)*/
+    implementation platform("androidx.compose:compose-bom:$compose_bom_version")
+    implementation "androidx.compose.ui:ui"
+    implementation "androidx.compose.material:material"
+    implementation "androidx.compose.ui:ui-tooling-preview"
+    debugImplementation "androidx.compose.ui:ui-tooling"
+    /*Audio player (Media3, replaces ExoPlayer 2.x)*/
+    implementation "androidx.media3:media3-exoplayer:1.10.0"
+    implementation "androidx.media3:media3-common:1.10.0"
+    /*Image (Coil 3.x)*/
+    implementation "io.coil-kt.coil3:coil-compose:3.4.0"
+    implementation "io.coil-kt.coil3:coil-gif:3.4.0"
     /*Navigation*/
-    implementation "androidx.navigation:navigation-compose:2.4.0-rc01"
-    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.12")
+    implementation "androidx.navigation:navigation-compose:2.9.8"
+    debugImplementation "com.squareup.leakcanary:leakcanary-android:2.14"
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+        freeCompilerArgs.add('-Xannotation-default-target=param-property')
+    }
 }

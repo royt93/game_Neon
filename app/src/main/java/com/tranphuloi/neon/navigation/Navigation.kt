@@ -1,0 +1,6 @@
+package com.tranphuloi.neon.navigation
+
+sealed class Navigation(val route: String)
+object Splash : Navigation(route = "splash")
+object Game : Navigation(route = "game")
+object GamePause : Navigation(route = "game-pause")

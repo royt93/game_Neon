@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-A 2D vertical-scrolling shoot-'em-up Android game written in Kotlin + Jetpack Compose. The repo is named `neon` (root project + README), but the user-facing app label is set per flavor to **"Sky force 2024"** (production) / **"Sky force 2024 DEV"** (dev). Application namespace is `com.roy93group.neon`. Forked/derived from the original Neon by Mario Dujić.
+A 2D vertical-scrolling shoot-'em-up Android game written in Kotlin + Jetpack Compose. The repo is named `neon` (root project + README), but the user-facing app label is set per flavor to **"Sky force U*S*A"** (production) / **"Sky force U*S*A DEV"** (dev). Application namespace / `applicationId` is `com.tranphuloi.neon` (recently migrated from `com.roy93group.neon` — assume any lingering `roy93group` reference outside the populated source tree is stale). Forked/derived from the original Neon by Mario Dujić.
 
 ## Build & run
 
@@ -18,11 +18,13 @@ The project uses **flavor dimension `type`** with two flavors: `dev` and `produc
 ./gradlew test                          # what CI runs (.github/workflows/android-ci.yml). No tests exist yet.
 ```
 
-Toolchain pinned in code (do not "modernize" without intent):
+Toolchain pinned in code (versions live in root `build.gradle`'s `ext { ... }` and `gradle/wrapper/gradle-wrapper.properties` — bump there, not in `app/build.gradle`):
 
-- Kotlin **1.6.10**, AGP **8.0.0**, Compose Compiler `1.2.0-alpha02`, Compose libs `1.2.0-alpha02`
-- `compileSdk` / `targetSdk` 34, `minSdk` 21, Java 1.8
-- CI uses JDK 17 (Zulu) — local JDK should match for Gradle compatibility with AGP 8
+- Kotlin **2.3.20**, AGP **9.1.1**, Gradle wrapper **9.3.1**
+- Compose: Kotlin 2.x compose plugin (`org.jetbrains.kotlin.plugin.compose`, applied in `app/build.gradle`) + Compose **BOM `2026.04.01`** — individual Compose artifacts have no version, the BOM aligns them. There is no longer a separate `composeOptions { kotlinCompilerExtensionVersion ... }` block.
+- `compileSdk` / `targetSdk` **37**, `minSdk` **23**, source/target/jvmTarget all **JDK 17** (`compileOptions` + `kotlin { compilerOptions { jvmTarget = JVM_17 } }`). CI also uses JDK 17 (Zulu).
+- `kotlin.compilerOptions.freeCompilerArgs` includes `-Xannotation-default-target=param-property`. Don't strip it — it preserves Kotlin 1.x annotation-targeting semantics under Kotlin 2.x and the codebase has not been audited for the new defaults.
+- `org.gradle.configuration-cache=true` is enabled in `gradle.properties`. New Gradle code (plugins, custom tasks) must be configuration-cache-compatible (no `Project` access at execution time, no `Task.project`, etc.).
 
 The release signing key (`app/keystore.jks`) and `app/private_key.pepk` are checked in. `local.properties` is also checked in (only `sdk.dir`).
 
@@ -67,16 +69,16 @@ When adding a new entity type, mirror this five-piece structure and add it to: (
 `ui/game/stage/Stage.kt` defines the static `stages: List<Stage>` script (`StageMessage` / `StageGame` / `StageBoss` / `StageBreak`). `StageController` advances through them based on elapsed time + a `readyForNextStage` flag (true when no enemies and no space objects remain). `StageGame` carries `enemyType.spawnRate` and `spaceRockSpawnRateMillis` which the loop feeds directly into `tinker` repeat times — i.e. stage difficulty is encoded as `RepeatTime` values.
 
 ### Rendering
-`ui/game/world/GameWorld.kt` is a single `BoxWithConstraints` that draws every entity by absolute offset from state. Lasers/ship/enemies/space-objects use `Image(painterResource(...))`. The animated explosion uses **Coil** (`rememberImagePainter` + an `ImageLoader` from `utils/ImageLoader.kt`) to play a GIF (`R.drawable.anim_explosion`). The starfield uses `Canvas` with a radial gradient. The shield aura uses `Canvas` + `infiniteRepeatable` color animation between `ShipShieldOne` / `ShipShieldTwo`.
+`ui/game/world/GameWorld.kt` is a single `BoxWithConstraints` that draws every entity by absolute offset from state. Lasers/ship/enemies/space-objects use `Image(painterResource(...))`. The animated explosion uses **Coil 3.x** (`coil3.compose.rememberAsyncImagePainter` + `coil3.request.ImageRequest`) backed by an `ImageLoader` configured in `ui/game/utils/ImageLoader.kt` with `coil3.gif.AnimatedImageDecoder` / `GifDecoder` to play a GIF (`R.drawable.anim_explosion`). Note: the legacy `coil.compose.rememberImagePainter` API does **not** exist in Coil 3 — use the `coil3.*` packages and `rememberAsyncImagePainter`. The starfield uses `Canvas` with a radial gradient. The shield aura uses `Canvas` + `infiniteRepeatable` color animation between `ShipShieldOne` / `ShipShieldTwo`.
 
 ### Audio
-`ui/game/audio/AudioPlayer.kt` wraps **ExoPlayer 2.16.1** and is driven off `gameStatus` (pauses with the game).
+`ui/game/audio/AudioPlayer.kt` wraps **AndroidX Media3 ExoPlayer `1.10.0`** (`androidx.media3.exoplayer.ExoPlayer`, not the legacy `com.google.android.exoplayer2` package — that migration is already done) and is driven off `gameStatus` (pauses with the game).
 
 ## Conventions to preserve
 
 - **Don't remove the unused `refreshHandler` read** at the end of `rememberGameState()` — see above.
 - **Don't introduce new coroutine loops** for new entities. Add them as `tinker` entries inside the existing loop in `GameState.kt`. The single-loop design is intentional: it lets `gameStatus == RUNNING` be the only pause gate.
 - **State lives in `GameState.kt`, not in controllers.** Controllers receive setter lambdas. Replicate this when adding new entity domains.
-- The empty package directories `com/roy93group/neon/{game,common,utils,navigation}/...` parallel to the populated `ui/game/...` paths are leftover from a refactor — ignore them and add code under `ui/game/...`. Don't "fix" by moving files unless asked.
+- The empty package directories under `com/tranphuloi/neon/game/...` (mirroring every subpath of the populated `ui/game/...` tree) are leftover from a refactor — ignore them and add code under `ui/game/...`. Don't "fix" by moving files unless asked. (`com/tranphuloi/neon/{common,core,navigation,utils}` at the top level *are* populated — those are real and not leftovers.)
 - App.kt's TODO list (firebase, applovin, rate, share, policy) is a roadmap, not a checklist already done — `App.onCreate()` is genuinely empty.
 - LeakCanary is on the `debugImplementation` classpath; check it when investigating retention bugs.

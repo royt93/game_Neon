@@ -1,25 +1,17 @@
 buildscript {
     ext {
-//        kotlin_version = '1.6.10'
-//        compose_version = '1.2.0-alpha02'
-//        core_ktx_version = '1.7.0'
-//        material_version = '1.4.0'
-//        activity_compose_version = '1.4.0'
-//        gradle_plugin_version = '8.0.0'
-//        mockito_version = '4.1.0'
-//        junit_version = '4.13.2'
-//        accompanist_version = '0.20.3'
-//        exoplayer_version = '2.16.1'
-//        coil_version = '1.4.0'
-//        navigation_version = '2.4.0-rc01'
+        kotlin_version = '2.3.20'
+        agp_version = '9.1.1'
+        compose_bom_version = '2026.04.01'
     }
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        classpath "com.android.tools.build:gradle:8.0.0"
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.6.10"
+        classpath "com.android.tools.build:gradle:$agp_version"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "org.jetbrains.kotlin:compose-compiler-gradle-plugin:$kotlin_version"
     }
 }
 
