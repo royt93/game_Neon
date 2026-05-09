@@ -63,8 +63,15 @@ class ShipController(
         }
         var newX = ship.xOffset
         var newY = ship.yOffset
+        // Settle to play position bi-directionally. Activity recreate (config change,
+        // theme switch, etc.) preserves Ship.yOffset via rememberSaveable but resets
+        // ShipController.spawnStartMillis. If user pauses mid-spawn then resumes
+        // after spawnTotalMillis elapses, spawn anim is skipped — ship would be
+        // stuck wherever spawn left it. Pull it back to maxYOffset from either side.
         if (newY > maxYOffset) {
-            newY -= movementSpeed
+            newY = (newY - movementSpeed).coerceAtLeast(maxYOffset)
+        } else if (newY < maxYOffset) {
+            newY = (newY + movementSpeed).coerceAtMost(maxYOffset)
         }
         // Symmetric bounds: left allows ship overlap by width/4 → right matches with
         // ship.width * 0.75. Was asymmetric (-21px vs +29px overlap, ~8px diff).
