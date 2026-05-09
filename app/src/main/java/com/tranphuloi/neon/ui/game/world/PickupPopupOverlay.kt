@@ -27,10 +27,12 @@ fun PickupPopupOverlay(popups: List<PickupPopup>) {
     if (popups.isEmpty()) return
 
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(popups.size > 0) {
+    val hasPopups = popups.isNotEmpty()
+    LaunchedEffect(hasPopups) {
+        if (!hasPopups) return@LaunchedEffect
         while (true) {
             nowMillis = System.currentTimeMillis()
-            delay(33L)
+            delay(50L)
         }
     }
 

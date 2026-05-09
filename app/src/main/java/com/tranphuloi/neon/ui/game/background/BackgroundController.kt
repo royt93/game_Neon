@@ -42,27 +42,29 @@ class BackgroundController(
     /** Spawn all static entities (stars, dust, nebula, galaxy) plus seed comet timer. */
     fun init() {
         Logger.d("BackgroundController.init: building entities")
+        // Speeds in dp/SECOND (View self-animates at display rate using delta-time).
+        // Tuned for "ship flying through space" feel — layer 4 traverses 891dp in ~2s.
         stars = buildList {
-            // Layer 0 (farthest, dimmest, slowest)
-            addAll(generateStars(count = 50, layer = 0, sizeMin = 1f, sizeMax = 2f, speed = 0.15f, alpha = 0.25f, twinkles = false))
+            // Layer 0 (farthest, dimmest) — slow drift
+            addAll(generateStars(count = 32, layer = 0, sizeMin = 0.8f, sizeMax = 1.5f, speedPerSec = 30f, alpha = 0.25f, twinkles = false))
             // Layer 1
-            addAll(generateStars(count = 30, layer = 1, sizeMin = 2f, sizeMax = 3f, speed = 0.3f, alpha = 0.4f, twinkles = false))
+            addAll(generateStars(count = 20, layer = 1, sizeMin = 1.2f, sizeMax = 2f, speedPerSec = 80f, alpha = 0.4f, twinkles = false))
             // Layer 2 (mid)
-            addAll(generateStars(count = 22, layer = 2, sizeMin = 3f, sizeMax = 5f, speed = 0.5f, alpha = 0.6f, twinkles = false))
+            addAll(generateStars(count = 14, layer = 2, sizeMin = 1.8f, sizeMax = 3f, speedPerSec = 180f, alpha = 0.6f, twinkles = false))
             // Layer 3
-            addAll(generateStars(count = 14, layer = 3, sizeMin = 5f, sizeMax = 8f, speed = 0.75f, alpha = 0.8f, twinkles = false))
-            // Layer 4 (nearest, brightest, twinkles)
-            addAll(generateStars(count = 8, layer = 4, sizeMin = 7f, sizeMax = 12f, speed = 1.1f, alpha = 1.0f, twinkles = true))
+            addAll(generateStars(count = 9, layer = 3, sizeMin = 2.5f, sizeMax = 4f, speedPerSec = 320f, alpha = 0.75f, twinkles = false))
+            // Layer 4 (nearest, brightest, twinkles) — fast rush for foreground parallax illusion.
+            addAll(generateStars(count = 5, layer = 4, sizeMin = 3.5f, sizeMax = 5.5f, speedPerSec = 500f, alpha = 0.95f, twinkles = true))
         }
         Logger.d("BackgroundController.init: spawned ${stars.size} stars across 5 layers")
 
-        dust = (1..50).map {
+        dust = (1..25).map {
             DustParticle(
                 xOffset = Random.nextInt(0, screenWidth.toInt()).toFloat(),
                 yOffset = Random.nextInt(0, screenHeight.toInt()).toFloat(),
-                ySpeed = Random.nextFloat() * 1.5f + 1.5f,    // 1.5..3.0 (faster than near layer)
+                ySpeedPerSec = Random.nextFloat() * 200f + 250f,    // 250..450 dp/sec — foreground rush
                 maxYOffset = screenHeight,
-                alpha = Random.nextFloat() * 0.25f + 0.1f,    // 0.1..0.35
+                alpha = Random.nextFloat() * 0.25f + 0.1f,
             )
         }
         Logger.d("BackgroundController.init: spawned ${dust.size} dust particles")
@@ -75,7 +77,7 @@ class BackgroundController(
                 colorArgb = NEBULA_VIOLET_ARGB,
                 baseAlpha = 0.10f,
                 pulsePhase = 0f,
-                pulseSpeed = 0.012f,
+                pulseSpeedPerSec = 0.18f,    // ~0.029 Hz pulse cycle
             ),
             NebulaBlob(
                 xCenter = screenWidth * 0.85f,
@@ -84,7 +86,7 @@ class BackgroundController(
                 colorArgb = NEBULA_CYAN_ARGB,
                 baseAlpha = 0.08f,
                 pulsePhase = 1.5f,
-                pulseSpeed = 0.009f,
+                pulseSpeedPerSec = 0.135f,
             ),
             NebulaBlob(
                 xCenter = screenWidth * 0.45f,
@@ -93,7 +95,7 @@ class BackgroundController(
                 colorArgb = NEBULA_MAGENTA_ARGB,
                 baseAlpha = 0.06f,
                 pulsePhase = 3.0f,
-                pulseSpeed = 0.011f,
+                pulseSpeedPerSec = 0.165f,
             ),
         )
         Logger.d("BackgroundController.init: spawned ${nebula.size} nebula blobs")
@@ -103,7 +105,7 @@ class BackgroundController(
             yCenter = screenHeight * 0.18f,
             radius = screenWidth * 0.18f,
             rotation = 0f,
-            rotationSpeed = 0.06f,                            // ~1 rotation per minute @ 100Hz tick
+            rotationSpeedPerSec = 0.9f,                       // ~0.4 rotation per minute (very slow)
             coreColorArgb = GALAXY_CORE_ARGB,
             armColorArgb = GALAXY_ARM_ARGB,
         )
@@ -116,15 +118,12 @@ class BackgroundController(
     }
 
     val tickId: String = UUID.randomUUID().toString()
-    val tickRepeatTime = Millis(20)            // 50Hz background tick — perf-friendly
+    // 30Hz tick — only drives comet spawning + sparkle trail (rare event).
+    // Stars, dust, nebula, galaxy are now self-animated by SpaceBackgroundView at
+    // display refresh rate via postInvalidateOnAnimation, decoupled from this tick.
+    val tickRepeatTime = Millis(33)
 
     fun tick() {
-        // Update all entity states.
-        stars.forEach { it.tick() }
-        dust.forEach { it.tick() }
-        nebula.forEach { it.tick() }
-        galaxy?.tick()
-
         // Comet: advance + sparkle trail + cleanup.
         // Sparkles list is rebuilt as immutable List each tick so the render thread
         // never iterates a list being structurally mutated (fixes ConcurrentModificationException).
@@ -212,7 +211,7 @@ class BackgroundController(
         layer: Int,
         sizeMin: Float,
         sizeMax: Float,
-        speed: Float,
+        speedPerSec: Float,
         alpha: Float,
         twinkles: Boolean,
     ): List<BgStar> {
@@ -224,12 +223,12 @@ class BackgroundController(
                 baseSize = size,
                 maxYOffset = screenHeight,
                 layer = layer,
-                ySpeed = speed,
+                ySpeedPerSec = speedPerSec,
                 baseAlpha = alpha,
                 baseColorArgb = pickStarColor(),
                 twinkles = twinkles,
                 twinklePhase = Random.nextFloat() * (2f * PI.toFloat()),
-                twinkleSpeed = 0.05f + Random.nextFloat() * 0.10f,
+                twinkleSpeedPerSec = 0.75f + Random.nextFloat() * 1.5f,    // 0.75..2.25 rad/sec
             )
         }
     }

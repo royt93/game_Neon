@@ -25,15 +25,27 @@ import kotlinx.coroutines.delay
  *  - Float upward 40dp + alpha fade over 600ms lifetime.
  */
 @Composable
-fun DamageNumbersOverlay(numbers: List<DamageNumber>) {
+fun DamageNumbersOverlay(
+    numbers: List<DamageNumber>,
+    bossIntroShownAtMillis: Long = 0L,
+) {
     if (numbers.isEmpty()) return
+    // Skip rendering during 1.5s boss intro — banner at top should not be cluttered
+    // with damage numbers from upper-row enemies (per user feedback).
+    if (bossIntroShownAtMillis > 0L &&
+        System.currentTimeMillis() - bossIntroShownAtMillis < 1500L) {
+        return
+    }
 
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(numbers.size > 0) {
-        // Tick at ~30fps while there are numbers to animate.
+    val hasNumbers = numbers.isNotEmpty()
+    LaunchedEffect(hasNumbers) {
+        // BUG fix: short-circuit when list empty so we don't keep ticking forever.
+        if (!hasNumbers) return@LaunchedEffect
+        // 50ms tick (was 33ms) — 20fps is plenty for a number floating up 40dp in 600ms.
         while (true) {
             nowMillis = System.currentTimeMillis()
-            delay(33L)
+            delay(50L)
         }
     }
 

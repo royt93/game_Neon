@@ -40,11 +40,13 @@ fun PowerUpIndicators(
     modifier: Modifier = Modifier,
 ) {
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(Unit) {
-        // Tick at ~10fps so countdown rings update smoothly without burning a coroutine.
+    // Only tick when at least 1 booster is active — saves CPU when no powerups.
+    val anyActive = ship.shieldEnabled || ship.laserBoosterEnabled || ship.tripleLaserBoosterEnabled
+    LaunchedEffect(anyActive) {
+        if (!anyActive) return@LaunchedEffect
         while (true) {
             nowMillis = System.currentTimeMillis()
-            delay(100L)
+            delay(150L)                              // ~7fps for countdown ring is plenty
         }
     }
 

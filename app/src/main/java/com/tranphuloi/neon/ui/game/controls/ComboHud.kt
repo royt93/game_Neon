@@ -47,12 +47,14 @@ fun ComboHud(
 ) {
     if (count == 0 || lastKillMillis == 0L) return
 
-    // Tick at ~12fps to update decay ring smoothly without spamming recomposition.
+    // Tick at ~10fps to update decay ring (100ms) — combo decay over 2s doesn't need finer res.
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(lastKillMillis) {
-        while (true) {
+        // Auto-stop after combo timeout (no point ticking once expired).
+        val deadline = lastKillMillis + COMBO_TIMEOUT_MILLIS
+        while (System.currentTimeMillis() < deadline) {
             nowMillis = System.currentTimeMillis()
-            delay(80L)
+            delay(100L)
         }
     }
     val elapsed = (nowMillis - lastKillMillis).coerceAtLeast(0L)

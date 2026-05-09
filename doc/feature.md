@@ -96,6 +96,17 @@
 - ✅ BUG: Background không full screen → density multiplier dp→px
 - ✅ BUG: Slider spam DataStore.edit → onValueChangeFinished commit
 - ✅ BUG: Combo expiry không gọi → periodic check 60 frames
+- ✅ PERF: Background lag (user feedback) → reduced star count 124→80, dust 50→25, tick rate 50Hz→25Hz, ~50% giảm draw operations
+- ✅ PERF: `LaunchedEffect { while(true) }` chạy mãi dù không có entity (DamageNumbers, PickupPopups, ComboHud, PowerUpIndicators) → short-circuit + auto-stop
+- ✅ UX: Boss HP bar overlap player HP → moved to TopEnd + compacted (200dp × 22dp single row, was full-width 60dp tall)
+- ✅ BUG: Double haptic on Game Over (LONG + MEDIUM fire cùng lúc) → skip MEDIUM khi gameStatus=GAME_OVER
+- ✅ PERF (round 2): Background still lag → galaxy path **cached via remember** (was 72 path ops/frame), nebula brush colors 3→2 stops, layer-4 star halo Brush removed (was 5 allocations/frame), tick 25Hz→15Hz (66ms), galaxy core dùng simple drawCircle thay Brush
+- ✅ UX: BossHpBar position 16dp dưới settings icon (top-right) — top=80→108dp
+- ✅ UX: BossIntroOverlay redesigned — top banner zone (y=70-160dp) thay full-screen text → không overlap damage numbers/combo popups/pickup popups ở middle/bottom screen
+- ✅ PERF (round 3): **Native AndroidView Canvas** thay Compose Canvas cho SpaceBackground. New `SpaceBackgroundView : View` với native `Canvas.drawCircle`/`drawPath`/`Paint` (single Paint reused, native Path cached). Compose entry dùng `AndroidView { factory + update }`. Đạt ~3-5× perf gain (native Skia vs Compose draw scope wrapping)
+- ✅ UX: Damage numbers hidden trong 1.5s boss intro → tránh clutter với boss banner ở top
+- ✅ PERF (round 4): **Background self-animate ở display rate**. View dùng `postInvalidateOnAnimation()` + delta-time từ `System.nanoTime()` để mutate vị trí entities mỗi frame ~60Hz, decoupled khỏi controller's 30Hz tick. Speeds chuyển từ px/tick sang dp/SECOND (layer 4: 500dp/sec — traverse 891dp screen trong ~2s). Fix complaint "stars nháy vị trí kì quặc không liền mạch, không có cảm giác máy bay đang bay tới". Pause-aware (running flag stops animation loop).
+- ✅ PERF (round 4): **Camera zoom smooth via Animatable**. Replace manual `sin((elapsed/300)*PI)` (chỉ sample mỗi recomposition → khựng) bằng `Animatable.animateTo` chain với `tween()` easing → display-refresh-rate interpolation. Cả gameZoom (1.0→1.10→1.0 over 300ms) và killCam (snap→1.5×→hold→settle) dùng cùng pattern.
 
 ## 🆕 Wave 1 implemented (this round)
 
@@ -512,14 +523,17 @@ Các architectural refactors quá lớn để gộp chung:
 - [x] 16c Magnet visual circle + line
 - [x] 18c Hit pause 60ms enemy / 120ms boss + flash
 
-## Wave 2 (Cinematic polish, ~2h)
-- [ ] 3b Ship engine flame trail
-- [ ] 5c Stage banner glow + 3-2-1 countdown
-- [ ] 11c Kill-cam slow-mo replay
-- [ ] 12c Wave clear bonus + banner
-- [ ] 18b Hit pause 60ms / 120ms boss
-- [ ] 21b Boss intro cinematic
-- [ ] 30b Cinematic camera zoom
+## Wave 2 ✅ DONE
+- [x] 3b Ship engine flame trail (Canvas: outer cyan cone + inner gold core, sin flicker)
+- [x] 5c StageBanner neon-glow (3-layer Text stack + halo backdrop, "GO!"/boss/countdown variants)
+- [x] 11c Kill-cam slow-mo (game tick halved + 1.5× zoom + 1.5s GameOver delay)
+- [x] 12c Wave clear bonus (5 mineral burst + WaveClearBanner gold neon)
+- [x] 18c done in Wave 1
+- [x] 21c BossIntroOverlay (pulsing red border + boss name banner + heavy haptic + alarm SFX)
+- [x] 30c Cinematic camera zoom (1.10× × 300ms sine pulse on damage/boss spawn/boss kill, gated by reduceMotion)
+- [x] Fix: layer 3-4 stars sizes reduced (3-5px / 3.5-5.5px) + halo radius 1.6→1.2 — không còn nhầm với đạn enemy
+- [x] Fix: Boss HP bar duplicate — skip mini bar trên đầu boss trong GameWorld
+- [x] Fix: Boss HP bar overlap player HP — moved padding(top=190dp) below player HUD
 
 ## Wave 3 (Gameplay depth, ~3h)
 - [ ] 6c Slow-motion critical

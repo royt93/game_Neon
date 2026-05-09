@@ -71,6 +71,7 @@ fun GameWorld(
     magnetRadius: Float,
     damageNumbers: List<DamageNumber>,
     pickupPopups: List<PickupPopup>,
+    bossIntroShownAtMillis: Long,
     modifier: Modifier = Modifier,
 ) {
 
@@ -139,6 +140,12 @@ fun GameWorld(
                     .neonGlow(color = NeonGold, intensity = 0.6f, radiusFactor = 1.8f)
             )
         }
+        // 3b: Ship engine flame trail — drawn before ship sprite so flame appears
+        // to emanate from engines (ship Image covers the flame's top edge).
+        ShipEngineFlame(
+            ship = ship,
+            modifier = Modifier.fillMaxSize(),
+        )
         Box(
             modifier = Modifier
                 .size(ship.shieldSize.dp)
@@ -188,18 +195,22 @@ fun GameWorld(
                 (1f - sinceHit / 120f).coerceIn(0f, 1f)
             } else 0f
             Column(modifier = Modifier.offset(x = it.xOffset.dp, y = it.yOffset.dp)) {
-                Box(
-                    modifier = Modifier
-                        .clip(MaterialTheme.shapes.small)
-                        .size(width = it.width.dp, height = 5.dp)
-                        .background(Color.White.copy(alpha = 0.7f))
-                ) {
+                // Skip mini-HP-bar over boss heads — boss has dedicated top-screen
+                // BossHpBar already (avoid duplicate visualization).
+                if (!it.isBoss) {
                     Box(
                         modifier = Modifier
                             .clip(MaterialTheme.shapes.small)
-                            .size(width = it.hpBarWidth.dp, height = 5.dp)
-                            .background(NeonRedAlert)
-                    )
+                            .size(width = it.width.dp, height = 5.dp)
+                            .background(Color.White.copy(alpha = 0.7f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(MaterialTheme.shapes.small)
+                                .size(width = it.hpBarWidth.dp, height = 5.dp)
+                                .background(NeonRedAlert)
+                        )
+                    }
                 }
                 Box {
                     Image(
@@ -272,7 +283,11 @@ fun GameWorld(
             )
         }
         // 2c+10b: Damage numbers overlay (top-most game-world layer).
-        DamageNumbersOverlay(numbers = damageNumbers)
+        // Hidden during boss intro to avoid clutter with the boss name banner.
+        DamageNumbersOverlay(
+            numbers = damageNumbers,
+            bossIntroShownAtMillis = bossIntroShownAtMillis,
+        )
         // 4c: Mineral pickup popups.
         PickupPopupOverlay(popups = pickupPopups)
     }

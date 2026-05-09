@@ -10,10 +10,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -30,53 +31,58 @@ import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyUI
 
 /**
- * 1c: Top-screen boss HP bar with name + warning border pulse.
- * Renders only when at least one boss is alive in the enemies list.
+ * 1c: Compact top-screen boss HP bar.
+ * Compacted per user feedback — single tight row 200dp wide × ~22dp tall.
  */
 @Composable
 fun BossHpBar(
     enemies: List<EnemyUI>,
     modifier: Modifier = Modifier,
 ) {
-    // Pick first boss (game design: only 1 boss alive at a time).
     val boss = enemies.firstOrNull { it.isBoss } ?: return
     val ratio = (boss.currentHp / boss.initialHp).coerceIn(0f, 1f)
 
     val pulse = rememberInfiniteTransition(label = "bossPulse")
     val warningAlpha by pulse.animateFloat(
-        initialValue = 0.3f,
+        initialValue = 0.4f,
         targetValue = 0.85f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 600, easing = LinearEasing),
+            animation = tween(durationMillis = 800, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "bossWarningAlpha",
     )
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 32.dp, vertical = 8.dp),
+        modifier = modifier.width(200.dp),
     ) {
-        Text(
-            text = boss.displayName,
-            color = NeonRedAlert.copy(alpha = warningAlpha),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Black,
-        )
-        // Bar.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = boss.displayName,
+                color = NeonRedAlert.copy(alpha = warningAlpha),
+                fontSize = 9.sp,
+                fontWeight = FontWeight.Black,
+            )
+            Box(modifier = Modifier.width(6.dp))
+            Text(
+                text = "${boss.currentHp.toInt()}/${boss.initialHp.toInt()}",
+                color = Color.White.copy(alpha = 0.85f),
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(10.dp)
+                .height(6.dp)
                 .clip(MaterialTheme.shapes.small)
                 .background(Color.Black.copy(alpha = 0.55f))
                 .neonGlow(
                     color = NeonRedAlert,
-                    intensity = 0.35f + (1f - ratio) * 0.4f,
-                    radiusFactor = 1.3f,
+                    intensity = 0.25f + (1f - ratio) * 0.35f,
+                    radiusFactor = 1.2f,
                 ),
         ) {
             Box(
@@ -87,11 +93,5 @@ fun BossHpBar(
                     .background(NeonRedAlert),
             )
         }
-        Text(
-            text = "${boss.currentHp.toInt()} / ${boss.initialHp.toInt()}",
-            color = Color.White.copy(alpha = 0.85f),
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold,
-        )
     }
 }

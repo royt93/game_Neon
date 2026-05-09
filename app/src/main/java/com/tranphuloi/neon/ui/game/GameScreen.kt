@@ -1,5 +1,10 @@
 package com.tranphuloi.neon.ui.game
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,10 +22,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import kotlinx.coroutines.delay
 import com.tranphuloi.neon.common.NeonBgDeep
 import com.tranphuloi.neon.common.NeonBgEdge
 import com.tranphuloi.neon.common.NeonBgMid
@@ -37,6 +44,9 @@ import com.tranphuloi.neon.ui.game.background.SpaceBackground
 import com.tranphuloi.neon.ui.game.combo.ComboTier
 import com.tranphuloi.neon.ui.game.controls.AchievementBanner
 import com.tranphuloi.neon.ui.game.controls.BossHpBar
+import com.tranphuloi.neon.ui.game.controls.BossIntroOverlay
+import com.tranphuloi.neon.ui.game.controls.StageBanner
+import com.tranphuloi.neon.ui.game.controls.WaveClearBanner
 import com.tranphuloi.neon.ui.game.controls.ButtonsMovement
 import com.tranphuloi.neon.ui.game.controls.ButtonSettings
 import com.tranphuloi.neon.ui.game.controls.ComboPopup
@@ -91,14 +101,19 @@ fun GameScreen(
     val gameState = rememberGameState()
     LaunchedEffect(gameState.gameStatus) {
         if (gameState.gameStatus == GameStatus.GAME_OVER) {
-            Logger.d("GameScreen detected GAME_OVER → onGameOver(score=${gameState.mineralsEarnedTotal})")
+            Logger.d("GameScreen detected GAME_OVER → kill-cam 1500ms then onGameOver(score=${gameState.mineralsEarnedTotal})")
             if (vibrationEnabled) haptic.vibrate(HapticPattern.LONG)
             sfx.play(SfxEvent.GAME_OVER)
+            // 11c: delay navigation to play kill-cam slow-mo replay.
+            kotlinx.coroutines.delay(1500L)
             onGameOver(gameState.mineralsEarnedTotal)
         }
     }
     LaunchedEffect(gameState.lastShipDamageMillis) {
-        if (gameState.lastShipDamageMillis > 0L) {
+        // Skip MEDIUM damage haptic if ship just died — the GAME_OVER LaunchedEffect already
+        // fires HapticPattern.LONG; firing both was causing double-haptic on death.
+        if (gameState.lastShipDamageMillis > 0L &&
+            gameState.gameStatus != GameStatus.GAME_OVER) {
             if (vibrationEnabled) haptic.vibrate(HapticPattern.MEDIUM)
             sfx.play(SfxEvent.DAMAGE)
         }
@@ -127,11 +142,59 @@ fun GameScreen(
             haptic.vibrate(HapticPattern.LIGHT_TICK)
         }
     }
+    // 21c: Boss intro alarm — heavy haptic + explosion SFX as alarm sting.
+    LaunchedEffect(gameState.bossIntroShownAtMillis) {
+        if (gameState.bossIntroShownAtMillis > 0L) {
+            if (vibrationEnabled) haptic.vibrate(HapticPattern.HEAVY)
+            sfx.play(SfxEvent.EXPLOSION)
+        }
+    }
 
     AudioPlayer(gameStatus = gameState.gameStatus)
 
     val now = System.currentTimeMillis()
     val damageElapsed = (now - gameState.lastShipDamageMillis).coerceAtLeast(0L)
+
+    // 30c: cinematic camera zoom — Animatable drives display-refresh-rate interpolation
+    // (replaces previous manual sin-from-elapsed-millis which only sampled on
+    // recomposition and produced visible stutter).
+    val zoomEvents = longArrayOf(
+        gameState.lastShipDamageMillis,
+        gameState.bossIntroShownAtMillis,
+        gameState.bossKillEventMillis,
+    )
+    val nearestZoomEvent = zoomEvents.maxOrNull() ?: 0L
+    val gameZoomScaleAnim = remember { Animatable(1f) }
+    LaunchedEffect(nearestZoomEvent) {
+        if (nearestZoomEvent > 0L && !reduceMotion) {
+            gameZoomScaleAnim.animateTo(
+                targetValue = 1.10f,
+                animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
+            )
+            gameZoomScaleAnim.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
+            )
+        }
+    }
+
+    // 11c: kill-cam zoom — Animatable chain: snap → 1.5× → hold → settle.
+    val killCamScaleAnim = remember { Animatable(1f) }
+    LaunchedEffect(gameState.killCamStartedAtMillis) {
+        if (gameState.killCamStartedAtMillis > 0L && !reduceMotion) {
+            killCamScaleAnim.snapTo(1f)
+            killCamScaleAnim.animateTo(
+                targetValue = 1.5f,
+                animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing),
+            )
+            delay(1100L)
+            killCamScaleAnim.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 200, easing = LinearOutSlowInEasing),
+            )
+        }
+    }
+    val finalScale = maxOf(gameZoomScaleAnim.value, killCamScaleAnim.value)
     val shakeProgress =
         if (reduceMotion) 0f
         else (1f - (damageElapsed.toFloat() / SHAKE_DURATION_MILLIS)).coerceIn(0f, 1f)
@@ -164,6 +227,7 @@ fun GameScreen(
         // where movement buttons sit, not just the entity area.
         SpaceBackground(
             state = gameState.background,
+            running = gameState.gameStatus == GameStatus.RUNNING,
             modifier = Modifier.fillMaxSize().zIndex(0f)
         )
         // Layer 1: stage tint — subtle color bias matching enemy palette of current stage.
@@ -202,22 +266,30 @@ fun GameScreen(
                 .padding(top = 24.dp)
                 .zIndex(300f)
         )
-        // 1c: Boss HP bar — only renders when boss alive.
+        // 1c: Compact boss HP bar (200dp wide). Pinned 16dp BELOW the Settings icon
+        // (top-right). Settings ends ~y=92dp (top padding 32 + size 60), so 16dp gap
+        // gives top=108dp.
         BossHpBar(
             enemies = gameState.enemies,
             modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 80.dp)
+                .align(Alignment.TopEnd)
+                .padding(top = 108.dp, end = 12.dp)
                 .zIndex(300f)
         )
 
-        Text(
-            text = gameState.gameMessage,
+        // 5c: Neon glow stage banner replaces plain Text for stage messages.
+        StageBanner(
+            message = gameState.gameMessage,
             modifier = Modifier.align(Alignment.Center),
-            fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.h3
         )
-        Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = finalScale
+                    scaleY = finalScale
+                }
+        ) {
             GameWorld(
                 ship = gameState.ship,
                 shipLasers = gameState.shipLasers,
@@ -231,6 +303,7 @@ fun GameScreen(
                 magnetRadius = gameState.magnetRadius,
                 damageNumbers = gameState.damageNumbers,
                 pickupPopups = gameState.pickupPopups,
+                bossIntroShownAtMillis = gameState.bossIntroShownAtMillis,
                 modifier = Modifier
                     .weight(1f)
                     .layout { measurable, constraints ->
@@ -279,6 +352,19 @@ fun GameScreen(
                     .zIndex(250f)
             )
         }
+        // 12c: Wave clear bonus banner.
+        WaveClearBanner(
+            shownAtMillis = gameState.waveClearBannerShownMillis,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .zIndex(420f)
+        )
+        // 21c: Boss intro overlay — pulsing red border + boss name + alarm SFX.
+        BossIntroOverlay(
+            bossName = gameState.bossIntroName,
+            shownAtMillis = gameState.bossIntroShownAtMillis,
+            modifier = Modifier.zIndex(440f),
+        )
         // 9b: Achievement banner (slide-in 3s).
         AchievementBanner(
             achievement = gameState.achievementUnlocked,

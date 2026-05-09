@@ -106,6 +106,10 @@ fun rememberGameState(): GameState {
     }
     var lastShipDamageMillis by remember { mutableLongStateOf(0L) }
     var lastBoosterPickupMillis by remember { mutableLongStateOf(0L) }
+    // 11c: Kill-cam state — when ship destroyed, GameScreen delays GAME_OVER navigation
+    // by KILL_CAM_DURATION_MS to play slow-mo replay.
+    var killCamStartedAtMillis by remember { mutableLongStateOf(0L) }
+    var bossKillEventMillis by remember { mutableLongStateOf(0L) }      // 30c camera zoom event
     val settingsRepo = com.tranphuloi.neon.data.LocalSettings.current
     val difficultyState = settingsRepo.difficulty
         .collectAsState(initial = com.tranphuloi.neon.data.Difficulty.NORMAL)
@@ -116,7 +120,11 @@ fun rememberGameState(): GameState {
             screenHeight = screenHeight,
             ship = ship,
             setShip = { ship = it },
-            onShipDestroyed = { setGameStatus(GameStatus.GAME_OVER) },
+            onShipDestroyed = {
+                killCamStartedAtMillis = System.currentTimeMillis()
+                Logger.d("Kill-cam triggered @ $killCamStartedAtMillis (delay GAME_OVER 1500ms)")
+                setGameStatus(GameStatus.GAME_OVER)
+            },
             onShipDamaged = {
                 lastShipDamageMillis = System.currentTimeMillis()
                 Logger.d("Ship damaged event @ $lastShipDamageMillis (will trigger shake+flash)")
@@ -273,8 +281,12 @@ fun rememberGameState(): GameState {
                 comboController.onEnemyKilled()
                 comboCount = comboController.count
                 comboTier = comboController.currentTier()
-                if (enemy.isBoss) hitStopController.freezeForBossKill()
-                else hitStopController.freezeForEnemyKill()
+                if (enemy.isBoss) {
+                    hitStopController.freezeForBossKill()
+                    bossKillEventMillis = System.currentTimeMillis()        // 30c camera zoom
+                } else {
+                    hitStopController.freezeForEnemyKill()
+                }
                 // Achievement triggers
                 coroutineScope.launch {
                     unlockAchievement(Achievement.FIRST_BLOOD)
@@ -297,12 +309,47 @@ fun rememberGameState(): GameState {
 
     var gameMessage by rememberSaveable { mutableStateOf("") }
     var lastStageAdvanceMillis by remember { mutableLongStateOf(0L) }
+    var waveClearBannerShownMillis by remember { mutableLongStateOf(0L) }
+    var bossIntroShownAtMillis by remember { mutableLongStateOf(0L) }
+    var bossIntroName by remember { mutableStateOf("") }
 
     val stageController = rememberSaveable(saver = StageController.saver()) {
         StageController(
-            onStageAdvance = { idx, _ ->
+            onStageAdvance = { idx, newStage ->
                 magnetRadiusState.floatValue = (80f + (idx / 5) * 10f).coerceAtMost(200f)
                 lastStageAdvanceMillis = System.currentTimeMillis()
+                // 12c: Wave clear bonus — when transitioning OUT of a StageGame to next stage,
+                // burst 5 minerals at center and trigger banner.
+                val previousIdx = idx - 1
+                val previousWasGame =
+                    previousIdx >= 0 &&
+                        previousIdx < com.tranphuloi.neon.ui.game.stage.stages.size &&
+                        com.tranphuloi.neon.ui.game.stage.stages[previousIdx] is com.tranphuloi.neon.ui.game.stage.StageGame
+                if (previousWasGame) {
+                    waveClearBannerShownMillis = System.currentTimeMillis()
+                    val cx = screenWidth / 2f
+                    val cy = screenHeight / 3f
+                    repeat(5) { i ->
+                        mineralsController.addMinerals(
+                            xOffset = cx - 40f + i * 20f,
+                            yOffset = cy,
+                            width = 25f,
+                            mineralAmount = 1,
+                        )
+                    }
+                    Logger.d("Wave clear bonus: 5 minerals burst + banner")
+                }
+                // 21c: Boss intro cinematic — fire when entering a StageBoss.
+                if (newStage is com.tranphuloi.neon.ui.game.stage.StageBoss) {
+                    val bossName = when (newStage.enemyType) {
+                        com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBossType -> "LEVEL 1 BOSS"
+                        com.tranphuloi.neon.ui.game.enemy.ship.model.LevelTwoBossType -> "LEVEL 2 BOSS"
+                        else -> "BOSS"
+                    }
+                    bossIntroName = bossName
+                    bossIntroShownAtMillis = System.currentTimeMillis()
+                    Logger.d("Boss intro: $bossName cinematic triggered")
+                }
                 Logger.d("StageController.onStageAdvance idx=$idx → magnet=${magnetRadiusState.floatValue}px")
             }
         )
@@ -363,7 +410,20 @@ fun rememberGameState(): GameState {
             launch(IO) {
                 var frameCount = 0L
                 while (loopRunning) {
-                    if (gameStatus == GameStatus.RUNNING && !hitStopController.isFrozen()) {
+                    // 11c kill-cam: slow tick by 50% during 1.5s after ship death.
+                    val killCamElapsed = System.currentTimeMillis() - killCamStartedAtMillis
+                    val inKillCam = killCamStartedAtMillis > 0L && killCamElapsed < 1500L
+                    val statusActiveForLoop = gameStatus == GameStatus.RUNNING ||
+                        (gameStatus == GameStatus.GAME_OVER && inKillCam)
+                    if (statusActiveForLoop && !hitStopController.isFrozen()) {
+                        if (inKillCam) {
+                            // Skip every other tick to halve effective speed.
+                            if (frameCount % 2L != 0L) {
+                                frameCount++
+                                yield()
+                                continue
+                            }
+                        }
                         frameCount++
                         tinker(
                             id = backgroundController.tickId,
@@ -586,6 +646,11 @@ fun rememberGameState(): GameState {
         bossKillFlashMillis = bossKillFlashMillis,
         achievementUnlocked = achievementUnlocked,
         achievementShownAtMillis = achievementShownAtMillis,
+        waveClearBannerShownMillis = waveClearBannerShownMillis,
+        bossIntroShownAtMillis = bossIntroShownAtMillis,
+        bossIntroName = bossIntroName,
+        killCamStartedAtMillis = killCamStartedAtMillis,
+        bossKillEventMillis = bossKillEventMillis,
         moveShipLeft = { shipController.movingLeft = it },
         moveShipRight = { shipController.movingRight = it },
         toggleGameStatus = {
@@ -630,6 +695,11 @@ data class GameState(
     val bossKillFlashMillis: Long,
     val achievementUnlocked: Achievement?,
     val achievementShownAtMillis: Long,
+    val waveClearBannerShownMillis: Long,
+    val bossIntroShownAtMillis: Long,
+    val bossIntroName: String,
+    val killCamStartedAtMillis: Long,
+    val bossKillEventMillis: Long,
     val moveShipLeft: (Boolean) -> Unit,
     val moveShipRight: (Boolean) -> Unit,
     val toggleGameStatus: () -> Unit,

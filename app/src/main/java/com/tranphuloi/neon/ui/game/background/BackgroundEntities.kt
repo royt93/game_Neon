@@ -18,19 +18,19 @@ data class BgStar(
     val baseSize: Float,
     val maxYOffset: Float,
     val layer: Int,                 // 0=farthest, 4=nearest
-    val ySpeed: Float,
+    val ySpeedPerSec: Float,        // dp per second
     val baseAlpha: Float,
     val baseColorArgb: Long,        // packed ARGB (Long-safe across process death)
     val twinkles: Boolean,
     var twinklePhase: Float = 0f,
-    val twinkleSpeed: Float = 1f,
+    val twinkleSpeedPerSec: Float = 1f,   // radians per second
 ) : Serializable {
 
-    fun tick() {
-        yOffset += ySpeed
+    fun advance(dt: Float) {
+        yOffset += ySpeedPerSec * dt
         if (yOffset > maxYOffset) yOffset = -baseSize
         if (twinkles) {
-            twinklePhase += twinkleSpeed
+            twinklePhase += twinkleSpeedPerSec * dt
             // Wrap to keep float small/precise.
             if (twinklePhase > 6.28318f) twinklePhase -= 6.28318f
         }
@@ -55,11 +55,11 @@ data class NebulaBlob(
     val colorArgb: Long,
     val baseAlpha: Float,
     var pulsePhase: Float,
-    val pulseSpeed: Float,
+    val pulseSpeedPerSec: Float,    // radians per second
 ) : Serializable {
 
-    fun tick() {
-        pulsePhase += pulseSpeed
+    fun advance(dt: Float) {
+        pulsePhase += pulseSpeedPerSec * dt
         if (pulsePhase > 6.28318f) pulsePhase -= 6.28318f
     }
 
@@ -77,13 +77,13 @@ data class NebulaBlob(
 data class DustParticle(
     var xOffset: Float,
     var yOffset: Float,
-    val ySpeed: Float,
+    val ySpeedPerSec: Float,        // dp per second
     val maxYOffset: Float,
     val alpha: Float,
 ) : Serializable {
 
-    fun tick() {
-        yOffset += ySpeed
+    fun advance(dt: Float) {
+        yOffset += ySpeedPerSec * dt
         if (yOffset > maxYOffset) yOffset = -2f
     }
 }
@@ -146,13 +146,13 @@ data class Galaxy(
     val yCenter: Float,
     val radius: Float,
     var rotation: Float,
-    val rotationSpeed: Float,
+    val rotationSpeedPerSec: Float, // degrees per second
     val coreColorArgb: Long,
     val armColorArgb: Long,
 ) : Serializable {
 
-    fun tick() {
-        rotation += rotationSpeed
+    fun advance(dt: Float) {
+        rotation += rotationSpeedPerSec * dt
         if (rotation > 360f) rotation -= 360f
     }
 
