@@ -39,7 +39,16 @@ fun PickupPopupOverlay(popups: List<PickupPopup>) {
         val t = p.progress(nowMillis)
         if (t >= 1f) return@forEach
         val yOffset = p.initialY - PickupPopup.FLOAT_DISTANCE * t
-        // Always gold (was magenta-on-combo which confused users); larger size for combo
+        // Zoom-in/zoom-out scale curve: 0..0.18 punch in (0→1.4), 0.18..0.45 settle
+        // (1.4→1.0), then hold at 1.0 while floating up + alpha fading. Combo gets
+        // a bigger peak (1.6) for emphasis.
+        val peakScale = if (p.isComboBonus) 1.6f else 1.4f
+        val scale = when {
+            t < 0.18f -> peakScale * (t / 0.18f)
+            t < 0.45f -> peakScale - (peakScale - 1f) * ((t - 0.18f) / 0.27f)
+            else -> 1f
+        }
+        // Always gold (was magenta-on-combo which confused users); larger font for combo
         // emphasizes the bonus amount without changing color.
         Text(
             text = p.text,
@@ -48,7 +57,11 @@ fun PickupPopupOverlay(popups: List<PickupPopup>) {
             fontWeight = FontWeight.Bold,
             modifier = Modifier
                 .offset(x = p.xOffset.dp, y = yOffset.dp)
-                .graphicsLayer { alpha = 1f - t },
+                .graphicsLayer {
+                    alpha = 1f - t
+                    scaleX = scale
+                    scaleY = scale
+                },
         )
     }
 }

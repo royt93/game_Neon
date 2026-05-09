@@ -21,6 +21,9 @@ interface Enemy : Serializable {
     val isBoss: Boolean
     val displayName: String
 
+    /** True while boss is sliding from off-screen to patrol position. */
+    val isInEntryPhase: Boolean get() = false
+
     fun enemyRect(): Rect
     fun process()
     fun generateLasers(): List<Laser>

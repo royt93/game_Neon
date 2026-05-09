@@ -22,8 +22,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -195,6 +197,17 @@ fun GameScreen(
         }
     }
     val finalScale = maxOf(gameZoomScaleAnim.value, killCamScaleAnim.value)
+
+    // Camera follow ship: zoom pivots on ship's screen-space position so the ship
+    // stays in frame and UI edges aren't cropped relative to the action. Pivot
+    // expressed as fraction (0..1) of the column dimensions = full screen.
+    val configuration = LocalConfiguration.current
+    val screenWidthDp = configuration.screenWidthDp.toFloat()
+    val screenHeightDp = configuration.screenHeightDp.toFloat()
+    val shipPivotX = ((gameState.ship.xOffset + gameState.ship.width / 2f) / screenWidthDp)
+        .coerceIn(0f, 1f)
+    val shipPivotY = ((gameState.ship.yOffset + gameState.ship.height / 2f) / screenHeightDp)
+        .coerceIn(0f, 1f)
     val shakeProgress =
         if (reduceMotion) 0f
         else (1f - (damageElapsed.toFloat() / SHAKE_DURATION_MILLIS)).coerceIn(0f, 1f)
@@ -288,6 +301,8 @@ fun GameScreen(
                 .graphicsLayer {
                     scaleX = finalScale
                     scaleY = finalScale
+                    // Pivot on ship — UI doesn't crop ship-relative areas during kill-cam.
+                    transformOrigin = TransformOrigin(shipPivotX, shipPivotY)
                 }
         ) {
             GameWorld(

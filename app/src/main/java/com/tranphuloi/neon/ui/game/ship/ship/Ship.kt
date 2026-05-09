@@ -21,6 +21,11 @@ data class Ship(
     val xOffset: Float,
     val yOffset: Float,
     val hp: Int = 1000,
+    // Spawn cinematic transforms — driven by ShipController during fly-in.
+    // Default values (1, 0, 1) are the "live" steady state once spawn finishes.
+    val spawnAlpha: Float = 0f,
+    val spawnRotation: Float = 0f,
+    val spawnScale: Float = 0.6f,
     @DrawableRes val drawableId: Int = R.drawable.ship_regular_laser,
 ) : Serializable {
     val shieldRadius: Float get() = shieldSize / 2

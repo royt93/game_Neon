@@ -40,6 +40,7 @@ data class LevelTwoBoss(
     override var yOffset: Float = -height
     private val entryTargetY: Float = 100f
     private val entrySpeed: Float = 2.0f
+    override val isInEntryPhase: Boolean get() = yOffset < entryTargetY
 
     override fun enemyRect(): Rect {
         return Rect(

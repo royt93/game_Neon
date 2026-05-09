@@ -45,6 +45,7 @@ data class LevelOneBoss(
     // before normal patrol movement begins.
     override var yOffset: Float = -height
     private val entrySpeed: Float = 2.0f                     // ~400 px/sec at 5ms tick
+    override val isInEntryPhase: Boolean get() = yOffset < minYOffset
 
     override fun enemyRect(): Rect {
         return Rect(

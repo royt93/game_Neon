@@ -75,33 +75,68 @@ class ShipController(
     private fun applySpawnPath(elapsed: Long) {
         val phase1End = spawnFlyUpMillis
         val phase2End = phase1End + spawnSwayMillis
+
+        var x: Float
+        var y: Float
+        var alpha: Float
+        var scale: Float
+        var rotation: Float
+
         when {
             elapsed < phase1End -> {
-                // Phase 1: fly up bottom → center, cubic ease-out.
+                // Phase 1: fly up bottom → center with overshoot back-out easing.
+                // Materialize: alpha 0→1, scale 0.6→1.0, slight initial tilt that
+                // straightens out as ship reaches center.
                 val t = elapsed / phase1End.toFloat()
-                val tEase = 1f - (1f - t) * (1f - t) * (1f - t)
-                updateXOffset(spawnCenterX)
-                updateYOffset(spawnStartY + (spawnCenterY - spawnStartY) * tEase)
+                // back-out: 1 + c*(t-1)^3 + c2*(t-1)^2  with c=2.7, c2=1.7 (gentle overshoot)
+                val tt = t - 1f
+                val tEase = 1f + 2.7f * tt * tt * tt + 1.7f * tt * tt
+                x = spawnCenterX
+                y = spawnStartY + (spawnCenterY - spawnStartY) * tEase
+                alpha = (t * 1.4f).coerceAtMost(1f)              // fade-in 0..0.71
+                scale = 0.6f + 0.4f * (1f - (1f - t) * (1f - t)) // ease-out quadratic 0.6→1.0
+                rotation = -8f * (1f - t)                         // initial -8° tilt → 0°
             }
             elapsed < phase2End -> {
                 // Phase 2: sway side-to-side at center, damped sine wave.
+                // Banking rotation: tilt INTO the sway direction (cinematic flight feel).
+                // Subtle vertical bob.
                 val swayElapsed = elapsed - phase1End
                 val swayT = swayElapsed / spawnSwayMillis.toFloat()
                 val swayPhase = swayT * (PI.toFloat() * 2f) * 1.5f   // 1.5 oscillations
                 val damp = 1f - swayT * 0.4f
                 val swayX = sin(swayPhase) * 90f * damp
-                updateXOffset(spawnCenterX + swayX)
-                updateYOffset(spawnCenterY)
+                val bobY = sin(swayPhase * 2f) * 6f * damp
+                x = spawnCenterX + swayX
+                y = spawnCenterY + bobY
+                alpha = 1f
+                scale = 1f
+                // Banking turn: cos of swayPhase peaks when swayX is at extrema → tilt.
+                rotation = -kotlin.math.cos(swayPhase) * 14f * damp
             }
             else -> {
-                // Phase 3: fly down center → play position, smoothstep ease-in-out.
+                // Phase 3: fly down center → play position, smoothstep + tilt return to 0.
                 val downElapsed = elapsed - phase2End
                 val downT = (downElapsed / spawnFlyDownMillis.toFloat()).coerceIn(0f, 1f)
                 val tEase = downT * downT * (3f - 2f * downT)
-                updateXOffset(spawnCenterX)
-                updateYOffset(spawnCenterY + (maxYOffset - spawnCenterY) * tEase)
+                x = spawnCenterX
+                y = spawnCenterY + (maxYOffset - spawnCenterY) * tEase
+                alpha = 1f
+                scale = 1f
+                // Whatever rotation phase 2 ended at — smoothly settle to 0.
+                rotation = 0f
             }
         }
+
+        // Single ship.copy() per frame — avoid 3 separate setShip allocations.
+        ship = ship.copy(
+            xOffset = x,
+            yOffset = y,
+            spawnAlpha = alpha,
+            spawnScale = scale,
+            spawnRotation = rotation,
+        )
+        setShip(ship)
     }
 
     fun isSpawning(): Boolean =

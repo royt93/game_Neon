@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -47,6 +48,7 @@ import com.tranphuloi.neon.common.ShipShieldOne
 import com.tranphuloi.neon.common.ShipShieldTwo
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.ui.game.booster.BoosterUI
+import com.tranphuloi.neon.ui.game.controls.BossEntryLightning
 import com.tranphuloi.neon.ui.game.damage.DamageNumber
 import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyUI
 import com.tranphuloi.neon.ui.game.pickup.PickupPopup
@@ -150,6 +152,14 @@ fun GameWorld(
             modifier = Modifier
                 .size(ship.shieldSize.dp)
                 .offset(x = ship.xOffset.dp, y = ship.yOffset.dp)
+                .graphicsLayer {
+                    // Spawn cinematic transforms — drive from ShipController.applySpawnPath.
+                    // After spawn finishes these are 1f / 1f / 0f and become a no-op.
+                    alpha = ship.spawnAlpha
+                    scaleX = ship.spawnScale
+                    scaleY = ship.spawnScale
+                    rotationZ = ship.spawnRotation
+                }
         ) {
             if (ship.shieldEnabled) {
                 Canvas(
@@ -213,6 +223,27 @@ fun GameWorld(
                     }
                 }
                 Box {
+                    // Boss thrust trail — render fading copies stacked upward when boss
+                    // is sliding down from off-screen. Looks like rocket motion blur.
+                    if (it.isBoss && it.isInEntryPhase) {
+                        for (i in 1..4) {
+                            val trailAlpha = (1f - i * 0.22f).coerceIn(0f, 1f) * 0.55f
+                            Image(
+                                painter = painterResource(id = it.drawableId),
+                                contentDescription = null,
+                                contentScale = ContentScale.FillBounds,
+                                modifier = Modifier
+                                    .size(width = it.width.dp, height = it.height.dp)
+                                    .offset(y = -(i * 30).dp)
+                                    .alpha(trailAlpha)
+                                    .neonGlow(
+                                        color = NeonMagenta,
+                                        intensity = 0.4f * trailAlpha,
+                                        radiusFactor = 1.4f,
+                                    )
+                            )
+                        }
+                    }
                     Image(
                         painterResource(id = it.drawableId),
                         contentDescription = stringResource(id = R.string.enemy),
@@ -238,6 +269,11 @@ fun GameWorld(
                     }
                 }
             }
+        }
+        // Boss entry lightning crackle — drawn after enemies so bolts overlay the
+        // boss + thrust trail. Filter for entry-phase boss(es) only.
+        enemies.filter { it.isBoss && it.isInEntryPhase }.forEach { boss ->
+            BossEntryLightning(boss = boss, modifier = Modifier.fillMaxSize())
         }
         minerals.forEach {
             Box(

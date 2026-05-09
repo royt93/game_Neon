@@ -20,4 +20,5 @@ data class EnemyUI(
     val displayName: String = "",
     val currentHp: Float = 0f,
     val initialHp: Float = 0f,
+    val isInEntryPhase: Boolean = false,
 ) : Serializable

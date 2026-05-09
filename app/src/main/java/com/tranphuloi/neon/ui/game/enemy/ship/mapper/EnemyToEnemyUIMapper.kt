@@ -20,6 +20,7 @@ class EnemyToEnemyUIMapper {
                 displayName = displayName,
                 currentHp = hp,
                 initialHp = initialHp,
+                isInEntryPhase = isInEntryPhase,
             )
         }
     }
