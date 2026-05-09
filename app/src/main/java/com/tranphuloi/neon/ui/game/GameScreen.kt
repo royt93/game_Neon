@@ -9,6 +9,8 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -20,10 +22,21 @@ import com.tranphuloi.neon.common.NeonBgDeep
 import com.tranphuloi.neon.common.NeonBgEdge
 import com.tranphuloi.neon.common.NeonBgMid
 import com.tranphuloi.neon.common.NeonRedAlert
+import com.tranphuloi.neon.data.LocalSettings
 import com.tranphuloi.neon.ui.game.audio.AudioPlayer
+import com.tranphuloi.neon.ui.game.audio.LocalSfx
+import com.tranphuloi.neon.ui.game.audio.SfxEvent
+import com.tranphuloi.neon.ui.game.combo.ComboTier
 import com.tranphuloi.neon.ui.game.controls.ButtonsMovement
 import com.tranphuloi.neon.ui.game.controls.ButtonSettings
+import com.tranphuloi.neon.ui.game.controls.ComboPopup
 import com.tranphuloi.neon.ui.game.controls.IndicatorStatus
+import com.tranphuloi.neon.ui.game.controls.PowerUpIndicators
+import com.tranphuloi.neon.ui.game.controls.SynthwaveGrid
+import com.tranphuloi.neon.ui.game.controls.TutorialOverlay
+import com.tranphuloi.neon.ui.game.controls.Vignette
+import com.tranphuloi.neon.ui.game.haptic.HapticPattern
+import com.tranphuloi.neon.ui.game.haptic.LocalHaptic
 import com.tranphuloi.neon.ui.game.settings.GameStatus
 import com.tranphuloi.neon.ui.game.state.rememberGameState
 import com.tranphuloi.neon.ui.game.world.GameWorld
@@ -42,11 +55,50 @@ fun GameScreen(
     onGameOver: (score: String) -> Unit,
 ) {
     LaunchedEffect(Unit) { Logger.d("GameScreen entered") }
+    val haptic = LocalHaptic.current
+    val sfx = LocalSfx.current
+    val settings = LocalSettings.current
+    val reduceMotion by settings.reduceMotion.collectAsState(initial = false)
+    val vibrationEnabled by settings.vibrationEnabled.collectAsState(initial = true)
+    val tutorialShown by settings.tutorialShown.collectAsState(initial = true) // optimistic to avoid flash on first compose
+
     val gameState = rememberGameState()
     LaunchedEffect(gameState.gameStatus) {
         if (gameState.gameStatus == GameStatus.GAME_OVER) {
             Logger.d("GameScreen detected GAME_OVER → onGameOver(score=${gameState.mineralsEarnedTotal})")
+            if (vibrationEnabled) haptic.vibrate(HapticPattern.LONG)
+            sfx.play(SfxEvent.GAME_OVER)
             onGameOver(gameState.mineralsEarnedTotal)
+        }
+    }
+    LaunchedEffect(gameState.lastShipDamageMillis) {
+        if (gameState.lastShipDamageMillis > 0L) {
+            if (vibrationEnabled) haptic.vibrate(HapticPattern.MEDIUM)
+            sfx.play(SfxEvent.DAMAGE)
+        }
+    }
+    LaunchedEffect(gameState.lastBoosterPickupMillis) {
+        if (gameState.lastBoosterPickupMillis > 0L) {
+            if (vibrationEnabled) haptic.vibrate(HapticPattern.LIGHT_TICK)
+            sfx.play(SfxEvent.PICKUP)
+        }
+    }
+    LaunchedEffect(gameState.lastEnemyKillMillis) {
+        if (gameState.lastEnemyKillMillis > 0L) {
+            sfx.play(SfxEvent.EXPLOSION)
+            // Per-tier haptic on combo escalations.
+            if (vibrationEnabled) {
+                when (gameState.comboTier) {
+                    ComboTier.RAMPAGE, ComboTier.UNSTOPPABLE -> haptic.vibrate(HapticPattern.MEDIUM)
+                    ComboTier.GODLIKE -> haptic.vibrate(HapticPattern.HEAVY)
+                    else -> Unit
+                }
+            }
+        }
+    }
+    LaunchedEffect(gameState.lastStageAdvanceMillis) {
+        if (gameState.lastStageAdvanceMillis > 0L && vibrationEnabled) {
+            haptic.vibrate(HapticPattern.LIGHT_TICK)
         }
     }
 
@@ -55,9 +107,11 @@ fun GameScreen(
     val now = System.currentTimeMillis()
     val damageElapsed = (now - gameState.lastShipDamageMillis).coerceAtLeast(0L)
     val shakeProgress =
-        (1f - (damageElapsed.toFloat() / SHAKE_DURATION_MILLIS)).coerceIn(0f, 1f)
+        if (reduceMotion) 0f
+        else (1f - (damageElapsed.toFloat() / SHAKE_DURATION_MILLIS)).coerceIn(0f, 1f)
     val flashProgress =
-        (1f - (damageElapsed.toFloat() / FLASH_DURATION_MILLIS)).coerceIn(0f, 1f)
+        if (reduceMotion) (1f - (damageElapsed.toFloat() / FLASH_DURATION_MILLIS)).coerceIn(0f, 1f) * 0.5f
+        else (1f - (damageElapsed.toFloat() / FLASH_DURATION_MILLIS)).coerceIn(0f, 1f)
     val shakeAmplitude = SHAKE_MAX_PX * shakeProgress
     val shakeX =
         if (shakeAmplitude > 0f) (sin(damageElapsed / 18.0) * shakeAmplitude).toFloat() else 0f
@@ -73,6 +127,11 @@ fun GameScreen(
                 )
             )
     ) {
+        // Synthwave grid lines behind everything (1c cinematic).
+        if (!reduceMotion) {
+            SynthwaveGrid(modifier = Modifier.fillMaxSize().zIndex(0f))
+        }
+
         IndicatorStatus(
             gameTime = gameState.gameTimeIndicator,
             hp = gameState.ship.hp,
@@ -90,6 +149,15 @@ fun GameScreen(
             gameState.toggleGameStatus()
             onGamePause()
         }
+        // Power-up duration indicators (Ec).
+        PowerUpIndicators(
+            ship = gameState.ship,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 24.dp)
+                .zIndex(300f)
+        )
+
         Text(
             text = gameState.gameMessage,
             modifier = Modifier.align(Alignment.Center),
@@ -126,6 +194,28 @@ fun GameScreen(
                 modifier = Modifier.padding(bottom = 24.dp)
             )
         }
+
+        // Vignette dark frame (1c cinematic).
+        Vignette(
+            hp = gameState.ship.hp,
+            modifier = Modifier.fillMaxSize().zIndex(150f)
+        )
+
+        // Combo popup (Kc).
+        ComboPopup(
+            tier = gameState.comboPopupTier,
+            shownAtMillis = gameState.comboPopupShownMillis,
+            modifier = Modifier.align(Alignment.Center).zIndex(400f)
+        )
+
+        // Tutorial overlay (Nb): show on first ever game session.
+        if (!tutorialShown) {
+            TutorialOverlay(
+                modifier = Modifier.fillMaxSize().zIndex(500f)
+            )
+        }
+
+        // Damage flash overlay (gated by reduceMotion).
         if (flashProgress > 0f) {
             Box(
                 modifier = Modifier

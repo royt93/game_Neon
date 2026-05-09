@@ -11,6 +11,7 @@ import com.tranphuloi.neon.ui.game.enemy.ship.model.RegularEnemyType
 import com.tranphuloi.neon.ui.game.enemy.ship.model.Row
 import com.tranphuloi.neon.ui.game.enemy.ship.model.ZigZag
 import com.tranphuloi.neon.ui.game.ship.ship.Ship
+import com.tranphuloi.neon.utils.Logger
 
 class EnemyFactory(
     private val screenWidth: Float,
@@ -30,6 +31,7 @@ class EnemyFactory(
                         type = type
                     )
                     enemies += enemy
+                    Logger.d("EnemyFactory: ZigZag spawn drawable=${type.drawableId} hp=${type.hp} formation=${type.formation}")
                 }
 
                 is Row -> {
@@ -46,6 +48,7 @@ class EnemyFactory(
                         )
                         enemies += enemy
                     }
+                    Logger.d("EnemyFactory: Row spawn count=${type.formation.rowCount} drawable=${type.drawableId} hp=${type.hp}")
                 }
             }
         } else if (type is LevelOneBossType && enemies.isEmpty()) {
@@ -55,9 +58,11 @@ class EnemyFactory(
                 getShip = getShip
             )
             enemies += boss
+            Logger.w("EnemyFactory: LevelOneBoss SPAWNED hp=${boss.hp.toInt()} impactPower=${boss.impactPower}")
         } else if (type is LevelTwoBossType && enemies.isEmpty()) {
             val boss = LevelTwoBoss(screenWidth = screenWidth, screenHeight = screenHeight)
             enemies += boss
+            Logger.w("EnemyFactory: LevelTwoBoss SPAWNED hp=${boss.hp.toInt()} impactPower=${boss.impactPower}")
         }
         return enemies
     }

@@ -1,0 +1,21 @@
+<resources>
+    <string name="game_left_button">Sang trái</string>
+    <string name="game_settings_button">Cài đặt</string>
+    <string name="game_hp_indicator">Chỉ số HP</string>
+    <string name="game_right_button">Sang phải</string>
+    <string name="ship">Phi thuyền</string>
+    <string name="enemy">Kẻ địch</string>
+    <string name="enemy_laser">Tia của địch</string>
+    <string name="space_object">Vật thể không gian</string>
+    <string name="booster">Vật phẩm</string>
+    <string name="laser">Tia laser</string>
+    <string name="splash">Ảnh khởi động</string>
+    <string name="restart_game_button">Chơi lại</string>
+    <string name="resume_game_button">Tiếp tục</string>
+    <string name="settings_button">Cài đặt</string>
+    <string name="game_pause_dialog_title">TẠM DỪNG</string>
+    <string name="game_over_dialog_title">KẾT THÚC</string>
+    <string name="game_over_dialog_score">Khoáng thạch: %1$s</string>
+    <string name="mineral_content_description">Khoáng thạch</string>
+    <string name="explosion_content_description">Vụ nổ</string>
+</resources>

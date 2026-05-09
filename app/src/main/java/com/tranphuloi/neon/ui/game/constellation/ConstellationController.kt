@@ -1,6 +1,7 @@
 package com.tranphuloi.neon.ui.game.constellation
 
 import com.tranphuloi.neon.ui.game.common.Millis
+import com.tranphuloi.neon.utils.Logger
 import java.util.*
 import kotlin.random.Random
 
@@ -10,6 +11,7 @@ class ConstellationController(
 ) {
 
     fun createStars(screenWidth: Float, screenHeight: Float) {
+        Logger.d("ConstellationController.createStars: screen=${screenWidth}x${screenHeight}")
         val starList = mutableListOf<Star>()
         for (i in 0..30) {
             val starXOffset = Random.nextInt(0, screenWidth.toInt())
@@ -23,6 +25,7 @@ class ConstellationController(
             )
             starList.add(star)
         }
+        Logger.d("ConstellationController.createStars: spawned ${starList.size} stars")
         setStars(starList.toList())
     }
 

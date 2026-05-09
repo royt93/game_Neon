@@ -13,6 +13,8 @@ import com.tranphuloi.neon.ui.game.spaceObject.SpaceObject
 import com.tranphuloi.neon.utils.Logger
 import java.util.*
 
+// init log placed in init {} block below
+
 class ShipController(
     private val screenWidth: Float,
     screenHeight: Float,
@@ -20,7 +22,13 @@ class ShipController(
     private val setShip: (Ship) -> Unit,
     private val onShipDestroyed: () -> Unit = {},
     private val onShipDamaged: () -> Unit = {},
+    private val onBoosterPickedUp: () -> Unit = {},
+    private val damageMultiplier: () -> Float = { 1f },
 ) {
+
+    init {
+        Logger.d("ShipController init: screen=${screenWidth}x${screenHeight}, ship hp=${ship.hp}")
+    }
 
     private val spaceShipCollidePower: Float = 100f
     private val movementSpeed: Float = 2f
@@ -120,6 +128,7 @@ class ShipController(
                 )
             }
             if (spaceRect.overlaps(if (ship.shieldEnabled) shipShieldRect else shipRect)) {
+                Logger.d("Collision: ship ↔ spaceObject (shield=${ship.shieldEnabled}, impactPower=${spaceObject.impactPower})")
                 spaceObjects[spaceObjectIndex].onObjectImpact(spaceShipCollidePower)
 
                 val hpImpact: Int = when (ship.shieldEnabled && spaceObject.impactPower > 0) {
@@ -145,7 +154,9 @@ class ShipController(
                 )
             }
             if (boosterRect.overlaps(if (ship.shieldEnabled) shipShieldRect else shipRect)) {
+                Logger.d("Collision: ship ↔ booster type=${booster.type} (shield=${ship.shieldEnabled})")
                 boosters[boosterIndex].collect()
+                onBoosterPickedUp()
                 when (booster.type) {
                     BoosterType.ULTIMATE_WEAPON_BOOSTER -> fileUltimateLaser()
                     BoosterType.SHIELD_BOOSTER -> enableShield(enable = true)
@@ -163,6 +174,7 @@ class ShipController(
                 )
             }
             if (enemyRect.overlaps(if (ship.shieldEnabled) shipShieldRect else shipRect)) {
+                Logger.d("Collision: ship ↔ enemy id=${enemy.enemyId.take(6)} (shield=${ship.shieldEnabled})")
                 enemies[enemyIndex].onObjectImpact(spaceShipCollidePower)
 
                 val hpImpact: Int = when (ship.shieldEnabled && enemy.impactPower > 0) {
@@ -180,6 +192,7 @@ class ShipController(
                 )
             }
             if (enemyLaserRect.overlaps(if (ship.shieldEnabled) shipShieldRect else shipRect)) {
+                Logger.d("Collision: ship ↔ enemyLaser (shield=${ship.shieldEnabled}, impactPower=${enemyLaser.impactPower.toInt()})")
                 enemyLasers[enemyIndex].destroyed = true
 
                 val hpImpact: Float = when (ship.shieldEnabled && enemyLaser.impactPower > 0) {
@@ -197,7 +210,10 @@ class ShipController(
     }
 
     private fun updateShieldEnabled(enable: Boolean) {
-        ship = ship.copy(shieldEnabled = enable)
+        ship = ship.copy(
+            shieldEnabled = enable,
+            shieldEndMillis = if (enable) shieldEndDurationMillis else 0L,
+        )
         setShip(ship)
     }
 
@@ -206,13 +222,19 @@ class ShipController(
         else R.drawable.ship_regular_laser
 
     private fun updateLaserBoosterEnabled(enable: Boolean) {
-        val updated = ship.copy(laserBoosterEnabled = enable)
+        val updated = ship.copy(
+            laserBoosterEnabled = enable,
+            laserBoosterEndMillis = if (enable) laserBoosterEndDurationMillis else 0L,
+        )
         ship = updated.copy(drawableId = resolveShipDrawable(updated))
         setShip(ship)
     }
 
     private fun updateTripleLaserBoosterEnabled(enable: Boolean) {
-        val updated = ship.copy(tripleLaserBoosterEnabled = enable)
+        val updated = ship.copy(
+            tripleLaserBoosterEnabled = enable,
+            tripleLaserBoosterEndMillis = if (enable) tripleLaserBoosterEndDurationMillis else 0L,
+        )
         ship = updated.copy(drawableId = resolveShipDrawable(updated))
         setShip(ship)
     }
@@ -227,16 +249,27 @@ class ShipController(
         setShip(ship)
     }
 
+    private var iframesEndMillis: Long = 0L
+
     private fun updateHp(hpChange: Int) {
         if (ship.hp <= 0) return
+        // Damage absorption during i-frames. Healing (hpChange > 0) always applies.
+        if (hpChange < 0 && System.currentTimeMillis() < iframesEndMillis) {
+            Logger.d("Ship hp: damage Δ=$hpChange ABSORBED by i-frames (until $iframesEndMillis)")
+            return
+        }
+        val multiplier = damageMultiplier()
+        val effective = if (hpChange < 0) -((-hpChange) * multiplier).toInt() else hpChange
         val before = ship.hp
-        val newHp = (ship.hp + hpChange).coerceAtLeast(0)
+        val newHp = (ship.hp + effective).coerceAtLeast(0)
         ship = ship.copy(hp = newHp)
-        if (hpChange != 0) {
-            Logger.d("Ship hp: $before → ${ship.hp} (Δ=$hpChange)")
+        if (effective != 0) {
+            Logger.d("Ship hp: $before → ${ship.hp} (Δ=$effective, raw=$hpChange, multiplier=$multiplier)")
         }
         setShip(ship)
-        if (hpChange < 0) {
+        if (effective < 0) {
+            iframesEndMillis = System.currentTimeMillis() + IFRAMES_DURATION_MILLIS
+            Logger.d("Ship i-frames: ON until $iframesEndMillis (+${IFRAMES_DURATION_MILLIS}ms)")
             onShipDamaged()
         }
         if (before > 0 && newHp == 0) {
@@ -247,5 +280,6 @@ class ShipController(
 
     companion object {
         const val TRIPLE_LASER_SIDE_OFFSET: Float = 20f
+        const val IFRAMES_DURATION_MILLIS: Long = 600L
     }
 }

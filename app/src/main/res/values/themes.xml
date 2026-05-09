@@ -20,4 +20,12 @@
         <item name="windowNoTitle">true</item>
     </style>
 
+    <!-- System SplashScreen API (Pc): native splash that fades into our Compose splash. -->
+    <style name="Theme.Neon.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#05010F</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_image</item>
+        <item name="windowSplashScreenAnimationDuration">400</item>
+        <item name="postSplashScreenTheme">@style/Theme.Neon.NoActionBar</item>
+    </style>
+
 </resources>

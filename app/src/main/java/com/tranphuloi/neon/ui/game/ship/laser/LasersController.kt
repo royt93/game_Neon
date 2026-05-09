@@ -11,6 +11,7 @@ import com.tranphuloi.neon.ui.game.ship.laser.ShipLaser.Companion.SHIP_LASER_WID
 import com.tranphuloi.neon.ui.game.ship.ship.Ship
 import com.tranphuloi.neon.ui.game.ship.ship.ShipController.Companion.TRIPLE_LASER_SIDE_OFFSET
 import com.tranphuloi.neon.ui.game.spaceObject.SpaceObject
+import com.tranphuloi.neon.utils.Logger
 import com.tranphuloi.neon.utils.UuidUtils
 
 class LasersController(
@@ -22,6 +23,10 @@ class LasersController(
     private val setShipLasers: (List<Laser>) -> Unit,
     private val setUltimateLasers: (List<Laser>) -> Unit,
 ) {
+
+    init {
+        Logger.d("LasersController init: initialShipLasers=${initialShipLasers.size}, initialUltimateLasers=${initialUltimateLasers.size}")
+    }
 
     private var shipLasers: List<Laser> = initialShipLasers
     private var ultimateLasers: List<Laser> = initialUltimateLasers
@@ -86,6 +91,7 @@ class LasersController(
     }
 
     fun fireUltimateLaser() {
+        Logger.d("LasersController.fireUltimateLaser: spawning $ULTIMATE_LASERS_COUNT vertical beams")
         val ultimateLaserList = mutableListOf<UltimateLaser>()
         val horizontalLaserDistance = screenWidth / ULTIMATE_LASERS_COUNT
         for (i in 0..ULTIMATE_LASERS_COUNT) {
@@ -135,13 +141,17 @@ class LasersController(
 
             if (spaceObjectRectList.any { it.overlaps(laserRect) }) {
                 val index = spaceObjectRectList.indexOfFirst { it.overlaps(laserRect) }
-                spaceObjects[index].onObjectImpact(laser.impactPower)
+                val target = spaceObjects[index]
+                Logger.d("Collision: laser id=${laser.id.take(6)} → spaceObject hp=${target.hp.toInt()} (-${laser.impactPower.toInt()})")
+                target.onObjectImpact(laser.impactPower)
                 destroyShipLaser(laser)
                 updateShipLasersUI()
             }
             if (enemyRectList.any { it.overlaps(laserRect) }) {
                 val index = enemyRectList.indexOfFirst { it.overlaps(laserRect) }
-                enemies[index].onObjectImpact(laser.impactPower)
+                val target = enemies[index]
+                Logger.d("Collision: laser id=${laser.id.take(6)} → enemy id=${target.enemyId.take(6)} hp=${target.hp.toInt()} (-${laser.impactPower.toInt()})")
+                target.onObjectImpact(laser.impactPower)
                 destroyShipLaser(laser)
                 updateShipLasersUI()
             }

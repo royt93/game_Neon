@@ -37,17 +37,24 @@ import com.tranphuloi.neon.common.NeonBgEdge
 import com.tranphuloi.neon.common.NeonBgMid
 import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonMagenta
+import com.tranphuloi.neon.data.LocalSettings
 import com.tranphuloi.neon.utils.Logger
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 
 @Composable
-fun SplashScreen(onStartGame: () -> Unit) {
+fun SplashScreen(
+    onStartGame: () -> Unit,
+    onPickDifficulty: () -> Unit = onStartGame,
+) {
 
+    val settings = LocalSettings.current
     LaunchedEffect(Unit) {
         Logger.d("SplashScreen entered, delay 1200ms before start")
         delay(1200)
-        Logger.d("SplashScreen delay done → onStartGame()")
-        onStartGame()
+        val picked = settings.difficultyPicked.first()
+        Logger.d("SplashScreen delay done → difficultyPicked=$picked")
+        if (picked) onStartGame() else onPickDifficulty()
     }
 
     val pulse = rememberInfiniteTransition(label = "splashPulse")

@@ -2,6 +2,7 @@ package com.tranphuloi.neon.ui.game.state
 
 import android.annotation.SuppressLint
 import androidx.compose.runtime.*
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.lifecycle.Lifecycle
@@ -41,10 +42,12 @@ import com.tranphuloi.neon.ui.game.stage.StageBoss
 import com.tranphuloi.neon.ui.game.stage.StageController
 import com.tranphuloi.neon.ui.game.stage.StageGame
 import com.tranphuloi.neon.ui.game.stage.StageMessage
+import com.tranphuloi.neon.utils.LeakWatch
 import com.tranphuloi.neon.utils.Logger
 import com.tranphuloi.neon.utils.UuidUtils
 import com.tranphuloi.neon.utils.observeAsState
 import kotlinx.coroutines.Dispatchers.IO
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import java.util.Locale
@@ -57,7 +60,10 @@ fun rememberGameState(): GameState {
     val configuration = LocalConfiguration.current
     val screenWidth = rememberSaveable { configuration.screenWidthDp.toFloat() }
     val screenHeight = rememberSaveable { configuration.screenHeightDp.toFloat() }
-    val uuidUtils = remember { UuidUtils() }
+    val uuidUtils = remember {
+        Logger.d("rememberGameState: initial screen=${screenWidth}x${screenHeight}, building UuidUtils")
+        UuidUtils()
+    }
     val coroutineScope = rememberCoroutineScope()
 
     var stars: List<Star> by rememberSaveable { mutableStateOf(emptyList()) }
@@ -81,14 +87,27 @@ fun rememberGameState(): GameState {
         gameStatus = gameStt
     }
     var lastShipDamageMillis by remember { mutableLongStateOf(0L) }
+    var lastBoosterPickupMillis by remember { mutableLongStateOf(0L) }
+    val settingsRepo = com.tranphuloi.neon.data.LocalSettings.current
+    val difficultyState = settingsRepo.difficulty
+        .collectAsState(initial = com.tranphuloi.neon.data.Difficulty.NORMAL)
     val shipController = remember {
+        Logger.d("rememberGameState: building ShipController (initial hp=${ship.hp})")
         ShipController(
             screenWidth = screenWidth,
             screenHeight = screenHeight,
             ship = ship,
             setShip = { ship = it },
             onShipDestroyed = { setGameStatus(GameStatus.GAME_OVER) },
-            onShipDamaged = { lastShipDamageMillis = System.currentTimeMillis() },
+            onShipDamaged = {
+                lastShipDamageMillis = System.currentTimeMillis()
+                Logger.d("Ship damaged event @ $lastShipDamageMillis (will trigger shake+flash)")
+            },
+            onBoosterPickedUp = {
+                lastBoosterPickupMillis = System.currentTimeMillis()
+                Logger.d("Booster picked up event @ $lastBoosterPickupMillis")
+            },
+            damageMultiplier = { difficultyState.value.multiplier },
         )
     }
 
@@ -137,16 +156,41 @@ fun rememberGameState(): GameState {
 
     var mineralsEarnedTotal: Int by rememberSaveable { mutableIntStateOf(0) }
     var minerals: List<Mineral> by rememberSaveable { mutableStateOf(emptyList()) }
+    var lastMineralPickupMillis by remember { mutableLongStateOf(0L) }
+    var lastEnemyKillMillis by remember { mutableLongStateOf(0L) }
+    var comboCount by remember { mutableIntStateOf(0) }
+    var comboTier by remember { mutableStateOf(com.tranphuloi.neon.ui.game.combo.ComboTier.NONE) }
+    var comboPopupTier by remember { mutableStateOf(com.tranphuloi.neon.ui.game.combo.ComboTier.NONE) }
+    var comboPopupShownMillis by remember { mutableLongStateOf(0L) }
+    // Holder updated by StageController.onStageAdvance below; closure-captured by mineralsController.
+    val magnetRadiusState = remember { androidx.compose.runtime.mutableFloatStateOf(80f) }
     val mineralsController = remember {
+        Logger.d("rememberGameState: building MineralsController")
         MineralsController(
             initialMinerals = minerals,
             updateMinerals = { minerals = it },
-            updateMineralsEarnedTotal = { mineralsEarnedTotal += it }
+            updateMineralsEarnedTotal = {
+                mineralsEarnedTotal += it
+                lastMineralPickupMillis = System.currentTimeMillis()
+            },
+            getShipCenter = { ship.xOffset + ship.width / 2 to ship.yOffset + ship.height / 2 },
+            getMagnetRadius = { magnetRadiusState.floatValue }
+        )
+    }
+
+    val comboController = remember {
+        Logger.d("rememberGameState: building ComboController")
+        com.tranphuloi.neon.ui.game.combo.ComboController(
+            onTierAdvance = { tier ->
+                comboPopupTier = tier
+                comboPopupShownMillis = System.currentTimeMillis()
+            }
         )
     }
 
     var enemies: List<Enemy> by rememberSaveable { mutableStateOf(emptyList()) }
     val enemyController = remember {
+        Logger.d("rememberGameState: building EnemyController")
         EnemyController(
             screenWidth = screenWidth,
             screenHeight = screenHeight,
@@ -169,6 +213,13 @@ fun rememberGameState(): GameState {
                     width = width,
                     height = height
                 )
+            },
+            onEnemyKilled = { enemy ->
+                lastEnemyKillMillis = System.currentTimeMillis()
+                comboController.onEnemyKilled()
+                comboCount = comboController.count
+                comboTier = comboController.currentTier()
+                Logger.d("Enemy killed (id=${enemy.enemyId.take(6)}…) → combo=$comboCount tier=$comboTier")
             }
         )
     }
@@ -182,8 +233,17 @@ fun rememberGameState(): GameState {
     }
 
     var gameMessage by rememberSaveable { mutableStateOf("") }
+    var lastStageAdvanceMillis by remember { mutableLongStateOf(0L) }
 
-    val stageController = rememberSaveable(saver = StageController.saver()) { StageController() }
+    val stageController = rememberSaveable(saver = StageController.saver()) {
+        StageController(
+            onStageAdvance = { idx, _ ->
+                magnetRadiusState.floatValue = (80f + (idx / 5) * 10f).coerceAtMost(200f)
+                lastStageAdvanceMillis = System.currentTimeMillis()
+                Logger.d("StageController.onStageAdvance idx=$idx → magnet=${magnetRadiusState.floatValue}px")
+            }
+        )
+    }
     var gameStage by rememberSaveable { mutableStateOf(stageController.getGameStage(true)) }
     fun updateGameStage() {
         gameStage = stageController.getGameStage(
@@ -236,10 +296,15 @@ fun rememberGameState(): GameState {
                 screenHeight = screenHeight,
                 screenWidth = screenWidth
             )
-            Logger.d("Constellation initialized; entering tick loop on IO")
+            Logger.d("Constellation initialized; entering tick loop on IO dispatcher")
+            // Run heavy per-tick work (collision, entity processing) on IO so it doesn't compete
+            // with Compose recomposition on Main. Pace with delay(8) (~125Hz) which yields the
+            // dispatcher between iterations and lets cancel() propagate immediately.
             launch(IO) {
+                var frameCount = 0L
                 while (loopRunning) {
                     if (gameStatus == GameStatus.RUNNING) {
+                        frameCount++
                         tinker(
                             id = constellationController.animateStarsId,
                             repeatTime = constellationController.animateStarsRepeatTime,
@@ -370,19 +435,47 @@ fun rememberGameState(): GameState {
                             repeatTime = monitorLoopRepeatTime,
                             doWork = { monitorLoopInSec() }
                         )
+                        if (frameCount % 1000L == 0L) {
+                            // Periodic memory log roughly every 8s at the IO loop's pace.
+                            val rt = Runtime.getRuntime()
+                            val usedMb = (rt.totalMemory() - rt.freeMemory()) / (1024 * 1024)
+                            Logger.d("PERF frame=$frameCount entities=stars:${stars.size}+lasers:${shipLasers.size}+enemies:${enemies.size} heapUsed=${usedMb}MB")
+                        }
+                        // Periodic combo expiry check — combo UI refreshes when no kill in 2s.
+                        if (frameCount % 60L == 0L) {
+                            val before = comboController.count
+                            comboController.checkExpiry()
+                            if (before != comboController.count) {
+                                comboCount = comboController.count
+                                comboTier = comboController.currentTier()
+                            }
+                        }
                     }
                     refreshHandler = System.currentTimeMillis()
-                    // Yield so cancel() propagates promptly and avoid pinning a CPU core when paused.
+                    // delay() suspends and propagates cancellation; gives ~125Hz cap when running
+                    // and keeps CPU idle when paused (gameStatus != RUNNING just sleeps).
+                    delay(8)
                     yield()
                 }
             }
         }
         onDispose {
-            Logger.d("Game loop dispose: cancel job + clear tinkerMap")
+            Logger.d("Game loop dispose: cancel job + clear tinkerMap (entities=stars:${stars.size},lasers:${shipLasers.size},enemies:${enemies.size},boosters:${boosters.size})")
             loopRunning = false
             job.cancel()
             // Module-level tinkerMap accumulates UUIDs forever otherwise.
             tinkerClearAll()
+            // Hand controllers + state to LeakCanary (no-op in release).
+            LeakWatch.watch(shipController, "GameState.onDispose → ShipController must be GC'd")
+            LeakWatch.watch(enemyController, "GameState.onDispose → EnemyController must be GC'd")
+            LeakWatch.watch(lasersController, "GameState.onDispose → LasersController must be GC'd")
+            LeakWatch.watch(boosterController, "GameState.onDispose → BoosterController must be GC'd")
+            LeakWatch.watch(spaceObjectsController, "GameState.onDispose → SpaceObjectsController must be GC'd")
+            LeakWatch.watch(explosionsController, "GameState.onDispose → ExplosionController must be GC'd")
+            LeakWatch.watch(mineralsController, "GameState.onDispose → MineralsController must be GC'd")
+            LeakWatch.watch(enemyLaserController, "GameState.onDispose → EnemyLasersController must be GC'd")
+            LeakWatch.watch(constellationController, "GameState.onDispose → ConstellationController must be GC'd")
+            LeakWatch.watch(stageController, "GameState.onDispose → StageController must be GC'd")
         }
     }
 
@@ -405,6 +498,15 @@ fun rememberGameState(): GameState {
         mineralsEarnedTotal = mineralsEarnedTotal.toString(),
         explosions = explosions,
         lastShipDamageMillis = lastShipDamageMillis,
+        lastBoosterPickupMillis = lastBoosterPickupMillis,
+        lastMineralPickupMillis = lastMineralPickupMillis,
+        lastEnemyKillMillis = lastEnemyKillMillis,
+        lastStageAdvanceMillis = lastStageAdvanceMillis,
+        comboCount = comboCount,
+        comboTier = comboTier,
+        comboPopupTier = comboPopupTier,
+        comboPopupShownMillis = comboPopupShownMillis,
+        stageIndex = stageController.currentIndex(),
         moveShipLeft = { shipController.movingLeft = it },
         moveShipRight = { shipController.movingRight = it },
         toggleGameStatus = {
@@ -434,6 +536,15 @@ data class GameState(
     val mineralsEarnedTotal: String,
     val explosions: List<Explosion>,
     val lastShipDamageMillis: Long,
+    val lastBoosterPickupMillis: Long,
+    val lastMineralPickupMillis: Long,
+    val lastEnemyKillMillis: Long,
+    val lastStageAdvanceMillis: Long,
+    val comboCount: Int,
+    val comboTier: com.tranphuloi.neon.ui.game.combo.ComboTier,
+    val comboPopupTier: com.tranphuloi.neon.ui.game.combo.ComboTier,
+    val comboPopupShownMillis: Long,
+    val stageIndex: Int,
     val moveShipLeft: (Boolean) -> Unit,
     val moveShipRight: (Boolean) -> Unit,
     val toggleGameStatus: () -> Unit,

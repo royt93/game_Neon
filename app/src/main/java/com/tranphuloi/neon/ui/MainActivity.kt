@@ -1,9 +1,15 @@
 package com.tranphuloi.neon.ui
 
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -12,21 +18,45 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import androidx.navigation.compose.rememberNavController
+import com.tranphuloi.neon.App
 import com.tranphuloi.neon.common.NeonTheme
+import com.tranphuloi.neon.data.LocalLeaderboard
+import com.tranphuloi.neon.data.LocalSettings
+import com.tranphuloi.neon.navigation.DifficultyPicker
 import com.tranphuloi.neon.navigation.Game
 import com.tranphuloi.neon.navigation.GameOver
 import com.tranphuloi.neon.navigation.GamePause
+import com.tranphuloi.neon.navigation.Settings as SettingsRoute
 import com.tranphuloi.neon.navigation.Splash
+import com.tranphuloi.neon.ui.dlg.difficulty.DialogDifficultyPicker
+import com.tranphuloi.neon.ui.dlg.settings.DialogSettings
 import com.tranphuloi.neon.ui.dlg.gameover.DialogGameOver
 import com.tranphuloi.neon.ui.dlg.gamepause.DialogGamePause
 import com.tranphuloi.neon.ui.game.GameScreen
+import com.tranphuloi.neon.ui.game.audio.AudioPlayerHolder
+import com.tranphuloi.neon.ui.game.audio.LocalAudioPlayer
+import com.tranphuloi.neon.ui.game.audio.LocalSfx
+import com.tranphuloi.neon.ui.game.audio.SfxController
+import com.tranphuloi.neon.ui.game.audio.Song
+import com.tranphuloi.neon.ui.game.haptic.HapticController
+import com.tranphuloi.neon.ui.game.haptic.LocalHaptic
 import com.tranphuloi.neon.ui.splash.SplashScreen
+import com.tranphuloi.neon.utils.LeakWatch
 import com.tranphuloi.neon.utils.Logger
 
 class MainActivity : ComponentActivity() {
 
+    private lateinit var audioHolder: AudioPlayerHolder
+    private lateinit var haptic: HapticController
+    private lateinit var sfx: SfxController
+
     override fun onCreate(savedInstanceState: Bundle?) {
         Logger.d("MainActivity.onCreate")
+        // Install system SplashScreen (Android 12+ native, back-port for older).
+        // Must be called before super.onCreate(). Returns a controller for fine-grained
+        // keepOnScreen() condition; we let it auto-dismiss on first frame.
+        val splash = installSplashScreen()
+        Logger.d("MainActivity.onCreate: installSplashScreen returned controller=$splash")
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
@@ -36,61 +66,182 @@ class MainActivity : ComponentActivity() {
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
 
-        setContent {
-            NeonTheme {
-                val navController = rememberNavController()
+        Logger.d("MainActivity.onCreate: enabling FLAG_KEEP_SCREEN_ON")
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-                NavHost(
-                    navController = navController,
-                    startDestination = Splash.route
-                ) {
-                    composable(route = Splash.route) {
-                        SplashScreen {
-                            Logger.d("Nav: Splash → Game")
-                            with(navController) {
-                                popBackStack()
-                                navigate(Game.route)
-                            }
+        Logger.d("MainActivity.onCreate: building AudioPlayerHolder")
+        audioHolder = AudioPlayerHolder(applicationContext)
+        lifecycle.addObserver(audioHolder)
+        val playlist = Song.values().toList().shuffled()
+        audioHolder.build(playlist)
+
+        Logger.d("MainActivity.onCreate: building HapticController")
+        haptic = HapticController(applicationContext)
+
+        Logger.d("MainActivity.onCreate: building SfxController")
+        sfx = SfxController(applicationContext)
+
+        val app = application as App
+        setContent {
+            CompositionLocalProvider(
+                LocalAudioPlayer provides audioHolder,
+                LocalHaptic provides haptic,
+                LocalSfx provides sfx,
+                LocalSettings provides app.settings,
+                LocalLeaderboard provides app.leaderboard,
+            ) {
+                NeonTheme {
+                    val navController = rememberNavController()
+
+                    // Wire settings volumes to the actual audio engines.
+                    val musicVolume by app.settings.musicVolume.collectAsState(initial = 80)
+                    val sfxVolume by app.settings.sfxVolume.collectAsState(initial = 90)
+                    val vibrationEnabled by app.settings.vibrationEnabled.collectAsState(initial = true)
+                    LaunchedEffect(musicVolume) {
+                        Logger.d("MainActivity: musicVolume changed → $musicVolume")
+                        audioHolder.setVolume(musicVolume)
+                    }
+                    LaunchedEffect(sfxVolume) {
+                        Logger.d("MainActivity: sfxVolume changed → $sfxVolume")
+                        sfx.setVolume(sfxVolume)
+                    }
+                    LaunchedEffect(vibrationEnabled) {
+                        Logger.d("MainActivity: vibrationEnabled changed → $vibrationEnabled")
+                        haptic.setEnabled(vibrationEnabled)
+                    }
+
+                    NavHost(
+                        navController = navController,
+                        startDestination = Splash.route
+                    ) {
+                        composable(route = Splash.route) {
+                            SplashScreen(
+                                onPickDifficulty = {
+                                    Logger.d("Nav: Splash → DifficultyPicker (first run)")
+                                    navController.navigate(DifficultyPicker.route)
+                                },
+                                onStartGame = {
+                                    Logger.d("Nav: Splash → Game")
+                                    with(navController) {
+                                        popBackStack()
+                                        navigate(Game.route)
+                                    }
+                                },
+                            )
                         }
-                    }
-                    composable(route = Game.route) {
-                        GameScreen(
-                            onGamePause = {
-                                Logger.d("Nav: Game → GamePause")
-                                navController.navigate(GamePause.route)
-                            },
-                            onGameOver = { score ->
-                                Logger.d("Nav: Game → GameOver (score=$score)")
-                                navController.navigate("${GameOver.route}/$score")
-                            },
-                        )
-                    }
-                    dialog(route = GamePause.route) {
-                        DialogGamePause(onRestartGame = {
-                            Logger.d("Nav: GamePause → Game (restart, popUpTo graph)")
-                            navController.navigate(Game.route) { popUpTo(navController.graph.id) }
-                        })
-                    }
-                    dialog(
-                        route = "${GameOver.route}/{score}",
-                        // Force the user to press Restart — back-press / tap-outside must not
-                        // strand them on a frozen game screen with no way out.
-                        dialogProperties = DialogProperties(
-                            dismissOnBackPress = false,
-                            dismissOnClickOutside = false,
-                        ),
-                    ) { backStackEntry ->
-                        val score = backStackEntry.arguments?.getString("score").orEmpty()
-                        DialogGameOver(
-                            score = score,
-                            onRestartGame = {
-                                Logger.d("Nav: GameOver → Game (restart, popUpTo graph)")
-                                navController.navigate(Game.route) { popUpTo(navController.graph.id) }
-                            },
-                        )
+                        composable(route = Game.route) {
+                            GameScreen(
+                                onGamePause = {
+                                    Logger.d("Nav: Game → GamePause")
+                                    navController.navigate(GamePause.route)
+                                },
+                                onGameOver = { score ->
+                                    Logger.d("Nav: Game → GameOver (score=$score)")
+                                    navController.navigate("${GameOver.route}/$score")
+                                },
+                            )
+                        }
+                        dialog(route = GamePause.route) {
+                            DialogGamePause(
+                                onResumeGame = {
+                                    Logger.d("Nav: GamePause → Game (resume via popBackStack)")
+                                    navController.popBackStack()
+                                },
+                                onRestartGame = {
+                                    Logger.d("Nav: GamePause → Game (restart, popUpTo Game inclusive)")
+                                    navController.navigate(Game.route) {
+                                        popUpTo(Game.route) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onSettings = {
+                                    Logger.d("Nav: GamePause → Settings")
+                                    navController.navigate(SettingsRoute.route)
+                                },
+                            )
+                        }
+                        dialog(route = SettingsRoute.route) {
+                            DialogSettings(onDismiss = {
+                                Logger.d("Nav: Settings → back")
+                                navController.popBackStack()
+                            })
+                        }
+                        dialog(route = DifficultyPicker.route) {
+                            DialogDifficultyPicker(onPicked = {
+                                Logger.d("Nav: DifficultyPicker → Game")
+                                navController.navigate(Game.route) {
+                                    popUpTo(Splash.route) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            })
+                        }
+                        dialog(
+                            route = "${GameOver.route}/{score}",
+                            // Force the user to press Restart — back-press / tap-outside must not
+                            // strand them on a frozen game screen with no way out.
+                            dialogProperties = DialogProperties(
+                                dismissOnBackPress = false,
+                                dismissOnClickOutside = false,
+                            ),
+                        ) { backStackEntry ->
+                            val score = backStackEntry.arguments?.getString("score").orEmpty()
+                            DialogGameOver(
+                                score = score,
+                                onRestartGame = {
+                                    Logger.d("Nav: GameOver → Game (restart, popUpTo Game inclusive)")
+                                    navController.navigate(Game.route) {
+                                        popUpTo(Game.route) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Logger.d("MainActivity.onStart")
+    }
+
+    override fun onResume() {
+        super.onResume()
+        Logger.d("MainActivity.onResume")
+    }
+
+    override fun onPause() {
+        Logger.d("MainActivity.onPause")
+        super.onPause()
+    }
+
+    override fun onStop() {
+        Logger.d("MainActivity.onStop")
+        super.onStop()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        Logger.d("MainActivity.onWindowFocusChanged hasFocus=$hasFocus")
+    }
+
+    override fun onDestroy() {
+        Logger.d("MainActivity.onDestroy: releasing SfxController + watching for leaks")
+        sfx.release()
+        LeakWatch.watch(
+            audioHolder,
+            "MainActivity.onDestroy → AudioPlayerHolder must be GC'd"
+        )
+        LeakWatch.watch(
+            sfx,
+            "MainActivity.onDestroy → SfxController must be GC'd"
+        )
+        LeakWatch.watch(
+            haptic,
+            "MainActivity.onDestroy → HapticController must be GC'd"
+        )
+        super.onDestroy()
     }
 }

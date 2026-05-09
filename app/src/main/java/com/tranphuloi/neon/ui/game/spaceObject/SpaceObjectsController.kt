@@ -1,6 +1,7 @@
 package com.tranphuloi.neon.ui.game.spaceObject
 
 import com.tranphuloi.neon.ui.game.common.Millis
+import com.tranphuloi.neon.utils.Logger
 import java.util.UUID
 import kotlin.random.Random
 
@@ -10,6 +11,10 @@ class SpaceObjectsController(
     initialSpaceObjects: List<SpaceObject>,
     private val setSpaceObjects: (List<SpaceObject>) -> Unit,
 ) {
+
+    init {
+        Logger.d("SpaceObjectsController init: initialObjects=${initialSpaceObjects.size}, screen=${screenWidth}x${screenHeight}")
+    }
 
     var spaceObjects: List<SpaceObject> = initialSpaceObjects
         private set
@@ -27,6 +32,7 @@ class SpaceObjectsController(
             screenHeight = screenHeight
         )
         spaceObjects = spaceObjects.toMutableList().apply { add(spaceRock) }
+        Logger.d("SpaceObjectsController.addSpaceRock: size=$rockSize at x=${rockXOffset.toInt()} y=${spaceRock.yOffset.toInt()} (active=${spaceObjects.size})")
         updateSpaceObjectsUI()
     }
 
@@ -34,7 +40,12 @@ class SpaceObjectsController(
     val processSpaceObjectsRepeatTime = Millis(5)
     fun processSpaceObjects() {
         spaceObjects.forEach { it.moveObject() }
+        val before = spaceObjects.size
         spaceObjects = spaceObjects.toMutableList().apply { removeAll { it.hp <= 0 } }
+        val removed = before - spaceObjects.size
+        if (removed > 0) {
+            Logger.d("SpaceObjectsController.processSpaceObjects: removed $removed (active=${spaceObjects.size})")
+        }
         updateSpaceObjectsUI()
     }
 

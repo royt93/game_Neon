@@ -1,6 +1,7 @@
 package com.tranphuloi.neon.ui.game.booster
 
 import androidx.annotation.Keep
+import com.tranphuloi.neon.utils.Logger
 import java.io.Serializable
 import kotlin.random.Random
 
@@ -37,6 +38,7 @@ data class Booster(
     }
 
     fun collect() {
+        Logger.d("Booster.collect: id=${id.take(6)} type=$type")
         collected = true
     }
 }

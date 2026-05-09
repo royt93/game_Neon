@@ -8,7 +8,10 @@ class StageController(
     private val dateUtils: DateUtils = DateUtils(),
     private var stageIndex: Int = 0,
     private var stageStartSnapshotMillis: Long = dateUtils.currentTimeMillis(),
+    private val onStageAdvance: (newIndex: Int, newStage: Stage) -> Unit = { _, _ -> },
 ) {
+
+    fun currentIndex(): Int = stageIndex
 
     fun getGameStage(readyForNextStage: Boolean = false): Stage {
         val stageTimeExpired =
@@ -20,6 +23,7 @@ class StageController(
             stageIndex++
             stageStartSnapshotMillis = dateUtils.currentTimeMillis()
             Logger.d("StageController advance: index $from → $stageIndex (${stages[stageIndex]::class.simpleName})")
+            onStageAdvance(stageIndex, stages[stageIndex])
         }
         return getStage()
     }

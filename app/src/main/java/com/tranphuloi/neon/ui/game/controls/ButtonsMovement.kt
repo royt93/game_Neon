@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.tranphuloi.neon.R
 import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonMagenta
+import com.tranphuloi.neon.utils.Logger
 
 @Composable
 fun ButtonsMovement(
@@ -46,6 +47,7 @@ fun ButtonsMovement(
             contentDescription = stringResource(id = R.string.game_left_button),
             glowColor = NeonCyan,
             buttonSize = buttonSize,
+            label = "LEFT",
             onPressedChange = onMoveLeft,
         )
         MovementButton(
@@ -53,6 +55,7 @@ fun ButtonsMovement(
             contentDescription = stringResource(id = R.string.game_right_button),
             glowColor = NeonMagenta,
             buttonSize = buttonSize,
+            label = "RIGHT",
             onPressedChange = onMoveRight,
         )
     }
@@ -64,6 +67,7 @@ private fun MovementButton(
     contentDescription: String,
     glowColor: Color,
     buttonSize: androidx.compose.ui.unit.Dp,
+    label: String,
     onPressedChange: (Boolean) -> Unit,
 ) {
     var pressed by remember { mutableStateOf(false) }
@@ -130,9 +134,11 @@ private fun MovementButton(
                 .pointerInput(Unit) {
                     detectTapGestures(
                         onPress = {
+                            Logger.d("MovementButton[$label] PRESS")
                             pressed = true
                             onPressedChange(true)
                             this.awaitRelease()
+                            Logger.d("MovementButton[$label] RELEASE")
                             onPressedChange(false)
                             pressed = false
                         }

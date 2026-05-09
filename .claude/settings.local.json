@@ -23,7 +23,13 @@
       "Bash(curl -sLI -o /dev/null -w \"THIS_MEANS_WAR: %{http_code}\\\\n\" \"https://bit.ly/3JxYIHF\")",
       "Bash(curl -sLI -o /dev/null -w \"THE_BOMB: %{http_code}\\\\n\" \"https://bit.ly/3qzTzGo\")",
       "Bash(./gradlew :app:compileDevDebugKotlin --warning-mode=all)",
-      "Bash(./gradlew assembleDevDebug)"
+      "Bash(./gradlew assembleDevDebug)",
+      "Bash(./gradlew compileDevReleaseKotlin)",
+      "Bash(./gradlew assembleDevDebug compileProductionReleaseKotlin)",
+      "Bash(./gradlew compileDevDebugKotlin)",
+      "Bash(./gradlew compileProductionReleaseKotlin)",
+      "Bash(sort -t: -k2 -nr)",
+      "Bash(./gradlew compileDevDebugKotlin compileProductionReleaseKotlin)"
     ]
   }
 }
