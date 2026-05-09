@@ -41,7 +41,10 @@ data class LevelOneBoss(
     private var movement: Movement = Movement.TOP_LEFT_TOP_RIGHT
 
     override var xOffset: Float = minXOffset
-    override var yOffset: Float = minYOffset
+    // Dramatic entry: start off-screen above, slide down through entry phase
+    // before normal patrol movement begins.
+    override var yOffset: Float = -height
+    private val entrySpeed: Float = 2.0f                     // ~400 px/sec at 5ms tick
 
     override fun enemyRect(): Rect {
         return Rect(
@@ -54,6 +57,13 @@ data class LevelOneBoss(
     }
 
     override fun process() {
+        // Entry phase: slide down from off-screen-above to patrol position.
+        if (yOffset < minYOffset) {
+            yOffset = (yOffset + entrySpeed).coerceAtMost(minYOffset)
+            if (hp <= 0) destroyed = true
+            return
+        }
+
         if (xOffset <= 0 && yOffset <= minYOffset) {
             movement = Movement.TOP_LEFT_TOP_RIGHT
         } else if (yOffset <= minYOffset && xOffset >= maxXOffset) {

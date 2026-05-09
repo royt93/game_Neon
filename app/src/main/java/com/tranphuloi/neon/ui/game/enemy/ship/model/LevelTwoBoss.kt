@@ -36,7 +36,10 @@ data class LevelTwoBoss(
     private var movement: Movement = Movement.RIGHT
 
     override var xOffset: Float = 100f
-    override var yOffset: Float = 100f
+    // Dramatic entry: start off-screen above, slide down to patrol y=100.
+    override var yOffset: Float = -height
+    private val entryTargetY: Float = 100f
+    private val entrySpeed: Float = 2.0f
 
     override fun enemyRect(): Rect {
         return Rect(
@@ -49,6 +52,13 @@ data class LevelTwoBoss(
     }
 
     override fun process() {
+        // Entry phase: slide down before LEFT/RIGHT patrol begins.
+        if (yOffset < entryTargetY) {
+            yOffset = (yOffset + entrySpeed).coerceAtMost(entryTargetY)
+            if (hp <= 0) destroyed = true
+            return
+        }
+
         if (xOffset <= 0) {
             movement = Movement.RIGHT
         } else if (xOffset >= maxXOffset) {

@@ -113,6 +113,15 @@ fun rememberGameState(): GameState {
     val settingsRepo = com.tranphuloi.neon.data.LocalSettings.current
     val difficultyState = settingsRepo.difficulty
         .collectAsState(initial = com.tranphuloi.neon.data.Difficulty.NORMAL)
+    // Explosions controller declared early so onShipDestroyed can spawn a starburst
+    // of explosions at the ship's last position when player dies.
+    var explosions: List<Explosion> by rememberSaveable { mutableStateOf(emptyList()) }
+    val explosionsController = remember {
+        ExplosionController(
+            initialExplosions = explosions,
+            updateExplosions = { explosions = it }
+        )
+    }
     val shipController = remember {
         Logger.d("rememberGameState: building ShipController (initial hp=${ship.hp})")
         ShipController(
@@ -124,6 +133,17 @@ fun rememberGameState(): GameState {
                 killCamStartedAtMillis = System.currentTimeMillis()
                 Logger.d("Kill-cam triggered @ $killCamStartedAtMillis (delay GAME_OVER 1500ms)")
                 setGameStatus(GameStatus.GAME_OVER)
+                // Ship destruction starburst: 5 explosions in star pattern, slightly
+                // staggered for "tan vỡ" feel. Center + 4 diagonal offsets.
+                val cx = ship.xOffset + ship.width / 2f
+                val cy = ship.yOffset + ship.height / 2f
+                val size = ship.width
+                explosionsController.addExplosion(cx, cy, size * 1.4f, size * 1.4f)
+                explosionsController.addExplosion(cx - size * 0.5f, cy - size * 0.4f, size * 0.7f, size * 0.7f)
+                explosionsController.addExplosion(cx + size * 0.5f, cy - size * 0.4f, size * 0.7f, size * 0.7f)
+                explosionsController.addExplosion(cx - size * 0.5f, cy + size * 0.4f, size * 0.7f, size * 0.7f)
+                explosionsController.addExplosion(cx + size * 0.5f, cy + size * 0.4f, size * 0.7f, size * 0.7f)
+                Logger.d("Ship destruction starburst spawned at ($cx, $cy)")
             },
             onShipDamaged = {
                 lastShipDamageMillis = System.currentTimeMillis()
@@ -176,14 +196,6 @@ fun rememberGameState(): GameState {
             uuidUtils = uuidUtils,
             initialBoosters = boosters,
             updateBoosters = { boosters = it }
-        )
-    }
-
-    var explosions: List<Explosion> by rememberSaveable { mutableStateOf(emptyList()) }
-    val explosionsController = remember {
-        ExplosionController(
-            initialExplosions = explosions,
-            updateExplosions = { explosions = it }
         )
     }
 

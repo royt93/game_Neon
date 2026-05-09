@@ -77,18 +77,24 @@ private fun MovementButton(
         animationSpec = tween(durationMillis = 120),
         label = "btnScale"
     )
+    // Image alpha: semi-transparent at rest, more opaque when pressed so user feedback is clear.
+    val imageAlpha by animateFloatAsState(
+        targetValue = if (pressed) 0.95f else 0.45f,
+        animationSpec = tween(durationMillis = 150),
+        label = "btnImageAlpha"
+    )
     val ringExpand by animateFloatAsState(
         targetValue = if (pressed) 1.55f else 1f,
         animationSpec = tween(durationMillis = 220),
         label = "btnRingExpand"
     )
     val ringAlpha by animateFloatAsState(
-        targetValue = if (pressed) 0.85f else 0f,
+        targetValue = if (pressed) 0.95f else 0f,
         animationSpec = tween(durationMillis = 180),
         label = "btnRingAlpha"
     )
     val haloAlpha by animateFloatAsState(
-        targetValue = if (pressed) 0.55f else 0f,
+        targetValue = if (pressed) 0.55f else 0.18f,    // always-on subtle halo at rest
         animationSpec = tween(durationMillis = 150),
         label = "btnHaloAlpha"
     )
@@ -97,6 +103,8 @@ private fun MovementButton(
         modifier = Modifier
             .size(buttonSize)
             .drawBehind {
+                // Always-on subtle halo: makes the transparent image visible against
+                // any background while preserving see-through neon aesthetic.
                 if (haloAlpha > 0f) {
                     val haloRadius = size.minDimension / 2 * 1.4f
                     drawCircle(
@@ -112,6 +120,14 @@ private fun MovementButton(
                         center = center
                     )
                 }
+                // Always-on outer ring stroke — neon outline so user sees the tap zone.
+                drawCircle(
+                    color = glowColor.copy(alpha = 0.55f),
+                    radius = size.minDimension / 2 * 0.95f,
+                    center = center,
+                    style = Stroke(width = 1.5.dp.toPx())
+                )
+                // Press feedback: expanding ring on top.
                 if (ringAlpha > 0f) {
                     drawCircle(
                         color = glowColor.copy(alpha = ringAlpha),
@@ -130,6 +146,7 @@ private fun MovementButton(
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
+                    alpha = imageAlpha
                 }
                 .pointerInput(Unit) {
                     detectTapGestures(

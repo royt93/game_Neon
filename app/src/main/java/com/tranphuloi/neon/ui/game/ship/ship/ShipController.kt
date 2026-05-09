@@ -12,6 +12,8 @@ import com.tranphuloi.neon.ui.game.laser.Laser
 import com.tranphuloi.neon.ui.game.spaceObject.SpaceObject
 import com.tranphuloi.neon.utils.Logger
 import java.util.*
+import kotlin.math.PI
+import kotlin.math.sin
 
 // init log placed in init {} block below
 
@@ -37,10 +39,28 @@ class ShipController(
     var movingLeft = false
     var movingRight = false
 
+    // Cinematic spawn animation: bottom → fly up to center → sway → fly down to play.
+    // Total 3s. During spawn: damage absorbed (see updateHp), player input ignored,
+    // ship position fully driven by the choreographed path below.
+    private val spawnStartMillis: Long = System.currentTimeMillis()
+    private val spawnFlyUpMillis: Long = 800L
+    private val spawnSwayMillis: Long = 1400L
+    private val spawnFlyDownMillis: Long = 800L
+    private val spawnTotalMillis: Long =
+        spawnFlyUpMillis + spawnSwayMillis + spawnFlyDownMillis
+    private val spawnStartY: Float = screenHeight + 240f       // off-screen below
+    private val spawnCenterY: Float = screenHeight * 0.35f
+    private val spawnCenterX: Float = screenWidth / 2f - 85f / 2f
+
     val moveShipId = UUID.randomUUID().toString()
     val moveShipRepeatTime = Millis(3)
 
     fun moveShip() {
+        val elapsed = System.currentTimeMillis() - spawnStartMillis
+        if (elapsed < spawnTotalMillis) {
+            applySpawnPath(elapsed)
+            return
+        }
         if (ship.yOffset > maxYOffset) {
             updateYOffset(ship.yOffset - movementSpeed)
         }
@@ -51,6 +71,41 @@ class ShipController(
             updateXOffset(ship.xOffset + movementSpeed)
         } else movingRight = false
     }
+
+    private fun applySpawnPath(elapsed: Long) {
+        val phase1End = spawnFlyUpMillis
+        val phase2End = phase1End + spawnSwayMillis
+        when {
+            elapsed < phase1End -> {
+                // Phase 1: fly up bottom → center, cubic ease-out.
+                val t = elapsed / phase1End.toFloat()
+                val tEase = 1f - (1f - t) * (1f - t) * (1f - t)
+                updateXOffset(spawnCenterX)
+                updateYOffset(spawnStartY + (spawnCenterY - spawnStartY) * tEase)
+            }
+            elapsed < phase2End -> {
+                // Phase 2: sway side-to-side at center, damped sine wave.
+                val swayElapsed = elapsed - phase1End
+                val swayT = swayElapsed / spawnSwayMillis.toFloat()
+                val swayPhase = swayT * (PI.toFloat() * 2f) * 1.5f   // 1.5 oscillations
+                val damp = 1f - swayT * 0.4f
+                val swayX = sin(swayPhase) * 90f * damp
+                updateXOffset(spawnCenterX + swayX)
+                updateYOffset(spawnCenterY)
+            }
+            else -> {
+                // Phase 3: fly down center → play position, smoothstep ease-in-out.
+                val downElapsed = elapsed - phase2End
+                val downT = (downElapsed / spawnFlyDownMillis.toFloat()).coerceIn(0f, 1f)
+                val tEase = downT * downT * (3f - 2f * downT)
+                updateXOffset(spawnCenterX)
+                updateYOffset(spawnCenterY + (maxYOffset - spawnCenterY) * tEase)
+            }
+        }
+    }
+
+    fun isSpawning(): Boolean =
+        System.currentTimeMillis() - spawnStartMillis < spawnTotalMillis
 
     private var shieldBoosterStartMillis: Long = 0
     private val shieldBoosterTimeMillis: Long = 10000
@@ -253,9 +308,9 @@ class ShipController(
 
     private fun updateHp(hpChange: Int) {
         if (ship.hp <= 0) return
-        // Damage absorption during i-frames. Healing (hpChange > 0) always applies.
-        if (hpChange < 0 && System.currentTimeMillis() < iframesEndMillis) {
-            Logger.d("Ship hp: damage Δ=$hpChange ABSORBED by i-frames (until $iframesEndMillis)")
+        // Damage absorption: i-frames OR spawn animation. Healing (hpChange > 0) always applies.
+        if (hpChange < 0 && (System.currentTimeMillis() < iframesEndMillis || isSpawning())) {
+            Logger.d("Ship hp: damage Δ=$hpChange ABSORBED (iframes or spawn)")
             return
         }
         val multiplier = damageMultiplier()

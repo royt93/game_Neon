@@ -48,12 +48,11 @@ class PickupPopupController(
 
     fun spawnMineralPickup(xOffset: Float, yOffset: Float, comboCount: Int, multiplier: Int) {
         val now = System.currentTimeMillis()
+        // Always show simple "+N" gold (was "+1 ×3 = +3" magenta which confused users
+        // into thinking it was an enemy effect). Combo info is already in ComboHud +
+        // ComboPopup — pickup popup just confirms the gain count.
         val isCombo = comboCount > 1
-        val text = if (isCombo) {
-            "+1 ×$multiplier = +${multiplier}"
-        } else {
-            "+1"
-        }
+        val text = "+$multiplier"
         val popup = PickupPopup(
             id = UUID.randomUUID().toString(),
             text = text,

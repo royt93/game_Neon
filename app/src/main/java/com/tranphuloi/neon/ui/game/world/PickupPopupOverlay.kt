@@ -14,7 +14,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.common.NeonGold
-import com.tranphuloi.neon.common.NeonMagenta
 import com.tranphuloi.neon.ui.game.pickup.PickupPopup
 import kotlinx.coroutines.delay
 
@@ -40,9 +39,11 @@ fun PickupPopupOverlay(popups: List<PickupPopup>) {
         val t = p.progress(nowMillis)
         if (t >= 1f) return@forEach
         val yOffset = p.initialY - PickupPopup.FLOAT_DISTANCE * t
+        // Always gold (was magenta-on-combo which confused users); larger size for combo
+        // emphasizes the bonus amount without changing color.
         Text(
             text = p.text,
-            color = if (p.isComboBonus) NeonMagenta else NeonGold,
+            color = NeonGold,
             fontSize = if (p.isComboBonus) 14.sp else 12.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier
