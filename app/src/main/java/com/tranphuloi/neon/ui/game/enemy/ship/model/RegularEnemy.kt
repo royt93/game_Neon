@@ -29,6 +29,8 @@ data class RegularEnemy(
     override var yOffset: Float = 0f
     override val drawableId: Int = type.drawableId
     override var lastImpactMillis: Long = 0L
+    override val isBoss: Boolean = false
+    override val displayName: String = "Regular"
     private var moveRight = true
     private val xOffsetMovementSpeed = type.xOffsetSpeed
     private val yOffsetMovementSpeed = type.yOffsetSpeed

@@ -47,8 +47,9 @@ import com.tranphuloi.neon.common.ShipShieldOne
 import com.tranphuloi.neon.common.ShipShieldTwo
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.ui.game.booster.BoosterUI
-import com.tranphuloi.neon.ui.game.constellation.Star
+import com.tranphuloi.neon.ui.game.damage.DamageNumber
 import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyUI
+import com.tranphuloi.neon.ui.game.pickup.PickupPopup
 import com.tranphuloi.neon.ui.game.explosion.model.Explosion
 import com.tranphuloi.neon.ui.game.mineral.model.MineralUI
 import com.tranphuloi.neon.ui.game.ship.laser.LaserUI
@@ -61,13 +62,15 @@ fun GameWorld(
     ship: Ship,
     shipLasers: List<LaserUI>,
     ultimateLasers: List<LaserUI>,
-    stars: List<Star>,
     spaceObjects: List<SpaceObjectUI>,
     boosters: List<BoosterUI>,
     enemies: List<EnemyUI>,
     enemyLasers: List<LaserUI>,
     minerals: List<MineralUI>,
     explosions: List<Explosion>,
+    magnetRadius: Float,
+    damageNumbers: List<DamageNumber>,
+    pickupPopups: List<PickupPopup>,
     modifier: Modifier = Modifier,
 ) {
 
@@ -84,6 +87,13 @@ fun GameWorld(
     )
 
     Box(modifier = modifier.fillMaxSize()) {
+        // 16c: Magnet visual — render below other entities so doesn't obscure ship.
+        MagnetVisual(
+            ship = ship,
+            minerals = minerals,
+            magnetRadius = magnetRadius,
+            modifier = Modifier.fillMaxSize()
+        )
         shipLasers.forEach {
             Image(
                 painterResource(id = it.drawableId),
@@ -106,21 +116,6 @@ fun GameWorld(
                     .neonGlow(color = NeonGold, intensity = 0.85f, radiusFactor = 2.0f)
                     .align(Alignment.BottomStart)
                     .rotate(degrees = it.rotation)
-            )
-        }
-        stars.forEach {
-            Canvas(
-                modifier = Modifier
-                    .size(size = it.size.dp)
-                    .offset(x = it.xOffset.dp, y = it.yOffset.dp),
-                onDraw = {
-                    val colors = listOf(Color.White, Color.Transparent)
-                    drawCircle(
-                        radius = it.size,
-                        brush = Brush.radialGradient(colors),
-                        blendMode = BlendMode.Luminosity
-                    )
-                }
             )
         }
         spaceObjects.forEach {
@@ -263,6 +258,8 @@ fun GameWorld(
                     .offset(it.xOffset.dp, it.yOffset.dp)
                     .size(it.size.dp)
             )
+            // 13c: 8-12 burst lines + ring shockwave overlay on top of GIF.
+            ExplosionBurstOverlay(explosion = it)
         }
         enemyLasers.forEach {
             Image(
@@ -274,5 +271,9 @@ fun GameWorld(
                     .neonGlow(color = NeonRedAlert, intensity = 0.55f, radiusFactor = 1.8f)
             )
         }
+        // 2c+10b: Damage numbers overlay (top-most game-world layer).
+        DamageNumbersOverlay(numbers = damageNumbers)
+        // 4c: Mineral pickup popups.
+        PickupPopupOverlay(popups = pickupPopups)
     }
 }

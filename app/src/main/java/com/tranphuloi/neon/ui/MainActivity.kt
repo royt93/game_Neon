@@ -20,6 +20,7 @@ import androidx.navigation.compose.dialog
 import androidx.navigation.compose.rememberNavController
 import com.tranphuloi.neon.App
 import com.tranphuloi.neon.common.NeonTheme
+import com.tranphuloi.neon.data.LocalAchievements
 import com.tranphuloi.neon.data.LocalLeaderboard
 import com.tranphuloi.neon.data.LocalSettings
 import com.tranphuloi.neon.navigation.DifficultyPicker
@@ -89,6 +90,7 @@ class MainActivity : ComponentActivity() {
                 LocalSfx provides sfx,
                 LocalSettings provides app.settings,
                 LocalLeaderboard provides app.leaderboard,
+                LocalAchievements provides app.achievements,
             ) {
                 NeonTheme {
                     val navController = rememberNavController()

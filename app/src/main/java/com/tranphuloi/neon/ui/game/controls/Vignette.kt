@@ -27,11 +27,12 @@ fun Vignette(
 ) {
     val lowHp = hp in 1..299
     val transition = rememberInfiniteTransition(label = "vignettePulse")
+    // Softened — was 0.25..0.8 (too intense), now 0.10..0.30. Slower pulse (1100ms vs 700ms).
     val pulse by transition.animateFloat(
-        initialValue = 0.25f,
-        targetValue = 0.8f,
+        initialValue = 0.10f,
+        targetValue = 0.30f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 700, easing = LinearEasing),
+            animation = tween(durationMillis = 1100, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse,
         ),
         label = "vignettePulseAlpha"

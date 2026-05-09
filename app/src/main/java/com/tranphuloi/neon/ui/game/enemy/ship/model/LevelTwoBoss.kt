@@ -28,6 +28,8 @@ data class LevelTwoBoss(
         private set
     override val drawableId: Int = R.drawable.enemy_green_boss
     override var lastImpactMillis: Long = 0L
+    override val isBoss: Boolean = true
+    override val displayName: String = "LEVEL 2 BOSS"
     private val bossMovementSpeed = 0.5f
 
     private val maxXOffset = screenWidth - width

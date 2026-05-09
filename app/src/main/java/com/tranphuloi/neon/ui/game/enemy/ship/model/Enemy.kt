@@ -18,6 +18,8 @@ interface Enemy : Serializable {
     val destroyed: Boolean
     val outOfScreen: Boolean
     var lastImpactMillis: Long
+    val isBoss: Boolean
+    val displayName: String
 
     fun enemyRect(): Rect
     fun process()

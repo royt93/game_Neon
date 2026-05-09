@@ -1,6 +1,7 @@
 package com.tranphuloi.neon.ui.game.controls
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
@@ -8,6 +9,7 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
@@ -20,12 +22,18 @@ import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.neonGlow
+import com.tranphuloi.neon.ui.game.combo.ComboTier
+
+private const val MAX_HP: Int = 1000
 
 @Composable
 fun IndicatorStatus(
     gameTime: String,
     hp: Int,
     mineralsEarnedTotal: String,
+    comboCount: Int,
+    comboTier: ComboTier,
+    lastEnemyKillMillis: Long,
     modifier: Modifier = Modifier,
 ) {
 
@@ -33,6 +41,7 @@ fun IndicatorStatus(
     val buttonPaddingTop = buttonPaddingEnd * 2
     val height = 60.dp
 
+    val hpRatio = (hp.toFloat() / MAX_HP).coerceIn(0f, 1f)
     val hpColor = when {
         hp >= 700 -> NeonCyan
         hp >= 300 -> NeonGold
@@ -67,6 +76,31 @@ fun IndicatorStatus(
                     .padding(start = 8.dp, bottom = 9.dp)
             )
         }
+        // Visual HP bar — 110dp wide segmented bar showing hp/MAX_HP ratio,
+        // glow intensity scales with hp deficit so low HP "screams".
+        Spacer(modifier = Modifier.height(4.dp))
+        Box(
+            modifier = Modifier
+                .padding(start = 4.dp)
+                .width(110.dp)
+                .height(8.dp)
+                .clip(MaterialTheme.shapes.small)
+                .background(Color.White.copy(alpha = 0.12f))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .fillMaxWidth(fraction = hpRatio)
+                    .clip(MaterialTheme.shapes.small)
+                    .background(hpColor)
+                    .neonGlow(
+                        color = hpColor,
+                        intensity = 0.35f + (1f - hpRatio) * 0.45f,
+                        radiusFactor = 1.4f
+                    )
+            )
+        }
+        Spacer(modifier = Modifier.height(6.dp))
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
@@ -86,5 +120,12 @@ fun IndicatorStatus(
                 color = NeonGold
             )
         }
+        // 7c: Combo HUD — only renders when count > 0 (auto-hides on expire).
+        Spacer(modifier = Modifier.height(4.dp))
+        ComboHud(
+            count = comboCount,
+            tier = comboTier,
+            lastKillMillis = lastEnemyKillMillis,
+        )
     }
 }

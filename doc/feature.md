@@ -97,6 +97,34 @@
 - ✅ BUG: Slider spam DataStore.edit → onValueChangeFinished commit
 - ✅ BUG: Combo expiry không gọi → periodic check 60 frames
 
+## 🆕 Wave 1 implemented (this round)
+
+### Files mới
+
+- `data/AchievementsRepository.kt` + `LocalAchievements`
+- `ui/game/damage/DamageNumber.kt` (entity + controller)
+- `ui/game/pickup/PickupPopup.kt` (entity + controller)
+- `ui/game/hitstop/HitStopController.kt`
+- `ui/game/controls/ComboHud.kt`
+- `ui/game/controls/BossHpBar.kt`
+- `ui/game/controls/AchievementBanner.kt`
+- `ui/game/world/ExplosionBurstOverlay.kt`
+- `ui/game/world/DamageNumbersOverlay.kt`
+- `ui/game/world/PickupPopupOverlay.kt`
+- `ui/game/world/MagnetVisual.kt`
+
+### Files modified
+
+- `Enemy.kt` + 3 impls (RegularEnemy, LevelOneBoss, LevelTwoBoss): thêm `isBoss` + `displayName`
+- `EnemyUI.kt` + mapper: thêm `isBoss`, `displayName`, `currentHp`, `initialHp`
+- `GameState.kt`: 5 controllers mới + 7 fields mới trong `GameState` data class
+- `LasersController.kt`: `onLaserHit` callback
+- `GameWorld.kt`: render 3 overlay layers + magnet visual + pass damage/pickup args
+- `GameScreen.kt`: BossHpBar + AchievementBanner + boss kill flash overlay
+- `IndicatorStatus.kt`: ComboHud integration
+- `App.kt`: AchievementsRepository init
+- `MainActivity.kt`: LocalAchievements provider
+
 ---
 
 # Phần 2 — 📋 Đã pick, chờ triển khai (Wave 11-17)
@@ -137,6 +165,36 @@
 | 19c | Charge shot 3 tiers | 0.4s/0.8s/1.5s = 2×/5×/15× damage |
 | 29c | Secondary weapon + Beam | Long-press swap Laser ↔ Spread ↔ Beam (drain energy) |
 | 48c | 15-node skill tree | Branching upgrade tree, spend lifetime minerals |
+
+
+### Round 6 picks (Q18-30 game feel batch 5-7)
+
+
+| Code | Feature | Detail |
+| --- | --- | --- |
+| 18c | Hit pause + boss flash | 60ms freeze enemy kill, 120ms + screen flash boss kill |
+| 20c | Smart bomb + shockwave | BOMB booster max 3 stack, double-tap Settings = clear screen + radial expand |
+| 21c | Boss intro full | Zoom 1.5s + name banner + warning border pulse + alarm SFX + audio sting |
+| 24c | Boss kill rank + multiplier | S/A/B/C theo time-to-kill + score ×3/×2/×1.5 |
+| 23c | Endless + leaderboard | Sau End → endless (×1.05/wave) + leaderboard riêng track survival time |
+| 25c | Random modifiers (player choice) | Mỗi game start, chọn 1/3 modifiers (Triple speed / Half HP+2× dmg / etc) |
+| 26c | Photo mode + filter + share | Pause → ẩn HUD → screenshot + filter neon/muted + share intent |
+| 27c | A11y profiles + contrast + text | Color blind palettes + high contrast + larger text option |
+| 28c | Procedural patterns + custom | Mix ZigZag/Row/cluster + V-formation / sine wave / custom |
+| 30c | Camera zoom + shake + chromatic | Zoom 1.1× × 300ms khi boss/damage/kill + shake + chromatic aberration |
+| 45d | Ship full customization | Skin + tint + trail + glow + weapon loadout + module slot |
+| 46c | Achievements tiered | +20 achievements với Bronze/Silver/Gold tiers |
+| 47d | Story full | Boss dialogue + chapter intros + epilogue cinematic |
+
+
+### Implementation strategy picks (batch 8 meta)
+
+
+| Code | Decision |
+| --- | --- |
+| Wave order | "làm tất cả trong 1 prompt" (user explicit) — but realistic ~50+ features will need multiple sessions, will checkpoint after each wave |
+| Build cadence | Build verify (debug + release) + audit memory leak SAU MỖI WAVE |
+| Wave 7 deferred | Có, sau khi xong tất cả features (Vb Hilt + Ub ViewModel + Rb Material 3 + Mc per-stage BGM + Zc ProGuard + AAc/CCc benchmark) |
 
 ---
 
@@ -444,15 +502,15 @@ Các architectural refactors quá lớn để gộp chung:
 
 # Phần 7 — 🛠️ Implementation Wave Plan
 
-## Wave 1 (Ưu tiên — easy + high impact, ~2h)
-- [ ] 1c Boss HP bar (top screen + name + warning)
-- [ ] 2c Floating damage numbers + crit zoom
-- [ ] 4c Mineral popup + combo bonus text
-- [ ] 7c Combo HUD always-visible + multiplier
-- [ ] 9b Achievements basic (DataStore)
-- [ ] 10b Boss damage gathering 200ms
-- [ ] 13c Star explosion radial burst + ring shockwave
-- [ ] 16c Magnet visual circle + line
+## Wave 1 ✅ DONE
+- [x] 1c Boss HP bar
+- [x] 2c+10b Floating damage numbers + crit zoom + boss aggregation 200ms
+- [x] 4c Mineral popup + combo bonus
+- [x] 7c Combo HUD always-visible + multiplier
+- [x] 9b Achievements basic (DataStore + 10 achievements)
+- [x] 13c Star explosion radial burst + ring shockwave
+- [x] 16c Magnet visual circle + line
+- [x] 18c Hit pause 60ms enemy / 120ms boss + flash
 
 ## Wave 2 (Cinematic polish, ~2h)
 - [ ] 3b Ship engine flame trail

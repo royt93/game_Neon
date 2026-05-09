@@ -29,6 +29,8 @@ data class LevelOneBoss(
         private set
     override val drawableId: Int = R.drawable.enemy_red_boss
     override var lastImpactMillis: Long = 0L
+    override val isBoss: Boolean = true
+    override val displayName: String = "LEVEL 1 BOSS"
     private val bossMovementSpeed = 0.5f
 
     private val minXOffset = width

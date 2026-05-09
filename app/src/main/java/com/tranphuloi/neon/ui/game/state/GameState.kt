@@ -9,13 +9,19 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.tranphuloi.neon.core.tinker
 import com.tranphuloi.neon.core.tinkerClearAll
+import com.tranphuloi.neon.ui.game.background.BackgroundController
+import com.tranphuloi.neon.ui.game.background.BackgroundState
 import com.tranphuloi.neon.ui.game.booster.Booster
 import com.tranphuloi.neon.ui.game.booster.BoosterController
 import com.tranphuloi.neon.ui.game.booster.BoosterToBoosterUIMapper
 import com.tranphuloi.neon.ui.game.booster.BoosterUI
 import com.tranphuloi.neon.ui.game.common.Millis
-import com.tranphuloi.neon.ui.game.constellation.ConstellationController
-import com.tranphuloi.neon.ui.game.constellation.Star
+import com.tranphuloi.neon.ui.game.damage.DamageNumber
+import com.tranphuloi.neon.ui.game.damage.DamageNumberController
+import com.tranphuloi.neon.ui.game.hitstop.HitStopController
+import com.tranphuloi.neon.data.Achievement
+import com.tranphuloi.neon.ui.game.pickup.PickupPopup
+import com.tranphuloi.neon.ui.game.pickup.PickupPopupController
 import com.tranphuloi.neon.ui.game.enemy.laser.EnemyLasersController
 import com.tranphuloi.neon.ui.game.enemy.ship.controller.EnemyController
 import com.tranphuloi.neon.ui.game.enemy.ship.mapper.EnemyToEnemyUIMapper
@@ -66,11 +72,23 @@ fun rememberGameState(): GameState {
     }
     val coroutineScope = rememberCoroutineScope()
 
-    var stars: List<Star> by rememberSaveable { mutableStateOf(emptyList()) }
-    val constellationController = remember {
-        ConstellationController(
-            stars = { stars },
-            setStars = { stars = it }
+    var background by remember {
+        mutableStateOf(
+            BackgroundState(
+                stars = emptyList(),
+                dust = emptyList(),
+                nebula = emptyList(),
+                comet = null,
+                galaxy = null,
+            )
+        )
+    }
+    val backgroundController = remember {
+        Logger.d("rememberGameState: building BackgroundController")
+        BackgroundController(
+            screenWidth = screenWidth,
+            screenHeight = screenHeight,
+            updateState = { background = it },
         )
     }
 
@@ -113,6 +131,10 @@ fun rememberGameState(): GameState {
 
     var shipLasers: List<Laser> by remember { mutableStateOf(emptyList()) }
     var ultimateLasers: List<Laser> by remember { mutableStateOf(emptyList()) }
+    var damageNumbers: List<DamageNumber> by remember { mutableStateOf(emptyList()) }
+    val damageNumberController = remember {
+        DamageNumberController(updateState = { damageNumbers = it })
+    }
     val lasersController = remember {
         LasersController(
             screenWidth = screenWidth,
@@ -121,7 +143,10 @@ fun rememberGameState(): GameState {
             initialShipLasers = shipLasers,
             initialUltimateLasers = ultimateLasers,
             setShipLasers = { shipLasers = it },
-            setUltimateLasers = { ultimateLasers = it }
+            setUltimateLasers = { ultimateLasers = it },
+            onLaserHit = { targetId, damage, x, y, isBoss ->
+                damageNumberController.report(targetId, damage, x, y, isBoss)
+            },
         )
     }
 
@@ -156,6 +181,26 @@ fun rememberGameState(): GameState {
 
     var mineralsEarnedTotal: Int by rememberSaveable { mutableIntStateOf(0) }
     var minerals: List<Mineral> by rememberSaveable { mutableStateOf(emptyList()) }
+    var pickupPopups: List<PickupPopup> by remember { mutableStateOf(emptyList()) }
+    val pickupPopupController = remember {
+        PickupPopupController(updateState = { pickupPopups = it })
+    }
+    var bossKillFlashMillis by remember { mutableLongStateOf(0L) }
+    val hitStopController = remember {
+        HitStopController(onBossKillFlash = { bossKillFlashMillis = System.currentTimeMillis() })
+    }
+    var achievementUnlocked by remember {
+        mutableStateOf<Achievement?>(null)
+    }
+    var achievementShownAtMillis by remember { mutableLongStateOf(0L) }
+    val achievementsRepo = com.tranphuloi.neon.data.LocalAchievements.current
+    suspend fun unlockAchievement(achievement: Achievement) {
+        if (achievementsRepo.unlock(achievement)) {
+            achievementUnlocked = achievement
+            achievementShownAtMillis = System.currentTimeMillis()
+            Logger.d("Achievement unlocked: ${achievement.id} \"${achievement.title}\"")
+        }
+    }
     var lastMineralPickupMillis by remember { mutableLongStateOf(0L) }
     var lastEnemyKillMillis by remember { mutableLongStateOf(0L) }
     var comboCount by remember { mutableIntStateOf(0) }
@@ -164,19 +209,6 @@ fun rememberGameState(): GameState {
     var comboPopupShownMillis by remember { mutableLongStateOf(0L) }
     // Holder updated by StageController.onStageAdvance below; closure-captured by mineralsController.
     val magnetRadiusState = remember { androidx.compose.runtime.mutableFloatStateOf(80f) }
-    val mineralsController = remember {
-        Logger.d("rememberGameState: building MineralsController")
-        MineralsController(
-            initialMinerals = minerals,
-            updateMinerals = { minerals = it },
-            updateMineralsEarnedTotal = {
-                mineralsEarnedTotal += it
-                lastMineralPickupMillis = System.currentTimeMillis()
-            },
-            getShipCenter = { ship.xOffset + ship.width / 2 to ship.yOffset + ship.height / 2 },
-            getMagnetRadius = { magnetRadiusState.floatValue }
-        )
-    }
 
     val comboController = remember {
         Logger.d("rememberGameState: building ComboController")
@@ -185,6 +217,28 @@ fun rememberGameState(): GameState {
                 comboPopupTier = tier
                 comboPopupShownMillis = System.currentTimeMillis()
             }
+        )
+    }
+
+    val mineralsController = remember {
+        Logger.d("rememberGameState: building MineralsController")
+        MineralsController(
+            initialMinerals = minerals,
+            updateMinerals = { minerals = it },
+            updateMineralsEarnedTotal = { amount ->
+                mineralsEarnedTotal += amount
+                lastMineralPickupMillis = System.currentTimeMillis()
+                // 4c: spawn pickup popup at ship center.
+                val tier = comboController.currentTier()
+                pickupPopupController.spawnMineralPickup(
+                    xOffset = ship.xOffset + ship.width / 2f - 20f,
+                    yOffset = ship.yOffset - 20f,
+                    comboCount = comboController.count,
+                    multiplier = tier.multiplier,
+                )
+            },
+            getShipCenter = { ship.xOffset + ship.width / 2 to ship.yOffset + ship.height / 2 },
+            getMagnetRadius = { magnetRadiusState.floatValue }
         )
     }
 
@@ -219,7 +273,16 @@ fun rememberGameState(): GameState {
                 comboController.onEnemyKilled()
                 comboCount = comboController.count
                 comboTier = comboController.currentTier()
-                Logger.d("Enemy killed (id=${enemy.enemyId.take(6)}…) → combo=$comboCount tier=$comboTier")
+                if (enemy.isBoss) hitStopController.freezeForBossKill()
+                else hitStopController.freezeForEnemyKill()
+                // Achievement triggers
+                coroutineScope.launch {
+                    unlockAchievement(Achievement.FIRST_BLOOD)
+                    if (enemy.isBoss) unlockAchievement(Achievement.FIRST_BOSS)
+                    if (comboCount >= 5) unlockAchievement(Achievement.COMBO_5)
+                    if (comboCount >= 10) unlockAchievement(Achievement.COMBO_10)
+                }
+                Logger.d("Enemy killed (id=${enemy.enemyId.take(6)}…) → combo=$comboCount tier=$comboTier boss=${enemy.isBoss}")
             }
         )
     }
@@ -292,23 +355,20 @@ fun rememberGameState(): GameState {
         Logger.d("Game loop DisposableEffect setup, screen=${screenWidth}x${screenHeight}")
         var loopRunning = true
         val job = coroutineScope.launch {
-            constellationController.createStars(
-                screenHeight = screenHeight,
-                screenWidth = screenWidth
-            )
-            Logger.d("Constellation initialized; entering tick loop on IO dispatcher")
+            backgroundController.init()
+            Logger.d("Background initialized; entering tick loop on IO dispatcher")
             // Run heavy per-tick work (collision, entity processing) on IO so it doesn't compete
             // with Compose recomposition on Main. Pace with delay(8) (~125Hz) which yields the
             // dispatcher between iterations and lets cancel() propagate immediately.
             launch(IO) {
                 var frameCount = 0L
                 while (loopRunning) {
-                    if (gameStatus == GameStatus.RUNNING) {
+                    if (gameStatus == GameStatus.RUNNING && !hitStopController.isFrozen()) {
                         frameCount++
                         tinker(
-                            id = constellationController.animateStarsId,
-                            repeatTime = constellationController.animateStarsRepeatTime,
-                            doWork = { constellationController.animateStars() }
+                            id = backgroundController.tickId,
+                            repeatTime = backgroundController.tickRepeatTime,
+                            doWork = { backgroundController.tick() }
                         )
                         tinker(
                             id = shipController.moveShipId,
@@ -346,6 +406,16 @@ fun rememberGameState(): GameState {
                             id = mineralsController.processMineralsId,
                             repeatTime = mineralsController.processMineralsRepeatTime,
                             doWork = { mineralsController.processMinerals() }
+                        )
+                        tinker(
+                            id = damageNumberController.tickId,
+                            repeatTime = damageNumberController.tickRepeatTime,
+                            doWork = { damageNumberController.tick() }
+                        )
+                        tinker(
+                            id = pickupPopupController.tickId,
+                            repeatTime = pickupPopupController.tickRepeatTime,
+                            doWork = { pickupPopupController.tick() }
                         )
                         tinker(
                             id = explosionsController.processExplosionsId,
@@ -439,7 +509,7 @@ fun rememberGameState(): GameState {
                             // Periodic memory log roughly every 8s at the IO loop's pace.
                             val rt = Runtime.getRuntime()
                             val usedMb = (rt.totalMemory() - rt.freeMemory()) / (1024 * 1024)
-                            Logger.d("PERF frame=$frameCount entities=stars:${stars.size}+lasers:${shipLasers.size}+enemies:${enemies.size} heapUsed=${usedMb}MB")
+                            Logger.d("PERF frame=$frameCount entities=stars:${background.stars.size}+dust:${background.dust.size}+lasers:${shipLasers.size}+enemies:${enemies.size} heapUsed=${usedMb}MB")
                         }
                         // Periodic combo expiry check — combo UI refreshes when no kill in 2s.
                         if (frameCount % 60L == 0L) {
@@ -460,7 +530,7 @@ fun rememberGameState(): GameState {
             }
         }
         onDispose {
-            Logger.d("Game loop dispose: cancel job + clear tinkerMap (entities=stars:${stars.size},lasers:${shipLasers.size},enemies:${enemies.size},boosters:${boosters.size})")
+            Logger.d("Game loop dispose: cancel job + clear tinkerMap (entities=stars:${background.stars.size},lasers:${shipLasers.size},enemies:${enemies.size},boosters:${boosters.size})")
             loopRunning = false
             job.cancel()
             // Module-level tinkerMap accumulates UUIDs forever otherwise.
@@ -474,8 +544,11 @@ fun rememberGameState(): GameState {
             LeakWatch.watch(explosionsController, "GameState.onDispose → ExplosionController must be GC'd")
             LeakWatch.watch(mineralsController, "GameState.onDispose → MineralsController must be GC'd")
             LeakWatch.watch(enemyLaserController, "GameState.onDispose → EnemyLasersController must be GC'd")
-            LeakWatch.watch(constellationController, "GameState.onDispose → ConstellationController must be GC'd")
+            LeakWatch.watch(backgroundController, "GameState.onDispose → BackgroundController must be GC'd")
             LeakWatch.watch(stageController, "GameState.onDispose → StageController must be GC'd")
+            LeakWatch.watch(damageNumberController, "GameState.onDispose → DamageNumberController must be GC'd")
+            LeakWatch.watch(pickupPopupController, "GameState.onDispose → PickupPopupController must be GC'd")
+            LeakWatch.watch(hitStopController, "GameState.onDispose → HitStopController must be GC'd")
         }
     }
 
@@ -485,7 +558,7 @@ fun rememberGameState(): GameState {
     return GameState(
         gameStatus = gameStatus,
         gameMessage = gameMessage,
-        stars = stars,
+        background = background,
         ship = ship,
         shipLasers = shipLasers.map { lasersMapper(it) },
         ultimateLasers = ultimateLasers.map { lasersMapper(it) },
@@ -507,6 +580,12 @@ fun rememberGameState(): GameState {
         comboPopupTier = comboPopupTier,
         comboPopupShownMillis = comboPopupShownMillis,
         stageIndex = stageController.currentIndex(),
+        magnetRadius = magnetRadiusState.floatValue,
+        damageNumbers = damageNumbers,
+        pickupPopups = pickupPopups,
+        bossKillFlashMillis = bossKillFlashMillis,
+        achievementUnlocked = achievementUnlocked,
+        achievementShownAtMillis = achievementShownAtMillis,
         moveShipLeft = { shipController.movingLeft = it },
         moveShipRight = { shipController.movingRight = it },
         toggleGameStatus = {
@@ -523,7 +602,7 @@ fun rememberGameState(): GameState {
 data class GameState(
     val gameStatus: GameStatus,
     val gameMessage: String,
-    val stars: List<Star>,
+    val background: BackgroundState,
     val ship: Ship,
     val shipLasers: List<LaserUI>,
     val ultimateLasers: List<LaserUI>,
@@ -545,6 +624,12 @@ data class GameState(
     val comboPopupTier: com.tranphuloi.neon.ui.game.combo.ComboTier,
     val comboPopupShownMillis: Long,
     val stageIndex: Int,
+    val magnetRadius: Float,
+    val damageNumbers: List<DamageNumber>,
+    val pickupPopups: List<PickupPopup>,
+    val bossKillFlashMillis: Long,
+    val achievementUnlocked: Achievement?,
+    val achievementShownAtMillis: Long,
     val moveShipLeft: (Boolean) -> Unit,
     val moveShipRight: (Boolean) -> Unit,
     val toggleGameStatus: () -> Unit,

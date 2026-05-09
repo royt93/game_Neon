@@ -22,6 +22,7 @@ class LasersController(
     initialUltimateLasers: List<Laser> = listOf(),
     private val setShipLasers: (List<Laser>) -> Unit,
     private val setUltimateLasers: (List<Laser>) -> Unit,
+    private val onLaserHit: (targetId: String, damage: Int, x: Float, y: Float, isBoss: Boolean) -> Unit = { _, _, _, _, _ -> },
 ) {
 
     init {
@@ -152,6 +153,13 @@ class LasersController(
                 val target = enemies[index]
                 Logger.d("Collision: laser id=${laser.id.take(6)} → enemy id=${target.enemyId.take(6)} hp=${target.hp.toInt()} (-${laser.impactPower.toInt()})")
                 target.onObjectImpact(laser.impactPower)
+                onLaserHit(
+                    target.enemyId,
+                    laser.impactPower.toInt(),
+                    target.xOffset + target.width / 2f,
+                    target.yOffset,
+                    target.isBoss,
+                )
                 destroyShipLaser(laser)
                 updateShipLasersUI()
             }

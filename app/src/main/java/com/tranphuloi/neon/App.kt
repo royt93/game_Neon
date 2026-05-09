@@ -3,6 +3,7 @@ package com.tranphuloi.neon
 import android.app.Application
 import android.content.ComponentCallbacks2
 import android.content.res.Configuration
+import com.tranphuloi.neon.data.AchievementsRepository
 import com.tranphuloi.neon.data.LeaderboardRepository
 import com.tranphuloi.neon.data.SettingsRepository
 import com.tranphuloi.neon.utils.Logger
@@ -13,6 +14,8 @@ class App : Application() {
         private set
     lateinit var leaderboard: LeaderboardRepository
         private set
+    lateinit var achievements: AchievementsRepository
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -20,6 +23,7 @@ class App : Application() {
         installUncaughtExceptionHandler()
         settings = SettingsRepository(applicationContext)
         leaderboard = LeaderboardRepository(applicationContext)
+        achievements = AchievementsRepository(applicationContext)
     }
 
     private fun installUncaughtExceptionHandler() {

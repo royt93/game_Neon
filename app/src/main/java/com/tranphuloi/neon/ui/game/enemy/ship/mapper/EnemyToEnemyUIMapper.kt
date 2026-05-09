@@ -16,6 +16,10 @@ class EnemyToEnemyUIMapper {
                 hpBarWidth = width / initialHp * hp,
                 drawableId = drawableId,
                 lastImpactMillis = lastImpactMillis,
+                isBoss = isBoss,
+                displayName = displayName,
+                currentHp = hp,
+                initialHp = initialHp,
             )
         }
     }
