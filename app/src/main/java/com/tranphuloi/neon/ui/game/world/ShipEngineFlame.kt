@@ -55,18 +55,18 @@ fun ShipEngineFlame(
 
         // Flicker length factor 0.65..1.35 (deeper flicker for organic feel)
         val lenFactor = 1f + 0.35f * sin(flicker)
-        // Longer, 3-layer cone per "dài hơn, tự nhiên hơn" feedback.
-        // Outer cyan halo / mid gold / bright white core — staggered lengths for taper.
-        val outerLen = 50f * density * lenFactor
-        val midLen = 35f * density * lenFactor
-        val coreLen = 22f * density * lenFactor
+        // Meteor streak — much longer cones + ember trail. Per user feedback "vệt
+        // sao băng" (shooting star tail).
+        val outerLen = 100f * density * lenFactor
+        val midLen = 70f * density * lenFactor
+        val coreLen = 45f * density * lenFactor
         val outerHalfWidth = 18f * density
         val midHalfWidth = 11f * density
         val coreHalfWidth = 5.5f * density
 
         val totalRotation = ship.bankRotation + ship.spawnRotation
         rotate(degrees = totalRotation, pivot = androidx.compose.ui.geometry.Offset(cxPx, topY)) {
-            // Layer 1: outer cyan halo (largest, softest).
+            // Layer 1: outer cyan halo (longest, softest, most diffuse).
             val outerPath = Path().apply {
                 moveTo(cxPx - outerHalfWidth, topY)
                 lineTo(cxPx + outerHalfWidth, topY)
@@ -78,7 +78,8 @@ fun ShipEngineFlame(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         NeonCyan.copy(alpha = 0.5f),
-                        NeonCyan.copy(alpha = 0.18f),
+                        NeonCyan.copy(alpha = 0.22f),
+                        NeonCyan.copy(alpha = 0.08f),
                         Color.Transparent,
                     ),
                     startY = topY,
@@ -98,7 +99,8 @@ fun ShipEngineFlame(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         NeonGold.copy(alpha = 0.85f),
-                        NeonGold.copy(alpha = 0.4f),
+                        NeonGold.copy(alpha = 0.45f),
+                        NeonGold.copy(alpha = 0.15f),
                         Color.Transparent,
                     ),
                     startY = topY,
@@ -106,7 +108,7 @@ fun ShipEngineFlame(
                 ),
             )
 
-            // Layer 3: bright white core — hottest center, sharpest.
+            // Layer 3: bright white core — hottest center.
             val corePath = Path().apply {
                 moveTo(cxPx - coreHalfWidth, topY)
                 lineTo(cxPx + coreHalfWidth, topY)
@@ -118,13 +120,35 @@ fun ShipEngineFlame(
                 brush = Brush.verticalGradient(
                     colors = listOf(
                         Color.White.copy(alpha = 0.95f),
-                        Color.White.copy(alpha = 0.4f),
+                        Color.White.copy(alpha = 0.45f),
                         Color.Transparent,
                     ),
                     startY = topY,
                     endY = topY + coreLen,
                 ),
             )
+
+            // Ember trail — 6 fading sparkle dots extending past the cone tip,
+            // mimicking a shooting-star/meteor tail. Sizes shrink, alpha fades.
+            val coneTipY = topY + outerLen
+            val emberSpacing = 12f * density
+            for (i in 0 until 6) {
+                val ey = coneTipY + i * emberSpacing
+                val emberAlpha = (1f - i * 0.16f) * 0.55f * lenFactor
+                val emberRadius = (3f - i * 0.4f) * density
+                if (emberAlpha > 0f && emberRadius > 0f) {
+                    drawCircle(
+                        color = NeonGold.copy(alpha = emberAlpha * 0.5f),
+                        radius = emberRadius * 1.8f,
+                        center = androidx.compose.ui.geometry.Offset(cxPx, ey),
+                    )
+                    drawCircle(
+                        color = Color.White.copy(alpha = emberAlpha),
+                        radius = emberRadius,
+                        center = androidx.compose.ui.geometry.Offset(cxPx, ey),
+                    )
+                }
+            }
         }
     }
 }

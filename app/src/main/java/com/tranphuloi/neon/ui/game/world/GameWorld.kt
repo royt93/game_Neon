@@ -166,14 +166,13 @@ fun GameWorld(
                 .size(ship.shieldSize.dp)
                 .offset(x = ship.xOffset.dp, y = ship.yOffset.dp)
                 .graphicsLayer {
-                    // Spawn cinematic transforms — drive from ShipController.applySpawnPath.
-                    // After spawn finishes spawn fields are 1/1/0 and become a no-op,
-                    // leaving only bankRotation active during gameplay.
-                    // Implosion overrides scale/alpha during destroy phase.
+                    // Spawn cinematic transforms — apply alpha + scale on the outer
+                    // Box so shield aura scales together. Rotation is moved to the
+                    // Image directly (below) so it pivots around the ship's center,
+                    // not the larger Box center → no translational drift on bank.
                     alpha = if (shipHidden) 0f else ship.spawnAlpha * shipImplodeAlpha
                     scaleX = ship.spawnScale * shipImplodeScale
                     scaleY = ship.spawnScale * shipImplodeScale
-                    rotationZ = ship.spawnRotation + ship.bankRotation
                 }
         ) {
             if (ship.shieldEnabled) {
@@ -219,6 +218,12 @@ fun GameWorld(
                 modifier = Modifier
                     .width(ship.width.dp)
                     .height(ship.height.dp)
+                    .graphicsLayer {
+                        // Rotation pivots on Image center (default transformOrigin
+                        // 0.5/0.5) — fixes bank-tilt drift caused by rotating outer
+                        // Box (whose center was offset from Image center).
+                        rotationZ = ship.spawnRotation + ship.bankRotation
+                    }
                     .neonGlow(
                         color = NeonCyan,
                         intensity = 0.5f + glowBoost,

@@ -35,13 +35,16 @@ class HitStopController(
     }
 
     /**
-     * 80ms hit-stop on every laser→enemy hit. Cooldown ensures rapid-fire hits
-     * don't compound (e.g., 5 hits in 200ms still result in only ~80ms freeze).
+     * Brief hit-stop on laser→enemy hit. 30ms (was 80ms) + rate cap so rapid-fire
+     * triple-laser hits don't cumulatively pause the game (cause of perceived lag).
      */
+    private var lastHitFreezeAtMillis: Long = 0L
     fun freezeForHit() {
         val now = System.currentTimeMillis()
+        if (now - lastHitFreezeAtMillis < HIT_FREEZE_RATE_CAP_MS) return
         if (now >= unfrozenAtMillis) {
             unfrozenAtMillis = now + HIT_FREEZE_MS
+            lastHitFreezeAtMillis = now
         }
     }
 
@@ -50,6 +53,7 @@ class HitStopController(
     companion object {
         const val ENEMY_FREEZE_MS: Long = 60L
         const val BOSS_FREEZE_MS: Long = 120L
-        const val HIT_FREEZE_MS: Long = 80L
+        const val HIT_FREEZE_MS: Long = 30L
+        const val HIT_FREEZE_RATE_CAP_MS: Long = 250L
     }
 }

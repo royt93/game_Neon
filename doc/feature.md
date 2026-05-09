@@ -148,6 +148,9 @@
 - ✅ UX (round 9): **Center text resize + no-overlap**. ComboPopup 38→24sp, StageBanner 44→30/96→64sp, WaveClearBanner 36→24sp. Padding offsets ±180dp (above/below center) prevent overlap.
 - ✅ UX (round 9): **Hit ring + spark count + hit-stop**. Hit ring 0→40dp expand at hit point. Spark count 6→16, travel 25-50dp. HitStop micro freeze 80ms per hit (cooldown anti-compound).
 - ✅ UX (round 9): **Galaxy spiral → warm nebula**. Top-right gold-orange `0xFFFFB048` blob replaces galaxy spiral path.
+- ✅ PERF (round 10): **Hit-stop lag fix**. Round 9 added `freezeForHit()` 80ms per laser hit — with triple-laser firing 3 lasers × 5+ Hz, freeze cumulated → game effectively pause-spammed → user perceived as lag. Reduced to 30ms freeze + rate cap 250ms (max 1 freeze per 250ms window). Snappier feel + still preserves "đấm" feedback on first hit of a burst.
+- ✅ BUG (round 10): **Ship rotation pivot drift**. graphicsLayer rotationZ was on outer Box (`size(shieldSize.dp)` = 180dp) but Image at top-left default → rotation center ≠ Image center → bank LEFT/RIGHT made ship visually drift. Fix: rotationZ moved to Image directly (Image-center pivot via default transformOrigin 0.5/0.5). Outer Box keeps alpha + scale only. Bank now rotates in-place correctly.
+- ✅ UX (round 10): **Ship flame meteor streak**. Cone lengths 50→100/35→70/22→45dp + add 6-dot ember trail extending past cone tip (12dp spacing, alpha fade, gold halo + white core). Tapered "vệt sao băng" feel.
 
 ## 🆕 Wave 1 implemented (this round)
 
