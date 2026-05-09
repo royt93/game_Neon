@@ -41,6 +41,7 @@ import com.tranphuloi.neon.ui.game.stage.StageBoss
 import com.tranphuloi.neon.ui.game.stage.StageController
 import com.tranphuloi.neon.ui.game.stage.StageGame
 import com.tranphuloi.neon.ui.game.stage.StageMessage
+import com.tranphuloi.neon.utils.Logger
 import com.tranphuloi.neon.utils.UuidUtils
 import com.tranphuloi.neon.utils.observeAsState
 import kotlinx.coroutines.Dispatchers.IO
@@ -72,12 +73,21 @@ fun rememberGameState(): GameState {
             Ship(xOffset = screenWidth / 2 - 85f / 2, yOffset = screenHeight + 240f)
         )
     }
+    var gameStatus by rememberSaveable { mutableStateOf(GameStatus.RUNNING) }
+    fun setGameStatus(gameStt: GameStatus) {
+        if (gameStatus != gameStt) {
+            Logger.d("gameStatus: $gameStatus → $gameStt")
+        }
+        gameStatus = gameStt
+    }
     val shipController = remember {
         ShipController(
             screenWidth = screenWidth,
             screenHeight = screenHeight,
             ship = ship,
-        ) { ship = it }
+            setShip = { ship = it },
+            onShipDestroyed = { setGameStatus(GameStatus.GAME_OVER) },
+        )
     }
 
     var shipLasers: List<Laser> by remember { mutableStateOf(emptyList()) }
@@ -183,11 +193,6 @@ fun rememberGameState(): GameState {
         }
     }
 
-    var gameStatus by rememberSaveable { mutableStateOf(GameStatus.RUNNING) }
-    fun setGameStatus(gameStt: GameStatus) {
-        gameStatus = gameStt
-    }
-
     var gameTimeSec by rememberSaveable { mutableLongStateOf(0L) }
     fun updateGameTime() {
         gameTimeSec += 1
@@ -210,6 +215,9 @@ fun rememberGameState(): GameState {
 
     val lifecycle by LocalLifecycleOwner.current.lifecycle.observeAsState()
     LaunchedEffect(lifecycle) {
+        Logger.d("Lifecycle event: $lifecycle")
+        // Never override GAME_OVER from a lifecycle tick; only RUNNING ↔ PAUSE.
+        if (gameStatus == GameStatus.GAME_OVER) return@LaunchedEffect
         if (lifecycle == Lifecycle.Event.ON_PAUSE || lifecycle == Lifecycle.Event.ON_STOP) {
             setGameStatus(GameStatus.PAUSE)
         } else if (lifecycle == Lifecycle.Event.ON_RESUME || lifecycle == Lifecycle.Event.ON_START) {
@@ -219,12 +227,14 @@ fun rememberGameState(): GameState {
 
     var refreshHandler by remember { mutableLongStateOf(0L) }
     DisposableEffect(lifecycle) {
+        Logger.d("Game loop DisposableEffect setup, screen=${screenWidth}x${screenHeight}")
         var loopRunning = true
         val job = coroutineScope.launch {
             constellationController.createStars(
                 screenHeight = screenHeight,
                 screenWidth = screenWidth
             )
+            Logger.d("Constellation initialized; entering tick loop on IO")
             launch(IO) {
                 while (loopRunning) {
                     if (gameStatus == GameStatus.RUNNING) {
@@ -366,6 +376,7 @@ fun rememberGameState(): GameState {
             }
         }
         onDispose {
+            Logger.d("Game loop dispose: cancel job + clear tinkerMap")
             loopRunning = false
             job.cancel()
             // Module-level tinkerMap accumulates UUIDs forever otherwise.
@@ -394,9 +405,12 @@ fun rememberGameState(): GameState {
         moveShipLeft = { shipController.movingLeft = it },
         moveShipRight = { shipController.movingRight = it },
         toggleGameStatus = {
-            gameStatus = if (gameStatus == GameStatus.RUNNING) {
-                GameStatus.PAUSE
-            } else GameStatus.RUNNING
+            // Settings button must not be able to revive a destroyed ship.
+            if (gameStatus != GameStatus.GAME_OVER) {
+                val next = if (gameStatus == GameStatus.RUNNING) GameStatus.PAUSE else GameStatus.RUNNING
+                Logger.d("toggleGameStatus: $gameStatus → $next")
+                gameStatus = next
+            }
         }
     )
 }

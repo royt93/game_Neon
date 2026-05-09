@@ -13,6 +13,8 @@
     <string name="splash">Splash image</string>
     <string name="restart_game_button">Restart</string>
     <string name="game_pause_dialog_title">PAUSE</string>
+    <string name="game_over_dialog_title">GAME OVER</string>
+    <string name="game_over_dialog_score">Minerals: %1$s</string>
     <string name="mineral_content_description">Mineral</string>
     <string name="explosion_content_description">Explosion</string>
 </resources>

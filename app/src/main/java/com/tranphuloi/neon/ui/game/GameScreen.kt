@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -20,12 +21,24 @@ import com.tranphuloi.neon.ui.game.audio.AudioPlayer
 import com.tranphuloi.neon.ui.game.controls.ButtonsMovement
 import com.tranphuloi.neon.ui.game.controls.ButtonSettings
 import com.tranphuloi.neon.ui.game.controls.IndicatorStatus
+import com.tranphuloi.neon.ui.game.settings.GameStatus
 import com.tranphuloi.neon.ui.game.state.rememberGameState
 import com.tranphuloi.neon.ui.game.world.GameWorld
+import com.tranphuloi.neon.utils.Logger
 
 @Composable
-fun GameScreen(onGamePause: () -> Unit) {
+fun GameScreen(
+    onGamePause: () -> Unit,
+    onGameOver: (score: String) -> Unit,
+) {
+    LaunchedEffect(Unit) { Logger.d("GameScreen entered") }
     val gameState = rememberGameState()
+    LaunchedEffect(gameState.gameStatus) {
+        if (gameState.gameStatus == GameStatus.GAME_OVER) {
+            Logger.d("GameScreen detected GAME_OVER → onGameOver(score=${gameState.mineralsEarnedTotal})")
+            onGameOver(gameState.mineralsEarnedTotal)
+        }
+    }
 
     AudioPlayer(gameStatus = gameState.gameStatus)
     Box(
@@ -46,6 +59,7 @@ fun GameScreen(onGamePause: () -> Unit) {
                 .align(Alignment.TopEnd)
                 .zIndex(300f)
         ) {
+            Logger.d("Settings button pressed → toggleGameStatus + open pause")
             gameState.toggleGameStatus()
             onGamePause()
         }

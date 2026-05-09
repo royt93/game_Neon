@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.tranphuloi.neon.common.Blue
 import com.tranphuloi.neon.common.Pink
+import com.tranphuloi.neon.utils.Logger
 import kotlinx.coroutines.delay
 import com.tranphuloi.neon.R
 
@@ -31,7 +32,9 @@ import com.tranphuloi.neon.R
 fun SplashScreen(onStartGame: () -> Unit) {
 
     LaunchedEffect(Unit) {
+        Logger.d("SplashScreen entered, delay 1200ms before start")
         delay(1200)
+        Logger.d("SplashScreen delay done → onStartGame()")
         onStartGame()
     }
 

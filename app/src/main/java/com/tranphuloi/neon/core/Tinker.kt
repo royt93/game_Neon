@@ -4,6 +4,7 @@ import com.tranphuloi.neon.ui.game.common.Millis
 import com.tranphuloi.neon.ui.game.common.Never
 import com.tranphuloi.neon.ui.game.common.Once
 import com.tranphuloi.neon.ui.game.common.RepeatTime
+import com.tranphuloi.neon.utils.Logger
 
 /**
  * Stores unique work id as key and start time in milliseconds as value.
@@ -44,5 +45,7 @@ fun tinker(id: String, repeatTime: RepeatTime, doWork: () -> Unit) {
  * `rememberSaveable { UUID.randomUUID().toString() }` adds a fresh entry).
  */
 fun tinkerClearAll() {
+    val before = tinkerMap.size
     tinkerMap.clear()
+    Logger.d("tinkerClearAll: removed $before entries")
 }

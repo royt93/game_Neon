@@ -2,6 +2,7 @@ package com.tranphuloi.neon.ui.game.stage
 
 import androidx.compose.runtime.saveable.Saver
 import com.tranphuloi.neon.utils.DateUtils
+import com.tranphuloi.neon.utils.Logger
 
 class StageController(
     private val dateUtils: DateUtils = DateUtils(),
@@ -15,8 +16,10 @@ class StageController(
         val hasNextStage = stageIndex < stages.lastIndex
         if (stageTimeExpired && hasNextStage) {
             if (!readyForNextStage) return StageBreak
+            val from = stageIndex
             stageIndex++
             stageStartSnapshotMillis = dateUtils.currentTimeMillis()
+            Logger.d("StageController advance: index $from → $stageIndex (${stages[stageIndex]::class.simpleName})")
         }
         return getStage()
     }

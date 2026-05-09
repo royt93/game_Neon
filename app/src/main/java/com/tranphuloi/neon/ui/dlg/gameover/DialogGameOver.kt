@@ -1,4 +1,4 @@
-package com.tranphuloi.neon.ui.dlg.gamepause
+package com.tranphuloi.neon.ui.dlg.gameover
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
@@ -22,8 +22,8 @@ import com.tranphuloi.neon.common.Pink
 import com.tranphuloi.neon.utils.Logger
 
 @Composable
-fun DialogGamePause(onRestartGame: () -> Unit) {
-    LaunchedEffect(Unit) { Logger.d("DialogGamePause shown") }
+fun DialogGameOver(score: String, onRestartGame: () -> Unit) {
+    LaunchedEffect(Unit) { Logger.d("DialogGameOver shown (score=$score)") }
     Card(
         backgroundColor = Blue,
         border = BorderStroke(2.dp, Pink)
@@ -33,13 +33,18 @@ fun DialogGamePause(onRestartGame: () -> Unit) {
             modifier = Modifier.padding(22.dp)
         ) {
             Text(
-                text = stringResource(id = R.string.game_pause_dialog_title),
+                text = stringResource(id = R.string.game_over_dialog_title),
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.h4
             )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = stringResource(id = R.string.game_over_dialog_score, score),
+                style = MaterialTheme.typography.h6
+            )
             Spacer(modifier = Modifier.height(16.dp))
             TextButton(onClick = {
-                Logger.d("DialogGamePause: Restart pressed")
+                Logger.d("DialogGameOver: Restart pressed")
                 onRestartGame()
             }) {
                 Text(

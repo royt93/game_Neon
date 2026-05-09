@@ -10,6 +10,7 @@ import com.tranphuloi.neon.ui.game.common.Millis
 import com.tranphuloi.neon.ui.game.enemy.ship.model.Enemy
 import com.tranphuloi.neon.ui.game.laser.Laser
 import com.tranphuloi.neon.ui.game.spaceObject.SpaceObject
+import com.tranphuloi.neon.utils.Logger
 import java.util.*
 
 class ShipController(
@@ -17,6 +18,7 @@ class ShipController(
     screenHeight: Float,
     private var ship: Ship,
     private val setShip: (Ship) -> Unit,
+    private val onShipDestroyed: () -> Unit = {},
 ) {
 
     private val spaceShipCollidePower: Float = 100f
@@ -45,6 +47,9 @@ class ShipController(
     private val shieldBoosterTimeMillis: Long = 10000
     private var shieldEndDurationMillis: Long = 0
     private fun enableShield(enable: Boolean) {
+        if (ship.shieldEnabled != enable) {
+            Logger.d("Booster: shield ${if (enable) "ON (+${shieldBoosterTimeMillis}ms)" else "OFF"}")
+        }
         updateShieldEnabled(enable)
         if (enable) {
             shieldBoosterStartMillis = System.currentTimeMillis()
@@ -56,6 +61,9 @@ class ShipController(
     private val laserBoosterTimeMillis: Long = 15000
     private var laserBoosterEndDurationMillis: Long = 0
     private fun enableLaserBooster(enable: Boolean) {
+        if (ship.laserBoosterEnabled != enable) {
+            Logger.d("Booster: laser ${if (enable) "ON (+${laserBoosterTimeMillis}ms)" else "OFF"}")
+        }
         updateLaserBoosterEnabled(enable)
         if (enable) {
             laserBoosterStartMillis = System.currentTimeMillis()
@@ -67,6 +75,9 @@ class ShipController(
     private val tripleLaserBoosterTimeMillis: Long = 20000
     private var tripleLaserBoosterEndDurationMillis: Long = 0
     private fun enableTripleLaserBooster(enable: Boolean) {
+        if (ship.tripleLaserBoosterEnabled != enable) {
+            Logger.d("Booster: triple-laser ${if (enable) "ON (+${tripleLaserBoosterTimeMillis}ms)" else "OFF"}")
+        }
         updateTripleLaserBoosterEnabled(enable)
         if (enable) {
             tripleLaserBoosterStartMillis = System.currentTimeMillis()
@@ -217,8 +228,18 @@ class ShipController(
     }
 
     private fun updateHp(hpChange: Int) {
-        ship = ship.copy(hp = ship.hp + hpChange)
+        if (ship.hp <= 0) return
+        val before = ship.hp
+        val newHp = (ship.hp + hpChange).coerceAtLeast(0)
+        ship = ship.copy(hp = newHp)
+        if (hpChange != 0) {
+            Logger.d("Ship hp: $before → ${ship.hp} (Δ=$hpChange)")
+        }
         setShip(ship)
+        if (before > 0 && newHp == 0) {
+            Logger.w("Ship destroyed (hp=0) → onShipDestroyed()")
+            onShipDestroyed()
+        }
     }
 
     companion object {
