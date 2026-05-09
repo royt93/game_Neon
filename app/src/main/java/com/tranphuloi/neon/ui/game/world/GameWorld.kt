@@ -141,8 +141,11 @@ fun GameWorld(
             if (ship.shieldEnabled) {
                 Canvas(
                     modifier = Modifier
-                        .size(size = ship.width.dp)
-                        .offset(y = (ship.height - ship.width).dp / 2),
+                        .size(ship.shieldSize.dp)
+                        .offset(
+                            x = (ship.width / 2 - ship.shieldRadius).dp,
+                            y = (ship.height / 2 - ship.shieldRadius).dp
+                        ),
                     onDraw = {
                         val colors =
                             listOf(
@@ -152,10 +155,10 @@ fun GameWorld(
                                 shipShieldColor
                             )
                         drawCircle(
-                            radius = ship.shieldSize,
+                            radius = ship.shieldRadius,
                             brush = Brush.radialGradient(
                                 colors = colors,
-                                radius = ship.height * 2.5f
+                                radius = ship.shieldRadius
                             ),
                             blendMode = BlendMode.Hardlight
                         )

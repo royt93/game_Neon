@@ -128,7 +128,7 @@ class LasersController(
             val laserRect = Rect(
                 offset = Offset(
                     x = laser.xOffset,
-                    y = laser.yOffset + screenHeight - 50
+                    y = laser.yOffset + screenHeight - laser.height
                 ),
                 size = Size(width = laser.width, height = laser.height)
             )

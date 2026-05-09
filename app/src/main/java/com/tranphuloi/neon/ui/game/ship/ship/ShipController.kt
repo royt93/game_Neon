@@ -102,13 +102,12 @@ class ShipController(
             )
         }
         val shipShieldRect by lazy {
-            val shipRadius = ship.width / 2
             Rect(
                 center = Offset(
-                    x = ship.xOffset + shipRadius,
-                    y = ship.yOffset + shipRadius
+                    x = ship.xOffset + ship.width / 2,
+                    y = ship.yOffset + ship.height / 2
                 ),
-                radius = shipRadius
+                radius = ship.shieldRadius
             )
         }
 
@@ -144,7 +143,7 @@ class ShipController(
                     size = Size(width = booster.size, height = booster.size)
                 )
             }
-            if (boosterRect.overlaps(shipRect)) {
+            if (boosterRect.overlaps(if (ship.shieldEnabled) shipShieldRect else shipRect)) {
                 boosters[boosterIndex].collect()
                 when (booster.type) {
                     BoosterType.ULTIMATE_WEAPON_BOOSTER -> fileUltimateLaser()
@@ -201,19 +200,19 @@ class ShipController(
         setShip(ship)
     }
 
+    private fun resolveShipDrawable(ship: Ship): Int =
+        if (ship.laserBoosterEnabled) R.drawable.ship_boosted_laser
+        else R.drawable.ship_regular_laser
+
     private fun updateLaserBoosterEnabled(enable: Boolean) {
-        ship = ship.copy(
-            laserBoosterEnabled = enable,
-            drawableId = if (enable) R.drawable.ship_boosted_laser else R.drawable.ship_regular_laser
-        )
+        val updated = ship.copy(laserBoosterEnabled = enable)
+        ship = updated.copy(drawableId = resolveShipDrawable(updated))
         setShip(ship)
     }
 
     private fun updateTripleLaserBoosterEnabled(enable: Boolean) {
-        ship = ship.copy(
-            tripleLaserBoosterEnabled = enable,
-            drawableId = R.drawable.ship_regular_laser
-        )
+        val updated = ship.copy(tripleLaserBoosterEnabled = enable)
+        ship = updated.copy(drawableId = resolveShipDrawable(updated))
         setShip(ship)
     }
 

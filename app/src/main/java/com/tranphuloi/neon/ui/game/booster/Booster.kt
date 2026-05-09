@@ -18,12 +18,22 @@ data class Booster(
     private val index: Int = Random.nextInt(0, boosters.size)
     val type: BoosterType = boosters[index]
 
+    private val createdAtMillis: Long = System.currentTimeMillis()
+
     fun moveObject() {
+        if (System.currentTimeMillis() - createdAtMillis > BOOSTER_TIMEOUT_MILLIS) {
+            collected = true
+            return
+        }
         if (yOffset < screenHeight + 100) {
             yOffset += 1
         } else {
             collected = true
         }
+    }
+
+    companion object {
+        const val BOOSTER_TIMEOUT_MILLIS: Long = 15_000L
     }
 
     fun collect() {

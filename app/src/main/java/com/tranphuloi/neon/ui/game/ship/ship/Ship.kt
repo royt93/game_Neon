@@ -19,4 +19,6 @@ data class Ship(
     val yOffset: Float,
     val hp: Int = 1000,
     @DrawableRes val drawableId: Int = R.drawable.ship_regular_laser,
-) : Serializable
+) : Serializable {
+    val shieldRadius: Float get() = shieldSize / 2
+}

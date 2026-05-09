@@ -13,7 +13,6 @@ data class Mineral(
     var alpha: Float = 1f
     private val alphaAnimationSpeed: Float = 0.009f
 
-    private val maxYOffset: Float = yOffset - 80f
     private val animationYOffset: Float = yOffset - 60f
     private val yOffsetMovementSpeed: Float = 1f
     var removed: Boolean = false
@@ -21,11 +20,11 @@ data class Mineral(
 
     fun process() {
         yOffset -= yOffsetMovementSpeed
-        if (yOffset <= maxYOffset) {
-            removed = true
-        }
         if (yOffset <= animationYOffset) {
             alpha -= alphaAnimationSpeed
+        }
+        if (alpha <= 0f || yOffset + width < 0f) {
+            removed = true
         }
     }
 }

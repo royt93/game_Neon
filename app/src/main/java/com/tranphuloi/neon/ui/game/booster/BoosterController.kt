@@ -18,6 +18,7 @@ class BoosterController(
     val addBoosterId = uuidUtils.getUuid()
     val addBoosterRepeatTime = Millis(4000)
     fun addBooster() {
+        if (boosters.size >= MAX_BOOSTERS) return
         val booster = generateBooster(width = BOOSTER_SIZE, maxXOffset = screenWidth - BOOSTER_SIZE)
         boosters += booster
         updateBoosters()
@@ -41,5 +42,6 @@ class BoosterController(
 
     companion object {
         const val BOOSTER_SIZE = 40f
+        const val MAX_BOOSTERS = 3
     }
 }

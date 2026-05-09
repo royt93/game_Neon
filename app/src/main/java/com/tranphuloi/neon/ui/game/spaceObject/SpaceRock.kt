@@ -14,7 +14,7 @@ class SpaceRock(
 ) : SpaceObject {
     override val id: String = UUID.randomUUID().toString()
     override val destroyable: Boolean = true
-    override var yOffset: Float = 1f
+    override var yOffset: Float = Random.nextInt(-200, -50).toFloat()
     private val randomDrawableIndex = Random.nextInt(0, RockType.values().size)
     override val drawableId: Int = RockType.values()[randomDrawableIndex].drawableId
     override var hp: Float = size
