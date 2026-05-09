@@ -40,6 +40,7 @@ data class LevelTwoBoss(
     override var yOffset: Float = -height
     private val entryTargetY: Float = 100f
     private val entrySpeed: Float = 2.0f
+    private var knockbackVel: Float = 0f
     override val isInEntryPhase: Boolean get() = yOffset < entryTargetY
 
     override fun enemyRect(): Rect {
@@ -69,6 +70,13 @@ data class LevelTwoBoss(
         when (movement) {
             Movement.RIGHT -> xOffset += bossMovementSpeed
             Movement.LEFT -> xOffset -= bossMovementSpeed
+        }
+
+        // Smooth knockback decay.
+        if (knockbackVel != 0f) {
+            yOffset += knockbackVel
+            knockbackVel *= 0.85f
+            if (kotlin.math.abs(knockbackVel) < 0.05f) knockbackVel = 0f
         }
 
         if (yOffset + height > screenHeight) outOfScreen = true
@@ -105,9 +113,8 @@ data class LevelTwoBoss(
     override fun onObjectImpact(impactPower: Float) {
         hp -= impactPower
         lastImpactMillis = System.currentTimeMillis()
-        // Boss knockback — smaller, skip entry phase.
         if (!isInEntryPhase) {
-            yOffset -= 2.5f
+            knockbackVel = (knockbackVel - 0.7f).coerceAtLeast(-1.5f)
         }
     }
 

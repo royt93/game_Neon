@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.Icon
@@ -152,6 +153,14 @@ fun GameWorld(
             ship = ship,
             modifier = Modifier.fillMaxSize(),
         )
+        // Implosion (ship destroy phase 1, 0-200ms): scale 1.0→0.3, alpha 1.0→0.7.
+        // After 200ms the ship is gone — sprite hidden so explosions take over.
+        val destroyElapsed = if (ship.destroyedAtMillis > 0L)
+            System.currentTimeMillis() - ship.destroyedAtMillis else -1L
+        val implosionT = if (destroyElapsed in 0L..200L) destroyElapsed / 200f else -1f
+        val shipImplodeScale = if (implosionT >= 0f) 1f - 0.7f * implosionT else 1f
+        val shipImplodeAlpha = if (implosionT >= 0f) 1f - 0.3f * implosionT else 1f
+        val shipHidden = destroyElapsed in 200L..Long.MAX_VALUE
         Box(
             modifier = Modifier
                 .size(ship.shieldSize.dp)
@@ -160,9 +169,10 @@ fun GameWorld(
                     // Spawn cinematic transforms — drive from ShipController.applySpawnPath.
                     // After spawn finishes spawn fields are 1/1/0 and become a no-op,
                     // leaving only bankRotation active during gameplay.
-                    alpha = ship.spawnAlpha
-                    scaleX = ship.spawnScale
-                    scaleY = ship.spawnScale
+                    // Implosion overrides scale/alpha during destroy phase.
+                    alpha = if (shipHidden) 0f else ship.spawnAlpha * shipImplodeAlpha
+                    scaleX = ship.spawnScale * shipImplodeScale
+                    scaleY = ship.spawnScale * shipImplodeScale
                     rotationZ = ship.spawnRotation + ship.bankRotation
                 }
         ) {
@@ -225,18 +235,23 @@ fun GameWorld(
             Column(modifier = Modifier.offset(x = it.xOffset.dp, y = it.yOffset.dp)) {
                 // Skip mini-HP-bar over boss heads — boss has dedicated top-screen
                 // BossHpBar already (avoid duplicate visualization).
-                if (!it.isBoss) {
+                // HP bar: only show when damaged (not at full HP), smaller (3dp h
+                // instead of 5dp), narrower (70% of enemy width), centered above.
+                if (!it.isBoss && it.currentHp < it.initialHp) {
+                    val barWidth = it.width * 0.7f
+                    val hpPx = barWidth * (it.currentHp / it.initialHp.coerceAtLeast(1f))
                     Box(
                         modifier = Modifier
+                            .padding(start = (it.width * 0.15f).dp, bottom = 1.dp)
                             .clip(MaterialTheme.shapes.small)
-                            .size(width = it.width.dp, height = 5.dp)
-                            .background(Color.White.copy(alpha = 0.7f))
+                            .size(width = barWidth.dp, height = 3.dp)
+                            .background(Color.White.copy(alpha = 0.4f))
                     ) {
                         Box(
                             modifier = Modifier
                                 .clip(MaterialTheme.shapes.small)
-                                .size(width = it.hpBarWidth.dp, height = 5.dp)
-                                .background(NeonRedAlert)
+                                .size(width = hpPx.dp, height = 3.dp)
+                                .background(NeonRedAlert.copy(alpha = 0.9f))
                         )
                     }
                 }

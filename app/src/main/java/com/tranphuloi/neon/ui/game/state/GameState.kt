@@ -132,6 +132,11 @@ fun rememberGameState(): GameState {
             updateState = { pickupBursts = it }
         )
     }
+    // HitStopController declared early so onLaserHit can call freezeForHit().
+    var bossKillFlashMillis by remember { mutableLongStateOf(0L) }
+    val hitStopController = remember {
+        HitStopController(onBossKillFlash = { bossKillFlashMillis = System.currentTimeMillis() })
+    }
     val shipController = remember {
         Logger.d("rememberGameState: building ShipController (initial hp=${ship.hp})")
         ShipController(
@@ -143,17 +148,22 @@ fun rememberGameState(): GameState {
                 killCamStartedAtMillis = System.currentTimeMillis()
                 Logger.d("Kill-cam triggered @ $killCamStartedAtMillis (delay GAME_OVER 1500ms)")
                 setGameStatus(GameStatus.GAME_OVER)
-                // Ship destruction starburst: 5 explosions in star pattern, slightly
-                // staggered for "tan vỡ" feel. Center + 4 diagonal offsets.
+                // Mark ship destroyed — drives implosion animation in GameWorld.
+                ship = ship.copy(destroyedAtMillis = killCamStartedAtMillis)
+                // 3-phase destruction: implosion (0-200ms), white flash (200-300ms),
+                // explosion starburst (delayed 300ms so flash → BANG sequence reads).
                 val cx = ship.xOffset + ship.width / 2f
                 val cy = ship.yOffset + ship.height / 2f
                 val size = ship.width
-                explosionsController.addExplosion(cx, cy, size * 1.4f, size * 1.4f)
-                explosionsController.addExplosion(cx - size * 0.5f, cy - size * 0.4f, size * 0.7f, size * 0.7f)
-                explosionsController.addExplosion(cx + size * 0.5f, cy - size * 0.4f, size * 0.7f, size * 0.7f)
-                explosionsController.addExplosion(cx - size * 0.5f, cy + size * 0.4f, size * 0.7f, size * 0.7f)
-                explosionsController.addExplosion(cx + size * 0.5f, cy + size * 0.4f, size * 0.7f, size * 0.7f)
-                Logger.d("Ship destruction starburst spawned at ($cx, $cy)")
+                coroutineScope.launch {
+                    delay(300L)
+                    explosionsController.addExplosion(cx, cy, size * 1.4f, size * 1.4f)
+                    explosionsController.addExplosion(cx - size * 0.5f, cy - size * 0.4f, size * 0.7f, size * 0.7f)
+                    explosionsController.addExplosion(cx + size * 0.5f, cy - size * 0.4f, size * 0.7f, size * 0.7f)
+                    explosionsController.addExplosion(cx - size * 0.5f, cy + size * 0.4f, size * 0.7f, size * 0.7f)
+                    explosionsController.addExplosion(cx + size * 0.5f, cy + size * 0.4f, size * 0.7f, size * 0.7f)
+                    Logger.d("Ship destruction starburst spawned at ($cx, $cy)")
+                }
             },
             onShipDamaged = {
                 lastShipDamageMillis = System.currentTimeMillis()
@@ -194,6 +204,7 @@ fun rememberGameState(): GameState {
             onLaserHit = { targetId, damage, x, y, isBoss ->
                 damageNumberController.report(targetId, damage, x, y, isBoss)
                 impactSparkController.spawnBurst(x, y)
+                hitStopController.freezeForHit()
             },
         )
     }
@@ -224,10 +235,6 @@ fun rememberGameState(): GameState {
     var pickupPopups: List<PickupPopup> by remember { mutableStateOf(emptyList()) }
     val pickupPopupController = remember {
         PickupPopupController(updateState = { pickupPopups = it })
-    }
-    var bossKillFlashMillis by remember { mutableLongStateOf(0L) }
-    val hitStopController = remember {
-        HitStopController(onBossKillFlash = { bossKillFlashMillis = System.currentTimeMillis() })
     }
     var achievementUnlocked by remember {
         mutableStateOf<Achievement?>(null)

@@ -29,6 +29,8 @@ data class Ship(
     // Banking rotation — tilts ±16° when player is moving left/right.
     // Lerped each tick by ShipController for smooth feel.
     val bankRotation: Float = 0f,
+    // Set when ship is destroyed (hp→0). Drives implosion animation.
+    val destroyedAtMillis: Long = 0L,
     @DrawableRes val drawableId: Int = R.drawable.ship_regular_laser,
 ) : Serializable {
     val shieldRadius: Float get() = shieldSize / 2

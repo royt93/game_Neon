@@ -56,15 +56,15 @@ class ImpactSparkController(
     @Volatile
     private var sparks: List<ImpactSpark> = emptyList()
 
-    /** Spawn a 6-spark radial burst at [xOffset], [yOffset]. */
+    /** Spawn a 16-spark radial burst at [xOffset], [yOffset]. */
     fun spawnBurst(xOffset: Float, yOffset: Float) {
         val now = System.currentTimeMillis()
-        val count = 6
+        val count = 16
         val baseAngle = Random.nextFloat() * 2f * PI.toFloat()
         val newSparks = (0 until count).map { i ->
             val angle = baseAngle + (i.toFloat() / count) * 2f * PI.toFloat() +
-                (Random.nextFloat() - 0.5f) * 0.5f
-            val length = 12f + Random.nextFloat() * 14f       // 12..26 dp
+                (Random.nextFloat() - 0.5f) * 0.4f
+            val length = 25f + Random.nextFloat() * 25f       // 25..50 dp (was 12..26)
             ImpactSpark(
                 id = UUID.randomUUID().toString(),
                 originX = xOffset,

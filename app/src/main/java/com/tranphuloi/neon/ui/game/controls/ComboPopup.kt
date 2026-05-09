@@ -74,8 +74,8 @@ fun ComboPopup(
                 this.alpha = alpha
             }
     ) {
-        // Halo behind text — large radial gradient pulses with the popup.
-        Canvas(modifier = Modifier.size(300.dp)) {
+        // Halo behind text — smaller (was 300) for tighter, less dominant footprint.
+        Canvas(modifier = Modifier.size(200.dp)) {
             val r = size.minDimension / 2f
             drawCircle(
                 brush = Brush.radialGradient(
@@ -92,31 +92,29 @@ fun ComboPopup(
             )
         }
 
-        // Layer 1: outermost soft halo (largest, most blurred via graphicsLayer alpha).
+        // Reduced font sizes (was 44/40/38, now 28/26/24) per "to quá" feedback.
         Text(
             text = tier.displayLabel,
             color = color.copy(alpha = 0.35f),
-            fontSize = 44.sp,
+            fontSize = 28.sp,
             fontWeight = FontWeight.Black,
-            style = TextStyle(letterSpacing = 4.sp),
+            style = TextStyle(letterSpacing = 3.sp),
             modifier = Modifier.graphicsLayer { scaleX = 1.10f; scaleY = 1.10f },
         )
-        // Layer 2: mid glow.
         Text(
             text = tier.displayLabel,
             color = color.copy(alpha = 0.65f),
-            fontSize = 40.sp,
+            fontSize = 26.sp,
             fontWeight = FontWeight.Black,
-            style = TextStyle(letterSpacing = 4.sp),
+            style = TextStyle(letterSpacing = 3.sp),
             modifier = Modifier.graphicsLayer { scaleX = 1.05f; scaleY = 1.05f },
         )
-        // Layer 3: crisp inner core (white-tinted for max neon "burn").
         Text(
             text = tier.displayLabel,
             color = Color.White,
-            fontSize = 38.sp,
+            fontSize = 24.sp,
             fontWeight = FontWeight.Black,
-            style = TextStyle(letterSpacing = 4.sp),
+            style = TextStyle(letterSpacing = 3.sp),
         )
     }
 }

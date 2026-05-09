@@ -77,8 +77,8 @@ fun StageBanner(
                 this.alpha = alpha
             },
     ) {
-        // Halo backdrop.
-        Canvas(modifier = Modifier.size(if (isCountdown) 360.dp else 280.dp)) {
+        // Halo backdrop — smaller per "to quá" feedback.
+        Canvas(modifier = Modifier.size(if (isCountdown) 240.dp else 200.dp)) {
             val r = size.minDimension / 2f
             drawCircle(
                 brush = Brush.radialGradient(
@@ -95,9 +95,10 @@ fun StageBanner(
             )
         }
 
-        val coreFontSize = if (isCountdown) 96.sp else 44.sp
-        val midFontSize = if (isCountdown) 100.sp else 46.sp
-        val outerFontSize = if (isCountdown) 104.sp else 48.sp
+        // Reduced font sizes: countdown 96→64, regular 44→30 per user feedback.
+        val coreFontSize = if (isCountdown) 64.sp else 30.sp
+        val midFontSize = if (isCountdown) 68.sp else 32.sp
+        val outerFontSize = if (isCountdown) 72.sp else 34.sp
 
         // Outer halo (largest, soft).
         Text(

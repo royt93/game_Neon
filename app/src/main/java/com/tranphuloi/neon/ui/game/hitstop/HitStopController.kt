@@ -34,10 +34,22 @@ class HitStopController(
         onBossKillFlash()
     }
 
+    /**
+     * 80ms hit-stop on every laser→enemy hit. Cooldown ensures rapid-fire hits
+     * don't compound (e.g., 5 hits in 200ms still result in only ~80ms freeze).
+     */
+    fun freezeForHit() {
+        val now = System.currentTimeMillis()
+        if (now >= unfrozenAtMillis) {
+            unfrozenAtMillis = now + HIT_FREEZE_MS
+        }
+    }
+
     fun isFrozen(now: Long = System.currentTimeMillis()): Boolean = now < unfrozenAtMillis
 
     companion object {
         const val ENEMY_FREEZE_MS: Long = 60L
         const val BOSS_FREEZE_MS: Long = 120L
+        const val HIT_FREEZE_MS: Long = 80L
     }
 }

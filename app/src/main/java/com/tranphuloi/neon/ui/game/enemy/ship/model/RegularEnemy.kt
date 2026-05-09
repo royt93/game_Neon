@@ -34,6 +34,8 @@ data class RegularEnemy(
     private var moveRight = true
     private val xOffsetMovementSpeed = type.xOffsetSpeed
     private val yOffsetMovementSpeed = type.yOffsetSpeed
+    // Smooth knockback: velocity accumulates from each hit, decays 15% per tick.
+    private var knockbackVel: Float = 0f
 
     override fun enemyRect(): Rect {
         return Rect(
@@ -49,6 +51,12 @@ data class RegularEnemy(
         when (type.formation) {
             is ZigZag -> moveZigZagFormation()
             is Row -> moveRectangleFormation()
+        }
+        // Smooth knockback: apply current velocity then decay.
+        if (knockbackVel != 0f) {
+            yOffset += knockbackVel
+            knockbackVel *= 0.85f
+            if (kotlin.math.abs(knockbackVel) < 0.05f) knockbackVel = 0f
         }
         if (yOffset + height > screenHeight) outOfScreen = true
         if (hp <= 0) destroyed = true
@@ -84,8 +92,8 @@ data class RegularEnemy(
     override fun onObjectImpact(impactPower: Float) {
         hp -= impactPower
         lastImpactMillis = System.currentTimeMillis()
-        // Knockback: brief upward push (laser came from below). Process()'s
-        // movement speed naturally returns it to its trajectory over ~150ms.
-        yOffset -= 5f
+        // Smooth knockback: accumulate velocity (capped). Process() decays it
+        // 15% per tick → ~100ms recovery, much smoother than instant -5f.
+        knockbackVel = (knockbackVel - 1.5f).coerceAtLeast(-3f)
     }
 }

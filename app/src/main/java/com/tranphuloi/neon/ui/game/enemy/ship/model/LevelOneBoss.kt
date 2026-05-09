@@ -45,6 +45,7 @@ data class LevelOneBoss(
     // before normal patrol movement begins.
     override var yOffset: Float = -height
     private val entrySpeed: Float = 2.0f                     // ~400 px/sec at 5ms tick
+    private var knockbackVel: Float = 0f
     override val isInEntryPhase: Boolean get() = yOffset < minYOffset
 
     override fun enemyRect(): Rect {
@@ -82,6 +83,13 @@ data class LevelOneBoss(
             Movement.BOTTOM_LEFT_TOP_RIGHT -> yOffset -= bossMovementSpeed
         }
 
+        // Smooth knockback decay.
+        if (knockbackVel != 0f) {
+            yOffset += knockbackVel
+            knockbackVel *= 0.85f
+            if (kotlin.math.abs(knockbackVel) < 0.05f) knockbackVel = 0f
+        }
+
         if (yOffset + height > screenHeight) outOfScreen = true
         if (hp <= 0) destroyed = true
     }
@@ -110,10 +118,10 @@ data class LevelOneBoss(
     override fun onObjectImpact(impactPower: Float) {
         hp -= impactPower
         lastImpactMillis = System.currentTimeMillis()
-        // Boss knockback — smaller than regular enemy (boss is "heavier"). Skip
-        // during entry phase so it doesn't disrupt the slide-in choreography.
+        // Boss smooth knockback (smaller magnitude than regular). Skip during
+        // entry phase so slide-in choreography isn't disrupted.
         if (!isInEntryPhase) {
-            yOffset -= 2.5f
+            knockbackVel = (knockbackVel - 0.7f).coerceAtLeast(-1.5f)
         }
     }
 

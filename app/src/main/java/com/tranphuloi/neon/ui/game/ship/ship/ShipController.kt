@@ -66,12 +66,16 @@ class ShipController(
         if (newY > maxYOffset) {
             newY -= movementSpeed
         }
-        if (movingLeft && ship.xOffset >= 0 - ship.width / 4) {
+        // Symmetric bounds: left allows ship overlap by width/4 → right matches with
+        // ship.width * 0.75. Was asymmetric (-21px vs +29px overlap, ~8px diff).
+        val leftLimit = -ship.width / 4f
+        val rightLimit = screenWidth - ship.width * 0.75f
+        if (movingLeft && ship.xOffset > leftLimit) {
             newX -= movementSpeed
         } else if (movingLeft) {
             movingLeft = false
         }
-        if (movingRight && ship.xOffset <= screenWidth - ship.width / 1.5) {
+        if (movingRight && ship.xOffset < rightLimit) {
             newX += movementSpeed
         } else if (movingRight) {
             movingRight = false

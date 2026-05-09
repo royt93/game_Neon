@@ -44,25 +44,27 @@ class BackgroundController(
         Logger.d("BackgroundController.init: building entities")
         // Speeds in dp/SECOND (View self-animates at display rate using delta-time).
         // Tuned for "ship flying through space" feel — layer 4 traverses 891dp in ~2s.
+        // Reduced counts (was 32/20/14/9/5=80, now 20/14/10/6/3=53) and halved
+        // speeds per user feedback "giảm số lượng star, tốc độ di chuyển chậm lại".
         stars = buildList {
             // Layer 0 (farthest, dimmest) — slow drift
-            addAll(generateStars(count = 32, layer = 0, sizeMin = 0.8f, sizeMax = 1.5f, speedPerSec = 30f, alpha = 0.25f, twinkles = false))
+            addAll(generateStars(count = 20, layer = 0, sizeMin = 0.8f, sizeMax = 1.5f, speedPerSec = 15f, alpha = 0.25f, twinkles = false))
             // Layer 1
-            addAll(generateStars(count = 20, layer = 1, sizeMin = 1.2f, sizeMax = 2f, speedPerSec = 80f, alpha = 0.4f, twinkles = false))
+            addAll(generateStars(count = 14, layer = 1, sizeMin = 1.2f, sizeMax = 2f, speedPerSec = 40f, alpha = 0.4f, twinkles = false))
             // Layer 2 (mid)
-            addAll(generateStars(count = 14, layer = 2, sizeMin = 1.8f, sizeMax = 3f, speedPerSec = 180f, alpha = 0.6f, twinkles = false))
+            addAll(generateStars(count = 10, layer = 2, sizeMin = 1.8f, sizeMax = 3f, speedPerSec = 90f, alpha = 0.6f, twinkles = false))
             // Layer 3
-            addAll(generateStars(count = 9, layer = 3, sizeMin = 2.5f, sizeMax = 4f, speedPerSec = 320f, alpha = 0.75f, twinkles = false))
-            // Layer 4 (nearest, brightest, twinkles) — fast rush for foreground parallax illusion.
-            addAll(generateStars(count = 5, layer = 4, sizeMin = 3.5f, sizeMax = 5.5f, speedPerSec = 500f, alpha = 0.95f, twinkles = true))
+            addAll(generateStars(count = 6, layer = 3, sizeMin = 2.5f, sizeMax = 4f, speedPerSec = 160f, alpha = 0.75f, twinkles = false))
+            // Layer 4 (nearest, brightest, twinkles) — gentler foreground rush.
+            addAll(generateStars(count = 3, layer = 4, sizeMin = 3.5f, sizeMax = 5.5f, speedPerSec = 250f, alpha = 0.95f, twinkles = true))
         }
         Logger.d("BackgroundController.init: spawned ${stars.size} stars across 5 layers")
 
-        dust = (1..25).map {
+        dust = (1..15).map {
             DustParticle(
                 xOffset = Random.nextInt(0, screenWidth.toInt()).toFloat(),
                 yOffset = Random.nextInt(0, screenHeight.toInt()).toFloat(),
-                ySpeedPerSec = Random.nextFloat() * 200f + 250f,    // 250..450 dp/sec — foreground rush
+                ySpeedPerSec = Random.nextFloat() * 100f + 125f,    // 125..225 dp/sec (was 250-450)
                 maxYOffset = screenHeight,
                 alpha = Random.nextFloat() * 0.25f + 0.1f,
             )
@@ -97,19 +99,24 @@ class BackgroundController(
                 pulsePhase = 3.0f,
                 pulseSpeedPerSec = 0.165f,
             ),
+            // Top-right warm nebula — replaces the galaxy spiral that was visually
+            // ugly per user feedback. Larger soft blob, gold/orange warm tone.
+            NebulaBlob(
+                xCenter = screenWidth * 0.82f,
+                yCenter = screenHeight * 0.18f,
+                radius = screenWidth * 0.45f,
+                colorArgb = NEBULA_WARM_ARGB,
+                baseAlpha = 0.09f,
+                pulsePhase = 4.5f,
+                pulseSpeedPerSec = 0.10f,
+            ),
         )
         Logger.d("BackgroundController.init: spawned ${nebula.size} nebula blobs")
 
-        galaxy = Galaxy(
-            xCenter = screenWidth * 0.82f,
-            yCenter = screenHeight * 0.18f,
-            radius = screenWidth * 0.18f,
-            rotation = 0f,
-            rotationSpeedPerSec = 0.9f,                       // ~0.4 rotation per minute (very slow)
-            coreColorArgb = GALAXY_CORE_ARGB,
-            armColorArgb = GALAXY_ARM_ARGB,
-        )
-        Logger.d("BackgroundController.init: spawned galaxy at top-right corner")
+        // Galaxy spiral removed per user feedback ("hơi xấu") — replaced by the
+        // warm nebula blob added above.
+        galaxy = null
+        Logger.d("BackgroundController.init: galaxy disabled, top-right is warm nebula now")
 
         nextCometSpawnAtMillis = System.currentTimeMillis() + Random.nextInt(6_000, 12_000)
         Logger.d("BackgroundController.init: first comet scheduled in ${nextCometSpawnAtMillis - System.currentTimeMillis()}ms")
@@ -261,6 +268,7 @@ class BackgroundController(
         const val NEBULA_VIOLET_ARGB: Long = 0xFFB14CFFL
         const val NEBULA_CYAN_ARGB: Long = 0xFF00F0FFL
         const val NEBULA_MAGENTA_ARGB: Long = 0xFFFF2DE0L
+        const val NEBULA_WARM_ARGB: Long = 0xFFFFB048L            // warm gold/orange — replaces galaxy
 
         const val GALAXY_CORE_ARGB: Long = 0xFFFFE8C8L         // warm core
         const val GALAXY_ARM_ARGB: Long = 0xFFB14CFFL          // violet arms

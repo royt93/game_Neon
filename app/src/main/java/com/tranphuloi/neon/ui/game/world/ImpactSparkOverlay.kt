@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.tranphuloi.neon.common.NeonCyan
@@ -38,6 +39,33 @@ fun ImpactSparkOverlay(sparks: List<ImpactSpark>) {
 
     val density = LocalDensity.current.density
     Canvas(modifier = Modifier.fillMaxSize()) {
+        // 1) Hit ring per burst — group sparks by createdAtMillis (all sparks in the
+        //    same burst share timestamp + origin). Draw exactly one ring per burst.
+        val bursts = sparks.distinctBy { it.createdAtMillis }
+        bursts.forEach { burst ->
+            val t = burst.progress(nowMillis)
+            if (t >= 1f) return@forEach
+            val tEase = 1f - (1f - t) * (1f - t)
+            val ringRadius = 40f * density * tEase
+            val alpha = (1f - t)
+            val ox = burst.originX * density
+            val oy = burst.originY * density
+            // Outer cyan ring + inner white core ring.
+            drawCircle(
+                color = NeonCyan.copy(alpha = 0.65f * alpha),
+                radius = ringRadius,
+                center = Offset(ox, oy),
+                style = Stroke(width = 2.5.dp.toPx() * (1f - t * 0.6f)),
+            )
+            drawCircle(
+                color = Color.White.copy(alpha = 0.4f * alpha),
+                radius = ringRadius * 0.85f,
+                center = Offset(ox, oy),
+                style = Stroke(width = 1.dp.toPx() * (1f - t * 0.6f)),
+            )
+        }
+
+        // 2) Individual sparks — radial particles streaking outward.
         sparks.forEach { spark ->
             val t = spark.progress(nowMillis)
             if (t >= 1f) return@forEach
@@ -47,7 +75,6 @@ fun ImpactSparkOverlay(sparks: List<ImpactSpark>) {
             val cx = px * density
             val cy = py * density
             val alpha = (1f - t)
-            // Outer cyan glow segment.
             drawLine(
                 color = NeonCyan.copy(alpha = 0.55f * alpha),
                 start = Offset(ox, oy),
@@ -55,7 +82,6 @@ fun ImpactSparkOverlay(sparks: List<ImpactSpark>) {
                 strokeWidth = 3.dp.toPx(),
                 cap = StrokeCap.Round,
             )
-            // Bright white core.
             drawLine(
                 color = Color.White.copy(alpha = alpha),
                 start = Offset(ox, oy),

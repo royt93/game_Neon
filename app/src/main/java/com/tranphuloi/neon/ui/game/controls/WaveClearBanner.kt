@@ -62,7 +62,7 @@ fun WaveClearBanner(
                 this.alpha = alpha
             },
     ) {
-        Canvas(modifier = Modifier.size(280.dp)) {
+        Canvas(modifier = Modifier.size(180.dp)) {
             val r = size.minDimension / 2f
             drawCircle(
                 brush = Brush.radialGradient(
@@ -82,15 +82,15 @@ fun WaveClearBanner(
             Text(
                 text = "WAVE CLEAR!",
                 color = NeonGold,
-                fontSize = 36.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.Black,
-                style = TextStyle(letterSpacing = 4.sp),
+                style = TextStyle(letterSpacing = 3.sp),
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "+5 minerals",
                 color = Color.White.copy(alpha = 0.85f),
-                fontSize = 14.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
             )
         }

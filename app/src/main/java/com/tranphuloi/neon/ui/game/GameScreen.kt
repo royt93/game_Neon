@@ -1,10 +1,5 @@
 package com.tranphuloi.neon.ui.game
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutLinearInEasing
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,10 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -156,58 +148,8 @@ fun GameScreen(
 
     val now = System.currentTimeMillis()
     val damageElapsed = (now - gameState.lastShipDamageMillis).coerceAtLeast(0L)
-
-    // 30c: cinematic camera zoom — Animatable drives display-refresh-rate interpolation
-    // (replaces previous manual sin-from-elapsed-millis which only sampled on
-    // recomposition and produced visible stutter).
-    val zoomEvents = longArrayOf(
-        gameState.lastShipDamageMillis,
-        gameState.bossIntroShownAtMillis,
-        gameState.bossKillEventMillis,
-    )
-    val nearestZoomEvent = zoomEvents.maxOrNull() ?: 0L
-    val gameZoomScaleAnim = remember { Animatable(1f) }
-    LaunchedEffect(nearestZoomEvent) {
-        if (nearestZoomEvent > 0L && !reduceMotion) {
-            gameZoomScaleAnim.animateTo(
-                targetValue = 1.10f,
-                animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
-            )
-            gameZoomScaleAnim.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = 150, easing = FastOutSlowInEasing),
-            )
-        }
-    }
-
-    // 11c: kill-cam zoom — Animatable chain: snap → 1.5× → hold → settle.
-    val killCamScaleAnim = remember { Animatable(1f) }
-    LaunchedEffect(gameState.killCamStartedAtMillis) {
-        if (gameState.killCamStartedAtMillis > 0L && !reduceMotion) {
-            killCamScaleAnim.snapTo(1f)
-            killCamScaleAnim.animateTo(
-                targetValue = 1.5f,
-                animationSpec = tween(durationMillis = 200, easing = FastOutLinearInEasing),
-            )
-            delay(1100L)
-            killCamScaleAnim.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = 200, easing = LinearOutSlowInEasing),
-            )
-        }
-    }
-    val finalScale = maxOf(gameZoomScaleAnim.value, killCamScaleAnim.value)
-
-    // Camera follow ship: zoom pivots on ship's screen-space position so the ship
-    // stays in frame and UI edges aren't cropped relative to the action. Pivot
-    // expressed as fraction (0..1) of the column dimensions = full screen.
-    val configuration = LocalConfiguration.current
-    val screenWidthDp = configuration.screenWidthDp.toFloat()
-    val screenHeightDp = configuration.screenHeightDp.toFloat()
-    val shipPivotX = ((gameState.ship.xOffset + gameState.ship.width / 2f) / screenWidthDp)
-        .coerceIn(0f, 1f)
-    val shipPivotY = ((gameState.ship.yOffset + gameState.ship.height / 2f) / screenHeightDp)
-        .coerceIn(0f, 1f)
+    // Camera zoom removed per user feedback — kill-cam slow-mo is still in
+    // GameState (frame-skip during kill-cam) but no visual zoom is applied.
     val shakeProgress =
         if (reduceMotion) 0f
         else (1f - (damageElapsed.toFloat() / SHAKE_DURATION_MILLIS)).coerceIn(0f, 1f)
@@ -293,19 +235,13 @@ fun GameScreen(
         )
 
         // 5c: Neon glow stage banner replaces plain Text for stage messages.
+        // Stays at exact center (anchor banner — most important narrative event).
         StageBanner(
             message = gameState.gameMessage,
             modifier = Modifier.align(Alignment.Center),
         )
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = finalScale
-                    scaleY = finalScale
-                    // Pivot on ship — UI doesn't crop ship-relative areas during kill-cam.
-                    transformOrigin = TransformOrigin(shipPivotX, shipPivotY)
-                }
+            modifier = Modifier.fillMaxSize()
         ) {
             GameWorld(
                 ship = gameState.ship,
@@ -350,11 +286,15 @@ fun GameScreen(
             modifier = Modifier.fillMaxSize().zIndex(150f)
         )
 
-        // Combo popup (Kc).
+        // Combo popup (Kc) — offset 90dp ABOVE center so it doesn't overlap with
+        // StageBanner (center) or WaveClearBanner (below center).
         ComboPopup(
             tier = gameState.comboPopupTier,
             shownAtMillis = gameState.comboPopupShownMillis,
-            modifier = Modifier.align(Alignment.Center).zIndex(400f)
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(bottom = 180.dp)
+                .zIndex(400f)
         )
 
         // Tutorial overlay (Nb): show on first ever game session.
@@ -414,11 +354,13 @@ fun GameScreen(
                     .zIndex(252f)
             )
         }
-        // 12c: Wave clear bonus banner.
+        // 12c: Wave clear bonus banner — offset 90dp BELOW center so it doesn't
+        // overlap StageBanner (center) or ComboPopup (above center).
         WaveClearBanner(
             shownAtMillis = gameState.waveClearBannerShownMillis,
             modifier = Modifier
                 .align(Alignment.Center)
+                .padding(top = 180.dp)
                 .zIndex(420f)
         )
         // 21c: Boss intro overlay — pulsing red border + boss name + alarm SFX.
@@ -444,6 +386,21 @@ fun GameScreen(
                     .fillMaxSize()
                     .background(Color.White.copy(alpha = 0.6f * bossFlashProgress))
                     .zIndex(260f)
+            )
+        }
+        // Ship destroy phase 2 (200-300ms): full-screen white flash. Phase 1
+        // (implosion) is in GameWorld; phase 3 (BANG explosions) triggered with
+        // 300ms delay from GameState.onShipDestroyed.
+        val destroyedElapsed = if (gameState.ship.destroyedAtMillis > 0L)
+            now - gameState.ship.destroyedAtMillis else -1L
+        if (destroyedElapsed in 200L..300L) {
+            val flashT = (destroyedElapsed - 200L).toFloat() / 100f
+            val flashAlpha = (1f - kotlin.math.abs(flashT - 0.5f) * 2f).coerceIn(0f, 1f)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.White.copy(alpha = flashAlpha))
+                    .zIndex(270f)
             )
         }
     }
