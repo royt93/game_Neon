@@ -258,6 +258,8 @@ fun GameScreen(
             comboCount = gameState.comboCount,
             comboTier = gameState.comboTier,
             lastEnemyKillMillis = gameState.lastEnemyKillMillis,
+            lastMineralPickupMillis = gameState.lastMineralPickupMillis,
+            lastBoosterPickupMillis = gameState.lastBoosterPickupMillis,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .zIndex(300f)
@@ -317,8 +319,12 @@ fun GameScreen(
                 explosions = gameState.explosions,
                 magnetRadius = gameState.magnetRadius,
                 damageNumbers = gameState.damageNumbers,
+                impactSparks = gameState.impactSparks,
+                pickupBursts = gameState.pickupBursts,
                 pickupPopups = gameState.pickupPopups,
                 bossIntroShownAtMillis = gameState.bossIntroShownAtMillis,
+                lastBoosterPickupMillis = gameState.lastBoosterPickupMillis,
+                lastMineralPickupMillis = gameState.lastMineralPickupMillis,
                 modifier = Modifier
                     .weight(1f)
                     .layout { measurable, constraints ->
@@ -365,6 +371,47 @@ fun GameScreen(
                     .fillMaxSize()
                     .background(NeonRedAlert.copy(alpha = FLASH_MAX_ALPHA * flashProgress))
                     .zIndex(250f)
+            )
+        }
+        // Chromatic aberration on player damage — simulated by left-edge red and
+        // right-edge cyan gradient bands fading inward. Full RGB channel split
+        // requires shaders; this approximation reads as "painful hit" cinematic.
+        val chromaticElapsed = damageElapsed
+        val chromaticProgress = if (gameState.lastShipDamageMillis > 0L &&
+            chromaticElapsed < 240L && !reduceMotion
+        ) {
+            (1f - chromaticElapsed.toFloat() / 240f).coerceIn(0f, 1f)
+        } else 0f
+        if (chromaticProgress > 0f) {
+            // Red tint shifted left edge.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                Color(0xFFFF1430).copy(alpha = 0.45f * chromaticProgress),
+                                Color.Transparent,
+                            ),
+                            endX = 600f,
+                        ),
+                    )
+                    .zIndex(252f)
+            )
+            // Cyan tint shifted right edge.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.horizontalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                NeonCyan.copy(alpha = 0.40f * chromaticProgress),
+                            ),
+                            startX = 400f,
+                        ),
+                    )
+                    .zIndex(252f)
             )
         }
         // 12c: Wave clear bonus banner.

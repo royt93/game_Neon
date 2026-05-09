@@ -110,6 +110,11 @@ data class LevelOneBoss(
     override fun onObjectImpact(impactPower: Float) {
         hp -= impactPower
         lastImpactMillis = System.currentTimeMillis()
+        // Boss knockback — smaller than regular enemy (boss is "heavier"). Skip
+        // during entry phase so it doesn't disrupt the slide-in choreography.
+        if (!isInEntryPhase) {
+            yOffset -= 2.5f
+        }
     }
 
     private enum class Movement {

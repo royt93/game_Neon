@@ -72,8 +72,12 @@ fun GameWorld(
     explosions: List<Explosion>,
     magnetRadius: Float,
     damageNumbers: List<DamageNumber>,
+    impactSparks: List<com.tranphuloi.neon.ui.game.spark.ImpactSpark>,
+    pickupBursts: List<com.tranphuloi.neon.ui.game.spark.PickupBurst>,
     pickupPopups: List<PickupPopup>,
     bossIntroShownAtMillis: Long,
+    lastBoosterPickupMillis: Long,
+    lastMineralPickupMillis: Long,
     modifier: Modifier = Modifier,
 ) {
 
@@ -154,11 +158,12 @@ fun GameWorld(
                 .offset(x = ship.xOffset.dp, y = ship.yOffset.dp)
                 .graphicsLayer {
                     // Spawn cinematic transforms — drive from ShipController.applySpawnPath.
-                    // After spawn finishes these are 1f / 1f / 0f and become a no-op.
+                    // After spawn finishes spawn fields are 1/1/0 and become a no-op,
+                    // leaving only bankRotation active during gameplay.
                     alpha = ship.spawnAlpha
                     scaleX = ship.spawnScale
                     scaleY = ship.spawnScale
-                    rotationZ = ship.spawnRotation
+                    rotationZ = ship.spawnRotation + ship.bankRotation
                 }
         ) {
             if (ship.shieldEnabled) {
@@ -188,6 +193,15 @@ fun GameWorld(
                     }
                 )
             }
+            // Ship glow boost on pickup — intensity bump 0.5→1.0 then fade back
+            // over 220ms. Compute progress from latest of booster / mineral pickup.
+            val nowForGlow = System.currentTimeMillis()
+            val sinceBooster = (nowForGlow - lastBoosterPickupMillis).coerceAtLeast(0L)
+            val sinceMineral = (nowForGlow - lastMineralPickupMillis).coerceAtLeast(0L)
+            val glowElapsed = minOf(sinceBooster, sinceMineral)
+            val glowBoost = if (glowElapsed in 0L..220L) {
+                (1f - glowElapsed.toFloat() / 220f).coerceIn(0f, 1f) * 0.5f
+            } else 0f
             Image(
                 painterResource(id = ship.drawableId),
                 contentDescription = stringResource(id = R.string.ship),
@@ -195,7 +209,11 @@ fun GameWorld(
                 modifier = Modifier
                     .width(ship.width.dp)
                     .height(ship.height.dp)
-                    .neonGlow(color = NeonCyan, intensity = 0.5f, radiusFactor = 1.5f)
+                    .neonGlow(
+                        color = NeonCyan,
+                        intensity = 0.5f + glowBoost,
+                        radiusFactor = 1.5f + glowBoost * 0.4f,
+                    )
             )
         }
         val nowMillis = System.currentTimeMillis()
@@ -275,6 +293,10 @@ fun GameWorld(
         enemies.filter { it.isBoss && it.isInEntryPhase }.forEach { boss ->
             BossEntryLightning(boss = boss, modifier = Modifier.fillMaxSize())
         }
+        // Laser impact spark burst at every enemy hit point.
+        ImpactSparkOverlay(sparks = impactSparks)
+        // Pickup burst (ring shockwave + 8 sparkles) on item collected.
+        PickupBurstOverlay(bursts = pickupBursts)
         minerals.forEach {
             Box(
                 modifier = Modifier

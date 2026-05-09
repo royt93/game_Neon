@@ -1,0 +1,68 @@
+package com.tranphuloi.neon.ui.game.world
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
+import com.tranphuloi.neon.common.NeonCyan
+import com.tranphuloi.neon.ui.game.spark.ImpactSpark
+import kotlinx.coroutines.delay
+
+/**
+ * Renders all active [ImpactSpark]s as fading lines from origin to current
+ * position. Single Canvas — no per-spark Composable.
+ */
+@Composable
+fun ImpactSparkOverlay(sparks: List<ImpactSpark>) {
+    if (sparks.isEmpty()) return
+
+    var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    val hasSparks = sparks.isNotEmpty()
+    LaunchedEffect(hasSparks) {
+        if (!hasSparks) return@LaunchedEffect
+        while (true) {
+            nowMillis = System.currentTimeMillis()
+            delay(33L)            // ~30 fps is plenty for 220ms-life sparks
+        }
+    }
+
+    val density = LocalDensity.current.density
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        sparks.forEach { spark ->
+            val t = spark.progress(nowMillis)
+            if (t >= 1f) return@forEach
+            val (px, py) = spark.position(nowMillis)
+            val ox = spark.originX * density
+            val oy = spark.originY * density
+            val cx = px * density
+            val cy = py * density
+            val alpha = (1f - t)
+            // Outer cyan glow segment.
+            drawLine(
+                color = NeonCyan.copy(alpha = 0.55f * alpha),
+                start = Offset(ox, oy),
+                end = Offset(cx, cy),
+                strokeWidth = 3.dp.toPx(),
+                cap = StrokeCap.Round,
+            )
+            // Bright white core.
+            drawLine(
+                color = Color.White.copy(alpha = alpha),
+                start = Offset(ox, oy),
+                end = Offset(cx, cy),
+                strokeWidth = 1.2.dp.toPx(),
+                cap = StrokeCap.Round,
+            )
+        }
+    }
+}

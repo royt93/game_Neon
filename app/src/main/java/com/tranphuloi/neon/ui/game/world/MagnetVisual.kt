@@ -49,17 +49,10 @@ fun MagnetVisual(
         // All inputs are in dp-space → convert to px for Canvas drawScope.
         val shipCx = (ship.xOffset + ship.width / 2f) * density
         val shipCy = (ship.yOffset + ship.height / 2f) * density
-        val rPx = magnetRadius * density
 
-        // Pulse ring at magnet boundary.
-        drawCircle(
-            color = NeonGold.copy(alpha = pulseAlpha),
-            radius = rPx,
-            center = Offset(shipCx, shipCy),
-            style = Stroke(width = 1.5f * density),
-        )
-
-        // Connection lines for minerals inside radius.
+        // Per user feedback: pulsing ring around ship was confusing — keep ONLY the
+        // connection lines from minerals being attracted to ship. Lines pulse with
+        // [pulseAlpha] so the magnet is still visually communicated.
         val rSq = magnetRadius * magnetRadius
         minerals.forEach { m ->
             val mx = (m.xOffset + m.width / 2f) * density
@@ -68,7 +61,7 @@ fun MagnetVisual(
             val dy = (m.yOffset + 12f) - (ship.yOffset + ship.height / 2f)
             if (dx * dx + dy * dy <= rSq) {
                 drawLine(
-                    color = NeonGold.copy(alpha = m.alpha * 0.5f),
+                    color = NeonGold.copy(alpha = m.alpha * 0.5f * (0.6f + pulseAlpha)),
                     start = Offset(shipCx, shipCy),
                     end = Offset(mx, my),
                     strokeWidth = 1f * density,

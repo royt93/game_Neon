@@ -26,6 +26,9 @@ data class Ship(
     val spawnAlpha: Float = 0f,
     val spawnRotation: Float = 0f,
     val spawnScale: Float = 0.6f,
+    // Banking rotation — tilts ±16° when player is moving left/right.
+    // Lerped each tick by ShipController for smooth feel.
+    val bankRotation: Float = 0f,
     @DrawableRes val drawableId: Int = R.drawable.ship_regular_laser,
 ) : Serializable {
     val shieldRadius: Float get() = shieldSize / 2

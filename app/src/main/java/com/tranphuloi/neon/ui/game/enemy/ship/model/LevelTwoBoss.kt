@@ -105,6 +105,10 @@ data class LevelTwoBoss(
     override fun onObjectImpact(impactPower: Float) {
         hp -= impactPower
         lastImpactMillis = System.currentTimeMillis()
+        // Boss knockback — smaller, skip entry phase.
+        if (!isInEntryPhase) {
+            yOffset -= 2.5f
+        }
     }
 
     private enum class Movement {

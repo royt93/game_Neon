@@ -84,5 +84,8 @@ data class RegularEnemy(
     override fun onObjectImpact(impactPower: Float) {
         hp -= impactPower
         lastImpactMillis = System.currentTimeMillis()
+        // Knockback: brief upward push (laser came from below). Process()'s
+        // movement speed naturally returns it to its trajectory over ~150ms.
+        yOffset -= 5f
     }
 }

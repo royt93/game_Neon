@@ -26,7 +26,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.tranphuloi.neon.R
 import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonMagenta
 import com.tranphuloi.neon.utils.Logger
 
 @Composable
@@ -56,7 +55,7 @@ fun ButtonsMovement(
         MovementButton(
             pointsLeft = false,
             contentDescription = stringResource(id = R.string.game_right_button),
-            glowColor = NeonMagenta,
+            glowColor = NeonCyan,
             buttonSize = buttonSize,
             label = "RIGHT",
             onPressedChange = onMoveRight,

@@ -7,10 +7,16 @@ import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -23,6 +29,7 @@ import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.ui.game.combo.ComboTier
+import kotlinx.coroutines.delay
 
 private const val MAX_HP: Int = 1000
 
@@ -34,8 +41,35 @@ fun IndicatorStatus(
     comboCount: Int,
     comboTier: ComboTier,
     lastEnemyKillMillis: Long,
+    lastMineralPickupMillis: Long,
+    lastBoosterPickupMillis: Long,
     modifier: Modifier = Modifier,
 ) {
+    // Per-stat flash timer ticks at 50ms only while a flash is in flight (350ms each).
+    var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    val mineralFlashElapsed = nowMillis - lastMineralPickupMillis
+    val boosterFlashElapsed = nowMillis - lastBoosterPickupMillis
+    val anyFlashActive =
+        (lastMineralPickupMillis > 0L && mineralFlashElapsed in 0L..350L) ||
+            (lastBoosterPickupMillis > 0L && boosterFlashElapsed in 0L..350L)
+    LaunchedEffect(anyFlashActive) {
+        if (!anyFlashActive) return@LaunchedEffect
+        while (true) {
+            nowMillis = System.currentTimeMillis()
+            delay(33L)
+        }
+    }
+    val mineralPulse = if (lastMineralPickupMillis > 0L && mineralFlashElapsed in 0L..350L) {
+        val t = mineralFlashElapsed.toFloat() / 350f
+        // Scale 1.0 → 1.3 (0..0.2), settle 1.3 → 1.0 (0.2..1.0).
+        if (t < 0.2f) 1f + (t / 0.2f) * 0.3f else 1.3f - ((t - 0.2f) / 0.8f) * 0.3f
+    } else 1f
+    val hpPulse = if (lastBoosterPickupMillis > 0L && boosterFlashElapsed in 0L..350L) {
+        val t = boosterFlashElapsed.toFloat() / 350f
+        if (t < 0.2f) 1f + (t / 0.2f) * 0.25f else 1.25f - ((t - 0.2f) / 0.8f) * 0.25f
+    } else 1f
+    val mineralFlashIntensity = if (mineralPulse > 1f) (mineralPulse - 1f) * 1.5f else 0f
+    val hpFlashIntensity = if (hpPulse > 1f) (hpPulse - 1f) * 1.5f else 0f
 
     val buttonPaddingEnd = dimensionResource(id = R.dimen.button_padding)
     val buttonPaddingTop = buttonPaddingEnd * 2
@@ -55,7 +89,15 @@ fun IndicatorStatus(
                 contentDescription = stringResource(id = R.string.game_hp_indicator),
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .neonGlow(color = hpColor, intensity = 0.35f, radiusFactor = 1.2f)
+                    .graphicsLayer {
+                        scaleX = hpPulse
+                        scaleY = hpPulse
+                    }
+                    .neonGlow(
+                        color = hpColor,
+                        intensity = 0.35f + hpFlashIntensity,
+                        radiusFactor = 1.2f + hpFlashIntensity * 0.5f,
+                    )
             )
             Text(
                 text = "${hp}hp",
@@ -111,13 +153,25 @@ fun IndicatorStatus(
                 tint = Color.Unspecified,
                 modifier = Modifier
                     .size(22.dp)
-                    .neonGlow(color = NeonGold, intensity = 0.5f, radiusFactor = 1.6f)
+                    .graphicsLayer {
+                        scaleX = mineralPulse
+                        scaleY = mineralPulse
+                    }
+                    .neonGlow(
+                        color = NeonGold,
+                        intensity = 0.5f + mineralFlashIntensity,
+                        radiusFactor = 1.6f + mineralFlashIntensity * 0.5f,
+                    )
             )
             Text(
                 text = mineralsEarnedTotal,
                 fontWeight = FontWeight.SemiBold,
                 style = MaterialTheme.typography.h5,
-                color = NeonGold
+                color = NeonGold,
+                modifier = Modifier.graphicsLayer {
+                    scaleX = mineralPulse
+                    scaleY = mineralPulse
+                },
             )
         }
         // 7c: Combo HUD — only renders when count > 0 (auto-hides on expire).

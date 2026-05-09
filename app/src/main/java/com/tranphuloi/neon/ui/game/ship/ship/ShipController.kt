@@ -24,7 +24,7 @@ class ShipController(
     private val setShip: (Ship) -> Unit,
     private val onShipDestroyed: () -> Unit = {},
     private val onShipDamaged: () -> Unit = {},
-    private val onBoosterPickedUp: () -> Unit = {},
+    private val onBoosterPickedUp: (xOffset: Float, yOffset: Float) -> Unit = { _, _ -> },
     private val damageMultiplier: () -> Float = { 1f },
 ) {
 
@@ -61,15 +61,34 @@ class ShipController(
             applySpawnPath(elapsed)
             return
         }
-        if (ship.yOffset > maxYOffset) {
-            updateYOffset(ship.yOffset - movementSpeed)
+        var newX = ship.xOffset
+        var newY = ship.yOffset
+        if (newY > maxYOffset) {
+            newY -= movementSpeed
         }
         if (movingLeft && ship.xOffset >= 0 - ship.width / 4) {
-            updateXOffset(ship.xOffset - movementSpeed)
-        } else movingLeft = false
+            newX -= movementSpeed
+        } else if (movingLeft) {
+            movingLeft = false
+        }
         if (movingRight && ship.xOffset <= screenWidth - ship.width / 1.5) {
-            updateXOffset(ship.xOffset + movementSpeed)
-        } else movingRight = false
+            newX += movementSpeed
+        } else if (movingRight) {
+            movingRight = false
+        }
+        // Bank rotation lerp toward target (-16° / 0° / +16°), smoothing 0.18.
+        // Single ship.copy() per tick to avoid 3 setShip allocations.
+        val bankTarget = when {
+            movingLeft -> -16f
+            movingRight -> 16f
+            else -> 0f
+        }
+        val newBankRot = ship.bankRotation + (bankTarget - ship.bankRotation) * 0.18f
+        if (newX != ship.xOffset || newY != ship.yOffset ||
+            kotlin.math.abs(newBankRot - ship.bankRotation) > 0.05f) {
+            ship = ship.copy(xOffset = newX, yOffset = newY, bankRotation = newBankRot)
+            setShip(ship)
+        }
     }
 
     private fun applySpawnPath(elapsed: Long) {
@@ -246,7 +265,10 @@ class ShipController(
             if (boosterRect.overlaps(if (ship.shieldEnabled) shipShieldRect else shipRect)) {
                 Logger.d("Collision: ship ↔ booster type=${booster.type} (shield=${ship.shieldEnabled})")
                 boosters[boosterIndex].collect()
-                onBoosterPickedUp()
+                onBoosterPickedUp(
+                    booster.xOffset + booster.size / 2f,
+                    booster.yOffset + booster.size / 2f,
+                )
                 when (booster.type) {
                     BoosterType.ULTIMATE_WEAPON_BOOSTER -> fileUltimateLaser()
                     BoosterType.SHIELD_BOOSTER -> enableShield(enable = true)

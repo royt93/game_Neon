@@ -122,6 +122,16 @@ fun rememberGameState(): GameState {
             updateExplosions = { explosions = it }
         )
     }
+    // Pickup burst controller declared early so onBoosterPickedUp callback can
+    // spawn the ring + sparkle effect at the booster's position.
+    var pickupBursts: List<com.tranphuloi.neon.ui.game.spark.PickupBurst> by remember {
+        mutableStateOf(emptyList())
+    }
+    val pickupBurstController = remember {
+        com.tranphuloi.neon.ui.game.spark.PickupBurstController(
+            updateState = { pickupBursts = it }
+        )
+    }
     val shipController = remember {
         Logger.d("rememberGameState: building ShipController (initial hp=${ship.hp})")
         ShipController(
@@ -149,9 +159,10 @@ fun rememberGameState(): GameState {
                 lastShipDamageMillis = System.currentTimeMillis()
                 Logger.d("Ship damaged event @ $lastShipDamageMillis (will trigger shake+flash)")
             },
-            onBoosterPickedUp = {
+            onBoosterPickedUp = { x, y ->
                 lastBoosterPickupMillis = System.currentTimeMillis()
-                Logger.d("Booster picked up event @ $lastBoosterPickupMillis")
+                pickupBurstController.spawn(x, y)
+                Logger.d("Booster picked up @ ($x,$y) ts=$lastBoosterPickupMillis")
             },
             damageMultiplier = { difficultyState.value.multiplier },
         )
@@ -162,6 +173,14 @@ fun rememberGameState(): GameState {
     var damageNumbers: List<DamageNumber> by remember { mutableStateOf(emptyList()) }
     val damageNumberController = remember {
         DamageNumberController(updateState = { damageNumbers = it })
+    }
+    var impactSparks: List<com.tranphuloi.neon.ui.game.spark.ImpactSpark> by remember {
+        mutableStateOf(emptyList())
+    }
+    val impactSparkController = remember {
+        com.tranphuloi.neon.ui.game.spark.ImpactSparkController(
+            updateState = { impactSparks = it }
+        )
     }
     val lasersController = remember {
         LasersController(
@@ -174,6 +193,7 @@ fun rememberGameState(): GameState {
             setUltimateLasers = { ultimateLasers = it },
             onLaserHit = { targetId, damage, x, y, isBoss ->
                 damageNumberController.report(targetId, damage, x, y, isBoss)
+                impactSparkController.spawnBurst(x, y)
             },
         )
     }
@@ -255,6 +275,13 @@ fun rememberGameState(): GameState {
                     yOffset = ship.yOffset - 20f,
                     comboCount = comboController.count,
                     multiplier = tier.multiplier,
+                )
+                // Pickup burst (ring shockwave + sparkles) at ship — minerals are
+                // attracted to ship center via magnet, so the burst reads as
+                // "absorbed by the ship".
+                pickupBurstController.spawn(
+                    ship.xOffset + ship.width / 2f,
+                    ship.yOffset + ship.height / 2f,
                 )
             },
             getShipCenter = { ship.xOffset + ship.width / 2 to ship.yOffset + ship.height / 2 },
@@ -485,6 +512,16 @@ fun rememberGameState(): GameState {
                             doWork = { damageNumberController.tick() }
                         )
                         tinker(
+                            id = impactSparkController.tickId,
+                            repeatTime = impactSparkController.tickRepeatTime,
+                            doWork = { impactSparkController.tick() }
+                        )
+                        tinker(
+                            id = pickupBurstController.tickId,
+                            repeatTime = pickupBurstController.tickRepeatTime,
+                            doWork = { pickupBurstController.tick() }
+                        )
+                        tinker(
                             id = pickupPopupController.tickId,
                             repeatTime = pickupPopupController.tickRepeatTime,
                             doWork = { pickupPopupController.tick() }
@@ -654,6 +691,8 @@ fun rememberGameState(): GameState {
         stageIndex = stageController.currentIndex(),
         magnetRadius = magnetRadiusState.floatValue,
         damageNumbers = damageNumbers,
+        impactSparks = impactSparks,
+        pickupBursts = pickupBursts,
         pickupPopups = pickupPopups,
         bossKillFlashMillis = bossKillFlashMillis,
         achievementUnlocked = achievementUnlocked,
@@ -703,6 +742,8 @@ data class GameState(
     val stageIndex: Int,
     val magnetRadius: Float,
     val damageNumbers: List<DamageNumber>,
+    val impactSparks: List<com.tranphuloi.neon.ui.game.spark.ImpactSpark>,
+    val pickupBursts: List<com.tranphuloi.neon.ui.game.spark.PickupBurst>,
     val pickupPopups: List<PickupPopup>,
     val bossKillFlashMillis: Long,
     val achievementUnlocked: Achievement?,
