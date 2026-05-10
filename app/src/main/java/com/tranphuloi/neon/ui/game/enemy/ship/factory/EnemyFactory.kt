@@ -2,10 +2,14 @@ package com.tranphuloi.neon.ui.game.enemy.ship.factory
 
 import com.tranphuloi.neon.ui.game.enemy.ship.model.Enemy
 import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyType
+import com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBoss
+import com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBossType
 import com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBoss
 import com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBossType
 import com.tranphuloi.neon.ui.game.enemy.ship.model.LevelTwoBoss
 import com.tranphuloi.neon.ui.game.enemy.ship.model.LevelTwoBossType
+import com.tranphuloi.neon.ui.game.enemy.ship.model.MidBoss
+import com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType
 import com.tranphuloi.neon.ui.game.enemy.ship.model.RegularEnemy
 import com.tranphuloi.neon.ui.game.enemy.ship.model.RegularEnemyType
 import com.tranphuloi.neon.ui.game.enemy.ship.model.Row
@@ -63,6 +67,23 @@ class EnemyFactory(
             val boss = LevelTwoBoss(screenWidth = screenWidth, screenHeight = screenHeight)
             enemies += boss
             Logger.w("EnemyFactory: LevelTwoBoss SPAWNED hp=${boss.hp.toInt()} impactPower=${boss.impactPower}")
+        } else if (type is MidBossType && enemies.isEmpty()) {
+            val mid = MidBoss(
+                screenWidth = screenWidth,
+                screenHeight = screenHeight,
+                variant = type,
+                getShip = getShip,
+            )
+            enemies += mid
+            Logger.w("EnemyFactory: MidBoss SPAWNED variant=${type::class.simpleName} hp=${mid.hp.toInt()}")
+        } else if (type is FinalBossType && enemies.isEmpty()) {
+            val finalBoss = FinalBoss(
+                screenWidth = screenWidth,
+                screenHeight = screenHeight,
+                getShip = getShip,
+            )
+            enemies += finalBoss
+            Logger.w("EnemyFactory: FinalBoss SPAWNED hp=${finalBoss.hp.toInt()} (3-phase, 22500 total)")
         }
         return enemies
     }

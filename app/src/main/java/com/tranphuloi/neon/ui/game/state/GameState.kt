@@ -164,6 +164,8 @@ fun rememberGameState(): GameState {
     var enemiesKilledTotal by remember { mutableIntStateOf(0) }
     var bossesDefeatedTotal by remember { mutableIntStateOf(0) }
     var maxComboReached by remember { mutableIntStateOf(0) }
+    // 34d Wave 4 — set true when player defeats the FinalBoss (Galaxy Overlord).
+    var finalBossDefeated by remember { mutableStateOf(false) }
     // 20b Smart bomb stack — start with 2, +1 per boss kill.
     var smartBombs by rememberSaveable { mutableIntStateOf(2) }
     val shipController = remember {
@@ -402,6 +404,22 @@ fun rememberGameState(): GameState {
                 if (enemy.isBoss) {
                     bossesDefeatedTotal++
                     smartBombs++       // reward: +1 smart bomb per boss kill
+                    // 34d: detect FinalBoss kill → triggers victory ending.
+                    // Force GAME_OVER 4s later so the GameOver dialog (with VictoryPanel)
+                    // shows automatically. Without this, stage script ends after VICTORY!
+                    // message but gameStatus stays RUNNING — player has to suicide to see
+                    // victory dialog. 4s = enough for "VICTORY!" StageMessage (3s) + a
+                    // brief breath, then auto-navigate. Skips kill-cam (ship still alive
+                    // → killCamStartedAtMillis = 0L → no slow-mo replay).
+                    if (enemy is com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBoss) {
+                        finalBossDefeated = true
+                        Logger.w("FinalBoss DEFEATED — victory achieved, auto GAME_OVER in 4s")
+                        coroutineScope.launch {
+                            delay(4000L)
+                            setGameStatus(GameStatus.GAME_OVER)
+                            Logger.w("Campaign complete → GAME_OVER fired (victory dialog will show)")
+                        }
+                    }
                 } else enemiesKilledTotal++
                 if (enemy.isBoss) {
                     hitStopController.freezeForBossKill()
@@ -448,14 +466,20 @@ fun rememberGameState(): GameState {
             onStageAdvance = { idx, newStage ->
                 magnetRadiusState.floatValue = (80f + (idx / 5) * 10f).coerceAtMost(200f)
                 lastStageAdvanceMillis = System.currentTimeMillis()
-                // 12c: Wave clear bonus — when transitioning OUT of a StageGame to next stage,
-                // burst 5 minerals at center and trigger banner.
+                // 12c: Wave clear bonus — fires when player completes a wave cluster.
+                // Definition tightened in round 20: prev = StageGame AND new ≠ StageGame.
+                // Without this gate, the new procedural script (12 short StageGame entries
+                // per chapter, 5-9s each) would fire wave clear ~60 times per playthrough.
+                // Now fires only at significant transitions (game → boss prelude / mid-boss
+                // DANGER / chapter outro) — ~10 times per full campaign.
                 val previousIdx = idx - 1
                 val previousWasGame =
                     previousIdx >= 0 &&
                         previousIdx < com.tranphuloi.neon.ui.game.stage.stages.size &&
                         com.tranphuloi.neon.ui.game.stage.stages[previousIdx] is com.tranphuloi.neon.ui.game.stage.StageGame
-                if (previousWasGame) {
+                val newIsGame =
+                    newStage is com.tranphuloi.neon.ui.game.stage.StageGame
+                if (previousWasGame && !newIsGame) {
                     waveClearBannerShownMillis = System.currentTimeMillis()
                     val cx = screenWidth / 2f
                     val cy = screenHeight / 3f
@@ -471,9 +495,11 @@ fun rememberGameState(): GameState {
                 }
                 // 21c: Boss intro cinematic — fire when entering a StageBoss.
                 if (newStage is com.tranphuloi.neon.ui.game.stage.StageBoss) {
-                    val bossName = when (newStage.enemyType) {
+                    val bossName = when (val t = newStage.enemyType) {
                         com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBossType -> "LEVEL 1 BOSS"
                         com.tranphuloi.neon.ui.game.enemy.ship.model.LevelTwoBossType -> "LEVEL 2 BOSS"
+                        com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBossType -> "GALAXY OVERLORD"
+                        is com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType -> t.displayName
                         else -> "BOSS"
                     }
                     bossIntroName = bossName
@@ -820,6 +846,9 @@ fun rememberGameState(): GameState {
         comboPopupTier = comboPopupTier,
         comboPopupShownMillis = comboPopupShownMillis,
         stageIndex = stageController.currentIndex(),
+        currentChapterId = stageController.currentChapterId(),
+        currentHazard = stageController.currentHazard(),
+        finalBossDefeated = finalBossDefeated,
         magnetRadius = magnetRadiusState.floatValue,
         damageNumbers = damageNumbers,
         impactSparks = impactSparks,
@@ -907,6 +936,9 @@ data class GameState(
     val comboPopupTier: com.tranphuloi.neon.ui.game.combo.ComboTier,
     val comboPopupShownMillis: Long,
     val stageIndex: Int,
+    val currentChapterId: Int,
+    val currentHazard: com.tranphuloi.neon.ui.game.stage.HazardType?,
+    val finalBossDefeated: Boolean,
     val magnetRadius: Float,
     val damageNumbers: List<DamageNumber>,
     val impactSparks: List<com.tranphuloi.neon.ui.game.spark.ImpactSpark>,

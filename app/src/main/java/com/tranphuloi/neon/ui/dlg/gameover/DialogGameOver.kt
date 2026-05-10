@@ -115,6 +115,12 @@ fun DialogGameOver(score: String, onRestartGame: () -> Unit) {
                     )
                 }
             }
+            // 34d Wave 4 — victory ending text shown only when player defeated FinalBoss.
+            // Difficulty-aware: hard difficulty gets a stronger congratulations message.
+            if (runStatsState?.victoryAchieved == true) {
+                Spacer(modifier = Modifier.height(14.dp))
+                VictoryPanel()
+            }
             // 15c: stats breakdown panel — only when stats snapshot exists.
             if (runStatsState != null) {
                 Spacer(modifier = Modifier.height(14.dp))
@@ -146,6 +152,48 @@ fun DialogGameOver(score: String, onRestartGame: () -> Unit) {
             )
         },
     )
+}
+
+@Composable
+private fun VictoryPanel() {
+    val difficulty by com.tranphuloi.neon.data.LocalSettings.current.difficulty
+        .collectAsState(initial = com.tranphuloi.neon.data.Difficulty.NORMAL)
+    val (heading, subtitle) = when (difficulty) {
+        com.tranphuloi.neon.data.Difficulty.EASY -> "GALAXY SAVED" to
+            "You bested the Overlord on Easy. Try Normal next time!"
+        com.tranphuloi.neon.data.Difficulty.NORMAL -> "GALAXY OVERLORD DEFEATED" to
+            "Excellent piloting. The galaxy owes you peace, Captain."
+        com.tranphuloi.neon.data.Difficulty.HARD -> "LEGENDARY VICTORY" to
+            "Hard mode conquered. You are a Sky Force U*S*A legend."
+    }
+    Column(
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(NeonGold.copy(alpha = 0.15f))
+            .border(
+                BorderStroke(2.dp, NeonGold),
+                RoundedCornerShape(8.dp),
+            )
+            .neonGlow(NeonGold, intensity = 0.55f, radiusFactor = 1.4f)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+    ) {
+        Text(
+            text = "★ $heading ★",
+            color = NeonGold,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Black,
+            style = TextStyle(letterSpacing = 2.sp),
+        )
+        Text(
+            text = subtitle,
+            color = Color.White.copy(alpha = 0.85f),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
 }
 
 @Composable

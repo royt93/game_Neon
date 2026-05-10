@@ -21,6 +21,8 @@ class EnemyToEnemyUIMapper {
                 currentHp = hp,
                 initialHp = initialHp,
                 isInEntryPhase = isInEntryPhase,
+                currentPhase = currentPhase,
+                phaseTransitionMillis = phaseTransitionMillis,
             )
         }
     }

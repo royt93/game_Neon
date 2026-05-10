@@ -1,12 +1,9 @@
 package com.tranphuloi.neon.ui.game.stage
 
-import com.tranphuloi.neon.R
 import com.tranphuloi.neon.ui.game.common.Millis
 import com.tranphuloi.neon.ui.game.common.Never
 import com.tranphuloi.neon.ui.game.common.RepeatTime
 import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyType
-import com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBossType
-import com.tranphuloi.neon.ui.game.enemy.ship.model.LevelTwoBossType
 import com.tranphuloi.neon.ui.game.enemy.ship.model.RegularEnemyType
 import com.tranphuloi.neon.ui.game.enemy.ship.model.Row
 import com.tranphuloi.neon.ui.game.enemy.ship.model.ZigZag
@@ -14,286 +11,138 @@ import com.tranphuloi.neon.ui.game.enemy.ship.model.ZigZagInitialPosition
 import java.io.Serializable
 import java.util.UUID
 
-val stages = listOf(
-    StageMessage(
-        message = "Stage 1",
-        durationMillis = 3
-    ),
-    StageMessage(
-        message = "Get ready!",
-        durationMillis = 3
-    ),
-    StageMessage(
-        message = "GO!",
-        durationMillis = 1
-    ),
-    StageGame(
-        spaceRockSpawnRateMillis = Never,
-        enemyType = RegularEnemyType(
-            drawableId = R.drawable.enemy_red_1,
-            width = 40f,
-            height = 40f,
-            hp = 180f,
-            impactPower = 60f,
-            formation = ZigZag(position = ZigZagInitialPosition.RIGHT),
-            xOffsetSpeed = 0.5f,
-            yOffsetSpeed = 0.4f,
-            enemySpawnRate = Millis(1000)
-        ),
-        durationTimeSec = 5
-    ),
-    StageGame(
-        spaceRockSpawnRateMillis = Never,
-        enemyType = RegularEnemyType(
-            drawableId = R.drawable.enemy_red_2,
-            width = 40f,
-            height = 40f,
-            hp = 150f,
-            impactPower = 50f,
-            formation = Row(rowCount = 3),
-            xOffsetSpeed = 0.8f,
-            yOffsetSpeed = 0.5f,
-            enemySpawnRate = Millis(1000)
-        ),
-        durationTimeSec = 4
-    ),
-    StageGame(
-        spaceRockSpawnRateMillis = Millis(2000),
-        enemyType = RegularEnemyType(
-            drawableId = R.drawable.enemy_red_3,
-            width = 45f,
-            height = 45f,
-            hp = 220f,
-            impactPower = 65f,
-            formation = ZigZag(position = ZigZagInitialPosition.LEFT),
-            xOffsetSpeed = 0.6f,
-            yOffsetSpeed = 0.6f,
-            enemySpawnRate = Millis(900)
-        ),
-        durationTimeSec = 5
-    ),
-    StageGame(
-        spaceRockSpawnRateMillis = Never,
-        enemyType = RegularEnemyType(
-            drawableId = R.drawable.enemy_red_1,
-            width = 40f,
-            height = 40f,
-            hp = 150f,
-            impactPower = 50f,
-            formation = Row(rowCount = 3),
-            xOffsetSpeed = 0.8f,
-            yOffsetSpeed = 0.7f,
-            enemySpawnRate = Millis(1000)
-        ),
-        durationTimeSec = 4
-    ),
-    StageMessage(
-        message = "Boss fight",
-        durationMillis = 3
-    ),
-    StageMessage(
-        message = "Get ready!",
-        durationMillis = 3
-    ),
-    StageMessage(
-        message = "GO!",
-        durationMillis = 1
-    ),
-    StageBoss(bossId = UUID.randomUUID().toString(), enemyType = LevelOneBossType),
-    StageMessage(
-        message = "Rekt",
-        durationMillis = 3
-    ),
-    StageMessage(
-        message = "Stage 2",
-        durationMillis = 3
-    ),
-    StageMessage(
-        message = "Get ready!",
-        durationMillis = 3
-    ),
-    StageMessage(
-        message = "GO!",
-        durationMillis = 1
-    ),
-    StageGame(
-        spaceRockSpawnRateMillis = Never,
-        enemyType = RegularEnemyType(
-            drawableId = R.drawable.enemy_green_1,
-            width = 40f,
-            height = 40f,
-            hp = 220f,
-            impactPower = 65f,
-            formation = ZigZag(position = ZigZagInitialPosition.LEFT),
-            xOffsetSpeed = 0.5f,
-            yOffsetSpeed = 0.7f,
-            enemySpawnRate = Millis(900)
-        ),
-        durationTimeSec = 15
-    ),
-    StageGame(
-        spaceRockSpawnRateMillis = Never,
-        enemyType = RegularEnemyType(
-            drawableId = R.drawable.enemy_green_2,
-            width = 40f,
-            height = 40f,
-            hp = 230f,
-            impactPower = 70f,
-            formation = ZigZag(position = ZigZagInitialPosition.RIGHT),
-            xOffsetSpeed = 0.5f,
-            yOffsetSpeed = 0.5f,
-            enemySpawnRate = Millis(800)
-        ),
-        durationTimeSec = 15
-    ),
-    StageGame(
-        spaceRockSpawnRateMillis = Never,
-        enemyType = RegularEnemyType(
-            drawableId = R.drawable.enemy_green_3,
-            width = 45f,
-            height = 45f,
-            hp = 240f,
-            impactPower = 75f,
-            formation = ZigZag(position = ZigZagInitialPosition.LEFT),
-            xOffsetSpeed = 0.6f,
-            yOffsetSpeed = 0.6f,
-            enemySpawnRate = Millis(800)
-        ),
-        durationTimeSec = 15
-    ),
-    StageGame(
-        spaceRockSpawnRateMillis = Never,
-        enemyType = RegularEnemyType(
-            drawableId = R.drawable.enemy_green_4,
-            width = 50f,
-            height = 50f,
-            hp = 250f,
-            impactPower = 80f,
-            formation = ZigZag(position = ZigZagInitialPosition.RIGHT),
-            xOffsetSpeed = 0.6f,
-            yOffsetSpeed = 0.6f,
-            enemySpawnRate = Millis(800)
-        ),
-        durationTimeSec = 15
-    ),
-    StageMessage(
-        message = "Boss fight",
-        durationMillis = 3
-    ),
-    StageMessage(
-        message = "Get ready!",
-        durationMillis = 3
-    ),
-    StageMessage(
-        message = "GO!",
-        durationMillis = 1
-    ),
-    StageBoss(bossId = UUID.randomUUID().toString(), enemyType = LevelTwoBossType),
-    StageMessage(
-        message = "Great!",
-        durationMillis = 3
-    ),
-    StageMessage(
-        message = "Stage 3",
-        durationMillis = 3
-    ),
-    StageMessage(
-        message = "Get ready!",
-        durationMillis = 3
-    ),
-    StageMessage(
-        message = "GO!",
-        durationMillis = 1
-    ),
-    StageGame(
-        spaceRockSpawnRateMillis = Millis(1000),
-        enemyType = RegularEnemyType(
-            drawableId = R.drawable.enemy_light_blue_1,
-            width = 37f,
-            height = 37f,
-            hp = 220f,
-            impactPower = 65f,
-            formation = ZigZag(position = ZigZagInitialPosition.LEFT),
-            xOffsetSpeed = 0.7f,
-            yOffsetSpeed = 0.8f,
-            enemySpawnRate = Millis(900)
-        ),
-        durationTimeSec = 10
-    ),
-    StageGame(
-        spaceRockSpawnRateMillis = Millis(1000),
-        enemyType = RegularEnemyType(
-            drawableId = R.drawable.enemy_light_blue_2,
-            width = 42f,
-            height = 42f,
-            hp = 230f,
-            impactPower = 70f,
-            formation = ZigZag(position = ZigZagInitialPosition.RIGHT),
-            xOffsetSpeed = 0.7f,
-            yOffsetSpeed = 0.8f,
-            enemySpawnRate = Millis(900)
-        ),
-        durationTimeSec = 10
-    ),
-    StageGame(
-        spaceRockSpawnRateMillis = Millis(1000),
-        enemyType = RegularEnemyType(
-            drawableId = R.drawable.enemy_light_blue_3,
-            width = 42f,
-            height = 42f,
-            hp = 220f,
-            impactPower = 71f,
-            formation = ZigZag(position = ZigZagInitialPosition.RIGHT),
-            xOffsetSpeed = 0.8f,
-            yOffsetSpeed = 0.8f,
-            enemySpawnRate = Millis(900)
-        ),
-        durationTimeSec = 10
-    ),
-    StageGame(
-        spaceRockSpawnRateMillis = Millis(1000),
-        enemyType = RegularEnemyType(
-            drawableId = R.drawable.enemy_light_blue_4,
-            width = 43f,
-            height = 41f,
-            hp = 220f,
-            impactPower = 73f,
-            formation = Row(rowCount = 4),
-            xOffsetSpeed = 0.0f,
-            yOffsetSpeed = 0.8f,
-            enemySpawnRate = Millis(900)
-        ),
-        durationTimeSec = 4
-    ),
-    StageGame(
-        spaceRockSpawnRateMillis = Millis(1000),
-        enemyType = RegularEnemyType(
-            drawableId = R.drawable.enemy_light_blue_5,
-            width = 44f,
-            height = 40f,
-            hp = 220f,
-            impactPower = 73f,
-            formation = Row(rowCount = 5),
-            xOffsetSpeed = 0.0f,
-            yOffsetSpeed = 0.8f,
-            enemySpawnRate = Millis(900)
-        ),
-        durationTimeSec = 4
-    ),
-    StageMessage(
-        message = "End",
-        durationMillis = 3
-    ),
-)
-
 sealed class Stage(val durationSec: Int) : Serializable
 
-data class StageMessage(val message: String, val durationMillis: Int) : Stage(durationMillis)
+data class StageMessage(
+    val message: String,
+    val durationMillis: Int,
+    /** 32d Wave 4 — chapter the message belongs to. 0 = unspecified (legacy/global). */
+    val chapterId: Int = 0,
+) : Stage(durationMillis)
+
 data class StageGame(
     val spaceRockSpawnRateMillis: RepeatTime = Never,
     val enemyType: EnemyType,
     val durationTimeSec: Int,
+    /** 32d hazard tag — drives GameScreen visual cue + GameState mechanic. Null = no hazard. */
+    val hazard: HazardType? = null,
+    /** Chapter id (1..5) — used for stageTint mapping in GameScreen. */
+    val chapterId: Int = 1,
 ) : Stage(durationTimeSec)
 
-data class StageBoss(val bossId: String, val enemyType: EnemyType) : Stage(1)
+data class StageBoss(
+    val bossId: String,
+    val enemyType: EnemyType,
+    val chapterId: Int = 1,
+) : Stage(1)
+
 object StageBreak : Stage(3)
+
+/**
+ * 31d Wave 4 — procedural stage script generator.
+ * Layout per chapter (~20 stages each, ~100 total):
+ *   - 3 intro messages (Chapter X / Name / GO!)
+ *   - 12 game stages (mixed formations, scaled difficulty)
+ *   - 2 mid-boss insertions at game-stages 6 + 12 (3 entries each: warning + boss + outro)
+ *   - 4 chapter-boss intro/outro (3 messages + StageBoss + outro)
+ *
+ * Final chapter (GALAXY_CORE) skips mid-bosses — it goes straight into FinalBoss.
+ */
+val stages: List<Stage> = buildStageScript()
+
+private fun buildStageScript(): List<Stage> {
+    val list = mutableListOf<Stage>()
+    Chapter.values().forEach { chapter ->
+        // Chapter intro (3 messages, all tagged with chapter.id so stageTint shifts
+        // correctly as soon as a new chapter begins — without the chapterId tag,
+        // walk-back logic would resolve to the previous chapter's last boss).
+        list.add(StageMessage(message = "CHAPTER ${chapter.id}", durationMillis = 3, chapterId = chapter.id))
+        list.add(StageMessage(message = chapter.displayName, durationMillis = 3, chapterId = chapter.id))
+        list.add(StageMessage(message = "GO!", durationMillis = 1, chapterId = chapter.id))
+
+        // 12 game stages, mid-boss inserted at game-stage 6 + 12.
+        // Tier scales difficulty across the chapter: 0=early, 1=mid, 2=late.
+        for (gameStage in 1..12) {
+            val tier = (gameStage - 1) / 4
+            list.add(buildGameStage(chapter, gameStage, tier))
+
+            if ((gameStage == 6 || gameStage == 12) && chapter.midBossType != null) {
+                list.add(StageMessage(message = "DANGER", durationMillis = 2, chapterId = chapter.id))
+                list.add(
+                    StageBoss(
+                        bossId = UUID.randomUUID().toString(),
+                        enemyType = chapter.midBossType,
+                        chapterId = chapter.id,
+                    )
+                )
+                list.add(StageMessage(message = "Continue!", durationMillis = 3, chapterId = chapter.id))
+            }
+        }
+
+        // Chapter final boss intro (3 messages + boss)
+        list.add(StageMessage(message = "BOSS FIGHT", durationMillis = 3, chapterId = chapter.id))
+        list.add(StageMessage(message = "Get ready!", durationMillis = 3, chapterId = chapter.id))
+        list.add(StageMessage(message = "GO!", durationMillis = 1, chapterId = chapter.id))
+        list.add(
+            StageBoss(
+                bossId = UUID.randomUUID().toString(),
+                enemyType = chapter.finalBossType,
+                chapterId = chapter.id,
+            )
+        )
+        list.add(
+            StageMessage(
+                message = if (chapter.id == 5) "VICTORY!" else "Chapter cleared!",
+                durationMillis = 3,
+                chapterId = chapter.id,
+            )
+        )
+    }
+    return list
+}
+
+/**
+ * Build a single StageGame for [chapter] at [gameStage] with difficulty tier 0..2.
+ * Cycles through enemy drawables in the chapter palette + alternates ZigZag/Row formations.
+ */
+private fun buildGameStage(chapter: Chapter, gameStage: Int, tier: Int): StageGame {
+    val drawable = chapter.regularEnemyDrawables[(gameStage - 1) % chapter.regularEnemyDrawables.size]
+    // Enemy stats scale with tier + chapter index (later chapters tougher).
+    val hpScale = 1f + tier * 0.18f + (chapter.id - 1) * 0.12f
+    val baseHp = 180f
+    val baseImpact = 60f
+    val isZigZag = gameStage % 2 == 1
+    val rowCount = 3 + tier.coerceAtMost(2)                          // 3..5
+    val zigZagPosition = if (gameStage % 4 < 2) ZigZagInitialPosition.RIGHT
+    else ZigZagInitialPosition.LEFT
+
+    val formation = if (isZigZag) ZigZag(position = zigZagPosition) else Row(rowCount = rowCount)
+
+    val enemyType = RegularEnemyType(
+        drawableId = drawable,
+        width = 40f + tier * 3f,
+        height = 40f + tier * 3f,
+        hp = baseHp * hpScale,
+        impactPower = baseImpact + tier * 5f,
+        formation = formation,
+        xOffsetSpeed = 0.5f + tier * 0.1f,
+        yOffsetSpeed = 0.5f + tier * 0.1f,
+        enemySpawnRate = Millis(1000 - tier * 100),                  // 1000/900/800ms
+    )
+
+    // Chapter hazard determines spaceRock spawn cadence.
+    val rockRate: RepeatTime = when (chapter.hazard) {
+        HazardType.ASTEROID_STORM -> Millis(1500)                    // frequent rocks
+        HazardType.NEBULA_FOG -> Millis(3500)                        // rare
+        HazardType.ICE_PATCHES -> Millis(2500)
+        null -> if (tier >= 1) Millis(2200) else Never               // standard cadence
+    }
+
+    return StageGame(
+        spaceRockSpawnRateMillis = rockRate,
+        enemyType = enemyType,
+        durationTimeSec = 5 + tier * 2,                              // 5..9s
+        hazard = chapter.hazard,
+        chapterId = chapter.id,
+    )
+}

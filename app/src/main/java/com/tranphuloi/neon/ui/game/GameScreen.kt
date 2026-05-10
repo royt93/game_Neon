@@ -45,6 +45,8 @@ import com.tranphuloi.neon.ui.game.controls.AchievementBanner
 import com.tranphuloi.neon.ui.game.controls.BossHpBar
 import com.tranphuloi.neon.ui.game.controls.BossIntroOverlay
 import com.tranphuloi.neon.ui.game.controls.BossRankOverlay
+import com.tranphuloi.neon.ui.game.controls.HazardOverlay
+import com.tranphuloi.neon.ui.game.controls.PhaseTransitionBanner
 import com.tranphuloi.neon.ui.game.controls.SmartBombButton
 import com.tranphuloi.neon.ui.game.controls.StageBanner
 import com.tranphuloi.neon.ui.game.controls.WaveClearBanner
@@ -71,18 +73,21 @@ private const val SHAKE_MAX_PX = 14f
 private const val FLASH_MAX_ALPHA = 0.45f
 
 /**
- * F-b: Subtle ambient tint per stage cluster. Stage map matches enemy color palette:
- *   stages 0-9   → cyan/blue tint   (red enemies on default deep gradient)
- *   stages 10-15 → violet           (boss 1 + green enemies)
- *   stages 16-21 → magenta tint     (light blue enemies, mid game)
- *   stages 22+   → red tint         (boss 2 + final stages, danger)
+ * 32d Wave 4 — Per-chapter ambient tint. Maps chapter id (1..5) to its theme color.
+ *   Chapter 1 ASTEROID_BELT  → warm gold-orange
+ *   Chapter 2 NEBULA_CLOUD   → violet
+ *   Chapter 3 ICE_PLANET     → cyan
+ *   Chapter 4 HOSTILE_STATION → red
+ *   Chapter 5 GALAXY_CORE    → magenta
  */
-private fun stageTintColor(stageIndex: Int): Color {
-    val tintAlpha = 0.06f
-    return when {
-        stageIndex >= 22 -> NeonRedAlert.copy(alpha = tintAlpha)
-        stageIndex >= 16 -> NeonMagenta.copy(alpha = tintAlpha)
-        stageIndex >= 10 -> NeonViolet.copy(alpha = tintAlpha)
+private fun stageTintColor(chapterId: Int): Color {
+    val tintAlpha = 0.07f
+    return when (chapterId) {
+        1 -> Color(0xFFFFB048).copy(alpha = tintAlpha)               // gold-orange
+        2 -> NeonViolet.copy(alpha = tintAlpha)
+        3 -> NeonCyan.copy(alpha = tintAlpha * 0.7f)                 // cyan slightly subdued (matches ice)
+        4 -> NeonRedAlert.copy(alpha = tintAlpha)
+        5 -> NeonMagenta.copy(alpha = tintAlpha)
         else -> NeonCyan.copy(alpha = tintAlpha * 0.6f)
     }
 }
@@ -104,9 +109,17 @@ fun GameScreen(
     val runStats = com.tranphuloi.neon.data.LocalRunStats.current
     LaunchedEffect(gameState.gameStatus) {
         if (gameState.gameStatus == GameStatus.GAME_OVER) {
-            Logger.d("GameScreen detected GAME_OVER → kill-cam 1500ms then onGameOver(score=${gameState.mineralsEarnedTotal})")
-            if (vibrationEnabled) haptic.vibrate(HapticPattern.LONG)
-            sfx.play(SfxEvent.GAME_OVER)
+            val isVictory = gameState.finalBossDefeated
+            Logger.d("GameScreen detected GAME_OVER → ${if (isVictory) "VICTORY path" else "death kill-cam path"} (score=${gameState.mineralsEarnedTotal})")
+            // 34d: differentiate victory feedback from death. Victory = no kill-cam delay,
+            // celebratory PICKUP sfx + HEAVY haptic. Death = original LONG haptic + sad sfx.
+            if (isVictory) {
+                if (vibrationEnabled) haptic.vibrate(HapticPattern.HEAVY)
+                sfx.play(SfxEvent.PICKUP)
+            } else {
+                if (vibrationEnabled) haptic.vibrate(HapticPattern.LONG)
+                sfx.play(SfxEvent.GAME_OVER)
+            }
             // 15c: snapshot end-of-run stats for DialogGameOver to read.
             runStats.value = com.tranphuloi.neon.data.RunStats(
                 score = gameState.mineralsEarnedTotal.toIntOrNull() ?: 0,
@@ -115,9 +128,11 @@ fun GameScreen(
                 bossesDefeated = gameState.bossesDefeatedTotal,
                 maxCombo = gameState.maxComboReached,
                 stagesReached = gameState.stagesReached,
+                victoryAchieved = isVictory,
             )
-            // 11c: delay navigation to play kill-cam slow-mo replay.
-            kotlinx.coroutines.delay(1500L)
+            // 11c: kill-cam slow-mo replay = 1500ms. Victory = 500ms breathing room only
+            // (no kill-cam to play, ship still alive).
+            kotlinx.coroutines.delay(if (isVictory) 500L else 1500L)
             onGameOver(gameState.mineralsEarnedTotal)
         }
     }
@@ -248,11 +263,11 @@ fun GameScreen(
         else if (slowMoShakeAmp > 0f) (cos(slowMoElapsed / 17.0) * slowMoShakeAmp).toFloat()
         else 0f
 
-    // F-b: stage-based ambient tint. derivedStateOf prevents cascade recomposition
-    // when other parts of gameState change (only fires when stageIndex actually shifts).
-    val stageTint by remember {
-        derivedStateOf { stageTintColor(gameState.stageIndex) }
-    }
+    // 32d: chapter-based ambient tint. Inline (NOT derivedStateOf) — same closure
+    // capture issue as music intensity: `gameState` is a plain Kotlin object, not
+    // a Compose State, so derivedStateOf cache wouldn't invalidate. Inline recomputes
+    // every recomposition (~125Hz) which is cheap (single int → Color lookup).
+    val stageTint = stageTintColor(gameState.currentChapterId)
 
     Box(
         modifier = Modifier
@@ -271,12 +286,18 @@ fun GameScreen(
             running = gameState.gameStatus == GameStatus.RUNNING,
             modifier = Modifier.fillMaxSize().zIndex(0f)
         )
-        // Layer 1: stage tint — subtle color bias matching enemy palette of current stage.
+        // Layer 1: stage tint — subtle color bias matching chapter palette.
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(stageTint)
                 .zIndex(1f)
+        )
+        // Layer 1.5: 32d hazard visibility overlay (NEBULA_FOG dim, ICE edges).
+        HazardOverlay(
+            hazard = gameState.currentHazard,
+            reduceMotion = reduceMotion,
+            modifier = Modifier.zIndex(2f),
         )
 
         IndicatorStatus(
@@ -519,6 +540,16 @@ fun GameScreen(
             shownAtMillis = gameState.revivedShownAtMillis,
             modifier = Modifier.zIndex(460f),
         )
+        // 34d: FinalBoss phase 2/3 transition banner. Renders only when an enemy
+        // with currentPhase >= 2 has phaseTransitionMillis within last 1.4s.
+        val finalBoss = gameState.enemies.firstOrNull { it.currentPhase > 0 }
+        if (finalBoss != null) {
+            PhaseTransitionBanner(
+                phase = finalBoss.currentPhase,
+                phaseTransitionMillis = finalBoss.phaseTransitionMillis,
+                modifier = Modifier.zIndex(455f),
+            )
+        }
         // 9b: Achievement banner (slide-in 3s).
         AchievementBanner(
             achievement = gameState.achievementUnlocked,

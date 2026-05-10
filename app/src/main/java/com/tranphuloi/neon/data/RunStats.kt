@@ -14,6 +14,8 @@ data class RunStats(
     val bossesDefeated: Int,
     val maxCombo: Int,
     val stagesReached: Int,         // stageController.currentIndex()
+    /** 34d Wave 4 — true if player defeated the FinalBoss (Galaxy Overlord). */
+    val victoryAchieved: Boolean = false,
 )
 
 val LocalRunStats =

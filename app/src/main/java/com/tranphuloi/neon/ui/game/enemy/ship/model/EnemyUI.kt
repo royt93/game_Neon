@@ -21,4 +21,8 @@ data class EnemyUI(
     val currentHp: Float = 0f,
     val initialHp: Float = 0f,
     val isInEntryPhase: Boolean = false,
+    /** 34d FinalBoss only: 1..3, else 0. */
+    val currentPhase: Int = 0,
+    /** 34d Wall-clock of last phase transition; 0 if none. Drives PhaseTransitionBanner. */
+    val phaseTransitionMillis: Long = 0L,
 ) : Serializable

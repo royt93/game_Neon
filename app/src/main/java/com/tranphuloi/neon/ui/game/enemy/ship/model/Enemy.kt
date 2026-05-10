@@ -24,6 +24,12 @@ interface Enemy : Serializable {
     /** True while boss is sliding from off-screen to patrol position. */
     val isInEntryPhase: Boolean get() = false
 
+    /** 34d FinalBoss phase id (1..3); 0 for non-multi-phase enemies. */
+    val currentPhase: Int get() = 0
+
+    /** 34d Wall-clock when last phase transition fired; 0 if none. Drives cinematic banner. */
+    val phaseTransitionMillis: Long get() = 0L
+
     fun enemyRect(): Rect
     fun process()
     fun generateLasers(): List<Laser>

@@ -207,6 +207,67 @@
 - `ui/dlg/gameover/DialogGameOver.kt` (added daily entries collect + `submitDaily` call + `DailyPanel`)
 - `res/values/strings.xml` + `values-en` + `values-vi` (added `revived_banner`, `daily_challenge_label`, `daily_seed_label`, `daily_best_today`)
 
+## 🆕 Wave 4 Foundation (round 20 — content expansion: 100-stage 5-chapter campaign)
+
+- ✅ **Round 20 hotfix: 8c music intensity**. Fixed bug discovered ở log đánh giá round 19 — `derivedStateOf { gameState.* }` capture closure `gameState` từ composition đầu tiên (gameState là plain Kotlin object, không phải Compose State → cache không invalidate, intensity stuck @ 0.7). Sửa: bỏ `derivedStateOf`, compute inline mỗi recomposition. Cùng pattern fix cho `stageTint` (cùng bug pattern).
+- ✅ **31d 100-stage 5-chapter campaign**. `Stage.kt` refactored: static `stages` list → procedural `buildStageScript()` generator. 5 chapters × ~26 entries = ~130 stage entries. New `Chapter` enum (ASTEROID_BELT / NEBULA_CLOUD / ICE_PLANET / HOSTILE_STATION / GALAXY_CORE) carries `displayName`, `tintArgb`, `regularEnemyDrawables` palette, `hazard`, `midBossType`, `finalBossType`. Each chapter layout: 3 intro messages + 12 game stages (mid-boss inserted at game-stage 6 + 12 with warning/outro flanks) + chapter boss intro + StageBoss + outro message. Difficulty tier 0..2 scales HP/speed/spawn rate per game stage; chapter index further scales (chapter 5 enemies ~60% tougher than chapter 1). `StageGame` + `StageBoss` data classes carry `chapterId` field for downstream tinting. Final chapter (GALAXY_CORE) skips mid-bosses, goes straight to FinalBoss.
+- ✅ **32d Chapter themes + hazards**. `stageTintColor()` rewritten: maps chapter id 1..5 to theme color (gold-orange / violet / cyan / red / magenta), alpha 0.07. Per-chapter enemy palette via `Chapter.regularEnemyDrawables` cycled through `buildGameStage`. New `HazardType` enum (ASTEROID_STORM / NEBULA_FOG / ICE_PATCHES) baked into StageGame. ASTEROID_STORM mechanically active via increased `spaceRockSpawnRateMillis = Millis(1500)`; NEBULA_FOG visual via new `HazardOverlay` composable (dark purple gradient pulse 0.20↔0.40 alpha, 4s cycle, gated by reduceMotion); ICE_PATCHES visual = cyan top+bottom edge gradient (mechanic deferred — would require ShipController inertia rework). `StageController.currentChapterId()` walks back through stages to find most recent chapter context; `currentHazard()` reads active StageGame's hazard tag. Both exposed via GameState.
+- ✅ **33c+d Mid-bosses + phase transitions**. New `MidBossType` sealed class (OFFENSIVE / DEFENSIVE / SWARM) extending `EnemyType`. New `MidBoss` class (130×90, single drawable per variant): OFFENSIVE 1500 HP w/ sine-wave horizontal patrol + aimed laser → phase 2 = triple spread; DEFENSIVE 2500 HP w/ slow horizontal patrol + single laser → phase 2 = 5-laser barrage with random gap; SWARM 1200 HP w/ figure-8 motion + frequent aimed laser. Phase transition gated at HP<50% (`phase2Engaged` one-shot). Reuses existing `isBoss=true` → triggers BossHpBar + BossRankOverlay automatically. Mid-bosses inserted at game-stage 6 + 12 within each chapter (chapters 1-4; GALAXY_CORE skips mid-boss). EnemyFactory wired with new `MidBossType` arm.
+- ✅ **34d FinalBoss 3-phase**. New `FinalBoss` class with 22500 HP single pool, 3-phase gates: Phase 1 (HP 22500..15000) = slow patrol + aimed laser; Phase 2 (HP 15000..7500) = figure-8 patrol + 3-spread laser; Phase 3 (HP 7500..0) = aggressive patrol + 8-direction ring barrage. Phase transition triggers 300ms i-frames + sets `phaseTransitionMillis` for cinematic banner. New `FinalBossType` object EnemyType. `Enemy` interface extended with `currentPhase: Int` + `phaseTransitionMillis: Long` (default 0/0L). `EnemyUI` + mapper pass through. New `PhaseTransitionBanner` composable (1.4s pop-in 0..0.18 → hold 0.18..0.7 → fade 0.7..1.0, "PHASE N" 3-layer text stack + red-gold radial halo). Cinematic intro reuses BossIntroOverlay; outro = 5-explosion starburst already in EnemyController. Alt ending: `RunStats.victoryAchieved: Boolean` set when FinalBoss instance killed. New `VictoryPanel` in DialogGameOver shows difficulty-aware text: Easy = "GALAXY SAVED / Try Normal next time", Normal = "GALAXY OVERLORD DEFEATED", Hard = "LEGENDARY VICTORY".
+
+### Wave 4 Foundation files
+
+**New:**
+- `ui/game/stage/Chapter.kt` (5-chapter enum + HazardType enum)
+- `ui/game/enemy/ship/model/MidBossType.kt` (3-variant sealed class)
+- `ui/game/enemy/ship/model/MidBoss.kt` (~190 LOC, 3 attack variants + phase transition)
+- `ui/game/enemy/ship/model/FinalBoss.kt` (~210 LOC, 3-phase HP gates + ring barrage)
+- `ui/game/controls/HazardOverlay.kt` (NEBULA_FOG pulse + ICE edge tint)
+- `ui/game/controls/PhaseTransitionBanner.kt` (1.4s "PHASE N" cinematic)
+
+**Modified:**
+- `ui/game/stage/Stage.kt` (full refactor → procedural `buildStageScript()` from chapters)
+- `ui/game/stage/StageController.kt` (added `currentChapterId()` + `currentHazard()` accessors)
+- `ui/game/enemy/ship/factory/EnemyFactory.kt` (added MidBoss + FinalBoss spawn arms)
+- `ui/game/enemy/ship/model/Enemy.kt` (extended with `currentPhase` + `phaseTransitionMillis` defaults)
+- `ui/game/enemy/ship/model/EnemyUI.kt` + mapper (passthrough)
+- `ui/game/state/GameState.kt` (track `finalBossDefeated`, expose `currentChapterId`/`currentHazard`/`finalBossDefeated`)
+- `ui/game/GameScreen.kt` (chapter-based stageTint, HazardOverlay render, PhaseTransitionBanner render, RunStats victory propagation)
+- `data/RunStats.kt` (added `victoryAchieved: Boolean`)
+- `ui/dlg/gameover/DialogGameOver.kt` (added `VictoryPanel` with difficulty-aware ending text)
+
+### Edge cases handled
+
+- StageController.currentChapterId() walks backward through stages from current index — correctly identifies chapter even during inter-chapter StageMessage entries.
+- StageBoss with default chapterId=1 — backward compat preserved; existing BossOne/BossTwo unchanged.
+- FinalBoss phase i-frames (300ms) prevent player chain-killing through phase 2/3 transitions.
+- VictoryPanel only renders when `runStats.victoryAchieved == true` — never shown for normal Game Over.
+- HazardOverlay returns early when `hazard == null` — no recomposition cost outside hazard stages.
+
+### Round 20 audit fixes (post-implementation review)
+
+**Round 1 — surface bugs caught by static review:**
+
+- 🚨 BUG **Boss intro overlay shows "BOSS" for mid-boss/FinalBoss**. Original `when (newStage.enemyType)` only mapped LevelOneBossType + LevelTwoBossType; everything else fell to `else -> "BOSS"`. Fix: extended `when` with `FinalBossType -> "GALAXY OVERLORD"` + `is MidBossType -> t.displayName` (binds to local `t = newStage.enemyType` for type-safe access).
+- 🚨 BUG **FinalBoss `ringBarrage()` upward lasers leak forever**. The 8-direction ring fired lasers in all directions including upward (cos < 0). `EnemyLasersController.processLasers` only destroys lasers with `yOffset > screenHeight` — upward lasers (yOffset goes negative) never exit. Fix: filter out lasers with `ySpeed < 0.15` after applying +0.25 downward bias. Result: 5-6 lasers per ring instead of 8, all guaranteed to leave screen bottom.
+- 🚨 BUG **Wave clear spam** — original gate `previousWasGame` fired the bonus on every game-stage transition. Procedural script has 12 short StageGame entries per chapter (5-9s each) → ~60 wave-clear bursts per playthrough. Fix: tightened gate to `previousWasGame && newIsGame == false` — fires only at significant transitions (game→DANGER mid-boss prelude, game→BOSS FIGHT prelude). Result: ~9 wave clears per full campaign, matching original UX intent.
+- ⚠️ POLISH **MidBossType.SWARM shared drawable with OFFENSIVE** (both `enemy_red_boss`). Reassigned SWARM to `enemy_green_boss` (only 2 boss webps available; sharing with DEFENSIVE acceptable as behavior differs sharply: figure-8 motion + lower HP).
+- ⚠️ POLISH **MidBoss.SWARM phase 2 was no-op** — comment claimed "doubled fire rate" but EnemyLasersController has fixed 1000ms cadence; nothing actually changed. Rewired SWARM phase 2 to use `tripleSpreadLasers(ship)` (same primitive as OFFENSIVE phase 2) so phase 2 has visible aggression boost.
+
+**Round 2 — runtime/UX flow bugs caught on second audit:**
+
+- 🚨 BUG (CRITICAL) **VictoryPanel never displays — GameOver dialog không bao giờ tự fire after FinalBoss kill**. After player defeats FinalBoss, `finalBossDefeated = true` set in onEnemyKilled, stage advances to "VICTORY!" StageMessage, but `gameStatus` stays `RUNNING`. Stage script reaches end (`hasNextStage = false`) → stays at VICTORY! forever. Player has to manually suicide to see GameOver dialog. Fix: in `onEnemyKilled` when `enemy is FinalBoss`, launch coroutine `delay(4000); setGameStatus(GAME_OVER)`. The 4s lets "VICTORY!" StageBanner show + breathing room before dialog. killCamStartedAtMillis stays 0L → no slow-mo replay (ship still alive).
+- 🚨 BUG **Victory triggers death haptic + sad GAME_OVER sfx** — original GameOver LaunchedEffect plays `HapticPattern.LONG` + `SfxEvent.GAME_OVER` regardless of cause. UX clash: player wins but feels like dying. Fix: GameScreen branches on `gameState.finalBossDefeated`. Victory path = `HapticPattern.HEAVY` + `SfxEvent.PICKUP` (celebratory) + 500ms delay (no kill-cam to play). Death path unchanged.
+- 🚨 BUG **Chapter intro tint stuck on previous chapter for ~7s**. `StageController.currentChapterId()` walked backward from `stageIndex` to find most recent StageGame/StageBoss with chapterId. During chapter N+1 intro messages ("CHAPTER N+1 / NAME / GO!"), walk-back resolves to chapter N's last boss → tint stays gold while player sees "NEBULA CLOUD" header. Fix: added `chapterId: Int = 0` field to `StageMessage` data class; `buildStageScript` tags every intra-chapter message with `chapter.id`; `currentChapterId()` now reads chapter id directly from current stage (O(1)) with fallback walk preserved for legacy/untagged messages.
+- ⚠️ POLISH **"Continue!" message duration 2s overlapped BossRankOverlay (1.8s)** — player saw "Continue!" message visible only ~0.2s after mid-boss kill. Bumped to 3s for clearer pacing.
+
+### Known limitations (acknowledged, deferred)
+
+- **Mid-boss drawable variety**: only 2 boss webps exist (`enemy_red_boss`, `enemy_green_boss`). OFFENSIVE = red, DEFENSIVE/SWARM = green (share). Could add per-chapter color filter or new webps later.
+- **ICE_PATCHES mechanic** = visual only (cyan edge tint). True ship-slip inertia would require ShipController rewrite — deferred as polish.
+- **Chapter intro chapterId lag**: during 7s of "CHAPTER N / NAME / GO!" StageMessage entries, `currentChapterId()` still returns the previous chapter (walks back finds previous chapter's StageGame/StageBoss). Tint will shift only when first game stage of new chapter starts. Acceptable transient.
+- **MidBoss/FinalBoss difficulty scaling**: difficulty multiplier currently affects only player damage taken, not enemy HP. FinalBoss 22500 HP fixed across Easy/Normal/Hard. Hard mode = same boss but harder player survival.
+
 ## 🆕 Wave 1 implemented (this round)
 
 ### Files mới
@@ -644,16 +705,18 @@ Các architectural refactors quá lớn để gộp chung:
 - [x] 20b Smart bomb stack (round 12)
 - [x] 24b Boss kill rank S/A/B/C/D (round 12)
 
-## Wave 4 (Content expansion, ~5h+)
-- [ ] 31x +stages (theo pick)
-- [ ] 32x Chapter themes
-- [ ] 33x Mid-bosses
-- [ ] 34x Final boss multi-phase
-- [ ] 35x +bullets
-- [ ] 38x +items
-- [ ] 41x Status effects
-- [ ] 42x Roguelike buffs
-- [ ] 44x Hazards
+## Wave 4 Foundation ✅ DONE (round 20)
+- [x] 31d +100 stages 5 chapters (procedural buildStageScript)
+- [x] 32d Chapter themes + hazards (per-chapter tint + asteroid storm + nebula fog overlay + ice edge tint)
+- [x] 33c+d Mid-bosses 3 variants + phase transitions (Offensive/Defensive/Swarm @ HP<50%)
+- [x] 34d Final boss 3-phase (22500 HP, ring barrage phase 3, alt endings per difficulty)
+
+## Wave 4 Combat depth (deferred)
+- [ ] 35x +10 bullet types
+- [ ] 38x +10 support items
+- [ ] 41x Status effects + chains
+- [ ] 42x Roguelike buffs + curses
+- [ ] 44x Environmental hazards (extended — ice slip mechanic, solar flares)
 
 ## Wave 5 (Modes + meta, ~3h)
 - [ ] 23x Endless mode
