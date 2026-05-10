@@ -16,6 +16,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+// Note: `derivedStateOf` is still used for `stageTint` below; keep the import.
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -185,29 +186,25 @@ fun GameScreen(
     // so non-game screens (splash, dialogs) play at the user's chosen level.
     val audioHolder = LocalAudioPlayer.current
     val musicVolumePref by settings.musicVolume.collectAsState(initial = 80)
-    val intensityTarget by remember {
-        derivedStateOf {
-            val hpRatio = (gameState.ship.hp / 1000f).coerceIn(0f, 1f)
-            val hasBoss = gameState.enemies.any { it.isBoss }
-            val enemyCount = gameState.enemies.size
-            when {
-                hasBoss -> 1.00f
-                hpRatio < 0.30f -> 1.00f
-                enemyCount >= 4 || hpRatio < 0.50f -> 0.85f
-                else -> 0.70f
-            }
-        }
+    // Compute intensity inline (NOT derivedStateOf): the closure would capture
+    // the first composition's `gameState` and never see updates — `gameState` is
+    // a plain Kotlin object, not a Compose State, so derivedStateOf can't track
+    // it. Inline recomputes every recomposition (~125Hz) which is cheap.
+    val hpRatio = (gameState.ship.hp / 1000f).coerceIn(0f, 1f)
+    val hasBoss = gameState.enemies.any { it.isBoss }
+    val enemyCount = gameState.enemies.size
+    val intensityTarget = when {
+        hasBoss -> 1.00f
+        hpRatio < 0.30f -> 1.00f
+        enemyCount >= 4 || hpRatio < 0.50f -> 0.85f
+        else -> 0.70f
     }
     val animatedIntensity = remember { Animatable(0.85f) }
     LaunchedEffect(intensityTarget) {
         Logger.d("Music intensity → $intensityTarget (animating from ${animatedIntensity.value})")
         animatedIntensity.animateTo(intensityTarget, animationSpec = tween(500))
     }
-    val effectiveMusicVolume by remember {
-        derivedStateOf {
-            (musicVolumePref * animatedIntensity.value).toInt().coerceIn(0, 100)
-        }
-    }
+    val effectiveMusicVolume = (musicVolumePref * animatedIntensity.value).toInt().coerceIn(0, 100)
     LaunchedEffect(effectiveMusicVolume) {
         audioHolder.setVolume(effectiveMusicVolume)
     }
