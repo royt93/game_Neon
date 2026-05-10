@@ -21,7 +21,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -79,6 +84,7 @@ fun GameWorld(
     bossIntroShownAtMillis: Long,
     lastBoosterPickupMillis: Long,
     lastMineralPickupMillis: Long,
+    chargeProgress: Float,
     modifier: Modifier = Modifier,
 ) {
 
@@ -94,24 +100,45 @@ fun GameWorld(
         )
     )
 
+    // After ship destroy, ship state stops mutating → GameWorld stops recomposing
+    // → shipAlive computation stale. Force recompose every 33ms for 2s during
+    // destroy phase so shipAlive flips false at 200ms and ship Box is removed.
+    var destroyTickMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(ship.destroyedAtMillis) {
+        if (ship.destroyedAtMillis == 0L) return@LaunchedEffect
+        repeat(60) {                  // 60 × 33ms ≈ 2s — covers implosion + flash + explosions + kill-cam
+            destroyTickMillis = System.currentTimeMillis()
+            delay(33L)
+        }
+    }
     Box(modifier = modifier.fillMaxSize()) {
+        // Hide flame + magnet visual once ship is destroyed (after implosion 200ms);
+        // they render independently of the ship Box so the alpha=0 trick on the
+        // ship Box doesn't reach them. Without this they linger after ship is gone.
+        val shipAlive = ship.destroyedAtMillis == 0L ||
+            (destroyTickMillis - ship.destroyedAtMillis) < 200L
         // 16c: Magnet visual — render below other entities so doesn't obscure ship.
-        MagnetVisual(
-            ship = ship,
-            minerals = minerals,
-            magnetRadius = magnetRadius,
-            modifier = Modifier.fillMaxSize()
-        )
+        if (shipAlive) {
+            MagnetVisual(
+                ship = ship,
+                minerals = minerals,
+                magnetRadius = magnetRadius,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+        // BUG fix: lasers were `align(BottomStart) + absoluteOffset` while the ship
+        // uses `offset` (TopStart default). Switching lasers to the same TopStart
+        // `.offset` coord system as the ship means laser.yOffset / xOffset can be
+        // expressed in ship-coords directly — no parent-height arithmetic.
         shipLasers.forEach {
             Image(
                 painterResource(id = it.drawableId),
                 contentDescription = stringResource(id = R.string.laser),
                 contentScale = ContentScale.FillBounds,
                 modifier = Modifier
-                    .absoluteOffset(x = it.xOffset.dp, y = it.yOffset.dp)
                     .size(width = it.width.dp, height = it.height.dp)
+                    .offset(x = it.xOffset.dp, y = it.yOffset.dp)
                     .neonGlow(color = NeonCyan, intensity = 0.7f, radiusFactor = 2.4f)
-                    .align(Alignment.BottomStart)
             )
         }
         ultimateLasers.forEach {
@@ -119,10 +146,9 @@ fun GameWorld(
                 painterResource(id = it.drawableId),
                 contentDescription = stringResource(id = R.string.laser),
                 modifier = Modifier
-                    .absoluteOffset(x = it.xOffset.dp, y = it.yOffset.dp)
                     .size(width = it.width.dp, height = it.height.dp)
+                    .offset(x = it.xOffset.dp, y = it.yOffset.dp)
                     .neonGlow(color = NeonGold, intensity = 0.85f, radiusFactor = 2.0f)
-                    .align(Alignment.BottomStart)
                     .rotate(degrees = it.rotation)
             )
         }
@@ -149,28 +175,29 @@ fun GameWorld(
         }
         // 3b: Ship engine flame trail — drawn before ship sprite so flame appears
         // to emanate from engines (ship Image covers the flame's top edge).
-        ShipEngineFlame(
+        // Hidden when ship destroyed (after implosion phase).
+        if (shipAlive) ShipEngineFlame(
             ship = ship,
             modifier = Modifier.fillMaxSize(),
         )
         // Implosion (ship destroy phase 1, 0-200ms): scale 1.0→0.3, alpha 1.0→0.7.
-        // After 200ms the ship is gone — sprite hidden so explosions take over.
+        // After 200ms ship Box is REMOVED FROM COMPOSITION (`if (shipAlive)`) —
+        // graphicsLayer alpha=0 was unreliable on some devices, so this guarantees
+        // the ship sprite + shield + glow all disappear cleanly.
         val destroyElapsed = if (ship.destroyedAtMillis > 0L)
-            System.currentTimeMillis() - ship.destroyedAtMillis else -1L
+            destroyTickMillis - ship.destroyedAtMillis else -1L
         val implosionT = if (destroyElapsed in 0L..200L) destroyElapsed / 200f else -1f
         val shipImplodeScale = if (implosionT >= 0f) 1f - 0.7f * implosionT else 1f
         val shipImplodeAlpha = if (implosionT >= 0f) 1f - 0.3f * implosionT else 1f
-        val shipHidden = destroyElapsed in 200L..Long.MAX_VALUE
-        Box(
+        if (shipAlive) Box(
             modifier = Modifier
                 .size(ship.shieldSize.dp)
                 .offset(x = ship.xOffset.dp, y = ship.yOffset.dp)
                 .graphicsLayer {
                     // Spawn cinematic transforms — apply alpha + scale on the outer
                     // Box so shield aura scales together. Rotation is moved to the
-                    // Image directly (below) so it pivots around the ship's center,
-                    // not the larger Box center → no translational drift on bank.
-                    alpha = if (shipHidden) 0f else ship.spawnAlpha * shipImplodeAlpha
+                    // Image directly (below) so it pivots around the ship's center.
+                    alpha = ship.spawnAlpha * shipImplodeAlpha
                     scaleX = ship.spawnScale * shipImplodeScale
                     scaleY = ship.spawnScale * shipImplodeScale
                 }
@@ -211,6 +238,9 @@ fun GameWorld(
             val glowBoost = if (glowElapsed in 0L..220L) {
                 (1f - glowElapsed.toFloat() / 220f).coerceIn(0f, 1f) * 0.5f
             } else 0f
+            // 19b Charge shot ramp — when player holds both arrows, glow + halo
+            // intensity scale up to signal pending mega blast.
+            val chargeBoost = chargeProgress * 0.6f
             Image(
                 painterResource(id = ship.drawableId),
                 contentDescription = stringResource(id = R.string.ship),
@@ -226,8 +256,8 @@ fun GameWorld(
                     }
                     .neonGlow(
                         color = NeonCyan,
-                        intensity = 0.5f + glowBoost,
-                        radiusFactor = 1.5f + glowBoost * 0.4f,
+                        intensity = 0.5f + glowBoost + chargeBoost,
+                        radiusFactor = 1.5f + glowBoost * 0.4f + chargeBoost * 0.6f,
                     )
             )
         }

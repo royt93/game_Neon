@@ -53,9 +53,10 @@ data class RegularEnemy(
             is Row -> moveRectangleFormation()
         }
         // Smooth knockback: apply current velocity then decay.
+        // Decay 0.92 (was 0.85) → ~200ms recovery (more visible push than 100ms).
         if (knockbackVel != 0f) {
             yOffset += knockbackVel
-            knockbackVel *= 0.85f
+            knockbackVel *= 0.92f
             if (kotlin.math.abs(knockbackVel) < 0.05f) knockbackVel = 0f
         }
         if (yOffset + height > screenHeight) outOfScreen = true
@@ -92,8 +93,8 @@ data class RegularEnemy(
     override fun onObjectImpact(impactPower: Float) {
         hp -= impactPower
         lastImpactMillis = System.currentTimeMillis()
-        // Smooth knockback: accumulate velocity (capped). Process() decays it
-        // 15% per tick → ~100ms recovery, much smoother than instant -5f.
-        knockbackVel = (knockbackVel - 1.5f).coerceAtLeast(-3f)
+        // Smooth knockback: stronger impulse (-3 per hit, cap -6) so push-back
+        // is visually unmistakable. Was -1.5 / -3 which read as "subtle wobble".
+        knockbackVel = (knockbackVel - 3f).coerceAtLeast(-6f)
     }
 }

@@ -83,10 +83,10 @@ data class LevelOneBoss(
             Movement.BOTTOM_LEFT_TOP_RIGHT -> yOffset -= bossMovementSpeed
         }
 
-        // Smooth knockback decay.
+        // Smooth knockback decay 0.92 (~200ms recovery).
         if (knockbackVel != 0f) {
             yOffset += knockbackVel
-            knockbackVel *= 0.85f
+            knockbackVel *= 0.92f
             if (kotlin.math.abs(knockbackVel) < 0.05f) knockbackVel = 0f
         }
 
@@ -118,10 +118,9 @@ data class LevelOneBoss(
     override fun onObjectImpact(impactPower: Float) {
         hp -= impactPower
         lastImpactMillis = System.currentTimeMillis()
-        // Boss smooth knockback (smaller magnitude than regular). Skip during
-        // entry phase so slide-in choreography isn't disrupted.
+        // Boss smooth knockback. Stronger so player sees push (was -0.7/-1.5).
         if (!isInEntryPhase) {
-            knockbackVel = (knockbackVel - 0.7f).coerceAtLeast(-1.5f)
+            knockbackVel = (knockbackVel - 1.5f).coerceAtLeast(-3f)
         }
     }
 

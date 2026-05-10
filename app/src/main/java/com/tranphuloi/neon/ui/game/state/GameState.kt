@@ -137,6 +137,28 @@ fun rememberGameState(): GameState {
     val hitStopController = remember {
         HitStopController(onBossKillFlash = { bossKillFlashMillis = System.currentTimeMillis() })
     }
+    // 24b Boss kill rank — declared early so enemyController.onEnemyKilled lambda
+    // (which references them) compiles. Snapshot ship.hp + clock when boss spawns.
+    var bossSpawnedAtMillis by remember { mutableLongStateOf(0L) }
+    var playerHpAtBossSpawn by remember { mutableIntStateOf(0) }
+    var bossKillRank by remember { mutableStateOf<com.tranphuloi.neon.ui.game.controls.BossRank?>(null) }
+    var bossKillRankShownMillis by remember { mutableLongStateOf(0L) }
+    // ImpactSparkController declared early so onShipDamaged lambda can spawn
+    // sparks at ship hit points (enemy-laser → ship collisions).
+    var impactSparks: List<com.tranphuloi.neon.ui.game.spark.ImpactSpark> by remember {
+        mutableStateOf(emptyList())
+    }
+    val impactSparkController = remember {
+        com.tranphuloi.neon.ui.game.spark.ImpactSparkController(
+            updateState = { impactSparks = it }
+        )
+    }
+    // 15c Stats counters for end-of-run breakdown.
+    var enemiesKilledTotal by remember { mutableIntStateOf(0) }
+    var bossesDefeatedTotal by remember { mutableIntStateOf(0) }
+    var maxComboReached by remember { mutableIntStateOf(0) }
+    // 20b Smart bomb stack — start with 2, +1 per boss kill.
+    var smartBombs by rememberSaveable { mutableIntStateOf(2) }
     val shipController = remember {
         Logger.d("rememberGameState: building ShipController (initial hp=${ship.hp})")
         ShipController(
@@ -167,6 +189,12 @@ fun rememberGameState(): GameState {
             },
             onShipDamaged = {
                 lastShipDamageMillis = System.currentTimeMillis()
+                // Spawn impact spark burst at ship center so enemy-laser → ship
+                // collisions get the same visual feedback as ship-laser → enemy.
+                impactSparkController.spawnBurst(
+                    ship.xOffset + ship.width / 2f,
+                    ship.yOffset + ship.height / 2f,
+                )
                 Logger.d("Ship damaged event @ $lastShipDamageMillis (will trigger shake+flash)")
             },
             onBoosterPickedUp = { x, y ->
@@ -183,14 +211,6 @@ fun rememberGameState(): GameState {
     var damageNumbers: List<DamageNumber> by remember { mutableStateOf(emptyList()) }
     val damageNumberController = remember {
         DamageNumberController(updateState = { damageNumbers = it })
-    }
-    var impactSparks: List<com.tranphuloi.neon.ui.game.spark.ImpactSpark> by remember {
-        mutableStateOf(emptyList())
-    }
-    val impactSparkController = remember {
-        com.tranphuloi.neon.ui.game.spark.ImpactSparkController(
-            updateState = { impactSparks = it }
-        )
     }
     val lasersController = remember {
         LasersController(
@@ -327,9 +347,22 @@ fun rememberGameState(): GameState {
                 comboController.onEnemyKilled()
                 comboCount = comboController.count
                 comboTier = comboController.currentTier()
+                if (comboCount > maxComboReached) maxComboReached = comboCount
+                if (enemy.isBoss) {
+                    bossesDefeatedTotal++
+                    smartBombs++       // reward: +1 smart bomb per boss kill
+                } else enemiesKilledTotal++
                 if (enemy.isBoss) {
                     hitStopController.freezeForBossKill()
                     bossKillEventMillis = System.currentTimeMillis()        // 30c camera zoom
+                    // 24b Boss kill rank — compute from time-to-kill + hp ratio kept.
+                    if (bossSpawnedAtMillis > 0L && playerHpAtBossSpawn > 0) {
+                        val ttk = System.currentTimeMillis() - bossSpawnedAtMillis
+                        val hpRatio = ship.hp.toFloat() / playerHpAtBossSpawn.toFloat()
+                        bossKillRank = com.tranphuloi.neon.ui.game.controls.BossRank.compute(ttk, hpRatio)
+                        bossKillRankShownMillis = System.currentTimeMillis()
+                        Logger.d("Boss kill rank: ${bossKillRank?.letter} (ttk=${ttk}ms hpRatio=${"%.2f".format(hpRatio)})")
+                    }
                 } else {
                     hitStopController.freezeForEnemyKill()
                 }
@@ -394,7 +427,10 @@ fun rememberGameState(): GameState {
                     }
                     bossIntroName = bossName
                     bossIntroShownAtMillis = System.currentTimeMillis()
-                    Logger.d("Boss intro: $bossName cinematic triggered")
+                    // Snapshot for rank computation — boss spawn time + player hp.
+                    bossSpawnedAtMillis = bossIntroShownAtMillis
+                    playerHpAtBossSpawn = ship.hp
+                    Logger.d("Boss intro: $bossName cinematic triggered (hpSnapshot=${ship.hp})")
                 }
                 Logger.d("StageController.onStageAdvance idx=$idx → magnet=${magnetRadiusState.floatValue}px")
             }
@@ -591,6 +627,11 @@ fun rememberGameState(): GameState {
                                 doWork = { lasersController.fireLasers(ship = ship) }
                             )
                         }
+                        // 19b Charge shot — when both arrows held >= 1.5s, dispatch
+                        // ultimate laser. ShipController tracks the timer + cooldown.
+                        if (shipController.consumeChargeShot()) {
+                            lasersController.fireUltimateLaser()
+                        }
                         if (gameStage is StageGame) {
                             val stage = gameStage as StageGame
                             tinker(
@@ -707,6 +748,39 @@ fun rememberGameState(): GameState {
         waveClearBannerShownMillis = waveClearBannerShownMillis,
         bossIntroShownAtMillis = bossIntroShownAtMillis,
         bossIntroName = bossIntroName,
+        bossKillRank = bossKillRank,
+        bossKillRankShownMillis = bossKillRankShownMillis,
+        gameTimeSec = gameTimeSec,
+        enemiesKilledTotal = enemiesKilledTotal,
+        bossesDefeatedTotal = bossesDefeatedTotal,
+        maxComboReached = maxComboReached,
+        stagesReached = stageController.currentIndex(),
+        smartBombs = smartBombs,
+        chargeProgress = shipController.chargeProgress(),
+        dispatchSmartBomb = {
+            if (smartBombs > 0 && gameStatus == GameStatus.RUNNING) {
+                smartBombs--
+                Logger.d("SmartBomb dispatch: ${enemies.size} enemies + ${enemyLasers.size} lasers cleared")
+                // Detonate every on-screen enemy: spawn explosion + minerals + kill counters.
+                enemies.toList().forEach { e ->
+                    explosionsController.addExplosion(
+                        xOffset = e.xOffset + e.width / 2f,
+                        yOffset = e.yOffset + e.height / 2f,
+                        width = e.width,
+                        height = e.height,
+                    )
+                    mineralsController.addMinerals(
+                        xOffset = e.xOffset,
+                        yOffset = e.yOffset + e.height / 2f,
+                        width = e.width,
+                        mineralAmount = e.minerals,
+                    )
+                    e.hp = 0f       // mark for cleanup in next process tick
+                }
+                enemyLasers = emptyList()       // clear all enemy lasers
+                bossKillEventMillis = System.currentTimeMillis()    // reuse for screen feedback
+            }
+        },
         killCamStartedAtMillis = killCamStartedAtMillis,
         bossKillEventMillis = bossKillEventMillis,
         moveShipLeft = { shipController.movingLeft = it },
@@ -758,6 +832,16 @@ data class GameState(
     val waveClearBannerShownMillis: Long,
     val bossIntroShownAtMillis: Long,
     val bossIntroName: String,
+    val bossKillRank: com.tranphuloi.neon.ui.game.controls.BossRank?,
+    val bossKillRankShownMillis: Long,
+    val gameTimeSec: Long,
+    val enemiesKilledTotal: Int,
+    val bossesDefeatedTotal: Int,
+    val maxComboReached: Int,
+    val stagesReached: Int,
+    val smartBombs: Int,
+    val dispatchSmartBomb: () -> Unit,
+    val chargeProgress: Float,
     val killCamStartedAtMillis: Long,
     val bossKillEventMillis: Long,
     val moveShipLeft: (Boolean) -> Unit,

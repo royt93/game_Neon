@@ -41,7 +41,7 @@ data class ImpactSpark(
     }
 
     companion object {
-        const val DURATION_MILLIS: Long = 220L
+        const val DURATION_MILLIS: Long = 320L
     }
 }
 
@@ -59,6 +59,7 @@ class ImpactSparkController(
     /** Spawn a 16-spark radial burst at [xOffset], [yOffset]. */
     fun spawnBurst(xOffset: Float, yOffset: Float) {
         val now = System.currentTimeMillis()
+        Logger.d("ImpactSparkController.spawnBurst at (${xOffset.toInt()},${yOffset.toInt()})")
         val count = 16
         val baseAngle = Random.nextFloat() * 2f * PI.toFloat()
         val newSparks = (0 until count).map { i ->

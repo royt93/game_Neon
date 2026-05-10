@@ -39,6 +39,7 @@ import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.data.LeaderboardEntry
 import com.tranphuloi.neon.data.LocalLeaderboard
+import com.tranphuloi.neon.data.LocalRunStats
 import com.tranphuloi.neon.utils.Logger
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -68,6 +69,7 @@ fun DialogGameOver(score: String, onRestartGame: () -> Unit) {
     val playerRank = entries
         .indexOfFirst { it.score == currentScore }
         .let { if (it == -1) null else it + 1 }
+    val runStatsState = LocalRunStats.current.value
 
     NeonDialog(
         title = stringResource(id = R.string.game_over_dialog_title),
@@ -108,7 +110,12 @@ fun DialogGameOver(score: String, onRestartGame: () -> Unit) {
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(18.dp))
+            // 15c: stats breakdown panel — only when stats snapshot exists.
+            if (runStatsState != null) {
+                Spacer(modifier = Modifier.height(14.dp))
+                StatsPanel(stats = runStatsState)
+            }
+            Spacer(modifier = Modifier.height(14.dp))
             LeaderboardList(
                 entries = entries,
                 currentScore = currentScore,
@@ -127,6 +134,67 @@ fun DialogGameOver(score: String, onRestartGame: () -> Unit) {
             )
         },
     )
+}
+
+@Composable
+private fun StatsPanel(stats: com.tranphuloi.neon.data.RunStats) {
+    val timeStr = String.format(
+        java.util.Locale.US,
+        "%02d:%02d",
+        stats.timeSec / 60,
+        stats.timeSec % 60,
+    )
+    Column(
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .background(Color.Black.copy(alpha = 0.35f))
+            .border(
+                BorderStroke(1.dp, NeonCyan.copy(alpha = 0.3f)),
+                RoundedCornerShape(6.dp),
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Text(
+            text = "RUN STATS",
+            color = NeonCyan.copy(alpha = 0.7f),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            style = TextStyle(letterSpacing = 4.sp),
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        StatLine(label = "TIME", value = timeStr)
+        StatLine(label = "STAGE REACHED", value = stats.stagesReached.toString())
+        StatLine(label = "ENEMIES KILLED", value = stats.enemiesKilled.toString())
+        if (stats.bossesDefeated > 0) {
+            StatLine(label = "BOSSES DEFEATED", value = stats.bossesDefeated.toString())
+        }
+        StatLine(label = "MAX COMBO", value = "×${stats.maxCombo}")
+    }
+}
+
+@Composable
+private fun StatLine(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            color = Color.White.copy(alpha = 0.55f),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            style = TextStyle(letterSpacing = 2.sp),
+        )
+        Text(
+            text = value,
+            color = NeonCyan,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+        )
+    }
 }
 
 @Composable

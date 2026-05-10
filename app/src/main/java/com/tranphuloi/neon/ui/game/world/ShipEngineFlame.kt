@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.ui.game.ship.ship.Ship
+import kotlin.math.cos
 import kotlin.math.sin
 
 /**
@@ -53,24 +54,48 @@ fun ShipEngineFlame(
         // Place flame START just above ship's bottom edge (so it appears to come from engines).
         val topY = (ship.yOffset + ship.height * 0.85f) * density
 
-        // Flicker length factor 0.65..1.35 (deeper flicker for organic feel)
-        val lenFactor = 1f + 0.35f * sin(flicker)
-        // Meteor streak — much longer cones + ember trail. Per user feedback "vệt
-        // sao băng" (shooting star tail).
-        val outerLen = 100f * density * lenFactor
-        val midLen = 70f * density * lenFactor
-        val coreLen = 45f * density * lenFactor
-        val outerHalfWidth = 18f * density
-        val midHalfWidth = 11f * density
-        val coreHalfWidth = 5.5f * density
+        // Per-layer flicker phases — staggered so the 3 layers don't pulse in sync.
+        val outerLenFactor = 1f + 0.35f * sin(flicker)
+        val midLenFactor = 1f + 0.30f * sin(flicker + 1.7f)         // ~98° phase shift
+        val coreLenFactor = 1f + 0.25f * sin(flicker * 1.4f + 0.8f) // faster + offset
+        val outerLen = 100f * density * outerLenFactor
+        val midLen = 70f * density * midLenFactor
+        val coreLen = 45f * density * coreLenFactor
+
+        // Lateral sway — the bulge drifts left/right with cosine of flicker so the
+        // flame "bends" organically while flickering. Different per layer.
+        val outerSway = cos(flicker * 0.7f) * 4f * density
+        val midSway = cos(flicker * 0.7f + 0.5f) * 2.5f * density
+        val coreSway = cos(flicker * 0.9f) * 1.2f * density
+
+        // Teardrop widths — slight per-layer flicker on bulge size too.
+        val outerBulgeFlicker = 1f + 0.15f * sin(flicker + 2.1f)
+        val outerTopHalf = 4f * density
+        val outerBulgeHalf = 18f * density * outerBulgeFlicker
+        val midTopHalf = 2.5f * density
+        val midBulgeHalf = 11f * density * outerBulgeFlicker
+        val coreTopHalf = 1.5f * density
+        val coreBulgeHalf = 5.5f * density
 
         val totalRotation = ship.bankRotation + ship.spawnRotation
         rotate(degrees = totalRotation, pivot = androidx.compose.ui.geometry.Offset(cxPx, topY)) {
-            // Layer 1: outer cyan halo (longest, softest, most diffuse).
+            // Layer 1: outer cyan halo — teardrop with lateral sway.
+            // Cubic bezier curves give smooth rounded sides (was sharp 5-point polygon
+            // per user "thô, nhiều góc cạnh"). Two cubics: top-left → bulge-left →
+            // tip → bulge-right → top-right. Each cubic uses two control points to
+            // shape an S-curve through the bulge.
             val outerPath = Path().apply {
-                moveTo(cxPx - outerHalfWidth, topY)
-                lineTo(cxPx + outerHalfWidth, topY)
-                lineTo(cxPx, topY + outerLen)
+                moveTo(cxPx - outerTopHalf, topY)
+                cubicTo(
+                    cxPx - outerBulgeHalf - 2f, topY + outerLen * 0.18f,
+                    cxPx - outerBulgeHalf + outerSway, topY + outerLen * 0.55f,
+                    cxPx + outerSway * 0.5f, topY + outerLen,
+                )
+                cubicTo(
+                    cxPx + outerBulgeHalf + outerSway, topY + outerLen * 0.55f,
+                    cxPx + outerBulgeHalf + 2f, topY + outerLen * 0.18f,
+                    cxPx + outerTopHalf, topY,
+                )
                 close()
             }
             drawPath(
@@ -87,11 +112,19 @@ fun ShipEngineFlame(
                 ),
             )
 
-            // Layer 2: mid gold cone — main flame body.
+            // Layer 2: mid gold cone — bezier teardrop.
             val midPath = Path().apply {
-                moveTo(cxPx - midHalfWidth, topY)
-                lineTo(cxPx + midHalfWidth, topY)
-                lineTo(cxPx, topY + midLen)
+                moveTo(cxPx - midTopHalf, topY)
+                cubicTo(
+                    cxPx - midBulgeHalf - 1f, topY + midLen * 0.18f,
+                    cxPx - midBulgeHalf + midSway, topY + midLen * 0.55f,
+                    cxPx + midSway * 0.5f, topY + midLen,
+                )
+                cubicTo(
+                    cxPx + midBulgeHalf + midSway, topY + midLen * 0.55f,
+                    cxPx + midBulgeHalf + 1f, topY + midLen * 0.18f,
+                    cxPx + midTopHalf, topY,
+                )
                 close()
             }
             drawPath(
@@ -108,11 +141,19 @@ fun ShipEngineFlame(
                 ),
             )
 
-            // Layer 3: bright white core — hottest center.
+            // Layer 3: bright white core — bezier teardrop.
             val corePath = Path().apply {
-                moveTo(cxPx - coreHalfWidth, topY)
-                lineTo(cxPx + coreHalfWidth, topY)
-                lineTo(cxPx, topY + coreLen)
+                moveTo(cxPx - coreTopHalf, topY)
+                cubicTo(
+                    cxPx - coreBulgeHalf, topY + coreLen * 0.18f,
+                    cxPx - coreBulgeHalf + coreSway, topY + coreLen * 0.55f,
+                    cxPx + coreSway * 0.5f, topY + coreLen,
+                )
+                cubicTo(
+                    cxPx + coreBulgeHalf + coreSway, topY + coreLen * 0.55f,
+                    cxPx + coreBulgeHalf, topY + coreLen * 0.18f,
+                    cxPx + coreTopHalf, topY,
+                )
                 close()
             }
             drawPath(
@@ -134,7 +175,7 @@ fun ShipEngineFlame(
             val emberSpacing = 12f * density
             for (i in 0 until 6) {
                 val ey = coneTipY + i * emberSpacing
-                val emberAlpha = (1f - i * 0.16f) * 0.55f * lenFactor
+                val emberAlpha = (1f - i * 0.16f) * 0.55f * outerLenFactor
                 val emberRadius = (3f - i * 0.4f) * density
                 if (emberAlpha > 0f && emberRadius > 0f) {
                     drawCircle(

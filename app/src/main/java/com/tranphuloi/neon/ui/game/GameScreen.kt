@@ -39,6 +39,8 @@ import com.tranphuloi.neon.ui.game.combo.ComboTier
 import com.tranphuloi.neon.ui.game.controls.AchievementBanner
 import com.tranphuloi.neon.ui.game.controls.BossHpBar
 import com.tranphuloi.neon.ui.game.controls.BossIntroOverlay
+import com.tranphuloi.neon.ui.game.controls.BossRankOverlay
+import com.tranphuloi.neon.ui.game.controls.SmartBombButton
 import com.tranphuloi.neon.ui.game.controls.StageBanner
 import com.tranphuloi.neon.ui.game.controls.WaveClearBanner
 import com.tranphuloi.neon.ui.game.controls.ButtonsMovement
@@ -93,11 +95,21 @@ fun GameScreen(
     val tutorialShown by settings.tutorialShown.collectAsState(initial = true) // optimistic to avoid flash on first compose
 
     val gameState = rememberGameState()
+    val runStats = com.tranphuloi.neon.data.LocalRunStats.current
     LaunchedEffect(gameState.gameStatus) {
         if (gameState.gameStatus == GameStatus.GAME_OVER) {
             Logger.d("GameScreen detected GAME_OVER → kill-cam 1500ms then onGameOver(score=${gameState.mineralsEarnedTotal})")
             if (vibrationEnabled) haptic.vibrate(HapticPattern.LONG)
             sfx.play(SfxEvent.GAME_OVER)
+            // 15c: snapshot end-of-run stats for DialogGameOver to read.
+            runStats.value = com.tranphuloi.neon.data.RunStats(
+                score = gameState.mineralsEarnedTotal.toIntOrNull() ?: 0,
+                timeSec = gameState.gameTimeSec,
+                enemiesKilled = gameState.enemiesKilledTotal,
+                bossesDefeated = gameState.bossesDefeatedTotal,
+                maxCombo = gameState.maxComboReached,
+                stagesReached = gameState.stagesReached,
+            )
             // 11c: delay navigation to play kill-cam slow-mo replay.
             kotlinx.coroutines.delay(1500L)
             onGameOver(gameState.mineralsEarnedTotal)
@@ -223,6 +235,16 @@ fun GameScreen(
                 .padding(top = 24.dp)
                 .zIndex(300f)
         )
+        // 20b Smart bomb button — 30% smaller (42dp wrapper) + 8dp from right edge.
+        // Sits above right movement button (at 124dp from bottom).
+        SmartBombButton(
+            count = gameState.smartBombs,
+            onDispatch = { gameState.dispatchSmartBomb() },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 8.dp, bottom = 156.dp)
+                .zIndex(310f)
+        )
         // 1c: Compact boss HP bar (200dp wide). Pinned 16dp BELOW the Settings icon
         // (top-right). Settings ends ~y=92dp (top padding 32 + size 60), so 16dp gap
         // gives top=108dp.
@@ -234,12 +256,21 @@ fun GameScreen(
                 .zIndex(300f)
         )
 
+        // Banner priority: BossRank (post-kill) > BossIntro > WaveClear > StageBanner > Combo.
+        // Higher-priority banner suppresses lower-priority ones to keep UI clean.
+        val bossRankActive = gameState.bossKillRankShownMillis > 0L &&
+            (now - gameState.bossKillRankShownMillis) < 1800L
+        val bossIntroActive = gameState.bossIntroShownAtMillis > 0L &&
+            (now - gameState.bossIntroShownAtMillis) < 1500L
         // 5c: Neon glow stage banner replaces plain Text for stage messages.
         // Stays at exact center (anchor banner — most important narrative event).
-        StageBanner(
-            message = gameState.gameMessage,
-            modifier = Modifier.align(Alignment.Center),
-        )
+        // Hidden when boss-kill rank or boss intro is active.
+        if (!bossRankActive && !bossIntroActive) {
+            StageBanner(
+                message = gameState.gameMessage,
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -261,6 +292,7 @@ fun GameScreen(
                 bossIntroShownAtMillis = gameState.bossIntroShownAtMillis,
                 lastBoosterPickupMillis = gameState.lastBoosterPickupMillis,
                 lastMineralPickupMillis = gameState.lastMineralPickupMillis,
+                chargeProgress = gameState.chargeProgress,
                 modifier = Modifier
                     .weight(1f)
                     .layout { measurable, constraints ->
@@ -286,16 +318,18 @@ fun GameScreen(
             modifier = Modifier.fillMaxSize().zIndex(150f)
         )
 
-        // Combo popup (Kc) — offset 90dp ABOVE center so it doesn't overlap with
-        // StageBanner (center) or WaveClearBanner (below center).
-        ComboPopup(
-            tier = gameState.comboPopupTier,
-            shownAtMillis = gameState.comboPopupShownMillis,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .padding(bottom = 180.dp)
-                .zIndex(400f)
-        )
+        // Combo popup (Kc) — offset 180dp ABOVE center. Hidden when boss-kill rank
+        // or boss intro is active (priority).
+        if (!bossRankActive && !bossIntroActive) {
+            ComboPopup(
+                tier = gameState.comboPopupTier,
+                shownAtMillis = gameState.comboPopupShownMillis,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(bottom = 180.dp)
+                    .zIndex(400f)
+            )
+        }
 
         // Tutorial overlay (Nb): show on first ever game session.
         if (!tutorialShown) {
@@ -354,20 +388,30 @@ fun GameScreen(
                     .zIndex(252f)
             )
         }
-        // 12c: Wave clear bonus banner — offset 90dp BELOW center so it doesn't
-        // overlap StageBanner (center) or ComboPopup (above center).
-        WaveClearBanner(
-            shownAtMillis = gameState.waveClearBannerShownMillis,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .padding(top = 180.dp)
-                .zIndex(420f)
-        )
+        // 12c: Wave clear bonus banner — offset 180dp BELOW center. Hidden when
+        // boss-kill rank is active.
+        if (!bossRankActive) {
+            WaveClearBanner(
+                shownAtMillis = gameState.waveClearBannerShownMillis,
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .padding(top = 180.dp)
+                    .zIndex(420f)
+            )
+        }
         // 21c: Boss intro overlay — pulsing red border + boss name + alarm SFX.
         BossIntroOverlay(
             bossName = gameState.bossIntroName,
             shownAtMillis = gameState.bossIntroShownAtMillis,
             modifier = Modifier.zIndex(440f),
+        )
+        // 24b: Boss kill rank S/A/B/C/D overlay — 1.8s after boss kill.
+        BossRankOverlay(
+            rank = gameState.bossKillRank,
+            shownAtMillis = gameState.bossKillRankShownMillis,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .zIndex(445f),
         )
         // 9b: Achievement banner (slide-in 3s).
         AchievementBanner(

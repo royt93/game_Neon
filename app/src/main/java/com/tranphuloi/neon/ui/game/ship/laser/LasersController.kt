@@ -37,10 +37,12 @@ class LasersController(
     fun fireLasers(ship: Ship) {
 
         val lasers = if (ship.laserBoosterEnabled) {
+            // Laser bottom flush with ship top (`ship.yOffset`). Since laser height
+            // = 25, top y = ship.yOffset - 25 places laser edge-to-edge with ship.
             val laser = ShipBoostedLaser(
                 id = uuidUtils.getUuid(),
                 xOffset = ship.xOffset + ship.width / 2 - SHIP_BOOSTED_LASER_WIDTH / 2,
-                yOffset = -ship.height / 2,
+                yOffset = ship.yOffset - 25f,
                 yRange = screenHeight
             )
             if (ship.tripleLaserBoosterEnabled) {
@@ -53,10 +55,11 @@ class LasersController(
                 listOf(laser)
             }
         } else {
+            // Laser bottom flush with ship top — height = 20.
             val laser = ShipLaser(
                 id = uuidUtils.getUuid(),
                 xOffset = ship.xOffset + ship.width / 2 - SHIP_LASER_WIDTH / 2,
-                yOffset = -ship.height / 2,
+                yOffset = ship.yOffset - 20f,
                 yRange = screenHeight
             )
             if (ship.tripleLaserBoosterEnabled) {
@@ -79,7 +82,9 @@ class LasersController(
     fun processShipLasers() {
         shipLasers.forEach {
             it.moveLaser()
-            if (it.yOffset < -screenHeight || it.destroyed) destroyShipLaser(it)
+            // Cleanup once laser scrolls fully off the top of the screen.
+            // (Coord system is now TopStart; laser leaves top when yOffset < -height.)
+            if (it.yOffset < -100f || it.destroyed) destroyShipLaser(it)
         }
         updateShipLasersUI()
     }
@@ -92,13 +97,14 @@ class LasersController(
     }
 
     fun fireUltimateLaser() {
-        Logger.d("LasersController.fireUltimateLaser: spawning $ULTIMATE_LASERS_COUNT vertical beams")
+        Logger.d("LasersController.fireUltimateLaser: spawning $ULTIMATE_LASERS_COUNT vertical beams (sweep bottom→top)")
         val ultimateLaserList = mutableListOf<UltimateLaser>()
         val horizontalLaserDistance = screenWidth / ULTIMATE_LASERS_COUNT
         for (i in 0..ULTIMATE_LASERS_COUNT) {
             val ultimateLaser = UltimateLaser(
                 id = uuidUtils.getUuid(),
                 xOffset = horizontalLaserDistance * i,
+                yOffset = screenHeight,        // start at bottom edge, sweep up via yOffset -= 7
                 yRange = screenHeight
             )
             ultimateLaserList.add(ultimateLaser)
@@ -132,11 +138,12 @@ class LasersController(
         val enemyRectList = enemies.map { it.enemyRect() }
         lasers.forEach { laser ->
 
+            // Round 13 regression FIX: was `y = yOffset + screenHeight - height`
+            // — that was an OLD BottomStart→TopStart convert. After round 13 made
+            // lasers natively TopStart, this convert pushed rect off-screen → no
+            // collisions for ship laser. Use raw yOffset directly now.
             val laserRect = Rect(
-                offset = Offset(
-                    x = laser.xOffset,
-                    y = laser.yOffset + screenHeight - laser.height
-                ),
+                offset = Offset(x = laser.xOffset, y = laser.yOffset),
                 size = Size(width = laser.width, height = laser.height)
             )
 

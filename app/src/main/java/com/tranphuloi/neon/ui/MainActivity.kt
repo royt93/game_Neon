@@ -10,6 +10,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -91,6 +92,9 @@ class MainActivity : ComponentActivity() {
                 LocalSettings provides app.settings,
                 LocalLeaderboard provides app.leaderboard,
                 LocalAchievements provides app.achievements,
+                com.tranphuloi.neon.data.LocalRunStats provides remember {
+                    androidx.compose.runtime.mutableStateOf<com.tranphuloi.neon.data.RunStats?>(null)
+                },
             ) {
                 NeonTheme {
                     val navController = rememberNavController()

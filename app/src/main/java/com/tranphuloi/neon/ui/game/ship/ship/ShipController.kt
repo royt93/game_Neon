@@ -39,6 +39,28 @@ class ShipController(
     var movingLeft = false
     var movingRight = false
 
+    // 19b Charge shot — auto-charge while no damage taken. Every CHARGE_FILL_MS
+    // (8s) without taking a hit, fires an ultimate laser. Reset on damage.
+    // Replaces previous hold-both-arrows mechanic which was illogical (cancelled
+    // movement, sitting duck during charge, asymmetric bank rotation).
+    private var chargeStartMillis: Long = System.currentTimeMillis()
+    /** Returns 0..1 charge progress. Reaches 1.0 when ready to fire. */
+    fun chargeProgress(): Float {
+        val held = System.currentTimeMillis() - chargeStartMillis
+        return (held.toFloat() / CHARGE_FILL_MS).coerceIn(0f, 1f)
+    }
+    /** Called by GameState tinker loop. True when charge full → fire mega. */
+    fun consumeChargeShot(): Boolean {
+        if (chargeProgress() < 1f) return false
+        chargeStartMillis = System.currentTimeMillis()             // reset for next charge
+        Logger.d("ChargeShot auto-fired (no-damage charge complete)")
+        return true
+    }
+    /** Called from updateHp on damage — resets charge timer to 0. */
+    private fun resetCharge() {
+        chargeStartMillis = System.currentTimeMillis()
+    }
+
     // Cinematic spawn animation: bottom → fly up to center → sway → fly down to play.
     // Total 3s. During spawn: damage absorbed (see updateHp), player input ignored,
     // ship position fully driven by the choreographed path below.
@@ -393,6 +415,8 @@ class ShipController(
         if (effective < 0) {
             iframesEndMillis = System.currentTimeMillis() + IFRAMES_DURATION_MILLIS
             Logger.d("Ship i-frames: ON until $iframesEndMillis (+${IFRAMES_DURATION_MILLIS}ms)")
+            // 19b Reset auto-charge on damage so player must survive 8s clean to fire mega.
+            resetCharge()
             onShipDamaged()
         }
         if (before > 0 && newHp == 0) {
@@ -404,5 +428,6 @@ class ShipController(
     companion object {
         const val TRIPLE_LASER_SIDE_OFFSET: Float = 20f
         const val IFRAMES_DURATION_MILLIS: Long = 600L
+        const val CHARGE_FILL_MS: Long = 8000L          // 8s no-damage → auto charge fire
     }
 }
