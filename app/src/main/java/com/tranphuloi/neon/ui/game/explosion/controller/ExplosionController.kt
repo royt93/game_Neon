@@ -23,8 +23,10 @@ class ExplosionController(
             yOffset = yOffset - size,
             size = size * 2
         )
-        explosions += explosion
-        Logger.d("ExplosionController.addExplosion: at (${explosion.xOffset.toInt()},${explosion.yOffset.toInt()}) size=${explosion.size.toInt()} (active=${explosions.size})")
+        // Cap to MAX_ACTIVE — drop oldest. 16-18 simultaneous Coil GIF
+        // decoders during burst combat were a major heap/CPU pressure source.
+        val combined = explosions + explosion
+        explosions = if (combined.size > MAX_ACTIVE) combined.takeLast(MAX_ACTIVE) else combined
         updateExplosions(explosions)
     }
 
@@ -36,10 +38,12 @@ class ExplosionController(
             it.process()
             if (it.removed) explosions -= it
         }
-        val removed = before - explosions.size
-        if (removed > 0) {
-            Logger.d("ExplosionController.processExplosions: removed $removed (active=${explosions.size})")
+        if (before != explosions.size) {
+            updateExplosions(explosions)
         }
-        updateExplosions(explosions)
+    }
+
+    companion object {
+        const val MAX_ACTIVE: Int = 8
     }
 }

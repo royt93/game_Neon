@@ -56,16 +56,15 @@ class ImpactSparkController(
     @Volatile
     private var sparks: List<ImpactSpark> = emptyList()
 
-    /** Spawn a 16-spark radial burst at [xOffset], [yOffset]. */
+    /** Spawn an 8-spark radial burst at [xOffset], [yOffset]. */
     fun spawnBurst(xOffset: Float, yOffset: Float) {
         val now = System.currentTimeMillis()
-        Logger.d("ImpactSparkController.spawnBurst at (${xOffset.toInt()},${yOffset.toInt()})")
-        val count = 16
+        val count = BURST_COUNT
         val baseAngle = Random.nextFloat() * 2f * PI.toFloat()
         val newSparks = (0 until count).map { i ->
             val angle = baseAngle + (i.toFloat() / count) * 2f * PI.toFloat() +
                 (Random.nextFloat() - 0.5f) * 0.4f
-            val length = 25f + Random.nextFloat() * 25f       // 25..50 dp (was 12..26)
+            val length = 25f + Random.nextFloat() * 25f       // 25..50 dp
             ImpactSpark(
                 id = UUID.randomUUID().toString(),
                 originX = xOffset,
@@ -76,7 +75,9 @@ class ImpactSparkController(
                 createdAtMillis = now,
             )
         }
-        sparks = sparks + newSparks
+        // Cap to MAX_ACTIVE — drop oldest. Hot-path during sustained fire.
+        val combined = sparks + newSparks
+        sparks = if (combined.size > MAX_ACTIVE) combined.takeLast(MAX_ACTIVE) else combined
         updateState(sparks)
     }
 
@@ -91,5 +92,10 @@ class ImpactSparkController(
             sparks = survivors
             updateState(sparks)
         }
+    }
+
+    companion object {
+        const val BURST_COUNT: Int = 8
+        const val MAX_ACTIVE: Int = 12
     }
 }

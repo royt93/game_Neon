@@ -1,6 +1,7 @@
 package com.tranphuloi.neon.utils
 
 import android.util.Log
+import com.tranphuloi.neon.BuildConfig
 
 object Logger {
 
@@ -8,10 +9,12 @@ object Logger {
     private const val DEFAULT_TAG = "Neon"
 
     fun d(message: String) {
+        if (!BuildConfig.DEBUG) return
         Log.d(DEFAULT_TAG, "$PREFIX $message")
     }
 
     fun d(tag: String, message: String) {
+        if (!BuildConfig.DEBUG) return
         Log.d(tag, "$PREFIX $message")
     }
 

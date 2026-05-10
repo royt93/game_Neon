@@ -261,6 +261,39 @@
 - 🚨 BUG **Chapter intro tint stuck on previous chapter for ~7s**. `StageController.currentChapterId()` walked backward from `stageIndex` to find most recent StageGame/StageBoss with chapterId. During chapter N+1 intro messages ("CHAPTER N+1 / NAME / GO!"), walk-back resolves to chapter N's last boss → tint stays gold while player sees "NEBULA CLOUD" header. Fix: added `chapterId: Int = 0` field to `StageMessage` data class; `buildStageScript` tags every intra-chapter message with `chapter.id`; `currentChapterId()` now reads chapter id directly from current stage (O(1)) with fallback walk preserved for legacy/untagged messages.
 - ⚠️ POLISH **"Continue!" message duration 2s overlapped BossRankOverlay (1.8s)** — player saw "Continue!" message visible only ~0.2s after mid-boss kill. Bumped to 3s for clearer pacing.
 
+### Round 21 perf fixes (lag diagnosed from runtime log 16:51-16:54)
+
+**Symptom**: User reported app rất lag during chapter 1 boss fight + chapter 2 entry. Log evidence:
+- entities=lasers:41+enemies:4 (vs typical 6-11) → Triple Laser + Ult Booster stack
+- 14-22 active DamageNumber, 16-18 active Explosion simultaneously
+- Heap dao động 10MB ↔ 42MB (GC churn)
+- HEAVY haptic firing every 60-90ms during GODLIKE combo (15+ vibrate IPC/sec)
+- 191 unguarded `Logger.d` calls; 6+ logs per collision
+
+**Fixes (3 picked, applied):**
+
+- 🔥 PERF **Logger.d debug-guard**. Enabled `buildConfig = true` in `app/build.gradle`, then wrapped both `Logger.d` overloads in `if (!BuildConfig.DEBUG) return`. Release build now no-ops Log.d entirely (was unconditionally calling `Log.d` even in release). Native logd IPC eliminated in production.
+- 🔥 PERF **Throttle GODLIKE haptic**. Added `minIntervalMs` to `HapticPattern` enum (HEAVY=200ms, MEDIUM=60ms). `HapticController.vibrate` now tracks per-pattern `lastFireUptimeMs` via `LongArray(HapticPattern.values().size)` keyed by ordinal. Skips fire if `now - last < minIntervalMs`. Prevents Vibrator binder saturation during GODLIKE combo spam.
+- 🔥 PERF **Cap entity lists** (drop oldest when exceeding cap):
+  - `DamageNumberController.MAX_ACTIVE = 8` (was unbounded; saw 14-22 active)
+  - `ImpactSparkController.MAX_ACTIVE = 12` + reduced `BURST_COUNT` 16 → 8 (was unbounded)
+  - `ExplosionController.MAX_ACTIVE = 8` (was unbounded; saw 16-18 active = 16-18 Coil GIF decoders)
+  - Removed hot-path `Logger.d` calls from `DamageNumberController.spawn`, `ImpactSparkController.spawnBurst`, `ExplosionController.addExplosion`, `processExplosions` (string interpolation cost remained even with debug-guard inside Logger.d).
+
+**Skipped (deferred):**
+- ⏸️ Disable Triple Laser when Ult active — user did not pick. Would mutually-exclude the two boosters to prevent 40+ active lasers.
+- ⏸️ Replace Coil GIF explosion with Canvas particle / sprite-frame anim — bigger refactor, parked.
+
+**Files modified (round 21):**
+- `app/build.gradle` (added `buildConfig = true`)
+- `utils/Logger.kt` (BuildConfig.DEBUG guard)
+- `ui/game/haptic/HapticController.kt` (per-pattern throttle)
+- `ui/game/damage/DamageNumber.kt` (MAX_ACTIVE=8 + log removed)
+- `ui/game/spark/ImpactSpark.kt` (MAX_ACTIVE=12, BURST_COUNT 16→8 + log removed)
+- `ui/game/explosion/controller/ExplosionController.kt` (MAX_ACTIVE=8 + logs removed)
+
+**Verification**: `assembleDevDebug` + `compileProductionReleaseKotlin` BUILD SUCCESSFUL.
+
 ### Known limitations (acknowledged, deferred)
 
 - **Mid-boss drawable variety**: only 2 boss webps exist (`enemy_red_boss`, `enemy_green_boss`). OFFENSIVE = red, DEFENSIVE/SWARM = green (share). Could add per-chapter color filter or new webps later.

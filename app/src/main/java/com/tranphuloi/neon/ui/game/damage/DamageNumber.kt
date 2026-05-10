@@ -115,12 +115,15 @@ class DamageNumberController(
             initialY = yOffset,
             createdAtMillis = now,
         )
-        numbers = numbers + newNumber                      // immutable copy
-        Logger.d("DamageNumberController.spawn: -$damage at (${xOffset.toInt()},${yOffset.toInt()}) crit=$isCrit (active=${numbers.size})")
+        // Cap to MAX_ACTIVE — drop oldest. Keeps recomposition cost bounded
+        // during GODLIKE-tier combos that previously left 14-22 popups alive.
+        val combined = numbers + newNumber
+        numbers = if (combined.size > MAX_ACTIVE) combined.takeLast(MAX_ACTIVE) else combined
         updateState(numbers)
     }
 
     companion object {
         const val AGGREGATE_WINDOW_MILLIS: Long = 200L
+        const val MAX_ACTIVE: Int = 8
     }
 }
