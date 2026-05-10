@@ -278,25 +278,14 @@ fun GameWorld(
             Column(modifier = Modifier.offset(x = it.xOffset.dp, y = it.yOffset.dp)) {
                 // Skip mini-HP-bar over boss heads — boss has dedicated top-screen
                 // BossHpBar already (avoid duplicate visualization).
-                // HP bar: only show when damaged (not at full HP), smaller (3dp h
-                // instead of 5dp), narrower (70% of enemy width), centered above.
-                if (!it.isBoss && it.currentHp < it.initialHp) {
-                    val barWidth = it.width * 0.7f
-                    val hpPx = barWidth * (it.currentHp / it.initialHp.coerceAtLeast(1f))
-                    Box(
-                        modifier = Modifier
-                            .padding(start = (it.width * 0.15f).dp, bottom = 1.dp)
-                            .clip(MaterialTheme.shapes.small)
-                            .size(width = barWidth.dp, height = 3.dp)
-                            .background(Color.White.copy(alpha = 0.4f))
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(MaterialTheme.shapes.small)
-                                .size(width = hpPx.dp, height = 3.dp)
-                                .background(NeonRedAlert.copy(alpha = 0.9f))
-                        )
-                    }
+                // 3-layer HP bar with damage trail — see EnemyHpBar for layer design.
+                if (!it.isBoss) {
+                    EnemyHpBar(
+                        enemyId = it.enemyId,
+                        currentHp = it.currentHp,
+                        initialHp = it.initialHp,
+                        enemyWidth = it.width,
+                    )
                 }
                 Box {
                     // Boss thrust trail — render fading copies stacked upward when boss
