@@ -246,13 +246,13 @@ fun GameScreen(
                 .zIndex(310f)
         )
         // 1c: Compact boss HP bar (200dp wide). Pinned 16dp BELOW the Settings icon
-        // (top-right). Settings ends ~y=92dp (top padding 32 + size 60), so 16dp gap
-        // gives top=108dp.
+        // (top-right). Settings ends ~y=76dp (top padding 16 + size 60), so 16dp gap
+        // gives top=92dp.
         BossHpBar(
             enemies = gameState.enemies,
             modifier = Modifier
                 .align(Alignment.TopEnd)
-                .padding(top = 108.dp, end = 12.dp)
+                .padding(top = 92.dp, end = 12.dp)
                 .zIndex(300f)
         )
 

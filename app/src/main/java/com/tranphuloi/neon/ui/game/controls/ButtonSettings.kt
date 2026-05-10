@@ -16,7 +16,7 @@ import com.tranphuloi.neon.R
 fun ButtonSettings(modifier: Modifier = Modifier, onSettings: () -> Unit) {
 
     val buttonPaddingEnd = dimensionResource(id = R.dimen.button_padding)
-    val buttonPaddingTop = buttonPaddingEnd * 2
+    val buttonPaddingTop = 16.dp
     val buttonSize = 60.dp
 
     Image(

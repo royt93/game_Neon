@@ -2,6 +2,7 @@ package com.tranphuloi.neon.ui.game.controls
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -133,7 +134,10 @@ fun BossRankOverlay(
             fontSize = 138.sp,
             fontWeight = FontWeight.Black,
         )
-        // Label below the letter — small descriptive text.
+        // Label below the letter — small descriptive text. Use `offset` (dp-aware)
+        // not `graphicsLayer.translationY` (pixels — caused overlap on the 138sp S
+        // letter because 90px ≈ 25dp at density 3.5x, well inside the letter's
+        // ±69dp vertical extent). 100dp puts the label clearly below the descender.
         Text(
             text = rank.label,
             color = color,
@@ -141,8 +145,8 @@ fun BossRankOverlay(
             fontWeight = FontWeight.Bold,
             style = TextStyle(letterSpacing = 4.sp),
             modifier = Modifier
-                .graphicsLayer { translationY = 90f }
-                .align(Alignment.Center),
+                .align(Alignment.Center)
+                .offset(y = 100.dp),
         )
     }
 }

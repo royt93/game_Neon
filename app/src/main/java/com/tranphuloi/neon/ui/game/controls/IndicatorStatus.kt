@@ -72,7 +72,7 @@ fun IndicatorStatus(
     val hpFlashIntensity = if (hpPulse > 1f) (hpPulse - 1f) * 1.5f else 0f
 
     val buttonPaddingEnd = dimensionResource(id = R.dimen.button_padding)
-    val buttonPaddingTop = buttonPaddingEnd * 2
+    val buttonPaddingTop = 16.dp
     val height = 60.dp
 
     val hpRatio = (hp.toFloat() / MAX_HP).coerceIn(0f, 1f)
