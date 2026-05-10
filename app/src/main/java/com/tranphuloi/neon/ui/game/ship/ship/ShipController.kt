@@ -428,6 +428,6 @@ class ShipController(
     companion object {
         const val TRIPLE_LASER_SIDE_OFFSET: Float = 20f
         const val IFRAMES_DURATION_MILLIS: Long = 600L
-        const val CHARGE_FILL_MS: Long = 8000L          // 8s no-damage → auto charge fire
+        const val CHARGE_FILL_MS: Long = 20000L         // 20s no-damage → auto charge fire (was 8s — too spammy combined with ULTIMATE_WEAPON_BOOSTER pickups)
     }
 }

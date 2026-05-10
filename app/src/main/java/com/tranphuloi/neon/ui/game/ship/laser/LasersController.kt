@@ -97,7 +97,7 @@ class LasersController(
     }
 
     fun fireUltimateLaser() {
-        Logger.d("LasersController.fireUltimateLaser: spawning $ULTIMATE_LASERS_COUNT vertical beams (sweep bottom→top)")
+        Logger.d("LasersController.fireUltimateLaser: spawning $ULTIMATE_LASERS_COUNT vertical beams (sweep bottom→top, existing=${ultimateLasers.size})")
         val ultimateLaserList = mutableListOf<UltimateLaser>()
         val horizontalLaserDistance = screenWidth / ULTIMATE_LASERS_COUNT
         for (i in 0..ULTIMATE_LASERS_COUNT) {
@@ -109,7 +109,11 @@ class LasersController(
             )
             ultimateLaserList.add(ultimateLaser)
         }
-        ultimateLasers = ultimateLaserList
+        // Append instead of replace — was `ultimateLasers = ultimateLaserList`, which
+        // wiped the previous in-flight batch when a new fire (ChargeShot auto + booster
+        // pickup) triggered within ~10s of each other. Caused beams to "disappear at
+        // halfway height" visually. Now both batches coexist until they fly off-screen.
+        ultimateLasers = ultimateLasers + ultimateLaserList
         updateUltimateLasers()
     }
 
