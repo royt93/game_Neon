@@ -86,7 +86,7 @@ fun EnemyHpBar(
         modifier = modifier
             .padding(start = (enemyWidth * 0.075f).dp, bottom = 4.dp)
             .clip(MaterialTheme.shapes.small)
-            .size(width = barWidth.dp, height = 6.dp)
+            .size(width = barWidth.dp, height = 1.dp)
             .background(Color.Black.copy(alpha = 0.75f))
             .border(
                 BorderStroke(1.dp, hpColor.copy(alpha = 0.9f)),
@@ -98,7 +98,7 @@ fun EnemyHpBar(
             Box(
                 modifier = Modifier
                     .clip(MaterialTheme.shapes.small)
-                    .size(width = trailPx.dp, height = 6.dp)
+                    .size(width = trailPx.dp, height = 4.dp)
                     .background(Color.White.copy(alpha = 0.75f))
             )
         }
@@ -106,7 +106,7 @@ fun EnemyHpBar(
         Box(
             modifier = Modifier
                 .clip(MaterialTheme.shapes.small)
-                .size(width = hpPx.dp, height = 6.dp)
+                .size(width = hpPx.dp, height = 4.dp)
                 .background(hpColor)
         )
     }
