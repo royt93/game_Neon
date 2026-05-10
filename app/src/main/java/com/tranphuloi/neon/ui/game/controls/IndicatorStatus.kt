@@ -43,6 +43,7 @@ fun IndicatorStatus(
     lastEnemyKillMillis: Long,
     lastMineralPickupMillis: Long,
     lastBoosterPickupMillis: Long,
+    hasReviveToken: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     // Per-stat flash timer ticks at 50ms only while a flash is in flight (350ms each).
@@ -174,12 +175,44 @@ fun IndicatorStatus(
                 },
             )
         }
+        // 14c: Auto-revive token indicator — small heart pill, only when held.
+        if (hasReviveToken) {
+            Spacer(modifier = Modifier.height(4.dp))
+            ReviveTokenBadge()
+        }
         // 7c: Combo HUD — only renders when count > 0 (auto-hides on expire).
         Spacer(modifier = Modifier.height(4.dp))
         ComboHud(
             count = comboCount,
             tier = comboTier,
             lastKillMillis = lastEnemyKillMillis,
+        )
+    }
+}
+
+@Composable
+private fun ReviveTokenBadge() {
+    val pulseColor = Color(0xFF00FFB0)         // matches booster_revive vector
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.small)
+            .background(pulseColor.copy(alpha = 0.18f))
+            .neonGlow(pulseColor, intensity = 0.4f, radiusFactor = 1.2f)
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+    ) {
+        Text(
+            text = "♥",
+            color = pulseColor,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Black,
+        )
+        Text(
+            text = "REVIVE",
+            color = pulseColor,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Bold,
         )
     }
 }

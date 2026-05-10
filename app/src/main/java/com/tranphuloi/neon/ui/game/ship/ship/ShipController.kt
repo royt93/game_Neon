@@ -26,6 +26,7 @@ class ShipController(
     private val onShipDamaged: () -> Unit = {},
     private val onBoosterPickedUp: (xOffset: Float, yOffset: Float) -> Unit = { _, _ -> },
     private val onSpaceObjectHitShip: (xOffset: Float, yOffset: Float) -> Unit = { _, _ -> },
+    private val onShipRevived: () -> Unit = {},
     private val damageMultiplier: () -> Float = { 1f },
 ) {
 
@@ -317,6 +318,15 @@ class ShipController(
                     BoosterType.LASER_BOOSTER -> enableLaserBooster(enable = true)
                     BoosterType.TRIPLE_LASER_BOOSTER -> enableTripleLaserBooster(enable = true)
                     BoosterType.HEALTH_BOOSTER -> updateHp(100)
+                    BoosterType.REVIVE_TOKEN -> {
+                        if (!ship.hasReviveToken) {
+                            ship = ship.copy(hasReviveToken = true)
+                            setShip(ship)
+                            Logger.d("Booster: REVIVE_TOKEN stored (consumed on next hp→0)")
+                        } else {
+                            Logger.d("Booster: REVIVE_TOKEN ignored — already holding one")
+                        }
+                    }
                 }
             }
         }
@@ -429,6 +439,16 @@ class ShipController(
             onShipDamaged()
         }
         if (before > 0 && newHp == 0) {
+            // 14c Auto-revive: if a REVIVE_TOKEN was stored, consume it instead of dying.
+            // Restore hp=300 + 1.5s i-frames so player has a fair recovery window.
+            if (ship.hasReviveToken) {
+                ship = ship.copy(hp = REVIVE_HP, hasReviveToken = false)
+                setShip(ship)
+                iframesEndMillis = System.currentTimeMillis() + REVIVE_IFRAMES_MILLIS
+                Logger.w("Ship REVIVED via auto-revive token: hp=$REVIVE_HP iframes=${REVIVE_IFRAMES_MILLIS}ms")
+                onShipRevived()
+                return
+            }
             Logger.w("Ship destroyed (hp=0) → onShipDestroyed()")
             onShipDestroyed()
         }
@@ -438,5 +458,7 @@ class ShipController(
         const val TRIPLE_LASER_SIDE_OFFSET: Float = 20f
         const val IFRAMES_DURATION_MILLIS: Long = 600L
         const val CHARGE_FILL_MS: Long = 20000L         // 20s no-damage → auto charge fire (was 8s — too spammy combined with ULTIMATE_WEAPON_BOOSTER pickups)
+        const val REVIVE_HP: Int = 300                  // 14c: hp restored when auto-revive token consumed
+        const val REVIVE_IFRAMES_MILLIS: Long = 1500L   // 14c: longer than normal 600ms iframes — fair recovery
     }
 }

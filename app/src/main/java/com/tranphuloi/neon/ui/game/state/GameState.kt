@@ -106,10 +106,17 @@ fun rememberGameState(): GameState {
     }
     var lastShipDamageMillis by remember { mutableLongStateOf(0L) }
     var lastBoosterPickupMillis by remember { mutableLongStateOf(0L) }
+    // 14c Auto-revive — non-zero when revive token consumed; drives RevivedBanner render.
+    var revivedShownAtMillis by remember { mutableLongStateOf(0L) }
     // 11c: Kill-cam state — when ship destroyed, GameScreen delays GAME_OVER navigation
     // by KILL_CAM_DURATION_MS to play slow-mo replay.
     var killCamStartedAtMillis by remember { mutableLongStateOf(0L) }
     var bossKillEventMillis by remember { mutableLongStateOf(0L) }      // 30c camera zoom event
+    // 6c Slow-motion critical — when boss HP drops below 20% threshold, slow game tick
+    // to 60% for 2s + pulse red vignette + light screen shake. Once per boss (gated
+    // by enemyId so a new boss can re-trigger).
+    var bossSlowMotionStartedAtMillis by remember { mutableLongStateOf(0L) }
+    var bossSlowMotionTriggeredForId by remember { mutableStateOf<String?>(null) }
     val settingsRepo = com.tranphuloi.neon.data.LocalSettings.current
     val difficultyState = settingsRepo.difficulty
         .collectAsState(initial = com.tranphuloi.neon.data.Difficulty.NORMAL)
@@ -224,6 +231,15 @@ fun rememberGameState(): GameState {
                 lastBoosterPickupMillis = System.currentTimeMillis()
                 pickupBurstController.spawn(x, y)
                 Logger.d("Booster picked up @ ($x,$y) ts=$lastBoosterPickupMillis")
+            },
+            onShipRevived = {
+                revivedShownAtMillis = System.currentTimeMillis()
+                // Pickup-style burst at ship center for resurrection feel.
+                pickupBurstController.spawn(
+                    ship.xOffset + ship.width / 2f,
+                    ship.yOffset + ship.height / 2f,
+                )
+                Logger.w("Auto-revive consumed @ $revivedShownAtMillis (banner shown 1.6s)")
             },
             onSpaceObjectHitShip = { x, y ->
                 // Big visual smash at rock center — sparks + mini explosion. Ship damage
@@ -530,12 +546,24 @@ fun rememberGameState(): GameState {
                     // 11c kill-cam: slow tick by 50% during 1.5s after ship death.
                     val killCamElapsed = System.currentTimeMillis() - killCamStartedAtMillis
                     val inKillCam = killCamStartedAtMillis > 0L && killCamElapsed < 1500L
+                    // 6c boss slow-mo critical: 60% effective speed during 2s when boss
+                    // hp dropped below 20% of initial. Skip 2 of every 5 ticks.
+                    val slowMoElapsed = System.currentTimeMillis() - bossSlowMotionStartedAtMillis
+                    val inBossSlowMo = bossSlowMotionStartedAtMillis > 0L && slowMoElapsed < 2000L
                     val statusActiveForLoop = gameStatus == GameStatus.RUNNING ||
                         (gameStatus == GameStatus.GAME_OVER && inKillCam)
                     if (statusActiveForLoop && !hitStopController.isFrozen()) {
                         if (inKillCam) {
                             // Skip every other tick to halve effective speed.
                             if (frameCount % 2L != 0L) {
+                                frameCount++
+                                yield()
+                                continue
+                            }
+                        } else if (inBossSlowMo) {
+                            // 60% speed: skip 2 out of every 5 ticks.
+                            val mod = frameCount % 5L
+                            if (mod == 1L || mod == 3L) {
                                 frameCount++
                                 yield()
                                 continue
@@ -656,6 +684,20 @@ fun rememberGameState(): GameState {
                                 repeatTime = enemyController.processEnemiesRepeatTime,
                                 doWork = { enemyController.processEnemies() }
                             )
+                        }
+                        // 6c trigger: scan enemies for boss with hp < 20%. Once per boss
+                        // (gated by enemyId so we don't re-fire each tick during the 2s window).
+                        if (bossSlowMotionStartedAtMillis == 0L || slowMoElapsed >= 2000L) {
+                            val critBoss = enemies.firstOrNull {
+                                it.isBoss && it.initialHp > 0f &&
+                                    it.hp > 0f && it.hp / it.initialHp <= 0.20f &&
+                                    it.enemyId != bossSlowMotionTriggeredForId
+                            }
+                            if (critBoss != null) {
+                                bossSlowMotionStartedAtMillis = System.currentTimeMillis()
+                                bossSlowMotionTriggeredForId = critBoss.enemyId
+                                Logger.d("Boss slow-mo critical TRIGGERED: hp=${critBoss.hp}/${critBoss.initialHp} (ratio=${"%.2f".format(critBoss.hp / critBoss.initialHp)}) bossId=${critBoss.enemyId.take(6)}")
+                            }
                         }
                         if (
                             gameStage is StageGame ||
@@ -824,6 +866,9 @@ fun rememberGameState(): GameState {
         },
         killCamStartedAtMillis = killCamStartedAtMillis,
         bossKillEventMillis = bossKillEventMillis,
+        revivedShownAtMillis = revivedShownAtMillis,
+        hasReviveToken = ship.hasReviveToken,
+        bossSlowMotionStartedAtMillis = bossSlowMotionStartedAtMillis,
         moveShipLeft = { shipController.movingLeft = it },
         moveShipRight = { shipController.movingRight = it },
         toggleGameStatus = {
@@ -885,6 +930,9 @@ data class GameState(
     val chargeProgress: Float,
     val killCamStartedAtMillis: Long,
     val bossKillEventMillis: Long,
+    val revivedShownAtMillis: Long,
+    val hasReviveToken: Boolean,
+    val bossSlowMotionStartedAtMillis: Long,
     val moveShipLeft: (Boolean) -> Unit,
     val moveShipRight: (Boolean) -> Unit,
     val toggleGameStatus: () -> Unit,

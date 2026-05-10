@@ -15,9 +15,21 @@ data class Booster(
 ) : Serializable {
 
     var yOffset = 1f
-    private val boosters: Array<BoosterType> = BoosterType.values()
-    private val index: Int = Random.nextInt(0, boosters.size)
-    val type: BoosterType = boosters[index]
+    // Weighted random pick — REVIVE_TOKEN has weight 5 (rare ~5%), others 19 each.
+    val type: BoosterType = run {
+        val all = BoosterType.values()
+        val totalWeight = all.sumOf { it.weight }
+        var roll = Random.nextInt(totalWeight)
+        var pick = all.first()
+        for (t in all) {
+            if (roll < t.weight) {
+                pick = t
+                break
+            }
+            roll -= t.weight
+        }
+        pick
+    }
 
     private val createdAtMillis: Long = System.currentTimeMillis()
 

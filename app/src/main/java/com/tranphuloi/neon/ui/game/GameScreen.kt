@@ -1,5 +1,7 @@
 package com.tranphuloi.neon.ui.game
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
@@ -32,6 +35,7 @@ import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.NeonViolet
 import com.tranphuloi.neon.data.LocalSettings
 import com.tranphuloi.neon.ui.game.audio.AudioPlayer
+import com.tranphuloi.neon.ui.game.audio.LocalAudioPlayer
 import com.tranphuloi.neon.ui.game.audio.LocalSfx
 import com.tranphuloi.neon.ui.game.audio.SfxEvent
 import com.tranphuloi.neon.ui.game.background.SpaceBackground
@@ -48,6 +52,7 @@ import com.tranphuloi.neon.ui.game.controls.ButtonSettings
 import com.tranphuloi.neon.ui.game.controls.ComboPopup
 import com.tranphuloi.neon.ui.game.controls.IndicatorStatus
 import com.tranphuloi.neon.ui.game.controls.PowerUpIndicators
+import com.tranphuloi.neon.ui.game.controls.RevivedBanner
 import com.tranphuloi.neon.ui.game.controls.TutorialOverlay
 import com.tranphuloi.neon.ui.game.controls.Vignette
 import com.tranphuloi.neon.ui.game.haptic.HapticPattern
@@ -155,8 +160,64 @@ fun GameScreen(
             sfx.play(SfxEvent.EXPLOSION)
         }
     }
+    // 14c: Auto-revive feedback — heavy haptic + pickup sting on resurrection.
+    LaunchedEffect(gameState.revivedShownAtMillis) {
+        if (gameState.revivedShownAtMillis > 0L) {
+            if (vibrationEnabled) haptic.vibrate(HapticPattern.HEAVY)
+            sfx.play(SfxEvent.PICKUP)
+        }
+    }
+    // 6c: Slow-motion critical sting — medium haptic on trigger.
+    LaunchedEffect(gameState.bossSlowMotionStartedAtMillis) {
+        if (gameState.bossSlowMotionStartedAtMillis > 0L) {
+            if (vibrationEnabled) haptic.vibrate(HapticPattern.MEDIUM)
+        }
+    }
 
     AudioPlayer(gameStatus = gameState.gameStatus)
+
+    // 8c Dynamic music intensity — modulate music volume based on combat pressure.
+    // Three tiers blended via Animatable for smooth 500ms transitions:
+    //   low (0.70x): few enemies, no boss, hp > 50%
+    //   mid (0.85x): 4+ enemies on screen OR hp 30-50%
+    //   high (1.00x): boss active OR hp < 30%
+    // Final volume = userMusicVolume × intensity. Restored to baseline on dispose
+    // so non-game screens (splash, dialogs) play at the user's chosen level.
+    val audioHolder = LocalAudioPlayer.current
+    val musicVolumePref by settings.musicVolume.collectAsState(initial = 80)
+    val intensityTarget by remember {
+        derivedStateOf {
+            val hpRatio = (gameState.ship.hp / 1000f).coerceIn(0f, 1f)
+            val hasBoss = gameState.enemies.any { it.isBoss }
+            val enemyCount = gameState.enemies.size
+            when {
+                hasBoss -> 1.00f
+                hpRatio < 0.30f -> 1.00f
+                enemyCount >= 4 || hpRatio < 0.50f -> 0.85f
+                else -> 0.70f
+            }
+        }
+    }
+    val animatedIntensity = remember { Animatable(0.85f) }
+    LaunchedEffect(intensityTarget) {
+        Logger.d("Music intensity → $intensityTarget (animating from ${animatedIntensity.value})")
+        animatedIntensity.animateTo(intensityTarget, animationSpec = tween(500))
+    }
+    val effectiveMusicVolume by remember {
+        derivedStateOf {
+            (musicVolumePref * animatedIntensity.value).toInt().coerceIn(0, 100)
+        }
+    }
+    LaunchedEffect(effectiveMusicVolume) {
+        audioHolder.setVolume(effectiveMusicVolume)
+    }
+    DisposableEffect(audioHolder) {
+        onDispose {
+            // Restore baseline so splash/menus aren't stuck at attenuated volume.
+            audioHolder.setVolume(musicVolumePref)
+            Logger.d("GameScreen disposed → music volume restored to $musicVolumePref")
+        }
+    }
 
     val now = System.currentTimeMillis()
     val damageElapsed = (now - gameState.lastShipDamageMillis).coerceAtLeast(0L)
@@ -169,10 +230,26 @@ fun GameScreen(
         if (reduceMotion) (1f - (damageElapsed.toFloat() / FLASH_DURATION_MILLIS)).coerceIn(0f, 1f) * 0.5f
         else (1f - (damageElapsed.toFloat() / FLASH_DURATION_MILLIS)).coerceIn(0f, 1f)
     val shakeAmplitude = SHAKE_MAX_PX * shakeProgress
+    // 6c slow-mo critical: light additive shake during the 2s slow-mo window.
+    val slowMoElapsed = (now - gameState.bossSlowMotionStartedAtMillis).coerceAtLeast(0L)
+    val slowMoActive = gameState.bossSlowMotionStartedAtMillis > 0L && slowMoElapsed < 2000L
+    val slowMoShakeAmp = if (slowMoActive && !reduceMotion) {
+        // Ramp-in 0..200ms, hold til 1700ms, ramp-out 1700..2000ms.
+        val a = when {
+            slowMoElapsed < 200L -> slowMoElapsed.toFloat() / 200f
+            slowMoElapsed < 1700L -> 1f
+            else -> 1f - (slowMoElapsed - 1700L).toFloat() / 300f
+        }
+        a.coerceIn(0f, 1f) * 5f                                            // ~5px max, subtle
+    } else 0f
     val shakeX =
-        if (shakeAmplitude > 0f) (sin(damageElapsed / 18.0) * shakeAmplitude).toFloat() else 0f
+        if (shakeAmplitude > 0f) (sin(damageElapsed / 18.0) * shakeAmplitude).toFloat()
+        else if (slowMoShakeAmp > 0f) (sin(slowMoElapsed / 14.0) * slowMoShakeAmp).toFloat()
+        else 0f
     val shakeY =
-        if (shakeAmplitude > 0f) (cos(damageElapsed / 21.0) * shakeAmplitude).toFloat() else 0f
+        if (shakeAmplitude > 0f) (cos(damageElapsed / 21.0) * shakeAmplitude).toFloat()
+        else if (slowMoShakeAmp > 0f) (cos(slowMoElapsed / 17.0) * slowMoShakeAmp).toFloat()
+        else 0f
 
     // F-b: stage-based ambient tint. derivedStateOf prevents cascade recomposition
     // when other parts of gameState change (only fires when stageIndex actually shifts).
@@ -214,6 +291,7 @@ fun GameScreen(
             lastEnemyKillMillis = gameState.lastEnemyKillMillis,
             lastMineralPickupMillis = gameState.lastMineralPickupMillis,
             lastBoosterPickupMillis = gameState.lastBoosterPickupMillis,
+            hasReviveToken = gameState.hasReviveToken,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .zIndex(300f)
@@ -317,6 +395,31 @@ fun GameScreen(
             hp = gameState.ship.hp,
             modifier = Modifier.fillMaxSize().zIndex(150f)
         )
+        // 6c: Slow-motion critical pulse vignette — red radial gradient pulsing 2× sec,
+        // gated by reduceMotion. Layered above hp vignette so boss-low-HP reads even
+        // when player is healthy.
+        if (slowMoActive && !reduceMotion) {
+            // Pulse 0..0.6 alpha at 2Hz, dampened by ramp envelope.
+            val pulseEnv = when {
+                slowMoElapsed < 200L -> slowMoElapsed.toFloat() / 200f
+                slowMoElapsed < 1700L -> 1f
+                else -> (1f - (slowMoElapsed - 1700L).toFloat() / 300f).coerceAtLeast(0f)
+            }
+            val pulseAlpha = (0.30f + 0.30f * sin(slowMoElapsed / 100.0).toFloat()) * pulseEnv
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                NeonRedAlert.copy(alpha = pulseAlpha.coerceIn(0f, 0.6f)),
+                            ),
+                        )
+                    )
+                    .zIndex(155f)
+            )
+        }
 
         // Combo popup (Kc) — offset 180dp ABOVE center. Hidden when boss-kill rank
         // or boss intro is active (priority).
@@ -412,6 +515,12 @@ fun GameScreen(
             modifier = Modifier
                 .align(Alignment.Center)
                 .zIndex(445f),
+        )
+        // 14c: Auto-revive banner — center text "REVIVED!" 1.6s. Highest priority
+        // banner since it pre-empts what would have been a GAME_OVER.
+        RevivedBanner(
+            shownAtMillis = gameState.revivedShownAtMillis,
+            modifier = Modifier.zIndex(460f),
         )
         // 9b: Achievement banner (slide-in 3s).
         AchievementBanner(

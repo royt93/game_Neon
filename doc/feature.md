@@ -182,6 +182,31 @@
 - ✅ UX (round 16): **Smart bomb 30% smaller + 8dp from edge**. Wrapper 60→42dp, inner 48→34dp, badge 20→14dp, fonts proportionally scaled. Position: `padding(end=8dp, bottom=156dp)` — sits directly above right movement button, sticks 8dp to right edge per user spec.
 - ✅ UX (round 16): **Flame rounded with cubic bezier**. 5-point polygon teardrop had visible corners ("thô, nhiều góc cạnh"). Replaced with two cubic beziers per layer: top-left → S-curve down through bulge → tip → S-curve up through bulge → top-right. Smooth, organic, "mềm mại" shape with same teardrop silhouette + lateral sway.
 
+## 🆕 Wave 3 cleanup (round 19 — close out remaining picks)
+
+- ✅ **14c Auto-revive token**. New `BoosterType.REVIVE_TOKEN` (drawable: vector `booster_revive.xml` — neon green heart + cross). `BoosterType` carries a `weight` field (REVIVE=5, others=19 each → ~5% drop). `Booster.type` switched from uniform random to weighted picker. Pickup flow: `ShipController.monitorShipCollisions` `when` arm sets `ship.hasReviveToken=true` instead of healing. Ship gets new `hasReviveToken: Boolean` field + new `onShipRevived` callback. In `updateHp`, when `hp→0`: if token held → restore `hp=300` + `1.5s i-frames` + clear token + invoke callback (skipping `onShipDestroyed`). GameState exposes `revivedShownAtMillis` + `hasReviveToken` to UI. New `RevivedBanner` (1.6s center pulse: pop-in scale 0..0.18s, hold w/ pulse 0.18..0.75s, fade-out 0.75..1.0). New `ReviveTokenBadge` (small neon-green ♥ pill) in `IndicatorStatus` only shown when token held. Heavy haptic + PICKUP sfx on revive. Strings: `revived_banner` (vi/en).
+- ✅ **6c Slow-motion critical**. Boss HP <20% triggers 60% game speed for 2s + light additive screen shake + pulsing red radial vignette. Once per boss (gated by `bossSlowMotionTriggeredForId = enemy.enemyId`). Implementation: GameState adds `bossSlowMotionStartedAtMillis` + trigger scan after `processEnemies` tinker (`enemies.firstOrNull { isBoss && hp/initialHp ≤ 0.20 && id != gateId }`). Game loop slow-mo branch: when `inBossSlowMo`, skip `frameCount % 5L in {1, 3}` → 3-of-5 ticks run = 60% speed. GameScreen reads `bossSlowMotionStartedAtMillis`, applies sin/cos additive shake (~5px max, ramp-in 200ms / hold / ramp-out 300ms) + radial pulse vignette (0.30+0.30·sin alpha, gated by `reduceMotion`). Medium haptic on trigger.
+- ✅ **8c Dynamic music intensity**. Compute intensity tier each composition via `derivedStateOf`: `hasBoss → 1.0×`, `hp<30% → 1.0×`, `enemyCount≥4 || hp<50% → 0.85×`, else `0.7×`. `Animatable` interpolates target with `tween(500ms)` for smooth ramps. `LaunchedEffect(effectiveMusicVolume)` calls `audioHolder.setVolume(musicVolumePref × intensity)`. `DisposableEffect` restores baseline volume to settings value when GameScreen exits (so splash/menu/dialog playback isn't stuck attenuated). No new audio assets — pure runtime modulation of existing 3-track ExoPlayer playlist.
+- ✅ **17c Daily challenge**. New methods on `LeaderboardRepository`: `submitDaily(score, dayKey = todayUtcDayKey())` + `dailyEntries(dayKey)` Flow. Storage uses second prefs key `daily_csv` with format `dayKey|score|timestamp` per line. Per-day cap = `MAX_ENTRIES`, history of older days preserved. `todayUtcDayKey() = currentTimeMillis / 86_400_000L` (days since epoch UTC, stable per calendar day regardless of TZ). `DialogGameOver` submits to BOTH all-time AND today's daily list, displays `DailyPanel` (magenta accent panel: "DAILY CHALLENGE" header + "Day N" seed indicator + TODAY'S BEST + RUNS TODAY + ★ TODAY'S TOP RUN ★ badge when current run is daily best). Strings: `daily_challenge_label`, `daily_seed_label`, `daily_best_today` (vi/en).
+
+### Wave 3 cleanup files
+
+**New:**
+- `res/drawable/booster_revive.xml` (vector: neon green heart + cross icon)
+- `ui/game/controls/RevivedBanner.kt`
+
+**Modified:**
+- `ui/game/booster/BoosterType.kt` (added `REVIVE_TOKEN` + `weight` per type)
+- `ui/game/booster/Booster.kt` (uniform random → weighted picker)
+- `ui/game/ship/ship/Ship.kt` (added `hasReviveToken`)
+- `ui/game/ship/ship/ShipController.kt` (added `onShipRevived` + REVIVE pickup arm + revive-on-death in `updateHp` + `REVIVE_HP`/`REVIVE_IFRAMES_MILLIS` constants)
+- `ui/game/state/GameState.kt` (added `revivedShownAtMillis`, `bossSlowMotionStartedAtMillis`, `bossSlowMotionTriggeredForId`, slow-mo loop branch, slow-mo trigger scan, `onShipRevived` wiring, exposed `hasReviveToken`/`revivedShownAtMillis`/`bossSlowMotionStartedAtMillis` in `GameState` data class)
+- `ui/game/GameScreen.kt` (RevivedBanner render, slow-mo shake additive, slow-mo pulse vignette, music intensity Animatable + setVolume, baseline restore on dispose, haptics for revive + slow-mo)
+- `ui/game/controls/IndicatorStatus.kt` (added `hasReviveToken` param + `ReviveTokenBadge`)
+- `data/LeaderboardRepository.kt` (added `submitDaily` + `dailyEntries` Flow + `todayUtcDayKey()`)
+- `ui/dlg/gameover/DialogGameOver.kt` (added daily entries collect + `submitDaily` call + `DailyPanel`)
+- `res/values/strings.xml` + `values-en` + `values-vi` (added `revived_banner`, `daily_challenge_label`, `daily_seed_label`, `daily_best_today`)
+
 ## 🆕 Wave 1 implemented (this round)
 
 ### Files mới
@@ -609,15 +634,15 @@ Các architectural refactors quá lớn để gộp chung:
 - [x] Fix: Boss HP bar duplicate — skip mini bar trên đầu boss trong GameWorld
 - [x] Fix: Boss HP bar overlap player HP — moved padding(top=190dp) below player HUD
 
-## Wave 3 (Gameplay depth, ~3h)
-- [ ] 6c Slow-motion critical
-- [ ] 8c Dynamic music intensity
-- [ ] 14c Auto-revive token
+## Wave 3 ✅ DONE (round 12-19)
+- [x] 6c Slow-motion critical (round 19)
+- [x] 8c Dynamic music intensity (round 19)
+- [x] 14c Auto-revive token (round 19)
 - [x] 15c Stats screen breakdown (round 12)
-- [ ] 17c Daily challenge
-- [x] 19b Charge shot (hold both = mega) (round 12)
+- [x] 17c Daily challenge (round 19)
+- [x] 19b Charge shot (auto-charge no-damage) (round 12)
 - [x] 20b Smart bomb stack (round 12)
-- [x] 24b Boss kill rank S/A/B/C (round 12)
+- [x] 24b Boss kill rank S/A/B/C/D (round 12)
 
 ## Wave 4 (Content expansion, ~5h+)
 - [ ] 31x +stages (theo pick)

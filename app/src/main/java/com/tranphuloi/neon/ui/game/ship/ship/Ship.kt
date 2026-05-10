@@ -36,6 +36,10 @@ data class Ship(
     // is unchanged, so the visible Ship lingers. Mutating this flag changes the Ship
     // reference itself → guaranteed recompose + Box removed via `if (!hidden)`.
     val shipSpriteHidden: Boolean = false,
+    // 14c Auto-revive token — set when REVIVE_TOKEN booster picked up. On hp→0,
+    // controller consumes the token: hp restored to 300 + 1.5s i-frames + banner.
+    // Max one stored at a time; further pickups while held are wasted (rare anyway).
+    val hasReviveToken: Boolean = false,
     @DrawableRes val drawableId: Int = R.drawable.ship_regular_laser,
 ) : Serializable {
     val shieldRadius: Float get() = shieldSize / 2

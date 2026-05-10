@@ -18,4 +18,8 @@
     <string name="game_over_dialog_score">Minerals: %1$s</string>
     <string name="mineral_content_description">Mineral</string>
     <string name="explosion_content_description">Explosion</string>
+    <string name="revived_banner">REVIVED!</string>
+    <string name="daily_challenge_label">Daily Challenge</string>
+    <string name="daily_seed_label">Day %1$s</string>
+    <string name="daily_best_today">Today\'s best: %1$s</string>
 </resources>

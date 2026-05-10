@@ -49,6 +49,10 @@ import java.util.Locale
 fun DialogGameOver(score: String, onRestartGame: () -> Unit) {
     val leaderboard = LocalLeaderboard.current
     val entries by leaderboard.topEntries.collectAsState(initial = emptyList())
+    // 17c Daily challenge — separate top-N for today's UTC day key, displayed
+    // alongside the all-time list.
+    val todayKey = remember { com.tranphuloi.neon.data.LeaderboardRepository.todayUtcDayKey() }
+    val dailyEntries by leaderboard.dailyEntries(todayKey).collectAsState(initial = emptyList())
     var submitted by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -56,8 +60,9 @@ fun DialogGameOver(score: String, onRestartGame: () -> Unit) {
         if (!submitted) {
             val parsed = score.toIntOrNull()
             if (parsed != null) {
-                Logger.d("DialogGameOver: submitting score=$parsed to leaderboard")
+                Logger.d("DialogGameOver: submitting score=$parsed to leaderboard + daily(day=$todayKey)")
                 leaderboard.submit(parsed)
+                leaderboard.submitDaily(parsed, todayKey)
             }
             submitted = true
         }
@@ -115,6 +120,13 @@ fun DialogGameOver(score: String, onRestartGame: () -> Unit) {
                 Spacer(modifier = Modifier.height(14.dp))
                 StatsPanel(stats = runStatsState)
             }
+            // 17c Daily challenge — daily best panel above the all-time list.
+            Spacer(modifier = Modifier.height(14.dp))
+            DailyPanel(
+                dayKey = todayKey,
+                dailyEntries = dailyEntries,
+                currentScore = currentScore,
+            )
             Spacer(modifier = Modifier.height(14.dp))
             LeaderboardList(
                 entries = entries,
@@ -134,6 +146,68 @@ fun DialogGameOver(score: String, onRestartGame: () -> Unit) {
             )
         },
     )
+}
+
+@Composable
+private fun DailyPanel(
+    dayKey: Long,
+    dailyEntries: List<LeaderboardEntry>,
+    currentScore: Int,
+) {
+    val bestToday = dailyEntries.maxByOrNull { it.score }?.score ?: currentScore
+    Column(
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .background(NeonMagenta.copy(alpha = 0.10f))
+            .border(
+                BorderStroke(1.dp, NeonMagenta.copy(alpha = 0.45f)),
+                RoundedCornerShape(6.dp),
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                text = stringResource(id = R.string.daily_challenge_label).uppercase(),
+                color = NeonMagenta,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                style = TextStyle(letterSpacing = 4.sp),
+            )
+            Text(
+                text = stringResource(id = R.string.daily_seed_label, dayKey.toString()),
+                color = NeonMagenta.copy(alpha = 0.65f),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        Spacer(modifier = Modifier.height(2.dp))
+        StatLine(
+            label = "TODAY'S BEST",
+            value = bestToday.toString(),
+        )
+        if (dailyEntries.size >= 2) {
+            StatLine(
+                label = "RUNS TODAY",
+                value = dailyEntries.size.toString(),
+            )
+        }
+        if (currentScore > 0 && currentScore == bestToday && dailyEntries.size >= 2) {
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "★ TODAY'S TOP RUN ★",
+                color = NeonMagenta,
+                fontWeight = FontWeight.Black,
+                fontSize = 11.sp,
+                style = TextStyle(letterSpacing = 2.sp),
+            )
+        }
+    }
 }
 
 @Composable
