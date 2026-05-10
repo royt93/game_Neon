@@ -165,26 +165,49 @@ fun rememberGameState(): GameState {
             screenWidth = screenWidth,
             screenHeight = screenHeight,
             ship = ship,
-            setShip = { ship = it },
+            // Wrapper guard: once the ship is destroyed, ANY subsequent `setShip(...)`
+            // call (from ShipController internals — moveShip, banking lerp, charge-shot
+            // timer, fireLasers ship snapshot, iframes tick) must NOT reset the destroy
+            // flags. Force-merge `destroyedAtMillis` + `shipSpriteHidden` from the live
+            // state into every incoming Ship copy. Without this, controllers propagate
+            // their stale `shipSpriteHidden=false` through copy() and clobber the flag
+            // ~16ms after we set it to true.
+            setShip = { newShip ->
+                ship = if (ship.destroyedAtMillis > 0L || ship.shipSpriteHidden) {
+                    newShip.copy(
+                        destroyedAtMillis = ship.destroyedAtMillis,
+                        shipSpriteHidden = ship.shipSpriteHidden,
+                    )
+                } else {
+                    newShip
+                }
+            },
             onShipDestroyed = {
                 killCamStartedAtMillis = System.currentTimeMillis()
-                Logger.d("Kill-cam triggered @ $killCamStartedAtMillis (delay GAME_OVER 1500ms)")
+                Logger.d("Kill-cam triggered @ $killCamStartedAtMillis (delay GAME_OVER 1500ms) shipPos=(${ship.xOffset.toInt()},${ship.yOffset.toInt()}) hp=${ship.hp}")
                 setGameStatus(GameStatus.GAME_OVER)
                 // Mark ship destroyed — drives implosion animation in GameWorld.
                 ship = ship.copy(destroyedAtMillis = killCamStartedAtMillis)
-                // 3-phase destruction: implosion (0-200ms), white flash (200-300ms),
-                // explosion starburst (delayed 300ms so flash → BANG sequence reads).
+                Logger.d("Ship.copy(destroyedAtMillis=$killCamStartedAtMillis) — implosion phase begins")
+                // 3-phase destruction: implosion (0-200ms), hide sprite (200ms),
+                // explosion starburst (300ms so flash → BANG sequence reads).
                 val cx = ship.xOffset + ship.width / 2f
                 val cy = ship.yOffset + ship.height / 2f
                 val size = ship.width
                 coroutineScope.launch {
-                    delay(300L)
+                    delay(200L)
+                    // Explicit state mutation — flips ship reference so Compose
+                    // recomposes GameWorld with `shipSpriteHidden=true`, removing
+                    // ship Box + flame + magnet visual from the tree.
+                    ship = ship.copy(shipSpriteHidden = true)
+                    Logger.d("Ship sprite hidden via state flag (200ms after destroy)")
+                    delay(100L)
                     explosionsController.addExplosion(cx, cy, size * 1.4f, size * 1.4f)
                     explosionsController.addExplosion(cx - size * 0.5f, cy - size * 0.4f, size * 0.7f, size * 0.7f)
                     explosionsController.addExplosion(cx + size * 0.5f, cy - size * 0.4f, size * 0.7f, size * 0.7f)
                     explosionsController.addExplosion(cx - size * 0.5f, cy + size * 0.4f, size * 0.7f, size * 0.7f)
                     explosionsController.addExplosion(cx + size * 0.5f, cy + size * 0.4f, size * 0.7f, size * 0.7f)
-                    Logger.d("Ship destruction starburst spawned at ($cx, $cy)")
+                    Logger.d("Ship destruction starburst spawned at ($cx, $cy) — 5 explosions")
                 }
             },
             onShipDamaged = {
@@ -224,6 +247,11 @@ fun rememberGameState(): GameState {
             onLaserHit = { targetId, damage, x, y, isBoss ->
                 damageNumberController.report(targetId, damage, x, y, isBoss)
                 impactSparkController.spawnBurst(x, y)
+                // Mini explosion at hit point — reuses the GIF explosion system so the
+                // hit reads as a real "pháo hoa nổ tung" not just sparks. Smaller size
+                // (45-55dp) so it doesn't dwarf small enemies; bigger on boss.
+                val miniSize = if (isBoss) 60f else 45f
+                explosionsController.addExplosion(x, y, miniSize, miniSize)
                 hitStopController.freezeForHit()
             },
         )
@@ -512,23 +540,29 @@ fun rememberGameState(): GameState {
                             repeatTime = backgroundController.tickRepeatTime,
                             doWork = { backgroundController.tick() }
                         )
-                        tinker(
-                            id = shipController.moveShipId,
-                            repeatTime = shipController.moveShipRepeatTime,
-                            doWork = { shipController.moveShip() }
-                        )
-                        tinker(
-                            id = shipController.monitorShipCollisionsId,
-                            repeatTime = shipController.monitorShipCollisionsRepeatTime,
-                            doWork = {
-                                shipController.monitorShipCollisions(
-                                    spaceObjects = spaceObjectsController.spaceObjects,
-                                    boosters = boosterController.boosters,
-                                    enemies = enemies,
-                                    enemyLasers = enemyLaserController.enemyLasers
-                                ) { lasersController.fireUltimateLaser() }
-                            }
-                        )
+                        // Skip ship-related controllers once destroyed — they would
+                        // call `setShip(ship.copy(...))` with stale internal state and
+                        // overwrite `shipSpriteHidden=true` back to false within a frame,
+                        // preventing the destroy-hide from sticking.
+                        if (ship.destroyedAtMillis == 0L) {
+                            tinker(
+                                id = shipController.moveShipId,
+                                repeatTime = shipController.moveShipRepeatTime,
+                                doWork = { shipController.moveShip() }
+                            )
+                            tinker(
+                                id = shipController.monitorShipCollisionsId,
+                                repeatTime = shipController.monitorShipCollisionsRepeatTime,
+                                doWork = {
+                                    shipController.monitorShipCollisions(
+                                        spaceObjects = spaceObjectsController.spaceObjects,
+                                        boosters = boosterController.boosters,
+                                        enemies = enemies,
+                                        enemyLasers = enemyLaserController.enemyLasers
+                                    ) { lasersController.fireUltimateLaser() }
+                                }
+                            )
+                        }
                         tinker(
                             id = lasersController.monitorLaserCollisionId,
                             repeatTime = lasersController.monitorLaserCollisionRepeatTime,

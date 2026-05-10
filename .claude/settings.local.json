@@ -31,7 +31,8 @@
       "Bash(sort -t: -k2 -nr)",
       "Bash(./gradlew compileDevDebugKotlin compileProductionReleaseKotlin)",
       "Bash(./gradlew compileProductionReleaseKotlin assembleDevDebug)",
-      "Bash(./gradlew compileDevDebugKotlin compileProductionReleaseKotlin assembleDevDebug)"
+      "Bash(./gradlew compileDevDebugKotlin compileProductionReleaseKotlin assembleDevDebug)",
+      "Bash(./gradlew clean *)"
     ]
   }
 }

@@ -31,6 +31,11 @@ data class Ship(
     val bankRotation: Float = 0f,
     // Set when ship is destroyed (hp→0). Drives implosion animation.
     val destroyedAtMillis: Long = 0L,
+    // Explicit gate to remove ship sprite + shield + glow + flame from composition.
+    // Why: time-based `destroyTickMillis` tick can be smart-skipped if ship reference
+    // is unchanged, so the visible Ship lingers. Mutating this flag changes the Ship
+    // reference itself → guaranteed recompose + Box removed via `if (!hidden)`.
+    val shipSpriteHidden: Boolean = false,
     @DrawableRes val drawableId: Int = R.drawable.ship_regular_laser,
 ) : Serializable {
     val shieldRadius: Float get() = shieldSize / 2

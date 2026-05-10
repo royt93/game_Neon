@@ -64,6 +64,7 @@ import com.tranphuloi.neon.ui.game.ship.laser.LaserUI
 import com.tranphuloi.neon.ui.game.ship.ship.Ship
 import com.tranphuloi.neon.ui.game.spaceObject.SpaceObjectUI
 import com.tranphuloi.neon.ui.game.utils.rememberImageLoader
+import com.tranphuloi.neon.utils.Logger
 
 @Composable
 fun GameWorld(
@@ -88,6 +89,15 @@ fun GameWorld(
     modifier: Modifier = Modifier,
 ) {
 
+    // Brute-force diagnostic: log EVERY recomposition during destroy phase. If this
+    // fires but the LaunchedEffect below doesn't, then key comparison is the bug; if
+    // even this never fires, GameWorld isn't being recomposed when ship mutates.
+    if (ship.destroyedAtMillis > 0L) {
+        androidx.compose.runtime.SideEffect {
+            Logger.d("GameWorld SideEffect recompose: destroyedAt=${ship.destroyedAtMillis} hidden=${ship.shipSpriteHidden} now-destroyed=${System.currentTimeMillis() - ship.destroyedAtMillis}ms")
+        }
+    }
+
     val imageLoader = rememberImageLoader()
 
     val infiniteTransition = rememberInfiniteTransition()
@@ -100,23 +110,30 @@ fun GameWorld(
         )
     )
 
-    // After ship destroy, ship state stops mutating → GameWorld stops recomposing
-    // → shipAlive computation stale. Force recompose every 33ms for 2s during
-    // destroy phase so shipAlive flips false at 200ms and ship Box is removed.
+    // Implosion animation tick — drives scale/alpha shrink during the 0-200ms
+    // window after destroy. ONLY for animation interpolation; ship visibility is
+    // gated by `ship.shipSpriteHidden` (an explicit Boolean on Ship state) which
+    // GameState flips via state mutation at +200ms. This avoids relying on the
+    // tick alone (Compose smart-skip can ignore reads of a local long var).
     var destroyTickMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(ship.destroyedAtMillis) {
         if (ship.destroyedAtMillis == 0L) return@LaunchedEffect
-        repeat(60) {                  // 60 × 33ms ≈ 2s — covers implosion + flash + explosions + kill-cam
+        Logger.d("GameWorld: implosion LaunchedEffect started (destroyedAtMillis=${ship.destroyedAtMillis})")
+        repeat(8) {       // 8 × 25ms = 200ms — exactly covers implosion phase
             destroyTickMillis = System.currentTimeMillis()
-            delay(33L)
+            delay(25L)
         }
+        Logger.d("GameWorld: implosion LaunchedEffect finished")
+    }
+    LaunchedEffect(ship.shipSpriteHidden) {
+        Logger.d("GameWorld: ship.shipSpriteHidden=${ship.shipSpriteHidden} (recompose triggered)")
     }
     Box(modifier = modifier.fillMaxSize()) {
-        // Hide flame + magnet visual once ship is destroyed (after implosion 200ms);
-        // they render independently of the ship Box so the alpha=0 trick on the
-        // ship Box doesn't reach them. Without this they linger after ship is gone.
-        val shipAlive = ship.destroyedAtMillis == 0L ||
-            (destroyTickMillis - ship.destroyedAtMillis) < 200L
+        // Primary visibility gate: explicit state flag on Ship. Set to true via
+        // GameState.onShipDestroyed coroutine after delay(200L). Mutating Ship
+        // changes the data-class reference → Compose recomposes GameWorld and
+        // removes the ship/flame/magnet from the slot table.
+        val shipAlive = !ship.shipSpriteHidden
         // 16c: Magnet visual — render below other entities so doesn't obscure ship.
         if (shipAlive) {
             MagnetVisual(
