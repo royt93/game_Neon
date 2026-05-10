@@ -225,6 +225,13 @@ fun rememberGameState(): GameState {
                 pickupBurstController.spawn(x, y)
                 Logger.d("Booster picked up @ ($x,$y) ts=$lastBoosterPickupMillis")
             },
+            onSpaceObjectHitShip = { x, y ->
+                // Big visual smash at rock center — sparks + mini explosion. Ship damage
+                // shake/flash already triggered separately via onShipDamaged → updateHp.
+                impactSparkController.spawnBurst(x, y)
+                explosionsController.addExplosion(x, y, 70f, 70f)
+                Logger.d("SpaceRock impact ship @ ($x,$y) — visual burst")
+            },
             damageMultiplier = { difficultyState.value.multiplier },
         )
     }

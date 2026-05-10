@@ -25,6 +25,7 @@ class ShipController(
     private val onShipDestroyed: () -> Unit = {},
     private val onShipDamaged: () -> Unit = {},
     private val onBoosterPickedUp: (xOffset: Float, yOffset: Float) -> Unit = { _, _ -> },
+    private val onSpaceObjectHitShip: (xOffset: Float, yOffset: Float) -> Unit = { _, _ -> },
     private val damageMultiplier: () -> Float = { 1f },
 ) {
 
@@ -272,6 +273,14 @@ class ShipController(
             if (spaceRect.overlaps(if (ship.shieldEnabled) shipShieldRect else shipRect)) {
                 Logger.d("Collision: ship ↔ spaceObject (shield=${ship.shieldEnabled}, impactPower=${spaceObject.impactPower})")
                 spaceObjects[spaceObjectIndex].onObjectImpact(spaceShipCollidePower)
+                // Visual feedback at rock center — sparks + mini explosion. Skipped for
+                // pickup-style space objects (boosters via spaceObject path) by checking
+                // impactPower > 0 (only damaging rocks have impactPower).
+                if (spaceObject.impactPower > 0) {
+                    val hitX = spaceObject.xOffset + spaceObject.size / 2f
+                    val hitY = spaceObject.yOffset + spaceObject.size / 2f
+                    onSpaceObjectHitShip(hitX, hitY)
+                }
 
                 val hpImpact: Int = when (ship.shieldEnabled && spaceObject.impactPower > 0) {
                     true -> 0

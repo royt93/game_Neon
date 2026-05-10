@@ -89,15 +89,6 @@ fun GameWorld(
     modifier: Modifier = Modifier,
 ) {
 
-    // Brute-force diagnostic: log EVERY recomposition during destroy phase. If this
-    // fires but the LaunchedEffect below doesn't, then key comparison is the bug; if
-    // even this never fires, GameWorld isn't being recomposed when ship mutates.
-    if (ship.destroyedAtMillis > 0L) {
-        androidx.compose.runtime.SideEffect {
-            Logger.d("GameWorld SideEffect recompose: destroyedAt=${ship.destroyedAtMillis} hidden=${ship.shipSpriteHidden} now-destroyed=${System.currentTimeMillis() - ship.destroyedAtMillis}ms")
-        }
-    }
-
     val imageLoader = rememberImageLoader()
 
     val infiniteTransition = rememberInfiniteTransition()

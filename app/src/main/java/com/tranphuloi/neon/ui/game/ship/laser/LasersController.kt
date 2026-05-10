@@ -154,8 +154,13 @@ class LasersController(
             if (spaceObjectRectList.any { it.overlaps(laserRect) }) {
                 val index = spaceObjectRectList.indexOfFirst { it.overlaps(laserRect) }
                 val target = spaceObjects[index]
+                val hitX = target.xOffset + target.size / 2f
+                val hitY = target.yOffset + target.size / 2f
                 Logger.d("Collision: laser id=${laser.id.take(6)} → spaceObject hp=${target.hp.toInt()} (-${laser.impactPower.toInt()})")
                 target.onObjectImpact(laser.impactPower)
+                // Trigger same impact feedback as enemy hits — sparks + mini explosion +
+                // damage number + hit-stop freeze. Rocks are non-boss so isBoss=false.
+                onLaserHit(target.id, laser.impactPower.toInt(), hitX, hitY, false)
                 destroyShipLaser(laser)
                 updateShipLasersUI()
             }
