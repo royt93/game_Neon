@@ -30,33 +30,59 @@ The release signing key (`app/keystore.jks`) and `app/private_key.pepk` are chec
 
 ## Flavor-specific resValues
 
-`app/build.gradle` injects ad/SDK config as Android string resources per flavor (no `BuildConfig` fields). The keys `SDK_KEY`, `BANNER`, `INTER`, `EnableAdInter`, `EnableAdBanner` are read as `R.string.*` at runtime. Production has `EnableAdInter`/`EnableAdBanner` = `"true"`, dev has them = `"false"`. There is no ad SDK actually wired in yet — `App.onCreate()` is empty and the TODO comments at the top of `App.kt` (firebase, applovin, rate, share, policy) reflect what's still planned.
+`app/build.gradle` injects ad/SDK config as Android string resources per flavor (no `BuildConfig` fields). The keys `SDK_KEY`, `BANNER`, `INTER`, `EnableAdInter`, `EnableAdBanner` are read as `R.string.*` at runtime. Production has `EnableAdInter`/`EnableAdBanner` = `"true"`, dev has them = `"false"`. There is no ad SDK actually wired in yet — the TODO comments at the top of `App.kt` (firebase, applovin, rate, share, policy) reflect what's still planned.
+
+`App.onCreate()` is **not** empty: it installs a chained `Thread.setDefaultUncaughtExceptionHandler` (preserving any previous handler) and instantiates the three repositories (`SettingsRepository`, `LeaderboardRepository`, `AchievementsRepository`) on `applicationContext`. It also overrides `onTrimMemory` / `onLowMemory` / `onConfigurationChanged` for logging via the `utils/Logger` helper. `Logger` is used pervasively across the codebase (~155+ call sites) — prefer it over `Log.d` for new code.
+
+## Source sets and LeakCanary
+
+Both `app/src/debug/java/com/tranphuloi/neon/utils/LeakWatch.kt` and `app/src/release/java/com/tranphuloi/neon/utils/LeakWatch.kt` exist. The debug variant delegates to `leakcanary.AppWatcher.objectWatcher.expectWeaklyReachable(...)`; the release variant is a no-op. The `LeakWatch.watch(obj, description)` API is the only thing main-set code may call — never reference LeakCanary classes from `main/` directly, or release builds will fail to compile.
+
+## Feature tracker
+
+`doc/feature.md` is the single source of truth for in-flight features, picks, and implementation status (uses the ✅ / 🟡 / 📋 / 💭 / ❌ / ⏸️ legend from the user's global preferences). When the user picks features via `AskUserQuestion`, move them into this doc rather than re-deriving from chat history.
 
 ## Architecture
 
 ### Navigation
-Single `MainActivity` (`ComponentActivity`) hosts a `NavHost` with three routes declared as `sealed class Navigation` in `navigation/Navigation.kt`:
+`MainActivity` lives at `ui/MainActivity.kt` (`ComponentActivity`) and hosts a `NavHost`. Routes are declared as top-level `object`s extending `sealed class Navigation` in `navigation/Navigation.kt`:
 
-`Splash` → `Game` → `GamePause` (rendered as a `dialog(...)`, not a full screen).
+`Splash` → `Game` plus dialog-style routes `GamePause`, `GameOver`, `Settings`, `DifficultyPicker` (all rendered as `dialog(...)`, not full screens).
 
-Restart from the pause dialog uses `popUpTo(navController.graph.id)` to wipe and re-enter `Game.route`. Activity orientation is locked to portrait in the manifest.
+Restart wipes the back stack via `popUpTo(Game.route, inclusive=true) { launchSingleTop = true }` and re-enters `Game.route`. Activity orientation is locked to portrait in the manifest.
+
+`MainActivity` provides three Compose CompositionLocals (`LocalSettings`, `LocalLeaderboard`, plus an achievements equivalent) sourced from the `App` singleton — see `data/AppLocals.kt`. Screens read settings/leaderboard via these locals rather than constructor injection.
+
+### Persistence (`data/`)
+DataStore-Preferences-backed repositories, instantiated once in `App.onCreate()`:
+
+- `SettingsRepository` — reduce-motion, music/SFX volume, vibration, `Difficulty` enum (with damage `multiplier`), `ShipSkin` enum, tutorial-shown flag. Exposed as `Flow<…>`.
+- `LeaderboardRepository` — all-time and **daily** leaderboards (`dailyEntries(dayKey = todayUtcDayKey())`). Daily key buckets by UTC day.
+- `AchievementsRepository` — unlock-once-and-persist for the `Achievement` enum.
+- `RunStats` — pure data class summarizing a finished run (not persisted by itself).
+
+Settings reads inside `GameState`/screens go through `LocalSettings.current` and `.<flag>Flow.collectAsState(...)`. Writes happen in suspending repo methods called from `rememberCoroutineScope().launch { ... }` inside UI callbacks.
 
 ### Game state (the central pattern)
-`ui/game/state/GameState.kt` is the heart of the game. `rememberGameState()` is a Composable that:
+`ui/game/state/GameState.kt` (~1000 lines) is the heart of the game. `rememberGameState()` is a Composable that:
 
 1. Reads screen size from `LocalConfiguration` and saves it via `rememberSaveable`.
-2. Holds **all** game entity lists as Compose `mutableStateOf` / `rememberSaveable` (stars, ship, lasers, ultimateLasers, spaceObjects, boosters, enemies, enemyLasers, minerals, explosions).
+2. Holds **all** game entity lists as Compose `mutableStateOf` / `rememberSaveable` (stars/background, ship, lasers, ultimateLasers, spaceObjects, boosters, enemies, enemyLasers, minerals, explosions, damage numbers, pickup popups, sparks).
 3. Constructs one **Controller per domain**, passing each the relevant getters/setters as lambdas. Controllers own mutation logic but never own the state — `GameState` does.
-4. Inside a single `DisposableEffect(lifecycle) { ... launch(IO) { while(loopRunning) { ... } } }` block, runs **one tight unbounded loop on `Dispatchers.IO`** that drives every system on each iteration via `tinker(...)`. The loop only does work when `gameStatus == GameStatus.RUNNING`. Lifecycle observation flips `gameStatus` to `PAUSE` on `ON_PAUSE`/`ON_STOP`.
+4. Inside a single `DisposableEffect(lifecycle) { ... launch(IO) { while(loopRunning) { ... } } }` block, runs **one paced loop on `Dispatchers.IO`** that drives every system on each iteration via `tinker(...)`. The loop calls `delay(8)` at the bottom (~125Hz cap) — this both yields to the Main thread for Compose recomposition and propagates cancellation. The loop only does real work when `gameStatus == GameStatus.RUNNING`. Lifecycle observation flips `gameStatus` to `PAUSE` on `ON_PAUSE`/`ON_STOP`.
 5. Returns a `GameState` data class containing the UI-projected lists (`*UI` types via per-domain `*Mapper` objects) plus input callbacks.
 
+`GameStatus` itself now lives at `ui/game/settings/GameStatus.kt` (not under `state/`).
+
 The Composable's last statement is `refreshHandler` (an unused mutableState mutated each loop iteration). This is **load-bearing** — reading it inside the Composable is what causes recomposition each frame so Compose actually re-renders the `GameWorld`. Don't remove it.
+
+There is also a "kill-cam" mechanism: when the ship is destroyed, `GameScreen` delays navigation to `GAME_OVER` by ~1500ms so the explosion can play out. Search `GameState.kt` for `killCamStartedAtMillis` for the wiring.
 
 ### `tinker(id, repeatTime, doWork)` — the scheduler
 Defined in `core/Tinker.kt`. A process-wide `mutableMapOf<String, Long>` maps each unique work `id` to its last-run timestamp. `RepeatTime` (`ui/game/common/RepeatTime.kt`) is `Millis(timeMillis) | Once | Never`. The game loop calls `tinker(...)` for ~15+ different IDs per iteration; each fires its `doWork` only when its interval has elapsed. Controllers expose their own `*Id` and `*RepeatTime` properties to drive this. **Important**: every `id` must be globally unique and stable across recompositions — most are generated once via `rememberSaveable { UUID.randomUUID().toString() }` or via constants in the controller. Because the map is module-level, IDs survive Composable recomposition (intentional) but also **leak across activities** if not pruned — relevant when adding new top-level screens.
 
 ### Per-entity layout (Booster / Enemy / Laser / Mineral / SpaceObject / Explosion)
-Each game entity follows the same shape:
+Each "world" game entity follows the same shape:
 
 - **Domain model** (`Booster`, `Laser`, `Enemy`, …) — pure data, often `Serializable` so it survives `rememberSaveable`.
 - **UI projection** (`BoosterUI`, `LaserUI`, …) — what `GameWorld` consumes (drawableId, offsets, size, rotation, alpha).
@@ -64,6 +90,21 @@ Each game entity follows the same shape:
 - **Controller** (`BoosterController`, `LasersController`, …) — owns spawn/move/collision logic, exposes `*Id` + `*RepeatTime` constants for the game loop's `tinker` calls.
 
 When adding a new entity type, mirror this five-piece structure and add it to: (a) `rememberGameState()` state list + controller construction, (b) the loop's `tinker` calls, (c) the returned `GameState` data class, (d) `GameScreen` plumbing, (e) `GameWorld` rendering.
+
+### Juice / game-feel subsystems (don't mirror the 5-piece pattern)
+Several newer `ui/game/` subpackages are *not* full domain entities — they're presentation/feel layers that piggyback on existing events. Treat them as single-controller helpers, not as new domains:
+
+- `combo/ComboController` — counts/decays combo, drives `ComboHud` + `ComboPopup`.
+- `damage/DamageNumber` + its controller — floating damage numbers.
+- `pickup/PickupPopup` + its controller — "+score / item picked" floaters.
+- `spark/ImpactSpark.kt`, `PickupBurst.kt` — particle bursts on hit / pickup.
+- `haptic/HapticController` — centralized vibration; reads `vibrationEnabledFlow` from `SettingsRepository`.
+- `hitstop/HitStopController` — micro-pause on heavy hits; gates parts of the loop.
+- `background/BackgroundController` + `SpaceBackground(View)` — parallax space background.
+
+The `ui/game/controls/` package is the **HUD/overlay layer**: `BossHpBar`, `BossIntroOverlay`, `BossEntryLightning`, `BossRankOverlay`, `PhaseTransitionBanner`, `WaveClearBanner`, `StageBanner`, `AchievementBanner`, `RevivedBanner`, `TutorialOverlay`, `ComboHud`/`ComboPopup`, `HazardOverlay`, `PowerUpIndicators`, `IndicatorStatus`, `Vignette`, `SmartBombButton`, `ButtonSettings`, `ButtonsMovement`. These are leaf Composables consumed by `GameScreen` — wire new HUD elements here, not in `GameWorld`.
+
+Dialogs live under `ui/dlg/`: `gamepause`, `gameover`, `settings`, `difficulty`. They are NavHost `dialog` destinations, not full screens.
 
 ### Stages
 `ui/game/stage/Stage.kt` defines the static `stages: List<Stage>` script (`StageMessage` / `StageGame` / `StageBoss` / `StageBreak`). `StageController` advances through them based on elapsed time + a `readyForNextStage` flag (true when no enemies and no space objects remain). `StageGame` carries `enemyType.spawnRate` and `spaceRockSpawnRateMillis` which the loop feeds directly into `tinker` repeat times — i.e. stage difficulty is encoded as `RepeatTime` values.
@@ -77,8 +118,9 @@ When adding a new entity type, mirror this five-piece structure and add it to: (
 ## Conventions to preserve
 
 - **Don't remove the unused `refreshHandler` read** at the end of `rememberGameState()` — see above.
-- **Don't introduce new coroutine loops** for new entities. Add them as `tinker` entries inside the existing loop in `GameState.kt`. The single-loop design is intentional: it lets `gameStatus == RUNNING` be the only pause gate.
+- **Don't introduce new coroutine loops** for new entities. Add them as `tinker` entries inside the existing loop in `GameState.kt`. The single-loop design is intentional: it lets `gameStatus == RUNNING` be the only pause gate, and the loop's `delay(8)` is the only place yielding to Main for recomposition.
 - **State lives in `GameState.kt`, not in controllers.** Controllers receive setter lambdas. Replicate this when adding new entity domains.
-- The empty package directories under `com/tranphuloi/neon/game/...` (mirroring every subpath of the populated `ui/game/...` tree) are leftover from a refactor — ignore them and add code under `ui/game/...`. Don't "fix" by moving files unless asked. (`com/tranphuloi/neon/{common,core,navigation,utils}` at the top level *are* populated — those are real and not leftovers.)
-- App.kt's TODO list (firebase, applovin, rate, share, policy) is a roadmap, not a checklist already done — `App.onCreate()` is genuinely empty.
-- LeakCanary is on the `debugImplementation` classpath; check it when investigating retention bugs.
+- **Settings/leaderboard/achievements are accessed via CompositionLocals**, not by re-instantiating the repos. Use `LocalSettings.current` etc.; the singletons live on `App` and are provided once in `MainActivity`.
+- The empty package directories under `com/tranphuloi/neon/game/...` (mirroring every subpath of the populated `ui/game/...` tree) are leftover from a refactor — ignore them and add code under `ui/game/...`. Don't "fix" by moving files unless asked. (`com/tranphuloi/neon/{common,core,data,navigation,utils}` at the top level *are* populated — those are real and not leftovers.)
+- New game-feel additions (sparks, popups, banners, haptic, hitstop) should follow the "single controller + leaf Composable in `controls/` (HUD) or new package" pattern — **don't** force the 5-piece domain shape onto them.
+- LeakCanary is on the `debugImplementation` classpath and wired via the `LeakWatch` source-set split; check it when investigating retention bugs and use `LeakWatch.watch(obj, "description")` from main-set code rather than depending on LeakCanary directly.
