@@ -33,7 +33,8 @@
       "Bash(./gradlew compileProductionReleaseKotlin assembleDevDebug)",
       "Bash(./gradlew compileDevDebugKotlin compileProductionReleaseKotlin assembleDevDebug)",
       "Bash(./gradlew clean *)",
-      "Bash(./gradlew compileDevDebugKotlin --warning-mode all)"
+      "Bash(./gradlew compileDevDebugKotlin --warning-mode all)",
+      "Bash(~/.claude/bin/tg-chat.sh send *)"
     ]
   }
 }
