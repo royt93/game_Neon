@@ -14,7 +14,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Card
 import androidx.compose.material.Checkbox
 import androidx.compose.material.CheckboxDefaults
@@ -36,22 +40,44 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.common.NeonBgMid
 import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.common.NeonMagenta
+import com.tranphuloi.neon.common.NeonViolet
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.data.Difficulty
 import com.tranphuloi.neon.data.LocalSettings
 import com.tranphuloi.neon.data.ShipSkin
+import com.tranphuloi.neon.ui.game.mode.GameMode
 import com.tranphuloi.neon.utils.Logger
 import kotlinx.coroutines.launch
 
+/**
+ * Round 24 — clean redesign of DialogSettings.
+ *
+ * Old layout dumped 11 widgets into a single flat column → felt cluttered.
+ * New layout groups into 4 sections with header + thin divider:
+ *
+ *   ÂM THANH       — Music slider + SFX slider
+ *   CHƠI            — Vibration toggle + Reduce motion toggle + Difficulty pills + Ship skin pills
+ *   CHUẨN BỊ RUN    — Game mode row + Modifier row + Upgrades row (each click-through)
+ *   ỨNG DỤNG        — Rate / Share / Privacy links
+ *
+ * Compact spacing (10dp section gap, 4dp inter-row gap), small section headers
+ * with subtle horizontal divider above each, vertical scroll if content overflows
+ * small screens.
+ */
 @Composable
 fun DialogSettings(
     onDismiss: () -> Unit,
+    onOpenModePicker: () -> Unit = {},
+    onOpenModifierPicker: () -> Unit = {},
+    onOpenMetaUpgrade: () -> Unit = {},
 ) {
     val settings = LocalSettings.current
     val scope = rememberCoroutineScope()
@@ -63,72 +89,103 @@ fun DialogSettings(
     val reduceMotion by settings.reduceMotion.collectAsState(initial = false)
     val difficulty by settings.difficulty.collectAsState(initial = Difficulty.NORMAL)
     val shipSkin by settings.shipSkin.collectAsState(initial = ShipSkin.REGULAR)
+    val lastModeKey by settings.lastMode.collectAsState(initial = "campaign")
+    val lastMode = GameMode.fromKey(lastModeKey)
+    val lastModifierKey by settings.lastModifier.collectAsState(initial = "none")
+    val lastModifier = com.tranphuloi.neon.ui.game.modifier.RunModifier.fromKey(lastModifierKey)
 
     LaunchedEffect(Unit) { Logger.d("DialogSettings shown") }
 
     Card(
         backgroundColor = NeonBgMid,
         border = BorderStroke(2.dp, NeonCyan),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(10.dp),
         modifier = Modifier.neonGlow(color = NeonCyan, intensity = 0.35f, radiusFactor = 1.2f)
     ) {
         Column(
             modifier = Modifier
-                .padding(20.dp)
-                .fillMaxWidth(),
+                .padding(horizontal = 18.dp, vertical = 16.dp)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(
-                text = "SETTINGS",
-                color = NeonCyan,
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.h5,
-            )
+            // ────── Header ──────
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "CÀI ĐẶT",
+                    color = NeonCyan,
+                    fontWeight = FontWeight.Black,
+                    style = MaterialTheme.typography.h5,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(
+                    onClick = {
+                        Logger.d("DialogSettings: Close pressed")
+                        onDismiss()
+                    },
+                ) {
+                    Text("ĐÓNG", color = NeonCyan, fontWeight = FontWeight.Bold)
+                }
+            }
 
+            // ────── Section 1: Âm thanh ──────
+            SectionHeader(label = "ÂM THANH", color = NeonCyan)
             SettingSlider(
-                label = "Music",
+                label = "Nhạc",
                 value = musicVolume,
                 color = NeonCyan,
-                onChange = {
-                    scope.launch { settings.setMusicVolume(it) }
-                },
+                onChange = { scope.launch { settings.setMusicVolume(it) } },
             )
             SettingSlider(
-                label = "SFX",
+                label = "Hiệu ứng",
                 value = sfxVolume,
                 color = NeonGold,
-                onChange = {
-                    scope.launch { settings.setSfxVolume(it) }
-                },
-            )
-            SettingCheck(
-                label = "Vibration",
-                value = vibrationEnabled,
-                onChange = { scope.launch { settings.setVibrationEnabled(it) } }
-            )
-            SettingCheck(
-                label = "Reduce motion",
-                value = reduceMotion,
-                onChange = { scope.launch { settings.setReduceMotion(it) } }
+                onChange = { scope.launch { settings.setSfxVolume(it) } },
             )
 
-            Text("Difficulty", color = NeonMagenta, fontWeight = FontWeight.Bold)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            // ────── Section 2: Chơi ──────
+            SectionHeader(label = "CHƠI", color = NeonMagenta)
+            // Two checkboxes side by side to compact.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                SettingCheck(
+                    label = "Rung",
+                    value = vibrationEnabled,
+                    onChange = { scope.launch { settings.setVibrationEnabled(it) } },
+                    modifier = Modifier.weight(1f),
+                )
+                SettingCheck(
+                    label = "Giảm chuyển động",
+                    value = reduceMotion,
+                    onChange = { scope.launch { settings.setReduceMotion(it) } },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            LabelledPillRow(label = "Độ khó", color = NeonMagenta) {
                 Difficulty.values().forEach { d ->
+                    val labelText = when (d) {
+                        Difficulty.EASY -> "Dễ"
+                        Difficulty.NORMAL -> "Vừa"
+                        Difficulty.HARD -> "Khó"
+                    }
                     Pill(
-                        label = d.key.replaceFirstChar { it.uppercase() },
+                        label = labelText,
                         selected = d == difficulty,
                         color = NeonMagenta,
                         onClick = { scope.launch { settings.setDifficulty(d) } }
                     )
                 }
             }
-
-            Text("Ship skin", color = NeonGold, fontWeight = FontWeight.Bold)
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            LabelledPillRow(label = "Skin tàu", color = NeonGold) {
                 ShipSkin.values().forEach { s ->
+                    val labelText = when (s) {
+                        ShipSkin.REGULAR -> "Thường"
+                        ShipSkin.BOOSTED -> "Cường hóa"
+                    }
                     Pill(
-                        label = s.key.replaceFirstChar { it.uppercase() },
+                        label = labelText,
                         selected = s == shipSkin,
                         color = NeonGold,
                         onClick = { scope.launch { settings.setShipSkin(s) } }
@@ -136,10 +193,50 @@ fun DialogSettings(
                 }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
-            // Qb: Rate / Share / Privacy.
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = {
+            // ────── Section 3: Chuẩn bị run ──────
+            SectionHeader(label = "CHUẨN BỊ RUN", color = NeonViolet)
+            NavRow(
+                label = "Chế độ",
+                value = lastMode.displayName,
+                actionHint = "Đổi",
+                color = NeonViolet,
+                onClick = {
+                    Logger.d("Settings: Open ModePicker (current=${lastMode.key})")
+                    onOpenModePicker()
+                },
+            )
+            NavRow(
+                label = "Buff",
+                value = lastModifier.displayName,
+                actionHint = "Đổi",
+                color = NeonGold,
+                onClick = {
+                    Logger.d("Settings: Open ModifierPicker (current=${lastModifier.key})")
+                    onOpenModifierPicker()
+                },
+            )
+            NavRow(
+                label = "Nâng cấp",
+                value = "Cây kỹ năng",
+                actionHint = "Mở ➤",
+                color = NeonCyan,
+                onClick = {
+                    Logger.d("Settings: Open MetaUpgrade")
+                    onOpenMetaUpgrade()
+                },
+            )
+
+            // ────── Section 4: Ứng dụng ──────
+            SectionHeader(label = "ỨNG DỤNG", color = Color.White.copy(alpha = 0.6f))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                FlatLink(
+                    label = "Đánh giá",
+                    color = NeonCyan,
+                    modifier = Modifier.weight(1f),
+                ) {
                     Logger.d("Settings: Rate clicked")
                     val intent = Intent(
                         Intent.ACTION_VIEW,
@@ -148,26 +245,30 @@ fun DialogSettings(
                     runCatching { context.startActivity(intent) }.onFailure {
                         Logger.w("Settings: Play Store not available", it)
                     }
-                }) {
-                    Text("Rate", color = NeonCyan)
                 }
-                TextButton(onClick = {
+                FlatLink(
+                    label = "Chia sẻ",
+                    color = NeonMagenta,
+                    modifier = Modifier.weight(1f),
+                ) {
                     Logger.d("Settings: Share clicked")
                     val intent = Intent(Intent.ACTION_SEND).apply {
                         type = "text/plain"
                         putExtra(
                             Intent.EXTRA_TEXT,
-                            "Check out Neon — a synthwave shoot-'em-up. " +
+                            "Sky Force U*S*A — bắn phi thuyền vũ trụ synthwave. " +
                                 "https://play.google.com/store/apps/details?id=${context.packageName}"
                         )
                     }
                     runCatching {
-                        context.startActivity(Intent.createChooser(intent, "Share via"))
+                        context.startActivity(Intent.createChooser(intent, "Chia sẻ qua"))
                     }.onFailure { Logger.w("Settings: Share intent failed", it) }
-                }) {
-                    Text("Share", color = NeonMagenta)
                 }
-                TextButton(onClick = {
+                FlatLink(
+                    label = "Riêng tư",
+                    color = NeonGold,
+                    modifier = Modifier.weight(1f),
+                ) {
                     Logger.d("Settings: Privacy clicked")
                     val intent = Intent(
                         Intent.ACTION_VIEW,
@@ -176,21 +277,29 @@ fun DialogSettings(
                     runCatching { context.startActivity(intent) }.onFailure {
                         Logger.w("Settings: Privacy URL open failed", it)
                     }
-                }) {
-                    Text("Privacy", color = NeonGold)
                 }
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            TextButton(
-                onClick = {
-                    Logger.d("DialogSettings: Close pressed")
-                    onDismiss()
-                },
-                modifier = Modifier.align(Alignment.End)
-            ) {
-                Text("CLOSE", color = NeonCyan, fontWeight = FontWeight.Bold)
-            }
         }
+    }
+}
+
+/** Subtle section header: small caps label with thin divider line above. */
+@Composable
+private fun SectionHeader(label: String, color: Color) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(color.copy(alpha = 0.25f)),
+        )
+        Text(
+            text = label,
+            color = color,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Black,
+            style = TextStyle(letterSpacing = 3.sp),
+        )
     }
 }
 
@@ -206,8 +315,19 @@ private fun SettingSlider(
     var localValue by remember(value) { mutableStateOf(value.toFloat()) }
     Column {
         Row {
-            Text(label, color = color, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            Text("${localValue.toInt()}", color = color)
+            Text(
+                label,
+                color = color,
+                fontWeight = FontWeight.Bold,
+                fontSize = 13.sp,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                "${localValue.toInt()}",
+                color = color,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+            )
         }
         Slider(
             value = localValue,
@@ -228,14 +348,41 @@ private fun SettingCheck(
     label: String,
     value: Boolean,
     onChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier,
+    ) {
         Checkbox(
             checked = value,
             onCheckedChange = onChange,
             colors = CheckboxDefaults.colors(checkedColor = NeonCyan)
         )
-        Text(label, color = Color.White)
+        Text(label, color = Color.White, fontSize = 13.sp)
+    }
+}
+
+@Composable
+private fun LabelledPillRow(
+    label: String,
+    color: Color,
+    content: @Composable () -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            label,
+            color = color,
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.sp,
+            modifier = Modifier.width(82.dp),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            content()
+        }
     }
 }
 
@@ -249,12 +396,82 @@ private fun Pill(
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(if (selected) color.copy(alpha = 0.5f) else Color.Transparent)
-            .border(BorderStroke(1.dp, color), RoundedCornerShape(20.dp))
+            .border(BorderStroke(1.dp, color), RoundedCornerShape(16.dp))
             .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = 10.dp, vertical = 5.dp)
     ) {
-        Text(label, color = if (selected) Color.White else color, fontWeight = FontWeight.Bold)
+        Text(
+            label,
+            color = if (selected) Color.White else color,
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.sp,
+        )
+    }
+}
+
+/**
+ * Navigation row: label on left, current value mid-right, action hint far right.
+ * Click anywhere to invoke onClick. Used for Mode / Modifier / Upgrade pickers.
+ */
+@Composable
+private fun NavRow(
+    label: String,
+    value: String,
+    actionHint: String,
+    color: Color,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .border(BorderStroke(1.dp, color.copy(alpha = 0.7f)), RoundedCornerShape(8.dp))
+            .background(color.copy(alpha = 0.06f))
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            label,
+            color = color,
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.sp,
+            modifier = Modifier.width(72.dp),
+        )
+        Text(
+            value,
+            color = Color.White,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 13.sp,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            actionHint,
+            color = color.copy(alpha = 0.85f),
+            fontWeight = FontWeight.Bold,
+            fontSize = 11.sp,
+        )
+    }
+}
+
+/** Compact text-button used in the ỨNG DỤNG row. */
+@Composable
+private fun FlatLink(
+    label: String,
+    color: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .clip(RoundedCornerShape(6.dp))
+            .border(BorderStroke(1.dp, color.copy(alpha = 0.5f)), RoundedCornerShape(6.dp))
+            .clickable { onClick() }
+            .padding(vertical = 8.dp),
+    ) {
+        Text(label, color = color, fontWeight = FontWeight.Bold, fontSize = 12.sp)
     }
 }

@@ -54,7 +54,9 @@ import com.tranphuloi.neon.utils.UuidUtils
 import com.tranphuloi.neon.utils.observeAsState
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import java.util.Locale
 import java.util.UUID
@@ -92,9 +94,76 @@ fun rememberGameState(): GameState {
         )
     }
 
+    // -----------------------------------------------------------------
+    // Wave 5 — RunContext + EffectiveStats hoisted BEFORE ship/controllers
+    // so initial HP / damage / speed multipliers can be applied at
+    // construction time.
+    // -----------------------------------------------------------------
+    val settingsRepo = com.tranphuloi.neon.data.LocalSettings.current
+    val difficultyState = settingsRepo.difficulty
+        .collectAsState(initial = com.tranphuloi.neon.data.Difficulty.NORMAL)
+    val metaRepo = com.tranphuloi.neon.data.LocalMetaProgression.current
+
+    // Wave 5 (43x) — pick GameMode for this run by reading SettingsRepository.lastMode
+    // ONCE synchronously at composition entry. runBlocking is acceptable here:
+    //   - DataStore reads are fast (<10ms typical),
+    //   - only fires on first composition of rememberGameState,
+    //   - avoids the timing race that collectAsState(initial="campaign") would create
+    //     (controller built with initial, then rebuilt when flow emits → state loss).
+    val runMode = remember {
+        val key = kotlinx.coroutines.runBlocking { settingsRepo.lastMode.first() }
+        val mode = com.tranphuloi.neon.ui.game.mode.GameMode.fromKey(key)
+        Logger.d("rememberGameState: runMode=$mode (key=$key)")
+        mode
+    }
+    val runModifier = remember {
+        val key = kotlinx.coroutines.runBlocking { settingsRepo.lastModifier.first() }
+        val mod = com.tranphuloi.neon.ui.game.modifier.RunModifier.fromKey(key)
+        Logger.d("rememberGameState: runModifier=$mod (key=$key)")
+        mod
+    }
+    val runContext = remember(runMode, runModifier) {
+        com.tranphuloi.neon.ui.game.state.RunContext(
+            mode = runMode,
+            modifier = runModifier,
+            difficulty = kotlinx.coroutines.runBlocking { settingsRepo.difficulty.first() },
+            metaUpgrades = kotlinx.coroutines.runBlocking { metaRepo.allRanks.first() },
+        )
+    }
+    val effectiveStats = remember(runContext) {
+        val es = com.tranphuloi.neon.ui.game.state.EffectiveStats.compute(runContext)
+        Logger.d("rememberGameState: effectiveStats=$es")
+        es
+    }
+    val stageProvider = remember(runMode) {
+        when (runMode) {
+            com.tranphuloi.neon.ui.game.mode.GameMode.SURVIVAL ->
+                com.tranphuloi.neon.ui.game.stage.SurvivalProvider()
+            com.tranphuloi.neon.ui.game.mode.GameMode.BOSS_RUSH ->
+                com.tranphuloi.neon.ui.game.stage.BossRushProvider()
+            com.tranphuloi.neon.ui.game.mode.GameMode.TIME_ATTACK ->
+                com.tranphuloi.neon.ui.game.stage.TimeAttackProvider()
+            com.tranphuloi.neon.ui.game.mode.GameMode.ENDLESS ->
+                com.tranphuloi.neon.ui.game.stage.EndlessProvider()
+            else -> com.tranphuloi.neon.ui.game.stage.StaticListProvider()
+        }
+    }
+    val timeAttackLimitSec = remember(runMode) {
+        (stageProvider as? com.tranphuloi.neon.ui.game.stage.TimeAttackProvider)?.timeLimitSec ?: 0
+    }
+
+    // Round 23 — apply hpMul at Ship construction. Coerce 100..3000 so extreme
+    // modifiers (e.g. TANK + Easy + Fortify max) don't get unplayable.
+    val initialShipHp = remember(effectiveStats) {
+        (1000f * effectiveStats.hpMul).toInt().coerceIn(100, 3000)
+    }
     var ship by rememberSaveable {
         mutableStateOf(
-            Ship(xOffset = screenWidth / 2 - 85f / 2, yOffset = screenHeight + 240f)
+            Ship(
+                xOffset = screenWidth / 2 - 85f / 2,
+                yOffset = screenHeight + 240f,
+                hp = initialShipHp,
+            )
         )
     }
     var gameStatus by rememberSaveable { mutableStateOf(GameStatus.RUNNING) }
@@ -117,9 +186,25 @@ fun rememberGameState(): GameState {
     // by enemyId so a new boss can re-trigger).
     var bossSlowMotionStartedAtMillis by remember { mutableLongStateOf(0L) }
     var bossSlowMotionTriggeredForId by remember { mutableStateOf<String?>(null) }
-    val settingsRepo = com.tranphuloi.neon.data.LocalSettings.current
-    val difficultyState = settingsRepo.difficulty
-        .collectAsState(initial = com.tranphuloi.neon.data.Difficulty.NORMAL)
+    // (settingsRepo / difficultyState / runMode / runModifier / runContext /
+    //  effectiveStats / stageProvider / timeAttackLimitSec hoisted above
+    //  ship init — round 23. See block right after backgroundController.)
+
+    // 46x — achievement state hoisted ABOVE shipController so onShipRevived /
+    // onShipDestroyed callbacks can call unlockAchievement. Was originally
+    // declared right before MineralsController (~line 376); the move is purely
+    // ordering, no semantic change.
+    var achievementUnlocked by remember { mutableStateOf<Achievement?>(null) }
+    var achievementShownAtMillis by remember { mutableLongStateOf(0L) }
+    val achievementsRepo = com.tranphuloi.neon.data.LocalAchievements.current
+    suspend fun unlockAchievement(achievement: Achievement) {
+        if (achievementsRepo.unlock(achievement)) {
+            achievementUnlocked = achievement
+            achievementShownAtMillis = System.currentTimeMillis()
+            Logger.d("Achievement unlocked: ${achievement.id} \"${achievement.title}\"")
+        }
+    }
+
     // Explosions controller declared early so onShipDestroyed can spawn a starburst
     // of explosions at the ship's last position when player dies.
     var explosions: List<Explosion> by rememberSaveable { mutableStateOf(emptyList()) }
@@ -168,6 +253,14 @@ fun rememberGameState(): GameState {
     var finalBossDefeated by remember { mutableStateOf(false) }
     // 20b Smart bomb stack — start with 2, +1 per boss kill.
     var smartBombs by rememberSaveable { mutableIntStateOf(2) }
+    /** 46x — count of smart bombs used in current run (for SMART_BOMB_5 achievement). */
+    var smartBombsUsedCount by rememberSaveable { mutableIntStateOf(0) }
+    /**
+     * Round 23 — TIME_ATTACK timer ran out, treat as "victory" (ship still alive,
+     * no kill-cam). GameScreen branches on this to use HEAVY haptic + PICKUP sfx
+     * + 500ms delay path instead of the death path's LONG haptic + GAME_OVER sfx.
+     */
+    var timeAttackEnded by remember { mutableStateOf(false) }
     val shipController = remember {
         Logger.d("rememberGameState: building ShipController (initial hp=${ship.hp})")
         ShipController(
@@ -241,6 +334,8 @@ fun rememberGameState(): GameState {
                     ship.xOffset + ship.width / 2f,
                     ship.yOffset + ship.height / 2f,
                 )
+                // 46x REVIVE_ONCE achievement.
+                coroutineScope.launch { unlockAchievement(Achievement.REVIVE_ONCE) }
                 Logger.w("Auto-revive consumed @ $revivedShownAtMillis (banner shown 1.6s)")
             },
             onSpaceObjectHitShip = { x, y ->
@@ -251,6 +346,9 @@ fun rememberGameState(): GameState {
                 Logger.d("SpaceRock impact ship @ ($x,$y) — visual burst")
             },
             damageMultiplier = { difficultyState.value.multiplier },
+            // 25x/48x — modifier + skill tree speed multiplier (TRIPLE_SPEED ×3,
+            // TANK ×0.7, AGILITY +6%/rank).
+            speedMultiplier = { effectiveStats.speedMul },
         )
     }
 
@@ -279,6 +377,8 @@ fun rememberGameState(): GameState {
                 explosionsController.addExplosion(x, y, miniSize, miniSize)
                 hitStopController.freezeForHit()
             },
+            // 25x/48x — modifier + skill tree damage multiplier applied per hit.
+            damageMultiplier = { effectiveStats.damageMul },
         )
     }
 
@@ -299,7 +399,9 @@ fun rememberGameState(): GameState {
             screenHeight = screenHeight,
             uuidUtils = uuidUtils,
             initialBoosters = boosters,
-            updateBoosters = { boosters = it }
+            updateBoosters = { boosters = it },
+            // 25x NO_SHIELDS modifier: filter SHIELD_BOOSTER spawns.
+            noShieldDrops = { effectiveStats.noShieldDrops },
         )
     }
 
@@ -309,18 +411,8 @@ fun rememberGameState(): GameState {
     val pickupPopupController = remember {
         PickupPopupController(updateState = { pickupPopups = it })
     }
-    var achievementUnlocked by remember {
-        mutableStateOf<Achievement?>(null)
-    }
-    var achievementShownAtMillis by remember { mutableLongStateOf(0L) }
-    val achievementsRepo = com.tranphuloi.neon.data.LocalAchievements.current
-    suspend fun unlockAchievement(achievement: Achievement) {
-        if (achievementsRepo.unlock(achievement)) {
-            achievementUnlocked = achievement
-            achievementShownAtMillis = System.currentTimeMillis()
-            Logger.d("Achievement unlocked: ${achievement.id} \"${achievement.title}\"")
-        }
-    }
+    // 46x — achievementUnlocked / achievementShownAtMillis / unlockAchievement
+    // hoisted to line ~188 so onShipRevived can call them. Kept removed here.
     var lastMineralPickupMillis by remember { mutableLongStateOf(0L) }
     var lastEnemyKillMillis by remember { mutableLongStateOf(0L) }
     var comboCount by remember { mutableIntStateOf(0) }
@@ -346,7 +438,10 @@ fun rememberGameState(): GameState {
             initialMinerals = minerals,
             updateMinerals = { minerals = it },
             updateMineralsEarnedTotal = { amount ->
-                mineralsEarnedTotal += amount
+                // 25x apply RunModifier scoreMul. Round to int — small minerals (1-2)
+                // multiplied by 1.5× rounds to 2-3; large minerals (10) round to 15.
+                val scaled = (amount * effectiveStats.scoreMul).toInt().coerceAtLeast(amount)
+                mineralsEarnedTotal += scaled
                 lastMineralPickupMillis = System.currentTimeMillis()
                 // 4c: spawn pickup popup at ship center.
                 val tier = comboController.currentTier()
@@ -365,7 +460,8 @@ fun rememberGameState(): GameState {
                 )
             },
             getShipCenter = { ship.xOffset + ship.width / 2 to ship.yOffset + ship.height / 2 },
-            getMagnetRadius = { magnetRadiusState.floatValue }
+            // 25x apply RunModifier magnetMul to magnet radius (e.g. SUPER_MAGNET ×2).
+            getMagnetRadius = { magnetRadiusState.floatValue * effectiveStats.magnetMul }
         )
     }
 
@@ -435,12 +531,32 @@ fun rememberGameState(): GameState {
                 } else {
                     hitStopController.freezeForEnemyKill()
                 }
-                // Achievement triggers
+                // Achievement triggers — 9b + 46x expansion
                 coroutineScope.launch {
                     unlockAchievement(Achievement.FIRST_BLOOD)
                     if (enemy.isBoss) unlockAchievement(Achievement.FIRST_BOSS)
                     if (comboCount >= 5) unlockAchievement(Achievement.COMBO_5)
                     if (comboCount >= 10) unlockAchievement(Achievement.COMBO_10)
+                    // 46x kill milestones
+                    if (enemiesKilledTotal >= 50) unlockAchievement(Achievement.KILL_50)
+                    if (enemiesKilledTotal >= 200) unlockAchievement(Achievement.KILL_200)
+                    if (enemiesKilledTotal >= 500) unlockAchievement(Achievement.KILL_500)
+                    if (comboCount >= 20) unlockAchievement(Achievement.COMBO_20)
+                    // 46x boss milestones
+                    if (enemy.isBoss && bossesDefeatedTotal >= 3) unlockAchievement(Achievement.BOSS_3)
+                    if (enemy.isBoss && bossesDefeatedTotal >= 5) unlockAchievement(Achievement.BOSS_5)
+                    // 46x FinalBoss kill
+                    if (enemy is com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBoss) {
+                        unlockAchievement(Achievement.FINAL_BOSS_KILL)
+                        if (difficultyState.value == com.tranphuloi.neon.data.Difficulty.HARD) {
+                            unlockAchievement(Achievement.HARD_VICTORY)
+                        }
+                    }
+                    // 46x BOSS_RUSH_CLEAR — moved to monitorLoopInSec where stageController is in scope.
+                    // 46x rank-S boss
+                    if (enemy.isBoss && bossKillRank == com.tranphuloi.neon.ui.game.controls.BossRank.S) {
+                        unlockAchievement(Achievement.BOSS_RUSH_S)
+                    }
                 }
                 Logger.d("Enemy killed (id=${enemy.enemyId.take(6)}…) → combo=$comboCount tier=$comboTier boss=${enemy.isBoss}")
             }
@@ -460,9 +576,17 @@ fun rememberGameState(): GameState {
     var waveClearBannerShownMillis by remember { mutableLongStateOf(0L) }
     var bossIntroShownAtMillis by remember { mutableLongStateOf(0L) }
     var bossIntroName by remember { mutableStateOf("") }
+    // 47x Wave 5 — story dialogue state. storyLine is what StoryOverlay shows;
+    // storyShownMillis drives the slide-in / fade-out. chapterIntroShown gates
+    // per-chapter intro firing so we only narrate first entry to each chapter.
+    var storyLine by remember { mutableStateOf<com.tranphuloi.neon.ui.game.story.StoryLine?>(null) }
+    var storyShownMillis by remember { mutableLongStateOf(0L) }
+    var chapterIntroPlayedChapter by rememberSaveable { mutableIntStateOf(0) }
+    val storyLines = remember { mutableListOf<com.tranphuloi.neon.ui.game.story.StoryLine>() }
 
-    val stageController = rememberSaveable(saver = StageController.saver()) {
+    val stageController = rememberSaveable(runMode, saver = StageController.saver(stageProvider)) {
         StageController(
+            provider = stageProvider,
             onStageAdvance = { idx, newStage ->
                 magnetRadiusState.floatValue = (80f + (idx / 5) * 10f).coerceAtMost(200f)
                 lastStageAdvanceMillis = System.currentTimeMillis()
@@ -472,11 +596,13 @@ fun rememberGameState(): GameState {
                 // per chapter, 5-9s each) would fire wave clear ~60 times per playthrough.
                 // Now fires only at significant transitions (game → boss prelude / mid-boss
                 // DANGER / chapter outro) — ~10 times per full campaign.
+                //
+                // Wave 5: read previous stage via provider (not static `stages`) so
+                // non-campaign modes work too.
                 val previousIdx = idx - 1
-                val previousWasGame =
-                    previousIdx >= 0 &&
-                        previousIdx < com.tranphuloi.neon.ui.game.stage.stages.size &&
-                        com.tranphuloi.neon.ui.game.stage.stages[previousIdx] is com.tranphuloi.neon.ui.game.stage.StageGame
+                val previousWasGame = previousIdx >= 0 &&
+                    stageProvider.hasAt(previousIdx) &&
+                    stageProvider.getAt(previousIdx) is com.tranphuloi.neon.ui.game.stage.StageGame
                 val newIsGame =
                     newStage is com.tranphuloi.neon.ui.game.stage.StageGame
                 if (previousWasGame && !newIsGame) {
@@ -496,9 +622,9 @@ fun rememberGameState(): GameState {
                 // 21c: Boss intro cinematic — fire when entering a StageBoss.
                 if (newStage is com.tranphuloi.neon.ui.game.stage.StageBoss) {
                     val bossName = when (val t = newStage.enemyType) {
-                        com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBossType -> "LEVEL 1 BOSS"
-                        com.tranphuloi.neon.ui.game.enemy.ship.model.LevelTwoBossType -> "LEVEL 2 BOSS"
-                        com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBossType -> "GALAXY OVERLORD"
+                        com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBossType -> "BOSS CẤP 1"
+                        com.tranphuloi.neon.ui.game.enemy.ship.model.LevelTwoBossType -> "BOSS CẤP 2"
+                        com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBossType -> "BÁ VƯƠNG THIÊN HÀ"
                         is com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType -> t.displayName
                         else -> "BOSS"
                     }
@@ -508,6 +634,52 @@ fun rememberGameState(): GameState {
                     bossSpawnedAtMillis = bossIntroShownAtMillis
                     playerHpAtBossSpawn = ship.hp
                     Logger.d("Boss intro: $bossName cinematic triggered (hpSnapshot=${ship.hp})")
+                    // 47x Story — boss taunt queued AFTER the BossIntroOverlay's
+                    // 1.5s priority window so it doesn't compete with the warning
+                    // banner. StoryOverlay is bottom-anchored so it won't overlap.
+                    val taunt = com.tranphuloi.neon.ui.game.story.StoryRegistry
+                        .bossTaunt(newStage.enemyType)
+                    if (taunt != null) {
+                        coroutineScope.launch {
+                            delay(1600L)
+                            storyLine = taunt
+                            storyShownMillis = System.currentTimeMillis()
+                        }
+                    }
+                }
+                // 47x Story — chapter intro narration. Fire only on FIRST entry
+                // to a new chapter id (gated by chapterIntroPlayedChapter).
+                val chapterId = when (newStage) {
+                    is com.tranphuloi.neon.ui.game.stage.StageGame -> newStage.chapterId
+                    is com.tranphuloi.neon.ui.game.stage.StageBoss -> newStage.chapterId
+                    is com.tranphuloi.neon.ui.game.stage.StageMessage -> newStage.chapterId
+                    else -> 0
+                }
+                if (chapterId in 1..5 && chapterId != chapterIntroPlayedChapter) {
+                    chapterIntroPlayedChapter = chapterId
+                    val lines = com.tranphuloi.neon.ui.game.story.StoryRegistry
+                        .chapterIntro(chapterId)
+                    if (lines.isNotEmpty()) {
+                        coroutineScope.launch {
+                            for ((i, l) in lines.withIndex()) {
+                                if (i > 0) delay(l.durationMs.toLong())
+                                storyLine = l
+                                storyShownMillis = System.currentTimeMillis()
+                                delay(50L)                              // ensure new shownMillis applies
+                            }
+                        }
+                    }
+                }
+                // 43x BOSS_RUSH — heal ship to full HP when entering a StageMessage
+                // between bosses ("Next!" gap). Gives the player a clean slate per boss
+                // instead of cumulative damage carry-over (which would make rush unwinnable).
+                if (runMode == com.tranphuloi.neon.ui.game.mode.GameMode.BOSS_RUSH &&
+                    newStage is com.tranphuloi.neon.ui.game.stage.StageMessage &&
+                    newStage.message == "Next!"
+                ) {
+                    val before = ship.hp
+                    ship = ship.copy(hp = 1000)
+                    Logger.d("BOSS_RUSH: heal ship between bosses (hp $before → 1000)")
                 }
                 Logger.d("StageController.onStageAdvance idx=$idx → magnet=${magnetRadiusState.floatValue}px")
             }
@@ -542,6 +714,53 @@ fun rememberGameState(): GameState {
         updateGameTime()
         updateGameTimeIndicator()
         updateGameStage()
+        // 43x TIME_ATTACK — force GAME_OVER when the time limit expires.
+        // Ship remains alive (no kill-cam), feedback is celebratory if score > 0
+        // and matches the standard victory branch.
+        if (timeAttackLimitSec > 0 && gameTimeSec >= timeAttackLimitSec &&
+            gameStatus == GameStatus.RUNNING
+        ) {
+            Logger.d("TIME_ATTACK: time limit ${timeAttackLimitSec}s reached → GAME_OVER (victory path)")
+            timeAttackEnded = true
+            setGameStatus(GameStatus.GAME_OVER)
+        }
+        // 46x time / stage milestone achievements — checked once per second.
+        coroutineScope.launch {
+            if (gameTimeSec >= 300) unlockAchievement(Achievement.SURVIVE_5MIN)
+            if (gameTimeSec >= 600) unlockAchievement(Achievement.SURVIVE_10MIN)
+            val idx = stageController.currentIndex()
+            if (idx >= 30) unlockAchievement(Achievement.STAGE_30)
+            if (idx >= 60) unlockAchievement(Achievement.STAGE_60)
+            if (idx >= 100) unlockAchievement(Achievement.STAGE_100)
+            // 46x endless tier milestones
+            if (runMode == com.tranphuloi.neon.ui.game.mode.GameMode.ENDLESS) {
+                if (gameTimeSec >= 60) unlockAchievement(Achievement.ENDLESS_60S)
+                if (gameTimeSec >= 180) unlockAchievement(Achievement.ENDLESS_180S)
+                if (gameTimeSec >= 300) unlockAchievement(Achievement.ENDLESS_300S)
+            }
+            // 46x time-attack high score
+            if (runMode == com.tranphuloi.neon.ui.game.mode.GameMode.TIME_ATTACK &&
+                enemiesKilledTotal >= 50
+            ) {
+                unlockAchievement(Achievement.TIME_ATTACK_HIGH)
+            }
+            // 46x modifier run — fire as soon as game time > 30s with non-NONE modifier
+            if (gameTimeSec >= 30 &&
+                runModifier != com.tranphuloi.neon.ui.game.modifier.RunModifier.NONE
+            ) {
+                unlockAchievement(Achievement.MODIFIER_RUN)
+            }
+            // 46x BOSS_RUSH_CLEAR — fires only at end-of-script. Use provider's
+            // scriptSize() so the gate scales correctly if the script length
+            // changes (campaign content updates, mid-boss additions, etc.).
+            // BossRushProvider script ends with "ALL CLEAR!" StageMessage.
+            if (runMode == com.tranphuloi.neon.ui.game.mode.GameMode.BOSS_RUSH) {
+                val sz = stageController.scriptSize()
+                if (sz > 0 && stageController.currentIndex() >= sz - 1) {
+                    unlockAchievement(Achievement.BOSS_RUSH_CLEAR)
+                }
+            }
+        }
     }
 
     val lifecycle by LocalLifecycleOwner.current.lifecycle.observeAsState()
@@ -872,7 +1091,12 @@ fun rememberGameState(): GameState {
         dispatchSmartBomb = {
             if (smartBombs > 0 && gameStatus == GameStatus.RUNNING) {
                 smartBombs--
-                Logger.d("SmartBomb dispatch: ${enemies.size} enemies + ${enemyLasers.size} lasers cleared")
+                smartBombsUsedCount++
+                // 46x SMART_BOMB_5 — used 5 in one run.
+                if (smartBombsUsedCount >= 5) {
+                    coroutineScope.launch { unlockAchievement(Achievement.SMART_BOMB_5) }
+                }
+                Logger.d("SmartBomb dispatch: ${enemies.size} enemies + ${enemyLasers.size} lasers cleared (used=$smartBombsUsedCount)")
                 // Detonate every on-screen enemy: spawn explosion + minerals + kill counters.
                 enemies.toList().forEach { e ->
                     explosionsController.addExplosion(
@@ -898,6 +1122,11 @@ fun rememberGameState(): GameState {
         revivedShownAtMillis = revivedShownAtMillis,
         hasReviveToken = ship.hasReviveToken,
         bossSlowMotionStartedAtMillis = bossSlowMotionStartedAtMillis,
+        gameMode = runMode,
+        timeAttackLimitSec = timeAttackLimitSec,
+        timeAttackEnded = timeAttackEnded,
+        storyLine = storyLine,
+        storyShownMillis = storyShownMillis,
         moveShipLeft = { shipController.movingLeft = it },
         moveShipRight = { shipController.movingRight = it },
         toggleGameStatus = {
@@ -965,6 +1194,16 @@ data class GameState(
     val revivedShownAtMillis: Long,
     val hasReviveToken: Boolean,
     val bossSlowMotionStartedAtMillis: Long,
+    /** Wave 5 (43x) — current run mode, decided at GameState construction. */
+    val gameMode: com.tranphuloi.neon.ui.game.mode.GameMode,
+    /** TIME_ATTACK only — countdown seconds (0 in other modes). */
+    val timeAttackLimitSec: Int,
+    /** Round 23 — TIME_ATTACK timer expired; GameScreen uses victory branch. */
+    val timeAttackEnded: Boolean,
+    /** 47x Wave 5 — current story dialogue line (null when none active). */
+    val storyLine: com.tranphuloi.neon.ui.game.story.StoryLine?,
+    /** 47x Wave 5 — millis when storyLine became visible (0 when none active). */
+    val storyShownMillis: Long,
     val moveShipLeft: (Boolean) -> Unit,
     val moveShipRight: (Boolean) -> Unit,
     val toggleGameStatus: () -> Unit,

@@ -21,6 +21,10 @@ object SettingsKeys {
     val SHIP_SKIN = stringPreferencesKey("ship_skin")
     val TUTORIAL_SHOWN = booleanPreferencesKey("tutorial_shown")
     val DIFFICULTY_PICKED = booleanPreferencesKey("difficulty_picked")
+    /** Wave 5 (43x) — last picked GameMode, applied to next run. */
+    val LAST_MODE = stringPreferencesKey("last_mode")
+    /** Wave 5 (25x) — last picked RunModifier, applied to next run. "none" by default. */
+    val LAST_MODIFIER = stringPreferencesKey("last_modifier")
 }
 
 enum class Difficulty(val key: String, val multiplier: Float) {
@@ -74,6 +78,14 @@ class SettingsRepository(private val appContext: Context) {
     val difficultyPicked: Flow<Boolean> = appContext.dataStore.data.map {
         it[SettingsKeys.DIFFICULTY_PICKED] ?: false
     }
+    /** Wave 5 (43x) — current game mode key. Defaults to "campaign". */
+    val lastMode: Flow<String> = appContext.dataStore.data.map {
+        it[SettingsKeys.LAST_MODE] ?: "campaign"
+    }
+    /** Wave 5 (25x) — current run modifier key. "none" = no modifier picked. */
+    val lastModifier: Flow<String> = appContext.dataStore.data.map {
+        it[SettingsKeys.LAST_MODIFIER] ?: "none"
+    }
 
     suspend fun setReduceMotion(value: Boolean) {
         Logger.d("SettingsRepository.setReduceMotion=$value")
@@ -111,5 +123,15 @@ class SettingsRepository(private val appContext: Context) {
     suspend fun markTutorialShown() {
         Logger.d("SettingsRepository.markTutorialShown")
         appContext.dataStore.edit { it[SettingsKeys.TUTORIAL_SHOWN] = true }
+    }
+
+    suspend fun setLastMode(key: String) {
+        Logger.d("SettingsRepository.setLastMode=$key")
+        appContext.dataStore.edit { it[SettingsKeys.LAST_MODE] = key }
+    }
+
+    suspend fun setLastModifier(key: String) {
+        Logger.d("SettingsRepository.setLastModifier=$key")
+        appContext.dataStore.edit { it[SettingsKeys.LAST_MODIFIER] = key }
     }
 }

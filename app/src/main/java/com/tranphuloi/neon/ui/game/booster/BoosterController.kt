@@ -11,6 +11,12 @@ class BoosterController(
     private val generateBooster: GenerateBooster = GenerateBooster(uuidUtils, screenHeight),
     initialBoosters: List<Booster>,
     private val updateBoosters: (List<Booster>) -> Unit,
+    /**
+     * Wave 5 (25x) — when true, SHIELD_BOOSTER spawns are skipped. Wired via
+     * RunModifier.NO_SHIELDS. Re-roll bounded — if generator returns SHIELD,
+     * skip silently and let the next addBooster tick (4s) try again.
+     */
+    private val noShieldDrops: () -> Boolean = { false },
 ) {
 
     init {
@@ -28,6 +34,11 @@ class BoosterController(
             return
         }
         val booster = generateBooster(width = BOOSTER_SIZE, maxXOffset = screenWidth - BOOSTER_SIZE)
+        // 25x NO_SHIELDS modifier — drop SHIELD rolls.
+        if (noShieldDrops() && booster.type == BoosterType.SHIELD_BOOSTER) {
+            Logger.d("BoosterController.addBooster: SKIPPED SHIELD (NO_SHIELDS modifier active)")
+            return
+        }
         boosters += booster
         Logger.d("BoosterController.addBooster: type=${booster.type} at x=${booster.xOffset.toInt()} (active=${boosters.size}/$MAX_BOOSTERS)")
         updateBoosters()

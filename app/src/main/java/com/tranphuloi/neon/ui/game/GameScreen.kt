@@ -56,6 +56,7 @@ import com.tranphuloi.neon.ui.game.controls.ComboPopup
 import com.tranphuloi.neon.ui.game.controls.IndicatorStatus
 import com.tranphuloi.neon.ui.game.controls.PowerUpIndicators
 import com.tranphuloi.neon.ui.game.controls.RevivedBanner
+import com.tranphuloi.neon.ui.game.controls.StoryOverlay
 import com.tranphuloi.neon.ui.game.controls.TutorialOverlay
 import com.tranphuloi.neon.ui.game.controls.Vignette
 import com.tranphuloi.neon.ui.game.haptic.HapticPattern
@@ -109,8 +110,10 @@ fun GameScreen(
     val runStats = com.tranphuloi.neon.data.LocalRunStats.current
     LaunchedEffect(gameState.gameStatus) {
         if (gameState.gameStatus == GameStatus.GAME_OVER) {
-            val isVictory = gameState.finalBossDefeated
-            Logger.d("GameScreen detected GAME_OVER → ${if (isVictory) "VICTORY path" else "death kill-cam path"} (score=${gameState.mineralsEarnedTotal})")
+            // Round 23 — TIME_ATTACK timer expiry is also a "victory" (ship alive,
+            // no kill-cam). Branch alongside FinalBoss defeat.
+            val isVictory = gameState.finalBossDefeated || gameState.timeAttackEnded
+            Logger.d("GameScreen detected GAME_OVER → ${if (isVictory) "VICTORY path" else "death kill-cam path"} (score=${gameState.mineralsEarnedTotal}, finalBoss=${gameState.finalBossDefeated}, timeAttack=${gameState.timeAttackEnded})")
             // 34d: differentiate victory feedback from death. Victory = no kill-cam delay,
             // celebratory PICKUP sfx + HEAVY haptic. Death = original LONG haptic + sad sfx.
             if (isVictory) {
@@ -129,6 +132,7 @@ fun GameScreen(
                 maxCombo = gameState.maxComboReached,
                 stagesReached = gameState.stagesReached,
                 victoryAchieved = isVictory,
+                gameModeKey = gameState.gameMode.key,
             )
             // 11c: kill-cam slow-mo replay = 1500ms. Victory = 500ms breathing room only
             // (no kill-cam to play, ship still alive).
@@ -557,6 +561,16 @@ fun GameScreen(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .zIndex(450f)
+        )
+        // 47x: Story dialogue — round 24: TOP anchored (was bottom, overlapped ship).
+        // Ship is locked at maxYOffset (screenHeight-140) → bottom half is gameplay
+        // zone; top zone (below HUD + BossHpBar) is safe for dialogue card.
+        StoryOverlay(
+            line = gameState.storyLine,
+            shownAtMillis = gameState.storyShownMillis,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .zIndex(448f)
         )
         // 18c: Boss kill flash overlay (200ms white flash).
         val bossFlashElapsed = (now - gameState.bossKillFlashMillis).coerceAtLeast(0L)

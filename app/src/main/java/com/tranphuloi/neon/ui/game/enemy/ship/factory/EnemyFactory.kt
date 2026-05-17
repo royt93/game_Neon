@@ -13,6 +13,8 @@ import com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType
 import com.tranphuloi.neon.ui.game.enemy.ship.model.RegularEnemy
 import com.tranphuloi.neon.ui.game.enemy.ship.model.RegularEnemyType
 import com.tranphuloi.neon.ui.game.enemy.ship.model.Row
+import com.tranphuloi.neon.ui.game.enemy.ship.model.SineWave
+import com.tranphuloi.neon.ui.game.enemy.ship.model.VFormation
 import com.tranphuloi.neon.ui.game.enemy.ship.model.ZigZag
 import com.tranphuloi.neon.ui.game.ship.ship.Ship
 import com.tranphuloi.neon.utils.Logger
@@ -53,6 +55,50 @@ class EnemyFactory(
                         enemies += enemy
                     }
                     Logger.d("EnemyFactory: Row spawn count=${type.formation.rowCount} drawable=${type.drawableId} hp=${type.hp}")
+                }
+
+                is VFormation -> {
+                    // V shape: center enemy first (highest), then 1 left + 1 right each
+                    // layer staggered DOWN (so V points upward — leading ship at top center).
+                    val n = type.formation.count.coerceAtLeast(3)
+                    val half = (n - 1) / 2
+                    val xStep = type.width * 1.4f
+                    val yStep = type.height * 0.9f
+                    val centerX = screenWidth / 2f - type.width / 2f
+                    for (i in 0 until n) {
+                        // Slot ordering: -half .. +half (so even N has one extra on the right)
+                        val slot = i - half
+                        val yLayer = kotlin.math.abs(slot)
+                        val sign = if (slot >= 0) 1 else -1
+                        val xs = centerX + sign * yLayer * xStep
+                        val ys = -yLayer * yStep                    // negative = above screen top, descend in
+                        enemies += RegularEnemy(
+                            screenWidth = screenWidth,
+                            screenHeight = screenHeight,
+                            xOffset = xs.coerceIn(0f, screenWidth - type.width),
+                            type = type,
+                            initialYOffset = ys,
+                        )
+                    }
+                    Logger.d("EnemyFactory: VFormation spawn count=$n drawable=${type.drawableId}")
+                }
+
+                is SineWave -> {
+                    val n = type.formation.count.coerceAtLeast(3)
+                    val yStep = type.height * 1.4f
+                    val centerX = screenWidth / 2f - type.width / 2f
+                    for (i in 0 until n) {
+                        // All share the same anchor x; stagger vertically so the wave
+                        // pattern is visible as a serpent of [n] segments.
+                        enemies += RegularEnemy(
+                            screenWidth = screenWidth,
+                            screenHeight = screenHeight,
+                            xOffset = centerX,
+                            type = type,
+                            initialYOffset = -i * yStep,
+                        )
+                    }
+                    Logger.d("EnemyFactory: SineWave spawn count=$n drawable=${type.drawableId}")
                 }
             }
         } else if (type is LevelOneBossType && enemies.isEmpty()) {

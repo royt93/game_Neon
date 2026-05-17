@@ -25,9 +25,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.common.NeonBgMid
+import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.data.Achievement
+import com.tranphuloi.neon.data.AchievementTier
 import com.tranphuloi.neon.utils.Logger
 import kotlinx.coroutines.delay
 
@@ -66,6 +68,18 @@ fun AchievementBanner(
         else -> 1f - (t - 0.85f) / 0.15f
     }
 
+    // 46x — tier-coloured border + label. Bronze (warm orange-brown), silver
+    // (cool cyan-white), gold (NeonGold). The whole banner accent shifts.
+    val tierColor = when (achievement.tier) {
+        AchievementTier.BRONZE -> Color(0xFFCD7F32)                  // bronze
+        AchievementTier.SILVER -> Color(0xFFB0C4DE)                  // light steel blue (silver)
+        AchievementTier.GOLD -> NeonGold
+    }
+    val tierLabel = when (achievement.tier) {
+        AchievementTier.BRONZE -> "ĐỒNG"
+        AchievementTier.SILVER -> "BẠC"
+        AchievementTier.GOLD -> "VÀNG"
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -76,14 +90,14 @@ fun AchievementBanner(
             }
             .clip(RoundedCornerShape(8.dp))
             .background(NeonBgMid)
-            .border(BorderStroke(2.dp, NeonGold), RoundedCornerShape(8.dp))
-            .neonGlow(NeonGold, intensity = 0.45f, radiusFactor = 1.2f)
+            .border(BorderStroke(2.dp, tierColor), RoundedCornerShape(8.dp))
+            .neonGlow(tierColor, intensity = 0.45f, radiusFactor = 1.2f)
             .padding(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "🏆 ACHIEVEMENT UNLOCKED",
-            color = NeonGold,
+            text = "🏆 THÀNH TỰU · $tierLabel",
+            color = tierColor,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
         )

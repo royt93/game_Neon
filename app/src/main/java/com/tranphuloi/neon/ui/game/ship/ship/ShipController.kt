@@ -28,6 +28,11 @@ class ShipController(
     private val onSpaceObjectHitShip: (xOffset: Float, yOffset: Float) -> Unit = { _, _ -> },
     private val onShipRevived: () -> Unit = {},
     private val damageMultiplier: () -> Float = { 1f },
+    /**
+     * Wave 5 (25x / 48x) — ship movement speed multiplier. Combines
+     * RunModifier (TRIPLE_SPEED, TANK) + AGILITY skill node.
+     */
+    private val speedMultiplier: () -> Float = { 1f },
 ) {
 
     init {
@@ -87,27 +92,30 @@ class ShipController(
         }
         var newX = ship.xOffset
         var newY = ship.yOffset
+        // 25x/48x — effective movement speed = base × modifier × meta. Recomputed
+        // per tick so reactive multiplier changes (none currently, but cheap).
+        val effSpeed = movementSpeed * speedMultiplier()
         // Settle to play position bi-directionally. Activity recreate (config change,
         // theme switch, etc.) preserves Ship.yOffset via rememberSaveable but resets
         // ShipController.spawnStartMillis. If user pauses mid-spawn then resumes
         // after spawnTotalMillis elapses, spawn anim is skipped — ship would be
         // stuck wherever spawn left it. Pull it back to maxYOffset from either side.
         if (newY > maxYOffset) {
-            newY = (newY - movementSpeed).coerceAtLeast(maxYOffset)
+            newY = (newY - effSpeed).coerceAtLeast(maxYOffset)
         } else if (newY < maxYOffset) {
-            newY = (newY + movementSpeed).coerceAtMost(maxYOffset)
+            newY = (newY + effSpeed).coerceAtMost(maxYOffset)
         }
         // Symmetric bounds: left allows ship overlap by width/4 → right matches with
         // ship.width * 0.75. Was asymmetric (-21px vs +29px overlap, ~8px diff).
         val leftLimit = -ship.width / 4f
         val rightLimit = screenWidth - ship.width * 0.75f
         if (movingLeft && ship.xOffset > leftLimit) {
-            newX -= movementSpeed
+            newX -= effSpeed
         } else if (movingLeft) {
             movingLeft = false
         }
         if (movingRight && ship.xOffset < rightLimit) {
-            newX += movementSpeed
+            newX += effSpeed
         } else if (movingRight) {
             movingRight = false
         }

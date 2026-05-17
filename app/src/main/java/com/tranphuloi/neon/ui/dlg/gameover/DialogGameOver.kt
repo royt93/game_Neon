@@ -48,21 +48,34 @@ import java.util.Locale
 @Composable
 fun DialogGameOver(score: String, onRestartGame: () -> Unit) {
     val leaderboard = LocalLeaderboard.current
+    val meta = com.tranphuloi.neon.data.LocalMetaProgression.current
     val entries by leaderboard.topEntries.collectAsState(initial = emptyList())
     // 17c Daily challenge — separate top-N for today's UTC day key, displayed
     // alongside the all-time list.
     val todayKey = remember { com.tranphuloi.neon.data.LeaderboardRepository.todayUtcDayKey() }
     val dailyEntries by leaderboard.dailyEntries(todayKey).collectAsState(initial = emptyList())
+    // 23x Endless — top-10 by survival seconds. Shown only when current run was endless.
+    val endlessEntries by leaderboard.endlessEntries.collectAsState(initial = emptyList())
     var submitted by remember { mutableStateOf(false) }
+    val runStatsState = LocalRunStats.current.value
+    val isEndless = runStatsState?.gameModeKey == "endless"
 
     LaunchedEffect(Unit) {
-        Logger.d("DialogGameOver shown (score=$score)")
+        Logger.d("DialogGameOver shown (score=$score, mode=${runStatsState?.gameModeKey ?: "?"})")
         if (!submitted) {
             val parsed = score.toIntOrNull()
             if (parsed != null) {
                 Logger.d("DialogGameOver: submitting score=$parsed to leaderboard + daily(day=$todayKey)")
                 leaderboard.submit(parsed)
                 leaderboard.submitDaily(parsed, todayKey)
+                if (isEndless) {
+                    val sec = runStatsState.timeSec.toInt().coerceAtLeast(0)
+                    Logger.d("DialogGameOver: submitting endless survival=${sec}s")
+                    leaderboard.submitEndless(sec)
+                }
+                // 48x — bank earned minerals into lifetime balance.
+                Logger.d("DialogGameOver: banking $parsed lifetime minerals (meta)")
+                meta.addMinerals(parsed)
             }
             submitted = true
         }
@@ -74,7 +87,6 @@ fun DialogGameOver(score: String, onRestartGame: () -> Unit) {
     val playerRank = entries
         .indexOfFirst { it.score == currentScore }
         .let { if (it == -1) null else it + 1 }
-    val runStatsState = LocalRunStats.current.value
 
     NeonDialog(
         title = stringResource(id = R.string.game_over_dialog_title),
@@ -125,6 +137,15 @@ fun DialogGameOver(score: String, onRestartGame: () -> Unit) {
             if (runStatsState != null) {
                 Spacer(modifier = Modifier.height(14.dp))
                 StatsPanel(stats = runStatsState)
+            }
+            // 23x Endless — only when current run was endless. `isEndless` already
+            // implies runStatsState != null (since isEndless = state?.key == "endless").
+            if (isEndless) {
+                Spacer(modifier = Modifier.height(14.dp))
+                EndlessPanel(
+                    currentSeconds = runStatsState.timeSec.toInt(),
+                    endlessEntries = endlessEntries,
+                )
             }
             // 17c Daily challenge — daily best panel above the all-time list.
             Spacer(modifier = Modifier.height(14.dp))
@@ -193,6 +214,49 @@ private fun VictoryPanel() {
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
         )
+    }
+}
+
+@Composable
+private fun EndlessPanel(
+    currentSeconds: Int,
+    endlessEntries: List<LeaderboardEntry>,
+) {
+    val bestSeconds = endlessEntries.maxByOrNull { it.score }?.score ?: currentSeconds
+    val currentStr = String.format(Locale.US, "%02d:%02d", currentSeconds / 60, currentSeconds % 60)
+    val bestStr = String.format(Locale.US, "%02d:%02d", bestSeconds / 60, bestSeconds % 60)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .background(com.tranphuloi.neon.common.NeonViolet.copy(alpha = 0.12f))
+            .border(
+                BorderStroke(1.dp, com.tranphuloi.neon.common.NeonViolet.copy(alpha = 0.55f)),
+                RoundedCornerShape(6.dp),
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Text(
+            text = "ENDLESS",
+            color = com.tranphuloi.neon.common.NeonViolet,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            style = TextStyle(letterSpacing = 4.sp),
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        StatLine(label = "SURVIVED", value = currentStr)
+        StatLine(label = "BEST EVER", value = bestStr)
+        if (currentSeconds >= bestSeconds && currentSeconds > 0) {
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "★ NEW ENDLESS BEST ★",
+                color = com.tranphuloi.neon.common.NeonViolet,
+                fontWeight = FontWeight.Black,
+                fontSize = 11.sp,
+                style = TextStyle(letterSpacing = 2.sp),
+            )
+        }
     }
 }
 

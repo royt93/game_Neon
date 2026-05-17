@@ -16,6 +16,8 @@ data class RunStats(
     val stagesReached: Int,         // stageController.currentIndex()
     /** 34d Wave 4 — true if player defeated the FinalBoss (Galaxy Overlord). */
     val victoryAchieved: Boolean = false,
+    /** Wave 5 (43x) — mode key the run was played in. "campaign" default for back-compat. */
+    val gameModeKey: String = "campaign",
 )
 
 val LocalRunStats =

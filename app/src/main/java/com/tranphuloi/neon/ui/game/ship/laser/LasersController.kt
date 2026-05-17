@@ -23,6 +23,12 @@ class LasersController(
     private val setShipLasers: (List<Laser>) -> Unit,
     private val setUltimateLasers: (List<Laser>) -> Unit,
     private val onLaserHit: (targetId: String, damage: Int, x: Float, y: Float, isBoss: Boolean) -> Unit = { _, _, _, _, _ -> },
+    /**
+     * Wave 5 (25x / 48x) — damage multiplier applied at hit time. Combines
+     * RunModifier (GLASS_CANNON, BERSERKER, DOUBLE_OR_NOTHING) + skill tree
+     * FIREPOWER node. Default 1.0 = no boost.
+     */
+    private val damageMultiplier: () -> Float = { 1f },
 ) {
 
     init {
@@ -151,27 +157,28 @@ class LasersController(
                 size = Size(width = laser.width, height = laser.height)
             )
 
+            // 25x/48x — apply damage multiplier (modifier + meta) per hit.
+            val dmgMul = damageMultiplier()
+            val effectiveDamage = laser.impactPower * dmgMul
             if (spaceObjectRectList.any { it.overlaps(laserRect) }) {
                 val index = spaceObjectRectList.indexOfFirst { it.overlaps(laserRect) }
                 val target = spaceObjects[index]
                 val hitX = target.xOffset + target.size / 2f
                 val hitY = target.yOffset + target.size / 2f
-                Logger.d("Collision: laser id=${laser.id.take(6)} → spaceObject hp=${target.hp.toInt()} (-${laser.impactPower.toInt()})")
-                target.onObjectImpact(laser.impactPower)
+                target.onObjectImpact(effectiveDamage)
                 // Trigger same impact feedback as enemy hits — sparks + mini explosion +
                 // damage number + hit-stop freeze. Rocks are non-boss so isBoss=false.
-                onLaserHit(target.id, laser.impactPower.toInt(), hitX, hitY, false)
+                onLaserHit(target.id, effectiveDamage.toInt(), hitX, hitY, false)
                 destroyShipLaser(laser)
                 updateShipLasersUI()
             }
             if (enemyRectList.any { it.overlaps(laserRect) }) {
                 val index = enemyRectList.indexOfFirst { it.overlaps(laserRect) }
                 val target = enemies[index]
-                Logger.d("Collision: laser id=${laser.id.take(6)} → enemy id=${target.enemyId.take(6)} hp=${target.hp.toInt()} (-${laser.impactPower.toInt()})")
-                target.onObjectImpact(laser.impactPower)
+                target.onObjectImpact(effectiveDamage)
                 onLaserHit(
                     target.enemyId,
-                    laser.impactPower.toInt(),
+                    effectiveDamage.toInt(),
                     target.xOffset + target.width / 2f,
                     target.yOffset,
                     target.isBoss,

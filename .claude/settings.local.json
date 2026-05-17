@@ -34,7 +34,8 @@
       "Bash(./gradlew compileDevDebugKotlin compileProductionReleaseKotlin assembleDevDebug)",
       "Bash(./gradlew clean *)",
       "Bash(./gradlew compileDevDebugKotlin --warning-mode all)",
-      "Bash(~/.claude/bin/tg-chat.sh send *)"
+      "Bash(~/.claude/bin/tg-chat.sh send *)",
+      "Bash(grep -n \"LEVEL 1 BOSS\\\\|LEVEL 2 BOSS\\\\|GALAXY OVERLORD\\\\|BOSS$\" /Users/loitran/AndroidStudioProjects/@mckimquyen/@gameKotlin/5_Neon/app/src/main/java/com/tranphuloi/neon/ui/game/state/GameState.kt)"
     ]
   }
 }

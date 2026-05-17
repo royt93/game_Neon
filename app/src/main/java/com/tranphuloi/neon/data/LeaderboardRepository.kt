@@ -12,6 +12,7 @@ private val Context.leaderboardDataStore by preferencesDataStore(name = "neon_le
 
 private val ENTRIES_KEY = stringPreferencesKey("entries_csv")
 private val DAILY_KEY = stringPreferencesKey("daily_csv")            // 17c Daily challenge — separate top-10 list per UTC day. Format: `dateKey|score|timestamp` lines. dateKey = days-since-epoch UTC.
+private val ENDLESS_KEY = stringPreferencesKey("endless_csv")        // 23x Endless mode — separate top-10 ranked by survival seconds. Format: `seconds|timestamp` lines.
 
 /**
  * Top-10 local leaderboard. Entries serialized as CSV: `score|timestamp` lines, newline-separated.
@@ -107,6 +108,54 @@ class LeaderboardRepository(private val appContext: Context) {
         }
         return dayList
     }
+
+    /**
+     * 23x Endless mode — submit survival time (seconds). Reuses LeaderboardEntry
+     * (score = seconds survived). Top-10 best survival times kept.
+     */
+    suspend fun submitEndless(seconds: Int): List<LeaderboardEntry> {
+        Logger.d("LeaderboardRepository.submitEndless seconds=$seconds")
+        var newList: List<LeaderboardEntry> = emptyList()
+        appContext.leaderboardDataStore.edit { prefs ->
+            val existing = prefs[ENDLESS_KEY].orEmpty()
+                .lineSequence()
+                .filter { it.isNotBlank() }
+                .mapNotNull { line ->
+                    val parts = line.split("|")
+                    if (parts.size != 2) return@mapNotNull null
+                    val s = parts[0].toIntOrNull() ?: return@mapNotNull null
+                    val t = parts[1].toLongOrNull() ?: return@mapNotNull null
+                    LeaderboardEntry(s, t)
+                }
+                .toMutableList()
+            existing.add(LeaderboardEntry(seconds, System.currentTimeMillis()))
+            existing.sortByDescending { it.score }
+            val capped = existing.take(MAX_ENTRIES)
+            newList = capped
+            prefs[ENDLESS_KEY] = capped.joinToString(separator = "\n") {
+                "${it.score}|${it.timestampMillis}"
+            }
+            Logger.d("LeaderboardRepository.submitEndless: size=${capped.size} best=${capped.firstOrNull()?.score}s")
+        }
+        return newList
+    }
+
+    /** 23x Endless mode — top-10 best survival times. */
+    val endlessEntries: Flow<List<LeaderboardEntry>> =
+        appContext.leaderboardDataStore.data.map { prefs ->
+            prefs[ENDLESS_KEY].orEmpty()
+                .lineSequence()
+                .filter { it.isNotBlank() }
+                .mapNotNull { line ->
+                    val parts = line.split("|")
+                    if (parts.size != 2) return@mapNotNull null
+                    val s = parts[0].toIntOrNull() ?: return@mapNotNull null
+                    val t = parts[1].toLongOrNull() ?: return@mapNotNull null
+                    LeaderboardEntry(s, t)
+                }
+                .sortedByDescending { it.score }
+                .toList()
+        }
 
     /** Top-10 of [dayKey] (today by default), best-first. */
     fun dailyEntries(dayKey: Long = todayUtcDayKey()): Flow<List<LeaderboardEntry>> =

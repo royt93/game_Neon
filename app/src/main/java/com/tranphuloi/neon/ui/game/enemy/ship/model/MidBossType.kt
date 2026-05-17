@@ -15,14 +15,14 @@ sealed class MidBossType(val drawableId: Int, val baseHp: Float, val displayName
     object OFFENSIVE : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 1500f,
-        displayName = "OFFENSIVE MID-BOSS",
+        displayName = "TIỂU BOSS TẤN CÔNG",
     )
 
     /** Tanky — high HP, slow movement. Phase 2: laser barrage. */
     object DEFENSIVE : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 2500f,
-        displayName = "DEFENSIVE MID-BOSS",
+        displayName = "TIỂU BOSS PHÒNG THỦ",
     )
 
     /**
@@ -33,6 +33,6 @@ sealed class MidBossType(val drawableId: Int, val baseHp: Float, val displayName
     object SWARM : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 1200f,
-        displayName = "SWARM MID-BOSS",
+        displayName = "TIỂU BOSS BẦY ĐÀN",
     )
 }

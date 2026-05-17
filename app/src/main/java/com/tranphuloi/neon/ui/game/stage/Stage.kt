@@ -3,9 +3,12 @@ package com.tranphuloi.neon.ui.game.stage
 import com.tranphuloi.neon.ui.game.common.Millis
 import com.tranphuloi.neon.ui.game.common.Never
 import com.tranphuloi.neon.ui.game.common.RepeatTime
+import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyFormation
 import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyType
 import com.tranphuloi.neon.ui.game.enemy.ship.model.RegularEnemyType
 import com.tranphuloi.neon.ui.game.enemy.ship.model.Row
+import com.tranphuloi.neon.ui.game.enemy.ship.model.SineWave
+import com.tranphuloi.neon.ui.game.enemy.ship.model.VFormation
 import com.tranphuloi.neon.ui.game.enemy.ship.model.ZigZag
 import com.tranphuloi.neon.ui.game.enemy.ship.model.ZigZagInitialPosition
 import java.io.Serializable
@@ -116,7 +119,22 @@ private fun buildGameStage(chapter: Chapter, gameStage: Int, tier: Int): StageGa
     val zigZagPosition = if (gameStage % 4 < 2) ZigZagInitialPosition.RIGHT
     else ZigZagInitialPosition.LEFT
 
-    val formation = if (isZigZag) ZigZag(position = zigZagPosition) else Row(rowCount = rowCount)
+    // 28x Wave 5 — from chapter 2 onwards (~stage 25+ absolute), inject V and
+    // SineWave procedurally. Selection seed = chapter.id * 12 + gameStage so it's
+    // deterministic per slot. Chapter 1 keeps the original ZigZag/Row alternation
+    // (matches existing early-game ramp pace).
+    val formation: EnemyFormation = if (chapter.id < 2) {
+        if (isZigZag) ZigZag(position = zigZagPosition) else Row(rowCount = rowCount)
+    } else {
+        val seed = chapter.id * 12 + gameStage
+        // Distribution: 35% ZigZag, 30% Row, 17% VFormation, 18% SineWave.
+        when (seed % 6) {
+            0, 1 -> ZigZag(position = zigZagPosition)
+            2, 3 -> Row(rowCount = rowCount)
+            4 -> VFormation(count = 5)
+            else -> SineWave(count = 4)
+        }
+    }
 
     val enemyType = RegularEnemyType(
         drawableId = drawable,

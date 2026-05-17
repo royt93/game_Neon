@@ -23,14 +23,21 @@ import com.tranphuloi.neon.App
 import com.tranphuloi.neon.common.NeonTheme
 import com.tranphuloi.neon.data.LocalAchievements
 import com.tranphuloi.neon.data.LocalLeaderboard
+import com.tranphuloi.neon.data.LocalMetaProgression
 import com.tranphuloi.neon.data.LocalSettings
 import com.tranphuloi.neon.navigation.DifficultyPicker
 import com.tranphuloi.neon.navigation.Game
 import com.tranphuloi.neon.navigation.GameOver
 import com.tranphuloi.neon.navigation.GamePause
+import com.tranphuloi.neon.navigation.MetaUpgrade
+import com.tranphuloi.neon.navigation.ModePicker
+import com.tranphuloi.neon.navigation.ModifierPicker
 import com.tranphuloi.neon.navigation.Settings as SettingsRoute
 import com.tranphuloi.neon.navigation.Splash
 import com.tranphuloi.neon.ui.dlg.difficulty.DialogDifficultyPicker
+import com.tranphuloi.neon.ui.dlg.metaupgrade.DialogMetaUpgrade
+import com.tranphuloi.neon.ui.dlg.modepicker.DialogModePicker
+import com.tranphuloi.neon.ui.dlg.modifierpicker.DialogModifierPicker
 import com.tranphuloi.neon.ui.dlg.settings.DialogSettings
 import com.tranphuloi.neon.ui.dlg.gameover.DialogGameOver
 import com.tranphuloi.neon.ui.dlg.gamepause.DialogGamePause
@@ -92,6 +99,7 @@ class MainActivity : ComponentActivity() {
                 LocalSettings provides app.settings,
                 LocalLeaderboard provides app.leaderboard,
                 LocalAchievements provides app.achievements,
+                LocalMetaProgression provides app.metaProgression,
                 com.tranphuloi.neon.data.LocalRunStats provides remember {
                     androidx.compose.runtime.mutableStateOf<com.tranphuloi.neon.data.RunStats?>(null)
                 },
@@ -167,10 +175,24 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         dialog(route = SettingsRoute.route) {
-                            DialogSettings(onDismiss = {
-                                Logger.d("Nav: Settings → back")
-                                navController.popBackStack()
-                            })
+                            DialogSettings(
+                                onDismiss = {
+                                    Logger.d("Nav: Settings → back")
+                                    navController.popBackStack()
+                                },
+                                onOpenModePicker = {
+                                    Logger.d("Nav: Settings → ModePicker")
+                                    navController.navigate(ModePicker.route)
+                                },
+                                onOpenModifierPicker = {
+                                    Logger.d("Nav: Settings → ModifierPicker")
+                                    navController.navigate(ModifierPicker.route)
+                                },
+                                onOpenMetaUpgrade = {
+                                    Logger.d("Nav: Settings → MetaUpgrade")
+                                    navController.navigate(MetaUpgrade.route)
+                                },
+                            )
                         }
                         dialog(route = DifficultyPicker.route) {
                             DialogDifficultyPicker(onPicked = {
@@ -179,6 +201,30 @@ class MainActivity : ComponentActivity() {
                                     popUpTo(Splash.route) { inclusive = true }
                                     launchSingleTop = true
                                 }
+                            })
+                        }
+                        dialog(route = ModePicker.route) {
+                            DialogModePicker(onPicked = {
+                                Logger.d("Nav: ModePicker → Game (restart with new mode)")
+                                navController.navigate(Game.route) {
+                                    popUpTo(Game.route) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            })
+                        }
+                        dialog(route = ModifierPicker.route) {
+                            DialogModifierPicker(onPicked = {
+                                Logger.d("Nav: ModifierPicker → Game (restart with new modifier)")
+                                navController.navigate(Game.route) {
+                                    popUpTo(Game.route) { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            })
+                        }
+                        dialog(route = MetaUpgrade.route) {
+                            DialogMetaUpgrade(onDismiss = {
+                                Logger.d("Nav: MetaUpgrade → back")
+                                navController.popBackStack()
                             })
                         }
                         dialog(

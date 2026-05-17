@@ -301,6 +301,227 @@
 - **Chapter intro chapterId lag**: during 7s of "CHAPTER N / NAME / GO!" StageMessage entries, `currentChapterId()` still returns the previous chapter (walks back finds previous chapter's StageGame/StageBoss). Tint will shift only when first game stage of new chapter starts. Acceptable transient.
 - **MidBoss/FinalBoss difficulty scaling**: difficulty multiplier currently affects only player damage taken, not enemy HP. FinalBoss 22500 HP fixed across Easy/Normal/Hard. Hard mode = same boss but harder player survival.
 
+## 🆕 Wave 5 Modes + meta (round 22 — modes / endless / modifiers / patterns / achievements / story / progression)
+
+### Phase 0 — foundation scaffolding
+
+- ✅ **RunContext + EffectiveStats + StageProvider**. New `ui/game/state/RunContext.kt` (immutable per-run snapshot: mode + modifier + difficulty + dailySeed + metaUpgrades). New `ui/game/state/EffectiveStats.kt` (pure compute: difficulty × modifier × meta upgrades w/ caps hp 0.3..3.0, damage 0.5..4.0, speed 0.5..3.5, magnet 0.5..3.0, score 0.5..4.0). New `ui/game/stage/StageProvider.kt` sealed interface + StaticListProvider default — `StageController` now accepts `provider` parameter (back-compat default = StaticListProvider). Zero behavior change for existing campaign.
+
+### 43x — Game modes (Survival / TimeAttack / BossRush)
+
+- ✅ **GameMode enum** (`ui/game/mode/GameMode.kt`): CAMPAIGN / SURVIVAL / TIME_ATTACK / BOSS_RUSH / ENDLESS / DAILY. SettingsRepository.lastMode persists pick. DialogModePicker (clone of DifficultyPicker style) under `ui/dlg/modepicker/`. Wired into Settings dialog "Game mode" entry + dedicated ModePicker route. Restart picks up new mode automatically.
+- ✅ **StageProviders.kt** with SurvivalProvider (chapter-1 stages cycled, +15% scaling per cycle), BossRushProvider (all StageBoss entries in sequence + "Next!" gaps), TimeAttackProvider (chapter-1 cycled + 60s wall clock).
+- ✅ **TIME_ATTACK timer**: GameState's `monitorLoopInSec` forces GAME_OVER when `gameTimeSec >= 60`. Ship stays alive → victory branch in GameScreen.
+- ✅ **BOSS_RUSH heal between bosses**: onStageAdvance restores `ship.hp = 1000` when entering "Next!" StageMessage (so each boss is a fresh slate).
+- ✅ **Wave-clear logic fixed**: previously referenced global `stages` directly; now uses `stageProvider.getAt(previousIdx)` so non-campaign modes don't crash on out-of-range index.
+
+### 23x — Endless mode + endless leaderboard
+
+- ✅ **EndlessProvider**: chapter-1 stages cycled with `hp × 1.10^wave` + `spawn × 1.05^wave` scaling. Procedural — never terminates.
+- ✅ **LeaderboardRepository** extended: new ENDLESS_KEY + `submitEndless(seconds)` + `endlessEntries: Flow<List<LeaderboardEntry>>`. Score field stores survival seconds.
+- ✅ **DialogGameOver EndlessPanel**: shows when `runStatsState.gameModeKey == "endless"`. Survival time MM:SS + best ever + "★ NEW ENDLESS BEST ★" badge.
+- ✅ **RunStats.gameModeKey** added so DialogGameOver knows the run's mode. GameScreen writes it on GAME_OVER snapshot.
+
+### 25x — Random modifiers (pick 1/3 pre-game)
+
+- ✅ **RunModifier enum** (`ui/game/modifier/RunModifier.kt`): 9 entries (NONE + TRIPLE_SPEED, GLASS_CANNON, NO_SHIELDS, SUPER_MAGNET, BERSERKER, TANK, BOSSES_ONLY, DOUBLE_OR_NOTHING) with hp/damage/speed/magnet/score multipliers + flags.
+- ✅ **DialogModifierPicker**: rolls `RunModifier.pickThree()` random non-NONE choices. User picks 1 or SKIP (applies NONE). Settings.lastModifier persists pick.
+- ✅ **EffectiveStats applied**: `scoreMul` baked into `mineralsEarnedTotal` updates; `magnetMul` baked into MineralsController's `getMagnetRadius` getter.
+- ⏸️ **hpMul / damageMul / speedMul / noShieldDrops / bossesOnly** scope-deferred. Picker shows all multipliers but only score + magnet take effect this round. Controller refactor (Ship/Lasers/Booster) needed to plumb the remaining mods.
+
+### 28x — Procedural enemy patterns (V / SineWave / Cluster)
+
+- ✅ **EnemyFormation extended**: new `VFormation(count)` + `SineWave(count, amplitude, period)` sealed-class members.
+- ✅ **RegularEnemy** accepts `initialYOffset` constructor param + adds `sineAnchorX` baseline; `process()` dispatches new `moveSineWaveFormation()` which oscillates `xOffset = sineAnchorX + sin(yOffset/period) * amplitude`.
+- ✅ **EnemyFactory** spawns V (5 staggered slots from center, mirrored layers below screen-top so they fly in) + SineWave (single-column N enemies, all sharing anchor x).
+- ✅ **Stage.kt buildGameStage** picks procedurally for `chapter.id >= 2`: 35% ZigZag / 30% Row / 17% VFormation / 18% SineWave (seed = chapter.id × 12 + gameStage for determinism). Chapter 1 keeps original alternation (ramp pace).
+
+### 46x — Tiered achievements (+20 Bronze/Silver/Gold)
+
+- ✅ **AchievementTier enum** (BRONZE/SILVER/GOLD) added to AchievementsRepository.
+- ✅ **20 new achievements** added: KILL_50/200/500, COMBO_20, SURVIVE_10MIN, STAGE_30/60/100, BOSS_3/5, REVIVE_ONCE, SMART_BOMB_5, ENDLESS_60S/180S/300S, FINAL_BOSS_KILL, HARD_VICTORY, TIME_ATTACK_HIGH, BOSS_RUSH_CLEAR, MODIFIER_RUN.
+- ✅ **AchievementBanner tier-coloured border**: bronze (0xFFCD7F32 brown), silver (0xFFB0C4DE light steel blue), gold (NeonGold). Tier label displayed in header ("🏆 ACHIEVEMENT · GOLD").
+- ✅ **Trigger sites**: onEnemyKilled, monitorLoopInSec (time + stage milestones + endless tiers), onShipRevived, smart bomb dispatch.
+- ⚠️ Existing 10 achievements still use hardcoded VN description strings (deferred lift to `strings.xml` — would be its own pass).
+
+### 47x — Story / lore
+
+- ✅ **StoryLine** (`ui/game/story/StoryLine.kt`) + **StoryRegistry** (`ui/game/story/StoryRegistry.kt`): per-chapter intro narration (5 chapters × 2 lines, CAPTAIN speaker) + per-boss taunt (LevelOne/Two/Final + 3 MidBoss variants, speaker = boss name).
+- ✅ **StoryOverlay** (`ui/game/controls/StoryOverlay.kt`): bottom-anchored slide-up dialogue card with speaker color (cyan = CAPTAIN, magenta = boss).
+- ✅ **GameState wiring**: chapter intros gated by `chapterIntroPlayedChapter` (saveable) so each chapter narrates only once per run. Boss taunts fire 1.6s after `bossIntroShownAtMillis` so they don't compete with BossIntroOverlay's top banner. Chapter intros chain multiple lines via `coroutineScope.launch { for (l in lines) { ... } }`.
+- ✅ **GameScreen render**: StoryOverlay aligned BottomCenter zIndex=448. Doesn't overlap any existing banner (all others are TopCenter / Center).
+
+### 48x — Permanent progression + 15-node skill tree
+
+- ✅ **MetaProgressionRepository** (`data/MetaProgressionRepository.kt`): DataStore-backed `lifetime_minerals` + per-node `node_<key>` int prefs. `addMinerals(amount)` accumulates; `spendOnNode(key, cost, maxRank)` atomic spend + rank-up. `allRanks: Flow<Map<String, Int>>` snapshot for RunContext.
+- ✅ **SkillNode enum** (`ui/game/meta/SkillNode.kt`): 15 nodes across 3 tiers.
+  - Tier 0 (5 root): FORTIFY (+10% hp/rank, max 5), FIREPOWER (+8% dmg/rank), GRAVITY WELL (+15% magnet/rank, max 4), AEGIS (+1.5s shield), AGILITY (+6% speed, max 4).
+  - Tier 1 (8 branches, require parent rank ≥ 2 or 3): REGENESIS, CRITICAL, STARGAZER, REACTIVE, AFTERBURNER, ARMORY, MOMENTUM, PHOENIX HEART.
+  - Tier 2 (2 endgame, require tier-1 rank ≥ 2): STAR FORGE, VOID CANNON.
+- ✅ **DialogMetaUpgrade** (`ui/dlg/metaupgrade/`): full-screen Card with LazyColumn (height-capped 420dp), header `♦ <balance>`, per-node row showing rank/max + nextCost + UNLOCK/RANK UP button (color-coded per tier, dimmed when prereq unmet).
+- ✅ **App + MainActivity provide LocalMetaProgression**. New `MetaUpgrade` nav route. DialogSettings "UPGRADES · SKILL TREE ➤" entry opens the dialog.
+- ✅ **RunContext.metaUpgrades** populated via `metaRepo.allRanks.first()` at GameState construction. `EffectiveStats.compute` reads HP/Damage/Speed/Magnet rank bonuses and folds them into the same multiplier system as modifiers + difficulty.
+- ✅ **DialogGameOver banks minerals**: `meta.addMinerals(parsed)` runs in the same LaunchedEffect that submits to all-time + daily leaderboards.
+
+### Wave 5 files
+
+**New:**
+- `ui/game/mode/GameMode.kt`
+- `ui/game/modifier/RunModifier.kt`
+- `ui/game/state/RunContext.kt`
+- `ui/game/state/EffectiveStats.kt`
+- `ui/game/stage/StageProvider.kt` (sealed + StaticListProvider)
+- `ui/game/stage/StageProviders.kt` (Survival / BossRush / TimeAttack / Endless)
+- `ui/dlg/modepicker/DialogModePicker.kt`
+- `ui/dlg/modifierpicker/DialogModifierPicker.kt`
+- `ui/dlg/metaupgrade/DialogMetaUpgrade.kt`
+- `ui/game/story/StoryLine.kt`
+- `ui/game/story/StoryRegistry.kt`
+- `ui/game/controls/StoryOverlay.kt`
+- `ui/game/meta/SkillNode.kt`
+- `data/MetaProgressionRepository.kt`
+
+**Modified:**
+- `App.kt` (metaProgression repository)
+- `ui/MainActivity.kt` (LocalMetaProgression + ModePicker/ModifierPicker/MetaUpgrade routes)
+- `navigation/Navigation.kt` (ModePicker, ModifierPicker, MetaUpgrade routes)
+- `data/SettingsRepository.kt` (LAST_MODE + LAST_MODIFIER keys + flows + setters)
+- `data/LeaderboardRepository.kt` (ENDLESS_KEY + submitEndless + endlessEntries)
+- `data/RunStats.kt` (gameModeKey field)
+- `data/AchievementsRepository.kt` (AchievementTier enum + 20 new achievements with tier field)
+- `ui/game/enemy/ship/model/EnemyFormation.kt` (VFormation + SineWave)
+- `ui/game/enemy/ship/model/RegularEnemy.kt` (initialYOffset + sineAnchorX + moveSineWaveFormation)
+- `ui/game/enemy/ship/factory/EnemyFactory.kt` (V + SineWave spawn arms)
+- `ui/game/stage/Stage.kt` (procedural pattern picker for chapter ≥ 2)
+- `ui/game/stage/StageController.kt` (accepts StageProvider parameter, walk-back via provider)
+- `ui/game/state/GameState.kt` (runMode + runModifier + runContext + effectiveStats + storyLine + storyShownMillis + chapterIntroPlayedChapter + smartBombsUsedCount + 12 new achievement trigger sites + TIME_ATTACK timer + BOSS_RUSH heal; achievementsRepo + unlockAchievement hoisted before shipController)
+- `ui/game/GameScreen.kt` (StoryOverlay render + RunStats.gameModeKey write)
+- `ui/dlg/gameover/DialogGameOver.kt` (EndlessPanel + submitEndless + meta.addMinerals)
+- `ui/dlg/settings/DialogSettings.kt` (Game mode + Modifier + Upgrades rows)
+- `ui/game/controls/AchievementBanner.kt` (tier-coloured border + tier label header)
+
+### Wave 5 known scope cuts / deferred
+
+- **25x RunModifier full plumbing**: only `scoreMul` + `magnetMul` applied this round. `hpMul`, `damageMul`, `speedMul`, `noShieldDrops`, `bossesOnly` need ShipController / LasersController / BoosterController refactor — deferred. Picker still functions; balance impact reduced to score + magnet until those plumbing pieces land.
+- **48x tier-2 nodes (STAR FORGE / VOID CANNON)** persist as ranks but only HP/Damage/Speed/Magnet effects are wired to EffectiveStats. The remaining special nodes (REGENESIS auto-heal, CRITICAL chance, MOMENTUM combo extend, etc.) are spendable but visual-only until the controllers expose hooks for them.
+- **Endless via post-campaign auto-trigger**: ENDLESS is currently picker-only (5th option in DialogModePicker). Auto-switch after CAMPAIGN's FinalBoss kill is plausible future work but not picked this round.
+- **Existing 10 achievements** keep their hardcoded Vietnamese descriptions. Future i18n lift to strings.xml deferred.
+- **TIME_ATTACK HUD countdown**: no visible countdown ring yet — gameTimeIndicator shows MM:SS which still works backward by mental math. Polish for next round.
+- **BOSS_RUSH provider chapterId tinting**: BossRushProvider's stages span all chapter colors; the existing `currentChapterId()` walk-back gives reasonable but not necessarily "in-order" tints.
+
+### Verification
+
+- `./gradlew assembleDevDebug` BUILD SUCCESSFUL.
+- `./gradlew compileProductionReleaseKotlin` BUILD SUCCESSFUL.
+
+### Round 23 audit fixes (post-Wave-5 review)
+
+Audit identified 1 critical UX gap + 3 medium/minor bugs. All fixed:
+
+- 🚨 **CRITICAL UX (round 23): RunModifier + skill tree multipliers actually applied.** Round 22 only wired scoreMul + magnetMul. Players spending lifetime minerals on FORTIFY/FIREPOWER/AGILITY (or picking TRIPLE_SPEED/GLASS_CANNON/TANK modifier) saw zero gameplay effect. Fixed:
+  - **hpMul**: `runMode/runModifier/runContext/effectiveStats` block hoisted ABOVE `var ship by rememberSaveable { ... Ship(...) }` so `Ship(hp = (1000 * effectiveStats.hpMul).toInt().coerceIn(100, 3000))` can apply HP at construction. FORTIFY skill + GLASS_CANNON/TANK/BERSERKER modifier now properly scale max HP.
+  - **damageMul**: `LasersController` accepts `damageMultiplier: () -> Float = { 1f }` constructor param. Inside collision processing, `effectiveDamage = laser.impactPower * dmgMul` is applied to both spaceObject + enemy hits. GameState passes `damageMultiplier = { effectiveStats.damageMul }`. FIREPOWER skill + BERSERKER/GLASS_CANNON/DOUBLE_OR_NOTHING modifier now boost damage.
+  - **speedMul**: `ShipController` accepts `speedMultiplier: () -> Float`. `moveShip()` computes `effSpeed = movementSpeed * speedMultiplier()` and uses it for x/y movement instead of hardcoded `movementSpeed`. AGILITY skill + TRIPLE_SPEED (×3)/TANK (×0.7) modifier now affect movement.
+  - **noShieldDrops**: `BoosterController.addBooster()` accepts `noShieldDrops: () -> Boolean`. If generator rolls `SHIELD_BOOSTER` and flag is true, skip the spawn silently (next 4s tick retries). NO_SHIELDS modifier now actually blocks shield drops.
+
+- ⚠️ **BUG (round 23): BOSS_RUSH_CLEAR achievement unlocked too early.** Round 22 gated at hardcoded `currentIndex >= 18` but BossRushProvider's script has ~28 entries (2 intro + 13 bosses + 12 "Next!" + 1 "ALL CLEAR!"). Player got the achievement at ~boss 9, not at the end. Fix: added `StageController.scriptSize()` returning `provider.size()`. monitorLoopInSec now checks `currentIndex >= scriptSize - 1` so the gate is the last entry of whatever script the provider supplies (also auto-scales if future content changes BossRush length).
+
+- ⚠️ **BUG (round 23): TIME_ATTACK timeout used death feedback path.** Round 22's TIME_ATTACK timer force-set GAME_OVER but `finalBossDefeated` stayed false → GameScreen branched to death path (LONG haptic + GAME_OVER sfx + 1500ms kill-cam delay). Player "wins" the time challenge but feels like dying. Fix: added `timeAttackEnded: Boolean` to GameState (set true when timer expires). GameScreen's `isVictory` flag now checks `finalBossDefeated || timeAttackEnded` so TIME_ATTACK uses HEAVY haptic + PICKUP sfx + 500ms delay (celebratory) branch.
+
+- ⚠️ **BUG (round 23): StageController saver restored with default StaticListProvider.** Round 22's saver's `restore` lambda created `StageController(stageIndex = ...)` with the default `provider = StaticListProvider()`. After process-death restore in SURVIVAL/BOSS_RUSH/TIME_ATTACK/ENDLESS, the controller would load the static campaign script with the saved index — potentially out-of-range (e.g. Endless wave 50 has no equivalent in static script of length ~140) and definitely wrong content. Fix: `StageController.saver(provider: StageProvider)` accepts the live provider, restore uses it directly. If restored stageIndex is out-of-range for the provider, coerce to 0 (safer than crashing).
+
+### Round 23 files modified
+
+- `ui/game/state/GameState.kt` — hoist RunContext/EffectiveStats block before ship init; apply `hpMul` at `Ship(hp = ...)`; pass `damageMultiplier`/`speedMultiplier` to laser/ship controllers; pass `noShieldDrops` to booster controller; add `timeAttackEnded` state + set on timer expiry + expose; fix BOSS_RUSH_CLEAR gate to use `scriptSize()`; remove "scope cut" comment for modifier deferral.
+- `ui/game/ship/laser/LasersController.kt` — `damageMultiplier: () -> Float = { 1f }` constructor param + applied to `effectiveDamage` before onObjectImpact / onLaserHit.
+- `ui/game/ship/ship/ShipController.kt` — `speedMultiplier: () -> Float = { 1f }` constructor param + applied to `effSpeed` in moveShip().
+- `ui/game/booster/BoosterController.kt` — `noShieldDrops: () -> Boolean = { false }` constructor param + SHIELD spawn skip.
+- `ui/game/stage/StageController.kt` — add `scriptSize()` accessor; `saver(provider)` accepts live provider + OOB-index coercion to 0.
+- `ui/game/GameScreen.kt` — `isVictory = finalBossDefeated || timeAttackEnded`.
+
+### Round 23 verification
+
+- `./gradlew assembleDevDebug` BUILD SUCCESSFUL.
+- `./gradlew compileProductionReleaseKotlin` BUILD SUCCESSFUL.
+
+### Round 24 — UX polish (settings cleanup + story repositioning + Vietnamese-first)
+
+User feedback after round 23:
+1. Settings dialog cluttered — 11 widgets dồn 1 cột, có thêm new options (mode/modifier/upgrade) trông rối.
+2. Story dialogue card overlap với ship (BottomCenter padding 80dp đè lên ship vị trí screenHeight-140).
+3. Game cần Vietnamese-first; multi-language phase sẽ làm sau.
+
+**Fixes applied:**
+
+- ✅ **StoryOverlay reposition (round 24)**: chuyển từ `Alignment.BottomCenter padding(vertical=80dp)` (overlap với ship area) sang `Alignment.TopCenter padding(top=170dp)`. Slide animation reverse direction (was +80px → 0 slide-up, now -80px → 0 slide-down). Vị trí 170dp clear:
+  - HUD strip (top=16dp + height≈50dp → ends 66dp)
+  - BossHpBar (top=92dp + height≈30dp → ends 122dp)
+  - BossIntroOverlay banner zone (y=70-160)
+  - Ship locked at maxYOffset = screenHeight-140 → bottom half is gameplay zone; top zone safe.
+  Speaker color check updated: "ĐỘI TRƯỞNG" → NeonCyan, others → NeonMagenta.
+
+- ✅ **DialogSettings redesign (round 24)**: rewrite từ flat 11-widget column thành 4 sections có header + thin divider line trên đầu mỗi section. Sections:
+  - **ÂM THANH**: Music slider + SFX slider.
+  - **CHƠI**: Vibration + Reduce motion (side-by-side checkboxes, weight 1f) + Độ khó pills + Skin tàu pills.
+  - **CHUẨN BỊ RUN**: 3 NavRow click-through cho Chế độ / Buff / Nâng cấp (label trái + value giữa + action hint phải).
+  - **ỨNG DỤNG**: 3 FlatLink Đánh giá / Chia sẻ / Riêng tư.
+  - Header row có "ĐÓNG" button inline (thay vì stacked dưới cùng). VerticalScroll cho small screens. Compact spacing (10dp section gap, 4dp inter-row).
+  Reusable helpers: `SectionHeader`, `LabelledPillRow`, `NavRow`, `FlatLink`. Cũ `Pill` + `SettingSlider` + `SettingCheck` giữ nguyên signature, thêm `modifier` param cho check.
+
+- ✅ **Việt hóa toàn bộ Wave 5 UI (round 24)**: tất cả hardcoded strings UI chuyển sang tiếng Việt. Multi-language phase (strings.xml proper) deferred.
+  - `GameMode.displayName`: CAMPAIGN→CHIẾN DỊCH, SURVIVAL→SINH TỒN, TIME_ATTACK→ĐUA THỜI GIAN, BOSS_RUSH→CHIẾN BOSS, ENDLESS→VÔ TẬN, DAILY→THỬ THÁCH NGÀY.
+  - `RunModifier.displayName` + `description`: TRIPLE_SPEED→TỐC HÀNH, GLASS_CANNON→MỎNG NHƯ KÍNH, NO_SHIELDS→KHÔNG KHIÊN, SUPER_MAGNET→NAM CHÂM MẠNH, BERSERKER→CUỒNG BẠO, TANK→GIÁP DÀY, BOSSES_ONLY→CHỈ BOSS, DOUBLE_OR_NOTHING→ĐƯỢC ĂN CẢ. Description full Vietnamese ("Sát thương ×2 nhưng HP ×0.5. Điểm ×2.5.").
+  - `SkillNode.displayName` + `description`: 15 nodes Vietnamese (GIÁP CỨNG / HỎA LỰC / HỐ HẤP DẪN / KHIÊN AEGIS / NHANH NHẸN cho tier 0; TỰ HỒI / CHÍ MẠNG / NHÌN SAO / PHẢN ỨNG / HẬU TĂNG LỰC / KHO ĐẠN / ĐÀ COMBO / TIM PHƯỢNG cho tier 1; LÒ RÈN SAO / PHÁO HƯ KHÔNG cho tier 2).
+  - `StoryRegistry`: chapter intros + boss taunts Việt hóa. Speaker "CAPTAIN" → "ĐỘI TRƯỞNG". Boss names: "LEVEL 1 BOSS" → "BOSS CẤP 1", "GALAXY OVERLORD" → "BÁ VƯƠNG THIÊN HÀ".
+  - `MidBossType.displayName`: "OFFENSIVE MID-BOSS" → "TIỂU BOSS TẤN CÔNG", DEFENSIVE → "TIỂU BOSS PHÒNG THỦ", SWARM → "TIỂU BOSS BẦY ĐÀN".
+  - `GameState.bossIntroName when-block`: updated to Vietnamese.
+  - `DialogModePicker`: "PICK MODE" → "CHỌN CHẾ ĐỘ", "Restart applies new mode" → "Khởi động lại để áp dụng chế độ mới", mode descriptions Vietnamese.
+  - `DialogModifierPicker`: "PICK MODIFIER" → "CHỌN BUFF", "Risk · reward" → "Mạo hiểm · thưởng", "SKIP" → "BỎ QUA".
+  - `DialogMetaUpgrade`: "SKILL TREE" → "CÂY NÂNG CẤP", "Spend lifetime minerals..." → "Dùng khoáng vật tích lũy...", "MAX" → "TỐI ĐA", "Locked — requires parent rank X" → "Khóa — cần cấp X của nốt cha", "CLOSE" → "ĐÓNG".
+  - `DialogSettings` (new redesign): all section headers + labels Vietnamese.
+  - `AchievementBanner` tier label: BRONZE → ĐỒNG, SILVER → BẠC, GOLD → VÀNG. Header "🏆 ACHIEVEMENT" → "🏆 THÀNH TỰU".
+  - `Achievement.title` Việt hóa toàn bộ 30 entries (FIRST_BLOOD title "FIRST BLOOD" → "VẾT MÁU ĐẦU TIÊN", etc.). IDs giữ stable cho save compat.
+
+### Round 24 files modified
+
+- `ui/game/controls/StoryOverlay.kt` — top-anchored padding + reversed slide direction + ĐỘI TRƯỞNG speaker check.
+- `ui/game/GameScreen.kt` — StoryOverlay align changed from BottomCenter to TopCenter.
+- `ui/dlg/settings/DialogSettings.kt` — full rewrite with 4 sections + NavRow/SectionHeader/FlatLink helpers.
+- `ui/game/mode/GameMode.kt` — displayName Vietnamese.
+- `ui/game/modifier/RunModifier.kt` — displayName + description Vietnamese.
+- `ui/game/meta/SkillNode.kt` — 15 nodes displayName + description Vietnamese.
+- `ui/game/story/StoryRegistry.kt` — chapter intros + boss taunts Vietnamese.
+- `ui/game/enemy/ship/model/MidBossType.kt` — 3 variants displayName Vietnamese.
+- `ui/game/state/GameState.kt` — bossIntroName when-block Vietnamese.
+- `ui/dlg/modepicker/DialogModePicker.kt` — title + subtitle + mode descriptions Vietnamese.
+- `ui/dlg/modifierpicker/DialogModifierPicker.kt` — title + subtitle + SKIP button Vietnamese.
+- `ui/dlg/metaupgrade/DialogMetaUpgrade.kt` — header + body strings Vietnamese.
+- `ui/game/controls/AchievementBanner.kt` — tier labels + header Vietnamese.
+- `data/AchievementsRepository.kt` — all 30 achievement titles Vietnamese (descriptions already were).
+
+### Round 24 verification
+
+- `./gradlew assembleDevDebug` BUILD SUCCESSFUL.
+- `./gradlew compileProductionReleaseKotlin` BUILD SUCCESSFUL.
+
+### Wave 5 known limitations (still deferred)
+
+The following SkillNode entries persist ranks but the per-node special effects are NOT wired to controllers — only their parent's stat bonus takes effect through EffectiveStats:
+
+- **REGENESIS** (auto-heal +5 hp/sec): not wired — would need ShipController tick callback for periodic heal.
+- **CRITICAL** (+10% crit chance per rank, 2× damage): not wired — would need probabilistic damage boost in LasersController.
+- **STARGAZER** (+5% score per rank): not wired — separate from BASE_MAGNET scoreMul.
+- **REACTIVE** (shield expiry mini-bomb): not wired — would need ShipController shield-end hook.
+- **AFTERBURNER** (post-damage i-frames): not wired — would need ShipController damage hook.
+- **ARMORY** (+1 starting smart bomb per rank): not wired — would need `smartBombs` initial value to read meta rank.
+- **MOMENTUM** (combo +0.5s lifetime per rank): not wired — would need ComboController extension.
+- **PHOENIX HEART** (+2% revive token drop chance per rank): not wired — would need Booster.type weight adjustment.
+- **STAR FORGE / VOID CANNON** (tier-2 endgame): not wired — would need flat hp/damage adders.
+
+Future round will plumb these in. For now, only the 4 base stats (HP, Damage, Speed, Magnet) propagate from ranks via EffectiveStats; ScoreMul + magnetMul propagate from modifier; noShieldDrops + bossesOnly flags wired (bossesOnly currently no-op — would mirror BOSS_RUSH mode behavior, deferred).
+
+---
+
 ## 🆕 Wave 1 implemented (this round)
 
 ### Files mới
@@ -751,14 +972,14 @@ Các architectural refactors quá lớn để gộp chung:
 - [ ] 42x Roguelike buffs + curses
 - [ ] 44x Environmental hazards (extended — ice slip mechanic, solar flares)
 
-## Wave 5 (Modes + meta, ~3h)
-- [ ] 23x Endless mode
-- [ ] 43x Game modes
-- [ ] 25x Random modifiers
-- [ ] 28x Procedural patterns
-- [ ] 46x Achievements expansion
-- [ ] 47x Story / lore
-- [ ] 48x Permanent progression
+## Wave 5 ✅ DONE (round 22)
+- [x] 23x Endless mode (procedural scaling + endless leaderboard)
+- [x] 43x Game modes (Survival / TimeAttack / BossRush via StageProvider)
+- [x] 25x Random modifiers (picker + scoreMul + magnetMul applied; rest deferred)
+- [x] 28x Procedural patterns (V / SineWave from chapter 2)
+- [x] 46x Achievements expansion (+20 Bronze/Silver/Gold tiered)
+- [x] 47x Story / lore (chapter intros + boss taunts)
+- [x] 48x Permanent progression (15-node skill tree + lifetime minerals)
 
 ## Wave 6 (Polish + accessibility)
 - [ ] 26x Photo mode
