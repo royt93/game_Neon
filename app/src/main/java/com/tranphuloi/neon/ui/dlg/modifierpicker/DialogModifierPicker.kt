@@ -56,25 +56,22 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
         Logger.d("DialogModifierPicker shown: ${choices.joinToString { it.key }}")
     }
 
-    Card(
-        backgroundColor = NeonBgMid,
-        border = BorderStroke(2.dp, NeonGold),
-        shape = RoundedCornerShape(8.dp),
-        modifier = Modifier.neonGlow(color = NeonGold, intensity = 0.4f, radiusFactor = 1.2f)
+    com.tranphuloi.neon.common.NeonBottomSheet(
+        title = "CHỌN BUFF",
+        accentColor = NeonGold,
+        onDismiss = {
+            // Round 29 — ✕ tap = skip picker = apply NONE modifier.
+            Logger.d("DialogModifierPicker: ✕ dismissed → skipping = apply NONE")
+            scope.launch {
+                settings.setLastModifier(RunModifier.NONE.key)
+                onPicked()
+            }
+        },
     ) {
         Column(
-            modifier = Modifier
-                .padding(20.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
-                text = "CHỌN BUFF",
-                color = NeonGold,
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.h5,
-            )
-            Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = "Mạo hiểm · thưởng — chọn cái khó để nhân điểm",
                 color = Color.White.copy(alpha = 0.75f),
@@ -132,16 +129,8 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(6.dp))
-            TextButton(onClick = {
-                Logger.d("ModifierPicker: skipped — apply NONE")
-                scope.launch {
-                    settings.setLastModifier(RunModifier.NONE.key)
-                    onPicked()
-                }
-            }) {
-                Text("BỎ QUA", color = NeonCyan, fontWeight = FontWeight.Bold)
-            }
+            // Round 29 — BỎ QUA button removed. The sheet's ✕ button already
+            // dismisses; user wants ✕ to mean "skip = apply NONE".
         }
     }
 }

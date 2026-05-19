@@ -65,6 +65,7 @@ import java.util.UUID
 @Composable
 fun rememberGameState(): GameState {
 
+    Logger.d("rememberGameState: composing — entry point")
     val configuration = LocalConfiguration.current
     val screenWidth = rememberSaveable { configuration.screenWidthDp.toFloat() }
     val screenHeight = rememberSaveable { configuration.screenHeightDp.toFloat() }
@@ -133,10 +134,17 @@ fun rememberGameState(): GameState {
     }
     val effectiveStats = remember(runContext) {
         val es = com.tranphuloi.neon.ui.game.state.EffectiveStats.compute(runContext)
-        Logger.d("rememberGameState: effectiveStats=$es")
+        Logger.d("rememberGameState: effectiveStats computed=$es")
+        Logger.d("  · hpMul=${es.hpMul} (Ship initial HP × ${es.hpMul})")
+        Logger.d("  · damageMul=${es.damageMul} (laser impactPower × ${es.damageMul})")
+        Logger.d("  · speedMul=${es.speedMul} (ShipController movementSpeed × ${es.speedMul})")
+        Logger.d("  · magnetMul=${es.magnetMul} (MineralsController magnetRadius × ${es.magnetMul})")
+        Logger.d("  · scoreMul=${es.scoreMul} (mineralsEarned × ${es.scoreMul})")
+        Logger.d("  · noShieldDrops=${es.noShieldDrops}, bossesOnly=${es.bossesOnly}")
         es
     }
     val stageProvider = remember(runMode) {
+        Logger.d("rememberGameState: building stageProvider for mode=${runMode.key}")
         when (runMode) {
             com.tranphuloi.neon.ui.game.mode.GameMode.SURVIVAL ->
                 com.tranphuloi.neon.ui.game.stage.SurvivalProvider()
@@ -170,7 +178,7 @@ fun rememberGameState(): GameState {
     var gameStatus by rememberSaveable { mutableStateOf(GameStatus.RUNNING) }
     fun setGameStatus(gameStt: GameStatus) {
         if (gameStatus != gameStt) {
-            Logger.d("gameStatus: $gameStatus → $gameStt")
+            Logger.d("gameStatus transition: $gameStatus → $gameStt (triggered by setGameStatus call)")
         }
         gameStatus = gameStt
     }
@@ -202,7 +210,7 @@ fun rememberGameState(): GameState {
         if (achievementsRepo.unlock(achievement)) {
             achievementUnlocked = achievement
             achievementShownAtMillis = System.currentTimeMillis()
-            Logger.d("Achievement unlocked: ${achievement.id} \"${achievement.title}\"")
+            Logger.d("Achievement unlocked: id=${achievement.id} tier=${achievement.tier} title=\"${achievement.title}\" desc=\"${achievement.description}\"")
         }
     }
 
@@ -710,7 +718,13 @@ fun rememberGameState(): GameState {
                 coroutineScope.launch {
                     runPersistenceRepo.saveCheckpoint(runMode.key, idx)
                 }
-                Logger.d("StageController.onStageAdvance idx=$idx → magnet=${magnetRadiusState.floatValue}px (checkpoint saved)")
+                val chapterInfo = when (newStage) {
+                    is com.tranphuloi.neon.ui.game.stage.StageGame -> "chapter=${newStage.chapterId}"
+                    is com.tranphuloi.neon.ui.game.stage.StageBoss -> "chapter=${newStage.chapterId}"
+                    is com.tranphuloi.neon.ui.game.stage.StageMessage -> "chapter=${newStage.chapterId} message=\"${newStage.message}\""
+                    else -> ""
+                }
+                Logger.d("StageController.onStageAdvance idx=$idx type=${newStage::class.simpleName} $chapterInfo → magnet=${magnetRadiusState.floatValue}px (checkpoint saved async)")
             }
         )
     }

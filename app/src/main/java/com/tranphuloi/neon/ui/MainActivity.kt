@@ -11,7 +11,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.window.DialogProperties
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -94,7 +93,9 @@ class MainActivity : ComponentActivity() {
         sfx = SfxController(applicationContext)
 
         val app = application as App
+        Logger.d("MainActivity.onCreate: App cast OK, entering setContent")
         setContent {
+            Logger.d("MainActivity.setContent: composing NavHost root")
             CompositionLocalProvider(
                 LocalAudioPlayer provides audioHolder,
                 LocalHaptic provides haptic,
@@ -183,7 +184,14 @@ class MainActivity : ComponentActivity() {
                                 },
                             )
                         }
-                        dialog(route = GamePause.route) {
+                        dialog(
+                            route = GamePause.route,
+                            // Round 28 — bottom sheet dimensions. dismissOnBackPress=true
+                            // so back press from pause resumes game (sheet onDismiss=Resume).
+                            dialogProperties = com.tranphuloi.neon.common.bottomSheetDialogProperties(
+                                dismissOnBackPress = true,
+                            ),
+                        ) {
                             DialogGamePause(
                                 onResumeGame = {
                                     Logger.d("Nav: GamePause → Game (resume via popBackStack)")
@@ -209,7 +217,10 @@ class MainActivity : ComponentActivity() {
                                 },
                             )
                         }
-                        dialog(route = SettingsRoute.route) {
+                        dialog(
+                            route = SettingsRoute.route,
+                            dialogProperties = com.tranphuloi.neon.common.bottomSheetDialogProperties(),
+                        ) {
                             DialogSettings(
                                 onDismiss = {
                                     Logger.d("Nav: Settings → back")
@@ -217,7 +228,10 @@ class MainActivity : ComponentActivity() {
                                 },
                             )
                         }
-                        dialog(route = DifficultyPicker.route) {
+                        dialog(
+                            route = DifficultyPicker.route,
+                            dialogProperties = com.tranphuloi.neon.common.bottomSheetDialogProperties(),
+                        ) {
                             DialogDifficultyPicker(onPicked = {
                                 Logger.d("Nav: DifficultyPicker → Menu (first-time onboarding)")
                                 navController.navigate(Menu.route) {
@@ -226,7 +240,10 @@ class MainActivity : ComponentActivity() {
                                 }
                             })
                         }
-                        dialog(route = ModePicker.route) {
+                        dialog(
+                            route = ModePicker.route,
+                            dialogProperties = com.tranphuloi.neon.common.bottomSheetDialogProperties(),
+                        ) {
                             DialogModePicker(onPicked = {
                                 // Round 25 — was Game restart; now just dismiss.
                                 // User picks Play from Menu to apply the new mode.
@@ -234,13 +251,19 @@ class MainActivity : ComponentActivity() {
                                 navController.popBackStack()
                             })
                         }
-                        dialog(route = ModifierPicker.route) {
+                        dialog(
+                            route = ModifierPicker.route,
+                            dialogProperties = com.tranphuloi.neon.common.bottomSheetDialogProperties(),
+                        ) {
                             DialogModifierPicker(onPicked = {
                                 Logger.d("Nav: ModifierPicker → back (modifier saved)")
                                 navController.popBackStack()
                             })
                         }
-                        dialog(route = MetaUpgrade.route) {
+                        dialog(
+                            route = MetaUpgrade.route,
+                            dialogProperties = com.tranphuloi.neon.common.bottomSheetDialogProperties(),
+                        ) {
                             DialogMetaUpgrade(onDismiss = {
                                 Logger.d("Nav: MetaUpgrade → back")
                                 navController.popBackStack()
@@ -248,11 +271,11 @@ class MainActivity : ComponentActivity() {
                         }
                         dialog(
                             route = "${GameOver.route}/{score}",
-                            // Force the user to press Restart — back-press / tap-outside must not
-                            // strand them on a frozen game screen with no way out.
-                            dialogProperties = DialogProperties(
+                            // Round 28 — bottom sheet sized, but modal-final: back-press +
+                            // scrim-tap disabled. User MUST tap CHƠI LẠI / VỀ MENU / ✕ explicitly.
+                            // (NeonBottomSheet's `dismissible = false` also gates swipe-down + scrim.)
+                            dialogProperties = com.tranphuloi.neon.common.bottomSheetDialogProperties(
                                 dismissOnBackPress = false,
-                                dismissOnClickOutside = false,
                             ),
                         ) { backStackEntry ->
                             val score = backStackEntry.arguments?.getString("score").orEmpty()

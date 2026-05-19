@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -62,25 +63,21 @@ fun DialogMetaUpgrade(onDismiss: () -> Unit) {
 
     LaunchedEffect(Unit) { Logger.d("DialogMetaUpgrade shown (balance=$balance, nodes=${ranks.size})") }
 
-    Card(
-        backgroundColor = NeonBgMid,
-        border = BorderStroke(2.dp, NeonGold),
-        shape = RoundedCornerShape(8.dp),
-        modifier = Modifier.neonGlow(color = NeonGold, intensity = 0.45f, radiusFactor = 1.25f)
+    com.tranphuloi.neon.common.NeonBottomSheet(
+        title = "CÂY NÂNG CẤP",
+        accentColor = NeonGold,
+        onDismiss = {
+            Logger.d("DialogMetaUpgrade: dismissed")
+            onDismiss()
+        },
     ) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "CÂY NÂNG CẤP",
-                    color = NeonGold,
-                    fontWeight = FontWeight.Black,
-                    style = MaterialTheme.typography.h6,
-                    modifier = Modifier.weight(1f),
-                )
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Balance row (under header, right-aligned)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
                 Text(
                     text = "♦ $balance",
                     color = NeonCyan,
@@ -98,7 +95,9 @@ fun DialogMetaUpgrade(onDismiss: () -> Unit) {
 
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.height(420.dp),
+                // Round 29 — wrap content height: heightIn(max) cap so very tall
+                // screens don't stretch sheet unnecessarily; short content shrinks.
+                modifier = Modifier.heightIn(max = 480.dp),
             ) {
                 items(items = SkillNode.values()) { node ->
                     NodeRow(node = node, ranks = ranks, balance = balance, onBuy = {
@@ -111,16 +110,6 @@ fun DialogMetaUpgrade(onDismiss: () -> Unit) {
                         }
                     })
                 }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            TextButton(
-                onClick = {
-                    Logger.d("DialogMetaUpgrade: Close pressed")
-                    onDismiss()
-                },
-                modifier = Modifier.align(Alignment.End),
-            ) {
-                Text("ĐÓNG", color = NeonCyan, fontWeight = FontWeight.Bold)
             }
         }
     }

@@ -27,11 +27,17 @@ class App : Application() {
         super.onCreate()
         Logger.d("App.onCreate (pid=${android.os.Process.myPid()})")
         installUncaughtExceptionHandler()
+        Logger.d("App.onCreate: instantiating repositories")
         settings = SettingsRepository(applicationContext)
+        Logger.d("App.onCreate: SettingsRepository ready")
         leaderboard = LeaderboardRepository(applicationContext)
+        Logger.d("App.onCreate: LeaderboardRepository ready")
         achievements = AchievementsRepository(applicationContext)
+        Logger.d("App.onCreate: AchievementsRepository ready")
         metaProgression = MetaProgressionRepository(applicationContext)
+        Logger.d("App.onCreate: MetaProgressionRepository ready")
         runPersistence = RunPersistenceRepository(applicationContext)
+        Logger.d("App.onCreate: RunPersistenceRepository ready — all repos initialized")
     }
 
     private fun installUncaughtExceptionHandler() {

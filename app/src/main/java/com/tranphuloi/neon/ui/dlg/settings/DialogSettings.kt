@@ -87,38 +87,20 @@ fun DialogSettings(
 
     LaunchedEffect(Unit) { Logger.d("DialogSettings shown") }
 
-    Card(
-        backgroundColor = NeonBgMid,
-        border = BorderStroke(2.dp, NeonCyan),
-        shape = RoundedCornerShape(10.dp),
-        modifier = Modifier.neonGlow(color = NeonCyan, intensity = 0.35f, radiusFactor = 1.2f)
+    com.tranphuloi.neon.common.NeonBottomSheet(
+        title = "CÀI ĐẶT",
+        accentColor = NeonCyan,
+        onDismiss = {
+            Logger.d("DialogSettings: dismissed")
+            onDismiss()
+        },
     ) {
         Column(
             modifier = Modifier
-                .padding(horizontal = 18.dp, vertical = 16.dp)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            // ────── Header ──────
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "CÀI ĐẶT",
-                    color = NeonCyan,
-                    fontWeight = FontWeight.Black,
-                    style = MaterialTheme.typography.h5,
-                    modifier = Modifier.weight(1f),
-                )
-                TextButton(
-                    onClick = {
-                        Logger.d("DialogSettings: Close pressed")
-                        onDismiss()
-                    },
-                ) {
-                    Text("ĐÓNG", color = NeonCyan, fontWeight = FontWeight.Bold)
-                }
-            }
-
             // ────── Section 1: Âm thanh ──────
             SectionHeader(label = "ÂM THANH", color = NeonCyan)
             SettingSlider(

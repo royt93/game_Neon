@@ -131,9 +131,11 @@ fun GameScreen(
             // 34d: differentiate victory feedback from death. Victory = no kill-cam delay,
             // celebratory PICKUP sfx + HEAVY haptic. Death = original LONG haptic + sad sfx.
             if (isVictory) {
+                Logger.d("GAME_OVER victory feedback: HEAVY haptic + PICKUP sfx")
                 if (vibrationEnabled) haptic.vibrate(HapticPattern.HEAVY)
                 sfx.play(SfxEvent.PICKUP)
             } else {
+                Logger.d("GAME_OVER death feedback: LONG haptic + GAME_OVER sfx (1.5s kill-cam delay)")
                 if (vibrationEnabled) haptic.vibrate(HapticPattern.LONG)
                 sfx.play(SfxEvent.GAME_OVER)
             }
@@ -148,6 +150,7 @@ fun GameScreen(
                 victoryAchieved = isVictory,
                 gameModeKey = gameState.gameMode.key,
             )
+            Logger.d("Snapshot RunStats: score=${gameState.mineralsEarnedTotal}, time=${gameState.gameTimeSec}s, enemies=${gameState.enemiesKilledTotal}, bosses=${gameState.bossesDefeatedTotal}, maxCombo=${gameState.maxComboReached}, stages=${gameState.stagesReached}, mode=${gameState.gameMode.key}")
             // Round 26 — only CLEAR checkpoint on VICTORY (run truly complete).
             // On death: keep checkpoint so user can retry from last stage via
             // MenuScreen's "TIẾP TỤC" button. This matches checkpoint-style

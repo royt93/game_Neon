@@ -30,7 +30,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -116,93 +118,139 @@ fun MenuScreen(
         // Layer 1: animated starfield (decorative, no pointer events)
         StarfieldBackground(modifier = Modifier.fillMaxSize())
 
-        // Layer 2: content
+        // Layer 1b: comet streak (round 28) — parabolic trajectory, 8-15s gap
+        CometStreak(modifier = Modifier.fillMaxSize())
+
+        // Layer 2: content — round 28 adaptive layout with stagger entry anims.
+        // SpaceBetween distributes content vertically; sections sized naturally
+        // by their wrapping content. verticalScroll fallback for very small screens.
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 22.dp, vertical = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // ─── Title ───
-            TitleBlock()
+            // ─── Title (stagger 0ms) ───
+            EntryAnim(stepIndex = 0) { TitleBlock() }
 
-            // ─── Splash ship logo ───
-            ShipLogo()
+            // ─── Splash ship logo (stagger 120ms) ───
+            EntryAnim(stepIndex = 1) { ShipLogo() }
 
-            // ─── Info card: mode + buff + checkpoint ───
-            InfoCard(
-                mode = mode,
-                runModifier = runModifier,
-                balance = balance,
-                checkpoint = checkpoint,
-            )
-
-            // ─── PLAY button ───
-            PlayButton(
-                hasCheckpoint = checkpoint > 0,
-                onClick = {
-                    Logger.d("MenuScreen: PLAY tapped (checkpoint=$checkpoint)")
-                    onPlay()
-                },
-            )
-
-            // ─── 2x2 icon grid ───
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                MenuButton(
-                    label = "CHẾ ĐỘ",
-                    glyph = "⊞",
-                    color = NeonViolet,
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        Logger.d("MenuScreen: MODE tapped")
-                        onOpenModePicker()
-                    },
-                )
-                MenuButton(
-                    label = "BUFF",
-                    glyph = "⚡",
-                    color = NeonGold,
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        Logger.d("MenuScreen: BUFF tapped")
-                        onOpenModifierPicker()
-                    },
+            // ─── Info card (stagger 240ms) ───
+            EntryAnim(stepIndex = 2) {
+                InfoCard(
+                    mode = mode,
+                    runModifier = runModifier,
+                    balance = balance,
+                    checkpoint = checkpoint,
                 )
             }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                MenuButton(
-                    label = "NÂNG CẤP",
-                    glyph = "⬆",
-                    color = NeonCyan,
-                    modifier = Modifier.weight(1f),
+
+            // ─── PLAY button (stagger 360ms) ───
+            EntryAnim(stepIndex = 3) {
+                PlayButton(
+                    hasCheckpoint = checkpoint > 0,
                     onClick = {
-                        Logger.d("MenuScreen: UPGRADE tapped")
-                        onOpenMetaUpgrade()
-                    },
-                )
-                MenuButton(
-                    label = "CÀI ĐẶT",
-                    glyph = "⚙",
-                    color = NeonMagenta,
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        Logger.d("MenuScreen: SETTINGS tapped")
-                        onOpenSettings()
+                        Logger.d("MenuScreen: PLAY tapped (checkpoint=$checkpoint)")
+                        onPlay()
                     },
                 )
             }
 
-            // Tail spacer so last button isn't flush with bottom edge on tall screens
+            // ─── 2x2 icon grid (stagger 480ms — single anim for both rows) ───
+            EntryAnim(stepIndex = 4) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        MenuButton(
+                            label = "CHẾ ĐỘ",
+                            glyph = "⊞",
+                            color = NeonViolet,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                Logger.d("MenuScreen: MODE tapped")
+                                onOpenModePicker()
+                            },
+                        )
+                        MenuButton(
+                            label = "BUFF",
+                            glyph = "⚡",
+                            color = NeonGold,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                Logger.d("MenuScreen: BUFF tapped")
+                                onOpenModifierPicker()
+                            },
+                        )
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        MenuButton(
+                            label = "NÂNG CẤP",
+                            glyph = "⬆",
+                            color = NeonCyan,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                Logger.d("MenuScreen: UPGRADE tapped")
+                                onOpenMetaUpgrade()
+                            },
+                        )
+                        MenuButton(
+                            label = "CÀI ĐẶT",
+                            glyph = "⚙",
+                            color = NeonMagenta,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                Logger.d("MenuScreen: SETTINGS tapped")
+                                onOpenSettings()
+                            },
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
         }
+    }
+}
+
+/**
+ * Stagger entry animation wrapper. Each child fades in + slides up 20px on
+ * mount, with delay = stepIndex × 120ms. Once visible, never re-animates.
+ */
+@Composable
+private fun EntryAnim(stepIndex: Int, content: @Composable () -> Unit) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay((stepIndex * 120L).coerceAtLeast(0L))
+        visible = true
+    }
+    val alpha by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 420),
+        label = "entryAlpha$stepIndex",
+    )
+    val translateY by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (visible) 0f else 20f,
+        animationSpec = androidx.compose.animation.core.tween(durationMillis = 420),
+        label = "entryTranslate$stepIndex",
+    )
+    Box(
+        modifier = Modifier.graphicsLayer {
+            this.alpha = alpha
+            translationY = translateY
+        },
+    ) {
+        content()
     }
 }
 
@@ -263,6 +311,16 @@ private fun ShipLogo() {
         ),
         label = "haloAlpha",
     )
+    // Round 28 — idle parallax: gentle ±3° rotation over 4.2s
+    val tilt by pulse.animateFloat(
+        initialValue = -3f,
+        targetValue = 3f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 4200, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "shipTilt",
+    )
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier.size(180.dp),
@@ -291,6 +349,7 @@ private fun ShipLogo() {
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
+                    rotationZ = tilt           // round 28 idle tilt
                 },
         )
     }
@@ -544,3 +603,81 @@ private fun StarfieldBackground(modifier: Modifier = Modifier) {
     }
 }
 
+// ─────────────────────────── comet streak ───────────────────────────
+
+/**
+ * Round 28 — occasional comet streak across the menu background.
+ * Parabolic trajectory left→right (or right→left, randomized per cycle).
+ * 8-15s gap between streaks, 1.5s active duration. Sparkle trail behind.
+ */
+@Composable
+private fun CometStreak(modifier: Modifier = Modifier) {
+    // Cycle state: when does the comet start, in what direction, what's the height?
+    var cometCycle by remember { mutableStateOf<Triple<Long, Int, Float>?>(null) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            val gapMs = (8_000L..15_000L).random()
+            kotlinx.coroutines.delay(gapMs)
+            val rng = Random.Default
+            // direction: -1 = right-to-left, +1 = left-to-right
+            val dir = if (rng.nextBoolean()) 1 else -1
+            val heightFrac = 0.15f + rng.nextFloat() * 0.35f       // upper-third of screen
+            cometCycle = Triple(System.currentTimeMillis(), dir, heightFrac)
+            kotlinx.coroutines.delay(1500L)                        // active duration
+            cometCycle = null
+        }
+    }
+
+    val timeTick = rememberInfiniteTransition(label = "cometTick")
+    val tickFrame by timeTick.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 32, easing = LinearEasing),
+        ),
+        label = "tick",
+    )
+
+    Canvas(modifier = modifier) {
+        val cycle = cometCycle ?: return@Canvas
+        val (startMs, dir, heightFrac) = cycle
+        // Suppress lint for unused tickFrame — it just drives recomposition.
+        @Suppress("UNUSED_EXPRESSION") tickFrame
+        val elapsed = (System.currentTimeMillis() - startMs).coerceAtLeast(0L)
+        if (elapsed > 1500L) return@Canvas
+        val t = elapsed.toFloat() / 1500f                          // 0..1
+        val w = size.width
+        val h = size.height
+        // Start off-screen, end off-screen.
+        val x = if (dir > 0) -50f + t * (w + 100f) else w + 50f - t * (w + 100f)
+        // Parabolic vertical: dip down slightly mid-trajectory.
+        val baseY = h * heightFrac
+        val dip = 60f * kotlin.math.sin((t * Math.PI).toFloat())
+        val y = baseY + dip
+        // Comet head: bright gold circle with cyan halo.
+        val headAlpha = (1f - kotlin.math.abs(t - 0.5f) * 2f).coerceIn(0f, 1f)
+        drawCircle(
+            color = NeonGold.copy(alpha = headAlpha * 0.4f),
+            radius = 14f,
+            center = Offset(x, y),
+        )
+        drawCircle(
+            color = NeonGold.copy(alpha = headAlpha),
+            radius = 5f,
+            center = Offset(x, y),
+        )
+        // Trail: 8 fading dots behind the head, opposite of dir.
+        for (i in 1..8) {
+            val trailT = (t - i * 0.018f).coerceAtLeast(0f)
+            if (trailT == 0f) continue
+            val trailX = if (dir > 0) -50f + trailT * (w + 100f) else w + 50f - trailT * (w + 100f)
+            val trailY = baseY + 60f * kotlin.math.sin((trailT * Math.PI).toFloat())
+            val trailAlpha = headAlpha * (1f - i / 9f) * 0.6f
+            drawCircle(
+                color = Color.White.copy(alpha = trailAlpha),
+                radius = (5f - i * 0.4f).coerceAtLeast(1f),
+                center = Offset(trailX, trailY),
+            )
+        }
+    }
+}

@@ -1,12 +1,17 @@
 package com.tranphuloi.neon.ui.dlg.gamepause
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.R
+import com.tranphuloi.neon.common.NeonBottomSheet
 import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonDialog
 import com.tranphuloi.neon.common.NeonDialogButton
 import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.common.NeonMagenta
@@ -20,13 +25,23 @@ fun DialogGamePause(
     onBackToMenu: () -> Unit = {},
 ) {
     LaunchedEffect(Unit) { Logger.d("DialogGamePause shown") }
-    NeonDialog(
+    // Round 28 — migrated NeonDialog → NeonBottomSheet. dismissible = false so
+    // user can't accidentally swipe away mid-fight. ✕ acts as Resume (most
+    // natural "dismiss" for pause).
+    NeonBottomSheet(
         title = stringResource(id = R.string.game_pause_dialog_title),
         accentColor = NeonCyan,
-        pulse = true,
-        titleSize = 32.sp,
-        body = { /* No body for pause — title + actions only. */ },
-        actions = {
+        titleSize = 28.sp,
+        dismissible = false,
+        onDismiss = {
+            Logger.d("DialogGamePause: ✕ tapped → resume game")
+            onResumeGame()
+        },
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
             NeonDialogButton(
                 text = stringResource(id = R.string.resume_game_button).uppercase(),
                 color = NeonCyan,
@@ -65,6 +80,6 @@ fun DialogGamePause(
                     onBackToMenu()
                 },
             )
-        },
-    )
+        }
+    }
 }

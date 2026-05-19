@@ -50,10 +50,11 @@ fun SplashScreen(
 
     val settings = LocalSettings.current
     LaunchedEffect(Unit) {
-        Logger.d("SplashScreen entered, delay 1200ms before start")
+        Logger.d("SplashScreen entered, delay 1200ms before nav decision")
         delay(1200)
+        Logger.d("SplashScreen: 1.2s delay elapsed, reading difficultyPicked from DataStore")
         val picked = settings.difficultyPicked.first()
-        Logger.d("SplashScreen delay done → difficultyPicked=$picked")
+        Logger.d("SplashScreen decision → difficultyPicked=$picked → ${if (picked) "onStartGame()" else "onPickDifficulty()"}")
         if (picked) onStartGame() else onPickDifficulty()
     }
 

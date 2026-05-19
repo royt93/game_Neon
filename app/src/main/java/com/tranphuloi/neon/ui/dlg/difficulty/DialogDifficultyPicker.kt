@@ -43,25 +43,18 @@ fun DialogDifficultyPicker(onPicked: () -> Unit) {
 
     LaunchedEffect(Unit) { Logger.d("DialogDifficultyPicker shown") }
 
-    Card(
-        backgroundColor = NeonBgMid,
-        border = BorderStroke(2.dp, NeonMagenta),
-        shape = RoundedCornerShape(8.dp),
-        modifier = Modifier.neonGlow(color = NeonMagenta, intensity = 0.4f, radiusFactor = 1.2f)
+    com.tranphuloi.neon.common.NeonBottomSheet(
+        title = "CHỌN ĐỘ KHÓ",
+        accentColor = NeonMagenta,
+        onDismiss = {
+            Logger.d("DialogDifficultyPicker: dismissed")
+            onPicked()
+        },
     ) {
         Column(
-            modifier = Modifier
-                .padding(20.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
-                text = "CHỌN ĐỘ KHÓ",
-                color = NeonMagenta,
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.h5,
-            )
-            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "Có thể đổi sau ở Cài đặt",
                 color = Color.White.copy(alpha = 0.75f),

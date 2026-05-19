@@ -60,25 +60,18 @@ fun DialogModePicker(onPicked: () -> Unit) {
         GameMode.ENDLESS,
     )
 
-    Card(
-        backgroundColor = NeonBgMid,
-        border = BorderStroke(2.dp, NeonViolet),
-        shape = RoundedCornerShape(8.dp),
-        modifier = Modifier.neonGlow(color = NeonViolet, intensity = 0.4f, radiusFactor = 1.2f)
+    com.tranphuloi.neon.common.NeonBottomSheet(
+        title = "CHỌN CHẾ ĐỘ",
+        accentColor = NeonViolet,
+        onDismiss = {
+            Logger.d("DialogModePicker: dismissed")
+            onPicked()
+        },
     ) {
         Column(
-            modifier = Modifier
-                .padding(20.dp)
-                .fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
-                text = "CHỌN CHẾ ĐỘ",
-                color = NeonViolet,
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.h5,
-            )
-            Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = "Khởi động lại để áp dụng chế độ mới",
                 color = Color.White.copy(alpha = 0.75f),

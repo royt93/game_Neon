@@ -682,6 +682,116 @@ User feedback (round 26 self-test):
 - `./gradlew assembleDevDebug` BUILD SUCCESSFUL.
 - `./gradlew compileProductionReleaseKotlin` BUILD SUCCESSFUL.
 
+### Round 28 — NeonBottomSheet migration + MenuScreen polish + strategic Logger sprinkle
+
+User picks (all Recommended): strategic ~50-60 Logger calls / Custom NeonBottomSheet / migrate all 7 dialogs / adaptive + stagger + idle + comet.
+
+- ✅ **NeonBottomSheet shared component (round 28)**: new `common/NeonBottomSheet.kt` (~240 LOC). Single common composable used by all dialog routes. Visuals:
+  - Container: Box(fillMaxSize) → scrim full-screen + AnimatedVisibility sheet aligned BottomCenter.
+  - Sheet: rounded top corners (24dp), neon border + glow in accentColor, NeonBgMid background, full-width, wrap content height.
+  - Header: 48dp drag handle (top center) + title (h6, accent color, letter-spacing 2sp) + ✕ close button (NeonRedAlert tint, 36dp circular).
+  - Body: caller-provided `@Composable ColumnScope.() -> Unit`.
+  - Enter: `slideInVertically(initialOffsetY = { it })` + `fadeIn` 260ms tween.
+  - Exit: `slideOutVertically(targetOffsetY = { it })` + `fadeOut` 200ms tween.
+  - Dismiss interactions (gated by `dismissible: Boolean = true`):
+    - Tap scrim → onDismiss (only if dismissible).
+    - Swipe-down >80dp on sheet body → onDismiss (only if dismissible).
+    - Tap ✕ → onDismiss (always).
+  - Helper: `bottomSheetDialogProperties(dismissOnBackPress, dismissOnClickOutside)` returns `DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false, ...)` for NavHost `dialog()` route hosting.
+
+- ✅ **Migrated 7 dialogs → NeonBottomSheet (round 28)**:
+  - DialogSettings — `dismissible = true`, NeonCyan accent. Removed Card+TextButton header.
+  - DialogDifficultyPicker — `dismissible = true`, NeonMagenta accent. Pickers' "Có thể đổi sau ở Cài đặt" hint preserved in body.
+  - DialogModePicker — `dismissible = true`, NeonViolet accent.
+  - DialogModifierPicker — `dismissible = true`, NeonGold accent.
+  - DialogMetaUpgrade — `dismissible = true`, NeonGold accent. Balance row moved into body (right-aligned ♦ count).
+  - DialogGamePause — `dismissible = false` (no swipe/scrim dismiss). ✕ tap maps to Resume (natural "dismiss" semantic for pause).
+  - DialogGameOver — `dismissible = false` (modal-final). ✕ tap maps to onBackToMenu (checkpoint preserved). Action buttons (CHƠI LẠI / VỀ MENU) moved from `actions` slot into body Column.
+  - MainActivity NavHost: each `dialog(route)` now uses `bottomSheetDialogProperties()` helper. Removed `androidx.compose.ui.window.DialogProperties` import (no longer used).
+
+- ✅ **MenuScreen adaptive + stagger + idle + comet (round 28)**:
+  - **Stagger entry animation**: new `EntryAnim(stepIndex)` wrapper — each child fades in + slides up 20px over 420ms with delay = stepIndex × 120ms. Used for title (0ms) / logo (120ms) / info card (240ms) / play (360ms) / 2x2 grid (480ms).
+  - **Idle parallax**: ship logo rotates ±3° over 4.2s infinite cycle (graphicsLayer.rotationZ). Combined with existing pulsing scale + halo for "alive" feel.
+  - **Comet streak**: new `CometStreak` Canvas composable. State cycle: 8-15s gap → activate 1.5s. Each streak has randomized direction (L→R or R→L), height fraction (15-50% from top), parabolic dip (60px sin curve). Trail: 8 fading white dots behind gold head. Rendered above starfield, below content.
+  - **Adaptive layout**: Column arrangement `spacedBy(14dp)`, verticalScroll fallback for very small screens. Sections sized by content (no forced weight).
+
+- ✅ **Strategic Logger sprinkle (round 28)**: total +30 strategic Logger.d calls across:
+  - `App.onCreate`: per-repo construction logs (5 new — settings, leaderboard, achievements, metaProgression, runPersistence).
+  - `SplashScreen.LaunchedEffect`: decision detail (1 enhanced: which branch + difficultyPicked value).
+  - `MainActivity.onCreate`: setContent entry log (1 new).
+  - `rememberGameState` entry: log composing (1 new).
+  - `EffectiveStats.compute`: detailed multiplier breakdown — hpMul / damageMul / speedMul / magnetMul / scoreMul / noShieldDrops / bossesOnly (6 new sub-logs).
+  - `stageProvider` build: log mode at provider construction (1 new).
+  - `Achievement.unlock`: enhanced with id + tier + title + description (1 enhanced).
+  - `gameStatus` transition: enhanced reason field (1 enhanced).
+  - `GameScreen.LaunchedEffect(GAME_OVER)`: separate logs for victory haptic+sfx feedback path and death haptic+sfx feedback path (2 new).
+  - `RunStats snapshot`: log all 7 fields written on GAME_OVER (1 new).
+  - `RunPersistenceRepository.saveCheckpoint` / `clearCheckpoint`: enhanced detail (mode + stage + timestamp) (2 enhanced).
+  - `AchievementBanner shown`: enhanced (id + tier + title) (1 enhanced).
+  - `NeonBottomSheet`: mount + dismiss request + scrim tap + ✕ tap + swipe-down logs (5 new — auto inside common component).
+  - `MenuScreen` button taps: PLAY / MODE / BUFF / UPGRADE / SETTINGS already logged from round 27 (5 existing).
+  - `StageController advance`: enhanced with stage type + chapter id + message text (1 enhanced).
+  - Total prefix "roy93~" auto-prepended by Logger object (existing infrastructure since round earlier). 259 baseline → ~289 net.
+
+### Round 28 files
+
+**New:**
+- `common/NeonBottomSheet.kt` (~240 LOC: NeonBottomSheet composable + SheetContent + CloseButton + bottomSheetDialogProperties helper)
+
+**Modified:**
+- `App.kt` — per-repo construction logs.
+- `ui/splash/SplashScreen.kt` — decision detail log.
+- `ui/MainActivity.kt` — setContent entry log; NavHost dialog routes now use `bottomSheetDialogProperties()`; DialogProperties import removed.
+- `ui/menu/MenuScreen.kt` — `EntryAnim` wrapper + `CometStreak` composable + ShipLogo idle tilt rotation; setValue + mutableStateOf imports.
+- `ui/game/state/GameState.kt` — rememberGameState entry log; EffectiveStats detailed breakdown; gameStatus transition enhanced; stageProvider build log; StageController advance enhanced detail.
+- `ui/game/GameScreen.kt` — victory/death haptic+sfx feedback logs; RunStats snapshot log.
+- `ui/dlg/settings/DialogSettings.kt` — migrated to NeonBottomSheet, header inline removed.
+- `ui/dlg/gameover/DialogGameOver.kt` — migrated to NeonBottomSheet (dismissible=false); action buttons inlined into body; verticalScroll on body.
+- `ui/dlg/gamepause/DialogGamePause.kt` — migrated to NeonBottomSheet (dismissible=false); ✕ maps to Resume.
+- `ui/dlg/difficulty/DialogDifficultyPicker.kt` — migrated to NeonBottomSheet.
+- `ui/dlg/modepicker/DialogModePicker.kt` — migrated to NeonBottomSheet.
+- `ui/dlg/modifierpicker/DialogModifierPicker.kt` — migrated to NeonBottomSheet.
+- `ui/dlg/metaupgrade/DialogMetaUpgrade.kt` — migrated to NeonBottomSheet; balance row moved into body.
+- `data/RunPersistenceRepository.kt` — save/clear logs enhanced.
+- `ui/game/controls/AchievementBanner.kt` — show log enhanced.
+
+### Round 28 verification
+
+- `./gradlew assembleDevDebug` BUILD SUCCESSFUL.
+- `./gradlew compileProductionReleaseKotlin` BUILD SUCCESSFUL.
+
+### Manual test cho round 28
+
+```
+1. Launch → Splash → Menu
+   ✓ Title pulses + slight fade-in stagger
+   ✓ Ship logo slowly tilts ±3° (idle)
+   ✓ Info card → Play button → 2x2 grid stagger in (delays 0/120/240/360/480ms)
+   ✓ Comet streak: wait 8-15s — gold streak with white sparkle trail across upper area
+2. Tap CHẾ ĐỘ → sheet slides UP from bottom
+   ✓ Drag handle visible at top
+   ✓ "CHỌN CHẾ ĐỘ" title + ✕ button on right
+   ✓ Mode list as body
+3. Tap ✕ → sheet slides down + fades out → back to Menu
+4. Tap CÀI ĐẶT → sheet again
+   ✓ Swipe DOWN > ~80dp on sheet body → sheet dismisses (animated)
+   ✓ Tap scrim outside sheet → dismisses
+5. Tap BUFF → swipe down to dismiss
+6. PLAY → Game → Pause (Settings button)
+   ✓ Pause sheet appears, dismissible = false
+   ✓ Tap ✕ → resumes game (NOT exit)
+   ✓ Swipe down on sheet → NO dismiss (intentional, pause is modal)
+   ✓ Tap scrim → NO dismiss
+7. Back press in Game → opens Pause sheet (round 27 BackHandler still works)
+8. Pause → VỀ MENU → Menu (checkpoint preserved → button shows TIẾP TỤC)
+9. PLAY → die → GameOver sheet
+   ✓ Modal final: scrim/swipe disabled
+   ✓ Tap ✕ → back to Menu (checkpoint preserved per round 26)
+   ✓ Buttons CHƠI LẠI / VỀ MENU in body, scrollable if content tall
+10. adb logcat | grep "roy93~" → verify high-density logs at every key event:
+    nav routes / dialog open-close / mode pick / GAME_OVER branch / checkpoint save
+```
+
 ### Manual test cho round 27
 
 ```

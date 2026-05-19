@@ -60,12 +60,13 @@ class RunPersistenceRepository(private val appContext: Context) {
      * is acceptable on the IO loop's tick boundary.
      */
     suspend fun saveCheckpoint(modeKey: String, stageIndex: Int) {
+        val now = System.currentTimeMillis()
         appContext.runPersistDataStore.edit { prefs ->
             prefs[checkpointKey(modeKey)] = stageIndex
-            prefs[savedAtKey(modeKey)] = System.currentTimeMillis()
+            prefs[savedAtKey(modeKey)] = now
             prefs[KEY_LAST_PLAYED_MODE] = modeKey
         }
-        Logger.d("RunPersistenceRepository.saveCheckpoint($modeKey, $stageIndex)")
+        Logger.d("RunPersistenceRepository.saveCheckpoint OK: mode=$modeKey stage=$stageIndex savedAt=$now")
     }
 
     /**
@@ -76,10 +77,11 @@ class RunPersistenceRepository(private val appContext: Context) {
      */
     suspend fun clearCheckpoint(modeKey: String) {
         appContext.runPersistDataStore.edit { prefs ->
+            val hadIdx = prefs[checkpointKey(modeKey)]
             prefs.remove(checkpointKey(modeKey))
             prefs.remove(savedAtKey(modeKey))
+            Logger.d("RunPersistenceRepository.clearCheckpoint OK: mode=$modeKey (was stage=$hadIdx, now cleared)")
         }
-        Logger.d("RunPersistenceRepository.clearCheckpoint($modeKey)")
     }
 
     companion object {

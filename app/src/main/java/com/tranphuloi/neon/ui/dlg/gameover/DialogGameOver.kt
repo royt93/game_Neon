@@ -3,6 +3,8 @@ package com.tranphuloi.neon.ui.dlg.gameover
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -95,12 +97,20 @@ fun DialogGameOver(
         .indexOfFirst { it.score == currentScore }
         .let { if (it == -1) null else it + 1 }
 
-    NeonDialog(
+    // Round 28 — migrated from NeonDialog to NeonBottomSheet.
+    // dismissible = false: only ✕ / explicit button can dismiss (modal-final).
+    // The ✕ acts like "VỀ MENU" since GameOver doesn't have a passive close.
+    com.tranphuloi.neon.common.NeonBottomSheet(
         title = stringResource(id = R.string.game_over_dialog_title),
         accentColor = NeonRedAlert,
-        titleSecondaryColor = NeonGold,
-        titleSize = 36.sp,
-        body = {
+        titleSize = 32.sp,
+        dismissible = false,
+        onDismiss = {
+            Logger.d("DialogGameOver: ✕ tapped → back to Menu (checkpoint preserved)")
+            onBackToMenu()
+        },
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             ScoreRow(
                 label = "KHOÁNG VẬT",
                 value = score,
@@ -167,34 +177,35 @@ fun DialogGameOver(
                 currentScore = currentScore,
                 playerRank = playerRank,
             )
-        },
-        actions = {
-            // Round 26 — Restart = fresh run from stage 0 (clears checkpoint).
-            // Use Vietnamese label "CHƠI LẠI" for clarity even if locale not vi.
-            NeonDialogButton(
-                text = "CHƠI LẠI",
-                color = NeonCyan,
-                leadingGlyph = "▶",
-                onClick = {
-                    Logger.d("DialogGameOver: Restart pressed — clearing checkpoint then navigate Game")
-                    val modeKey = runStatsState?.gameModeKey ?: "campaign"
-                    scope.launch { runPersistence.clearCheckpoint(modeKey) }
-                    onRestartGame()
-                },
-            )
-            // Round 26 — Menu = back to MenuScreen WITHOUT clearing checkpoint,
-            // so user can retry from last stage via Continue button later.
-            NeonDialogButton(
-                text = "VỀ MENU",
-                color = NeonMagenta,
-                leadingGlyph = "◀",
-                onClick = {
-                    Logger.d("DialogGameOver: Back to Menu pressed (checkpoint preserved)")
-                    onBackToMenu()
-                },
-            )
-        },
-    )
+            Spacer(modifier = Modifier.height(18.dp))
+            // ─── Action buttons (round 28: inline since sheet has no actions slot) ───
+            Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                NeonDialogButton(
+                    text = "CHƠI LẠI",
+                    color = NeonCyan,
+                    leadingGlyph = "▶",
+                    onClick = {
+                        Logger.d("DialogGameOver: Restart pressed — clearing checkpoint then navigate Game")
+                        val modeKey = runStatsState?.gameModeKey ?: "campaign"
+                        scope.launch { runPersistence.clearCheckpoint(modeKey) }
+                        onRestartGame()
+                    },
+                )
+                NeonDialogButton(
+                    text = "VỀ MENU",
+                    color = NeonMagenta,
+                    leadingGlyph = "◀",
+                    onClick = {
+                        Logger.d("DialogGameOver: Back to Menu pressed (checkpoint preserved)")
+                        onBackToMenu()
+                    },
+                )
+            }
+        }
+    }
 }
 
 @Composable

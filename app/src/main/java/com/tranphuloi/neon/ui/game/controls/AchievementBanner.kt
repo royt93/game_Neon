@@ -46,7 +46,7 @@ fun AchievementBanner(
 
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(shownAtMillis) {
-        Logger.d("AchievementBanner shown: ${achievement.id}")
+        Logger.d("AchievementBanner shown: id=${achievement.id} tier=${achievement.tier} title=\"${achievement.title}\"")
         repeat(90) {                                                    // ~3s @ 33ms
             nowMillis = System.currentTimeMillis()
             delay(33L)
