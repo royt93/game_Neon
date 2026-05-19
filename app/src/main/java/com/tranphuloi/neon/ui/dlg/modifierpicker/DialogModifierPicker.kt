@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.common.NeonBgMid
 import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonGold
@@ -73,10 +74,11 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.h5,
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = "Mạo hiểm · thưởng — chọn cái khó để nhân điểm",
-                color = Color.White.copy(alpha = 0.7f),
+                color = Color.White.copy(alpha = 0.75f),
+                fontSize = 14.sp,
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -88,11 +90,11 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
                 }
                 Box(
                     modifier = Modifier
-                        .padding(vertical = 4.dp)
+                        .padding(vertical = 5.dp)
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(RoundedCornerShape(14.dp))
                         .background(color.copy(alpha = 0.13f))
-                        .border(BorderStroke(1.5.dp, color), RoundedCornerShape(12.dp))
+                        .border(BorderStroke(1.5.dp, color), RoundedCornerShape(14.dp))
                         .clickable {
                             Logger.d("ModifierPicker: chose ${mod.key} (score×${mod.scoreMul})")
                             scope.launch {
@@ -100,7 +102,7 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
                                 onPicked()
                             }
                         }
-                        .padding(horizontal = 14.dp, vertical = 10.dp),
+                        .padding(horizontal = 16.dp, vertical = 13.dp),
                 ) {
                     Column {
                         androidx.compose.foundation.layout.Row(
@@ -118,12 +120,14 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
                                 text = "×${mod.scoreMul}",
                                 color = NeonGold,
                                 fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
                             )
                         }
+                        Spacer(modifier = Modifier.height(3.dp))
                         Text(
                             text = mod.description,
-                            color = Color.White.copy(alpha = 0.8f),
-                            style = MaterialTheme.typography.caption,
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 14.sp,
                         )
                     }
                 }

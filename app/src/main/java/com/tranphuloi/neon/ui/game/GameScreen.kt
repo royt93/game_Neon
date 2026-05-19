@@ -107,7 +107,21 @@ fun GameScreen(
     val tutorialShown by settings.tutorialShown.collectAsState(initial = true) // optimistic to avoid flash on first compose
 
     val gameState = rememberGameState()
+
+    // Round 27 — intercept system back press while game is RUNNING.
+    // Previously back popped the Game route → user lost run + state. Now back
+    // pauses + shows DialogGamePause; user can choose Resume / Restart / Menu
+    // explicitly. Only enabled when RUNNING — if pause dialog already showing
+    // (gameStatus = PAUSE), back falls through to dismiss the dialog naturally.
+    // GAME_OVER also leaves back disabled — DialogGameOver has dismissOnBackPress=false.
+    androidx.activity.compose.BackHandler(enabled = gameState.gameStatus == GameStatus.RUNNING) {
+        Logger.d("Back press intercepted in Game (RUNNING) → opening pause dialog")
+        gameState.toggleGameStatus()
+        onGamePause()
+    }
+
     val runStats = com.tranphuloi.neon.data.LocalRunStats.current
+    val runPersistence = com.tranphuloi.neon.data.LocalRunPersistence.current
     LaunchedEffect(gameState.gameStatus) {
         if (gameState.gameStatus == GameStatus.GAME_OVER) {
             // Round 23 — TIME_ATTACK timer expiry is also a "victory" (ship alive,
@@ -134,6 +148,16 @@ fun GameScreen(
                 victoryAchieved = isVictory,
                 gameModeKey = gameState.gameMode.key,
             )
+            // Round 26 — only CLEAR checkpoint on VICTORY (run truly complete).
+            // On death: keep checkpoint so user can retry from last stage via
+            // MenuScreen's "TIẾP TỤC" button. This matches checkpoint-style
+            // progression: death = lose this attempt, but stage progress preserved.
+            if (isVictory) {
+                runPersistence.clearCheckpoint(gameState.gameMode.key)
+                Logger.d("VICTORY: cleared checkpoint for ${gameState.gameMode.key} (run completed)")
+            } else {
+                Logger.d("DEATH: checkpoint preserved for ${gameState.gameMode.key} (user can retry)")
+            }
             // 11c: kill-cam slow-mo replay = 1500ms. Victory = 500ms breathing room only
             // (no kill-cam to play, ship still alive).
             kotlinx.coroutines.delay(if (isVictory) 500L else 1500L)

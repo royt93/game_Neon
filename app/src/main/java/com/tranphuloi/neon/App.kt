@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import com.tranphuloi.neon.data.AchievementsRepository
 import com.tranphuloi.neon.data.LeaderboardRepository
 import com.tranphuloi.neon.data.MetaProgressionRepository
+import com.tranphuloi.neon.data.RunPersistenceRepository
 import com.tranphuloi.neon.data.SettingsRepository
 import com.tranphuloi.neon.utils.Logger
 
@@ -19,6 +20,8 @@ class App : Application() {
         private set
     lateinit var metaProgression: MetaProgressionRepository
         private set
+    lateinit var runPersistence: RunPersistenceRepository
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -28,6 +31,7 @@ class App : Application() {
         leaderboard = LeaderboardRepository(applicationContext)
         achievements = AchievementsRepository(applicationContext)
         metaProgression = MetaProgressionRepository(applicationContext)
+        runPersistence = RunPersistenceRepository(applicationContext)
     }
 
     private fun installUncaughtExceptionHandler() {

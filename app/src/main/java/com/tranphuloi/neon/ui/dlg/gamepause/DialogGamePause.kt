@@ -8,6 +8,7 @@ import com.tranphuloi.neon.R
 import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonDialog
 import com.tranphuloi.neon.common.NeonDialogButton
+import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.common.NeonMagenta
 import com.tranphuloi.neon.utils.Logger
 
@@ -16,6 +17,7 @@ fun DialogGamePause(
     onResumeGame: () -> Unit,
     onRestartGame: () -> Unit,
     onSettings: () -> Unit = {},
+    onBackToMenu: () -> Unit = {},
 ) {
     LaunchedEffect(Unit) { Logger.d("DialogGamePause shown") }
     NeonDialog(
@@ -50,6 +52,17 @@ fun DialogGamePause(
                 onClick = {
                     Logger.d("DialogGamePause: Settings pressed")
                     onSettings()
+                },
+            )
+            // Round 27 — exit to menu. Checkpoint preserved so user can resume
+            // via "TIẾP TỤC" from MenuScreen later.
+            NeonDialogButton(
+                text = "VỀ MENU",
+                color = NeonGold,
+                leadingGlyph = "◀",
+                onClick = {
+                    Logger.d("DialogGamePause: Back to Menu pressed (checkpoint preserved)")
+                    onBackToMenu()
                 },
             )
         },

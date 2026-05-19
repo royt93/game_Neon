@@ -80,7 +80,7 @@ fun WaveClearBanner(
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "WAVE CLEAR!",
+                text = "HOÀN THÀNH ĐỢT!",
                 color = NeonGold,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Black,
@@ -88,7 +88,7 @@ fun WaveClearBanner(
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "+5 minerals",
+                text = "+5 khoáng vật",
                 color = Color.White.copy(alpha = 0.85f),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,

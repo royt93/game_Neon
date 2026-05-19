@@ -103,6 +103,7 @@ fun rememberGameState(): GameState {
     val difficultyState = settingsRepo.difficulty
         .collectAsState(initial = com.tranphuloi.neon.data.Difficulty.NORMAL)
     val metaRepo = com.tranphuloi.neon.data.LocalMetaProgression.current
+    val runPersistenceRepo = com.tranphuloi.neon.data.LocalRunPersistence.current
 
     // Wave 5 (43x) — pick GameMode for this run by reading SettingsRepository.lastMode
     // ONCE synchronously at composition entry. runBlocking is acceptable here:
@@ -581,12 +582,35 @@ fun rememberGameState(): GameState {
     // per-chapter intro firing so we only narrate first entry to each chapter.
     var storyLine by remember { mutableStateOf<com.tranphuloi.neon.ui.game.story.StoryLine?>(null) }
     var storyShownMillis by remember { mutableLongStateOf(0L) }
-    var chapterIntroPlayedChapter by rememberSaveable { mutableIntStateOf(0) }
     val storyLines = remember { mutableListOf<com.tranphuloi.neon.ui.game.story.StoryLine>() }
+
+    // Round 25 — read checkpoint stage index from DataStore for this mode.
+    // runBlocking ok here: same justification as runMode (one-time DataStore read
+    // at composition entry; <10ms; only fires once per GameScreen entry).
+    val initialStageIndex = remember(runMode) {
+        val idx = kotlinx.coroutines.runBlocking {
+            runPersistenceRepo.checkpointFor(runMode.key).first()
+        }
+        // Sanity coerce — if checkpoint is out-of-range for current provider's static
+        // script, treat as 0 (fresh start).
+        val safe = if (stageProvider.hasAt(idx)) idx else 0
+        Logger.d("rememberGameState: checkpoint for ${runMode.key} = $idx (safe=$safe)")
+        safe
+    }
+    // Round 26 — if resuming mid-game (initialStageIndex > 0), pre-mark the chapter
+    // intro as "already played" so onStageAdvance doesn't re-fire it when player
+    // crosses a stage boundary in the same chapter. Without this, every resume
+    // would replay the chapter intro narrative.
+    var chapterIntroPlayedChapter by rememberSaveable(runMode) {
+        val initialChapter = if (initialStageIndex > 0) stageProvider.chapterAt(initialStageIndex).coerceAtLeast(0) else 0
+        Logger.d("rememberGameState: chapterIntroPlayedChapter init = $initialChapter (resumed at chapter)")
+        mutableIntStateOf(initialChapter)
+    }
 
     val stageController = rememberSaveable(runMode, saver = StageController.saver(stageProvider)) {
         StageController(
             provider = stageProvider,
+            stageIndex = initialStageIndex,
             onStageAdvance = { idx, newStage ->
                 magnetRadiusState.floatValue = (80f + (idx / 5) * 10f).coerceAtMost(200f)
                 lastStageAdvanceMillis = System.currentTimeMillis()
@@ -675,13 +699,18 @@ fun rememberGameState(): GameState {
                 // instead of cumulative damage carry-over (which would make rush unwinnable).
                 if (runMode == com.tranphuloi.neon.ui.game.mode.GameMode.BOSS_RUSH &&
                     newStage is com.tranphuloi.neon.ui.game.stage.StageMessage &&
-                    newStage.message == "Next!"
+                    newStage.message == com.tranphuloi.neon.ui.game.stage.BossRushProvider.BOSS_RUSH_GAP_MESSAGE
                 ) {
                     val before = ship.hp
                     ship = ship.copy(hp = 1000)
                     Logger.d("BOSS_RUSH: heal ship between bosses (hp $before → 1000)")
                 }
-                Logger.d("StageController.onStageAdvance idx=$idx → magnet=${magnetRadiusState.floatValue}px")
+                // Round 25 — persist checkpoint so cold-launch can resume here.
+                // Coroutine launch so DataStore write doesn't block the game loop.
+                coroutineScope.launch {
+                    runPersistenceRepo.saveCheckpoint(runMode.key, idx)
+                }
+                Logger.d("StageController.onStageAdvance idx=$idx → magnet=${magnetRadiusState.floatValue}px (checkpoint saved)")
             }
         )
     }

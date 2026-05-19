@@ -504,6 +504,253 @@ User feedback after round 23:
 - `./gradlew assembleDevDebug` BUILD SUCCESSFUL.
 - `./gradlew compileProductionReleaseKotlin` BUILD SUCCESSFUL.
 
+### Round 25 — Menu screen + per-mode checkpoint persistence + UI font boost + device font
+
+User feedback:
+1. UI font hơi nhỏ + khó đọc → boost size + padding.
+2. Game đang dùng custom Orbitron font → switch về device default font.
+3. Cần start menu screen ở launch để user pick mode / continue / settings.
+4. Cold launch → mất progress run. CẦN persist mọi mode (Campaign, Survival, TimeAttack, BossRush, Endless) — Player meta data + run state phải lưu xuống DataStore.
+
+**Fixes applied:**
+
+- ✅ **Switch to device default font (round 25)**: `common/Type.kt` `Typography.defaultFontFamily` đổi từ `OrbitronFontFamily` → `FontFamily.Default`. `OrbitronFontFamily` val removed entirely. Font files trong `res/font/` còn lại nhưng không reference từ code; có thể remove trong cleanup pass khác. Tất cả Text composables giờ render bằng system font của device.
+
+- ✅ **Boost UI font sizes round 25**: tăng font size + padding để dễ đọc:
+  - `DialogSettings.SectionHeader`: 10→13sp + letterSpacing 3→2.5sp + divider 1.dp alpha 0.25→0.30
+  - `DialogSettings.SettingSlider` label/value: 13→16sp
+  - `DialogSettings.SettingCheck` label: 13→15sp
+  - `DialogSettings.LabelledPillRow` label: 12→14sp, width 82→92dp
+  - `DialogSettings.Pill`: 12→14sp + padding (10/5 → 14/7dp) + corner (16→18dp)
+  - `DialogSettings.NavRow` label: 12→14sp, value: 13→16sp, actionHint: 11→13sp + padding bump
+  - `DialogSettings.FlatLink`: 12→14sp + padding 8→11dp + corner 6→8dp
+  - `DialogMetaUpgrade` header: 18→22sp, body: 11→14sp, item displayName: 14→16sp, rank counter: 11→13sp, description: 11→13sp, prereq message: 10→12sp, buy button: 12→14sp, MAX/lock indicator: 12→14/16sp
+  - `StoryOverlay`: speaker 11→13sp, text: 14→17sp
+  - `AchievementBanner`: header 11→13sp, title 18→20sp, description 12→14sp
+  - `DialogModePicker` mode item: caption→14sp, padding tăng
+  - `DialogModifierPicker` mod item: caption→14sp, multiplier 14→16sp, padding tăng + corners tăng
+
+- ✅ **MenuScreen mới (round 25)** — `ui/menu/MenuScreen.kt`. Sits between Splash and Game. Layout:
+  - Top: app title "SKY FORCE U*S*A" 32sp với neon pulse + "Synthwave Shoot 'em up" tagline + lifetime minerals badge ♦ <balance>
+  - Middle: current mode card (CHẾ ĐỘ HIỆN TẠI + mode name 22sp + buff line nếu chọn + "▸ Đang ở màn N" nếu có checkpoint) + Primary button "TIẾP TỤC" (nếu checkpoint>0) hoặc "BẮT ĐẦU" (22sp, pulsing border, leading ▶)
+  - Bottom: 2x2 grid secondary buttons "CHẾ ĐỘ" / "BUFF" / "NÂNG CẤP" / "CÀI ĐẶT" (15sp, weight 1f)
+  - Nav route: `Menu` mới trong `navigation/Navigation.kt`
+  - Splash flow: Splash → Menu (was → Game)
+  - First-time DifficultyPicker → Menu (was → Game)
+  - ModePicker/ModifierPicker on pick → popBackStack (round 22 hành vi restart-Game removed; pickers chỉ save quietly + return). User explicit Play từ Menu để áp dụng.
+
+- ✅ **Per-mode checkpoint save/load (round 25)** — `data/RunPersistenceRepository.kt`:
+  - DataStore `neon_run_persist` riêng. Per-mode keys: `checkpoint_<modeKey>` (Int) + `saved_at_<modeKey>` (Long timestamp) + global `last_played_mode` (String).
+  - API: `checkpointFor(mode): Flow<Int>`, `savedAtFor(mode): Flow<Long>`, `lastPlayedModeKey: Flow<String>`, `saveCheckpoint(mode, idx)`, `clearCheckpoint(mode)`.
+  - **Checkpoint-style** (NOT full state snapshot): chỉ save stageIndex per mode. Resume = start at saved stageIndex với ship/HP/smartBombs/run-counters fresh. Đơn giản, dễ verify, vẫn đem lại UX "tiếp tục từ chỗ cũ".
+  - Save hook: `StageController.onStageAdvance` callback → `coroutineScope.launch { runPersist.saveCheckpoint(runMode.key, idx) }`. Async write không block game loop.
+  - Load hook: `rememberGameState()` đọc `runPersistenceRepo.checkpointFor(runMode.key).first()` qua `runBlocking` ở init (one-time, <10ms). Coerce với `stageProvider.hasAt(idx)` để safe nếu checkpoint out-of-range.
+  - Clear hook: `GameScreen` LaunchedEffect(gameStatus == GAME_OVER) → `runPersistence.clearCheckpoint(gameModeKey)`. Mọi GAME_OVER (death/victory/timeout) đều clear checkpoint → next launch không auto-resume.
+  - MenuScreen reads checkpoint via `runPersist.checkpointFor(lastModeKey)` Flow → primary button label/state phản ánh real-time.
+  - Wired into `App` + `MainActivity` (`LocalRunPersistence` CompositionLocal).
+
+- ✅ **Player meta data persistence audit**: re-confirmed các loại data đã persist:
+  - Settings (volume / vibration / difficulty / shipSkin / lastMode / lastModifier / tutorialShown) — `SettingsRepository`
+  - Leaderboard (all-time top-10 + daily per-UTC-day + endless survival) — `LeaderboardRepository`
+  - Achievements (30 entries unlocked CSV) — `AchievementsRepository`
+  - Lifetime minerals + skill tree node ranks — `MetaProgressionRepository`
+  - Per-mode run checkpoint — `RunPersistenceRepository` (NEW round 25)
+  
+  Việc force-close app không mất bất kỳ data nào trừ in-run state (HP/score/kills) — cố ý vì design: checkpoint-style = resume tại stage cũ với ship fresh, không tiếp tục với HP/score đã có (đảm bảo công bằng cho leaderboard).
+
+### Round 25 files
+
+**New:**
+- `data/RunPersistenceRepository.kt` (~80 LOC, per-mode checkpoint store + LocalRunPersistence CompositionLocal)
+- `ui/menu/MenuScreen.kt` (~230 LOC, full start menu with title/mode card/play button/secondary grid + PrimaryButton + SecondaryButton helpers)
+
+**Modified:**
+- `common/Type.kt` — removed OrbitronFontFamily, Typography uses FontFamily.Default.
+- `App.kt` — wire RunPersistenceRepository.
+- `ui/MainActivity.kt` — provide LocalRunPersistence; Splash → Menu instead of Game; MenuScreen route; pickers popBackStack on pick (not Game restart); DifficultyPicker → Menu.
+- `navigation/Navigation.kt` — added Menu route.
+- `ui/game/state/GameState.kt` — read `runPersistenceRepo.checkpointFor(runMode.key)` for initial stage index; save checkpoint on onStageAdvance.
+- `ui/game/GameScreen.kt` — clear checkpoint on GAME_OVER LaunchedEffect.
+- `ui/dlg/settings/DialogSettings.kt` — all helpers font/padding boosted.
+- `ui/dlg/metaupgrade/DialogMetaUpgrade.kt` — header + row font/padding boosted.
+- `ui/game/controls/StoryOverlay.kt` — text font 14→17sp, speaker 11→13sp.
+- `ui/game/controls/AchievementBanner.kt` — header/title/desc font boosted.
+- `ui/dlg/modepicker/DialogModePicker.kt` — description fontSize 14sp + padding tăng.
+- `ui/dlg/modifierpicker/DialogModifierPicker.kt` — description fontSize 14sp + multiplier 16sp + padding tăng.
+
+### Round 25 verification
+
+- `./gradlew assembleDevDebug` BUILD SUCCESSFUL.
+- `./gradlew compileProductionReleaseKotlin` BUILD SUCCESSFUL.
+
+### Round 26 — audit-driven polish (Vietnamese gaps + death-keeps-checkpoint + menu scroll + font cleanup + chapter intro fix)
+
+Audit round (post-round-25) flagged 5 items. All fixed.
+
+- ✅ **Việt hóa toàn bộ string gaps còn lại**:
+  - `DialogDifficultyPicker`: "PICK DIFFICULTY" → "CHỌN ĐỘ KHÓ", "Can be changed later in Settings" → "Có thể đổi sau ở Cài đặt", difficulty key uppercase → DỄ/VỪA/KHÓ.
+  - `TutorialOverlay`: "TAP & HOLD" → "GIỮ & DI", "the arrows below to move" → "mũi tên bên dưới để điều khiển", "Tap anywhere to dismiss" → "Chạm bất kỳ để đóng".
+  - `PhaseTransitionBanner`: "PHASE N" → "GIAI ĐOẠN N" (3 layered text instances replaced).
+  - `WaveClearBanner`: "WAVE CLEAR!" → "HOÀN THÀNH ĐỢT!", "+5 minerals" → "+5 khoáng vật".
+  - `IndicatorStatus.ReviveTokenBadge`: "REVIVE" → "HỒI SINH".
+  - `DialogGameOver`: KHOÁNG VẬT / KỶ LỤC / ★ KỶ LỤC MỚI ★ / VictoryPanel headings (THIÊN HÀ ĐƯỢC CỨU / BÁ VƯƠNG BỊ HẠ / CHIẾN THẮNG HUYỀN THOẠI) + Vietnamese subtitles / VÔ TẬN panel (SỐNG SÓT / TỐT NHẤT / ★ KỶ LỤC MỚI VÔ TẬN ★) / DailyPanel (TỐT NHẤT HÔM NAY / SỐ LẦN CHƠI / ★ KỶ LỤC HÔM NAY ★) / StatsPanel (THỐNG KÊ + THỜI GIAN / MÀN ĐẠT / DIỆT ĐỊCH / HẠ BOSS / COMBO TỐI ĐA) / "TOP CAO ĐIỂM".
+  - `Chapter.displayName`: VÀNH ĐAI TIỂU HÀNH TINH / MÂY TINH VÂN / HÀNH TINH BĂNG / TRẠM THÙ ĐỊCH / LÕI THIÊN HÀ.
+  - `Stage.kt buildStageScript`: "CHAPTER N" → "CHƯƠNG N", "GO!" → "BẮT ĐẦU!", "DANGER" → "NGUY HIỂM", "Continue!" → "Tiếp tục!", "BOSS FIGHT" → "TRẬN BOSS", "Get ready!" → "Sẵn sàng!", "Chapter cleared!" → "Hoàn thành chương!", "VICTORY!" → "CHIẾN THẮNG!".
+  - `StageProviders.kt BossRushProvider`: "BOSS RUSH" → "CHIẾN BOSS", "Get ready!" → "Sẵn sàng!", "Next!" → "Tiếp!", "ALL CLEAR!" → "VƯỢT ẢI!". Sentinel `BOSS_RUSH_GAP_MESSAGE` constant added so GameState heal-between-bosses check doesn't string-match brittlely.
+  - `values/strings.xml`: swapped to Vietnamese as default (was English). `values-en/` keeps English fallback. App now Vietnamese-first regardless of device locale; switches to English on en-US/etc. devices.
+
+- ✅ **Death KEEP checkpoint, victory CLEAR**: round 25 cleared checkpoint on every GAME_OVER (death + victory). Round 26 changed: only clear on victory. Death preserves checkpoint so user can retry same stage via MenuScreen Continue button. Implementation:
+  - `GameScreen.kt` LaunchedEffect(gameStatus==GAME_OVER) branches on `isVictory`: victory → clear; death → preserve.
+  - `DialogGameOver` Restart button explicitly clears checkpoint before navigate (user choice to start fresh).
+  - **New `VỀ MENU` button** added to GameOver dialog actions — `NeonMagenta` color, "◀" glyph. Navigates back to Menu route WITHOUT clearing checkpoint. UX: user dies → has 2 buttons: "CHƠI LẠI" (fresh from stage 0) or "VỀ MENU" (return + continue later).
+  - Wired in `MainActivity` GameOver dialog destination — `onBackToMenu = navigate(Menu, popUpTo Menu inclusive)`.
+
+- ✅ **MenuScreen verticalScroll**: added `Modifier.verticalScroll(rememberScrollState())` + changed Column arrangement từ `SpaceBetween` sang `spacedBy(24.dp)` để overflow tự nhiên trên screen nhỏ (< 480dp tall). Trên screen tall, có whitespace below — chấp nhận được.
+
+- ✅ **Xóa font Orbitron unused**: confirmed zero references (grep `R.font.font_orbitron`, `font_orbitron`, `OrbitronFontFamily` — không hit). Deleted 6 files `res/font/font_orbitron_*.ttf` (regular/medium/semibold/bold/black/extrabold). Removed empty `res/font/` directory. APK giảm ~600KB.
+
+- ✅ **Chapter intro re-play fix khi resume**: round 25 issue — resume mid-game thì `chapterIntroPlayedChapter` reset về 0 (rememberSaveable không persist qua cold launch) → next stage advance in same chapter triggers chapter intro narrative again. Fix: rememberSaveable's `init` lambda now computes initial value từ `stageProvider.chapterAt(initialStageIndex)`. If resume at stage > 0, set `chapterIntroPlayedChapter = currentChapterId` so subsequent stage advances trong same chapter không re-fire intro.
+
+### Round 26 files modified
+
+- `ui/dlg/difficulty/DialogDifficultyPicker.kt` — Vietnamese title + subtitle + difficulty labels.
+- `ui/game/controls/TutorialOverlay.kt` — 3 lines Vietnamese.
+- `ui/game/controls/PhaseTransitionBanner.kt` — "PHASE N" → "GIAI ĐOẠN N" (replace_all).
+- `ui/game/controls/WaveClearBanner.kt` — banner + sub-line Vietnamese.
+- `ui/game/controls/IndicatorStatus.kt` — REVIVE badge Vietnamese.
+- `ui/dlg/gameover/DialogGameOver.kt` — all internal English labels translated; added `onBackToMenu` callback param + "VỀ MENU" NeonDialogButton; added kotlinx.coroutines.launch import + clear-on-restart for explicit user intent.
+- `ui/game/stage/Chapter.kt` — 5 chapter displayName Vietnamese.
+- `ui/game/stage/Stage.kt` — 10 StageMessage strings Vietnamese.
+- `ui/game/stage/StageProviders.kt` — BossRushProvider 4 StageMessage strings Vietnamese + `BOSS_RUSH_GAP_MESSAGE` companion constant.
+- `ui/game/state/GameState.kt` — heal-between-bosses uses `BossRushProvider.BOSS_RUSH_GAP_MESSAGE` constant; `chapterIntroPlayedChapter` init computes from `stageProvider.chapterAt(initialStageIndex)`; clear-on-victory-only.
+- `ui/game/GameScreen.kt` — clear-on-victory-only.
+- `ui/MainActivity.kt` — DialogGameOver gets `onBackToMenu` handler.
+- `ui/menu/MenuScreen.kt` — verticalScroll + Arrangement.spacedBy.
+- `res/values/strings.xml` — Vietnamese as default (was English).
+- `res/font/` — deleted (6 orbitron .ttf files + folder).
+
+### Round 26 verification
+
+- `./gradlew assembleDevDebug` BUILD SUCCESSFUL.
+- `./gradlew compileProductionReleaseKotlin` BUILD SUCCESSFUL.
+
+### Round 27 — MenuScreen revamp + game-flow polish
+
+User feedback (round 26 self-test):
+1. MenuScreen plain + ugly, no background, options no icons, buttons reportedly not clicking.
+2. MenuScreen ↔ DialogSettings duplicate the mode/buff/upgrade entry points.
+3. Pause dialog has no "Back to Menu" — once in-game you can only Resume/Restart/Settings.
+4. System back/swipe in Game exits the run instantly instead of pausing.
+
+**All fixed in round 27.**
+
+- ✅ **MenuScreen full rewrite (game-like design)**:
+  - Animated starfield background — 60 stars across 3 depth layers (far cyan-tinted small, mid white, near gold-tinted larger). Drift downward at layer-scaled speed (20/40/80 px/sec) + per-star sine twinkle. Pure Canvas decorative layer, doesn't consume pointer events.
+  - Title block: "SKY FORCE" 36sp NeonCyan with pulsing glow + "U*S*A" 22sp NeonMagenta below with letter-spacing 6sp. Both use `neonGlow` modifier.
+  - Ship logo: center 180dp Box with radial halo gradient (Canvas) behind splash_image (140dp, pulsing scale 0.96..1.04).
+  - Info card: shows current mode + buff (only if non-NONE) + checkpoint ("▸ Đang ở màn N" if checkpoint > 0) + lifetime minerals ♦ badge. Violet bordered card.
+  - PLAY button: huge full-width (22dp vertical padding, 26sp label), pulsing border alpha 0.55..1.0 with 900ms cycle, horizontal gradient bg (NeonCyan-Magenta-NeonCyan), ▶ glyph 30sp leading, neonGlow intensity 0.7. Label is "TIẾP TỤC" if checkpoint > 0 else "BẮT ĐẦU".
+  - 2x2 secondary grid: each button has big icon glyph 32sp on top + label 14sp below. Icons: ⊞ CHẾ ĐỘ (NeonViolet) / ⚡ BUFF (NeonGold) / ⬆ NÂNG CẤP (NeonCyan) / ⚙ CÀI ĐẶT (NeonMagenta). Each button has neonGlow + border in its accent color.
+  - **Click reliability fix**: every `Modifier.clickable(onClick = ...)` placed BEFORE `.padding(...)` so entire visible area registers as click target. Every onClick fires `Logger.d` so adb logcat confirms taps. Click handlers verified working in PrimaryButton (PLAY) + 4 MenuButtons.
+
+- ✅ **MenuScreen ↔ DialogSettings duplication removed**:
+  - DialogSettings dropped the "CHUẨN BỊ RUN" section (3 NavRows for mode/buff/upgrade — round 24 addition). Settings now has 3 sections only: ÂM THANH / CHƠI / ỨNG DỤNG.
+  - `DialogSettings()` signature simplified — removed `onOpenModePicker`, `onOpenModifierPicker`, `onOpenMetaUpgrade` params. `MainActivity` updated.
+  - `lastMode` + `lastModifier` Flow reads removed from DialogSettings. `GameMode` import removed. Unused `NavRow` helper composable removed (~30 LOC).
+  - Mode/Buff/Upgrade access now lives exclusively in MenuScreen's 2x2 grid → single source of truth.
+
+- ✅ **DialogGamePause "VỀ MENU" button added**:
+  - New `onBackToMenu` callback param. New 4th button (NeonGold, "◀" glyph). Click → navigate Menu route, popUpTo Menu inclusive. Checkpoint preserved (no clearCheckpoint call) so user can resume via "TIẾP TỤC" from Menu.
+  - MainActivity GamePause destination wired with `onBackToMenu` handler.
+
+- ✅ **System back / swipe-back protection in Game**:
+  - `BackHandler(enabled = gameState.gameStatus == GameStatus.RUNNING)` composable added at top of GameScreen. When user presses back / does back-gesture while game is running: intercept → `gameState.toggleGameStatus()` + `onGamePause()` → DialogGamePause shows. Prevents accidental exit of mid-run.
+  - When PAUSE or GAME_OVER, BackHandler is disabled → back falls through to default behavior (close dialog or do nothing per dialog properties).
+  - Previously: back press in Game popped Game route → user lost run state + sent to Menu/Splash. No more.
+
+### Round 27 files
+
+**Modified:**
+- `ui/menu/MenuScreen.kt` — full rewrite (~360 LOC): starfield Canvas, ShipLogo with halo, InfoCard, PlayButton, MenuButton helpers. Click ordering verified.
+- `ui/dlg/settings/DialogSettings.kt` — dropped CHUẨN BỊ RUN section, NavRow helper removed, 4 params → 1, `lastMode/lastModifier` reads removed.
+- `ui/MainActivity.kt` — Settings dialog wiring simplified; GamePause dialog gets `onBackToMenu` handler.
+- `ui/dlg/gamepause/DialogGamePause.kt` — new `onBackToMenu` param + "VỀ MENU" NeonDialogButton (NeonGold, "◀" glyph).
+- `ui/game/GameScreen.kt` — `BackHandler(enabled=RUNNING)` at top → opens pause dialog instead of exiting Game route.
+
+### Round 27 verification
+
+- `./gradlew assembleDevDebug` BUILD SUCCESSFUL.
+- `./gradlew compileProductionReleaseKotlin` BUILD SUCCESSFUL.
+
+### Manual test cho round 27
+
+```
+1. App launch → Splash → MenuScreen
+   ✓ Animated starfield background (60 stars drifting downward, 3 layers, twinkling)
+   ✓ "SKY FORCE / U*S*A" title pulsing neon
+   ✓ Splash ship image with radial halo, pulsing scale
+   ✓ InfoCard: chế độ + ♦ minerals + checkpoint nếu có
+   ✓ PLAY button huge, pulsing border, ▶ glyph
+   ✓ 2x2 grid with icons: ⊞ ⚡ ⬆ ⚙
+2. Tap each button → adb logcat should show "MenuScreen: X tapped" (verify clicks work)
+3. PLAY → enter Game
+4. Press Android back / swipe-back → DialogGamePause opens (NOT exit Game)
+5. Pause dialog has 4 buttons: ▶ TIẾP TỤC / ↻ CHƠI LẠI / ⚙ CÀI ĐẶT / ◀ VỀ MENU
+6. ⚙ CÀI ĐẶT → DialogSettings: 3 sections (ÂM THANH / CHƠI / ỨNG DỤNG) — NO duplicate mode/buff/upgrade rows
+7. Close Settings → back to Pause → ◀ VỀ MENU → MenuScreen
+   ✓ Checkpoint preserved → InfoCard shows "▸ Đang ở màn N" + PLAY label = "TIẾP TỤC"
+8. From Menu, tap CÀI ĐẶT directly → opens same Settings dialog (no mode rows there)
+9. Tap CHẾ ĐỘ → ModePicker → tap a mode → returns to Menu (popBackStack)
+10. PLAY → Game with new mode
+11. Die → GameOver dialog with CHƠI LẠI + VỀ MENU buttons (round 26 feature still works)
+12. Force-close app → reopen → Splash → Menu → checkpoint still there → TIẾP TỤC
+```
+
+### Manual test cho round 26
+
+```
+1. Cold install (clear data) → Splash → DialogDifficultyPicker "CHỌN ĐỘ KHÓ" với DỄ/VỪA/KHÓ
+2. Pick độ khó → Menu (Vietnamese)
+3. BẮT ĐẦU → Game → TutorialOverlay "GIỮ & DI" tiếng Việt
+4. Chơi tới chapter 2 → "CHƯƠNG 2 / MÂY TINH VÂN / BẮT ĐẦU!" StageBanner
+5. Mid-boss → "NGUY HIỂM" → boss → "Tiếp tục!"
+6. Wave clear → "HOÀN THÀNH ĐỢT! +5 khoáng vật"
+7. Chết → GameOver dialog (Vietnamese labels: KHOÁNG VẬT / KỶ LỤC / THỐNG KÊ / TOP CAO ĐIỂM)
+   → 2 buttons: "CHƠI LẠI" + "◀ VỀ MENU"
+8. Tap "VỀ MENU" → MenuScreen → checkpoint preserved → button hiện "TIẾP TỤC"
+9. Tap TIẾP TỤC → resume tại stage cũ → chapter 2 intro KHÔNG re-fire (đã played)
+10. Chơi tới FinalBoss → hạ → VictoryPanel: "BÁ VƯƠNG BỊ HẠ" (NORMAL) hoặc "THIÊN HÀ ĐƯỢC CỨU" (EASY)
+11. GameOver dialog → CHƠI LẠI → fresh start từ stage 0 (checkpoint cleared on victory)
+12. Pause game → Settings → CHỌN CHẾ ĐỘ "CHIẾN BOSS" → back ra Menu → BẮT ĐẦU → boss-rush mode
+13. Boss-rush kill last boss → "VƯỢT ẢI!" StageBanner + BOSS_RUSH_CLEAR achievement
+14. Phase 2/3 boss → "GIAI ĐOẠN 2/3" banner
+15. Pick revive token → "HỒI SINH" badge trên HUD
+16. Achievement unlock → "🏆 THÀNH TỰU · VÀNG" + Vietnamese title (e.g. "ANH HÙNG THIÊN HÀ")
+17. Verify font: tất cả text dùng font hệ thống device (Roboto trên Android)
+18. Small screen test: MenuScreen scrollable nếu overflow
+```
+
+### Manual test cho round 25
+
+```
+1. Cold install → app launch → Splash 1.2s → MenuScreen (KHÔNG vào game ngay)
+2. Menu thấy: title pulse, balance ♦ minerals, mode card "CHIẾN DỊCH", "BẮT ĐẦU" button
+3. Tap CHẾ ĐỘ → DialogModePicker (Việt + font 14-22sp) → CHIẾN BOSS → back về Menu
+4. Menu giờ hiện mode card "CHIẾN BOSS"
+5. BẮT ĐẦU → Game → kill 2 boss đầu (advance stage index)
+6. Force-close app (recent apps swipe up)
+7. Cold launch lại → Splash → Menu
+8. Menu hiện: "▸ Đang ở màn N" trong mode card + button đổi thành "TIẾP TỤC"
+9. Tap TIẾP TỤC → Game start tại stage N với ship HP đầy + smartBombs reset
+10. Chết → GameOver dialog → checkpoint cleared
+11. Tap RESTART → Game → restart từ stage 0 (vì checkpoint đã clear)
+12. Back từ Game → Menu (KHÔNG còn "TIẾP TỤC")
+13. Settings (từ Menu) — đọc rõ ràng các section font 13-16sp, không bị crammed
+14. AchievementBanner: title 20sp gold ĐỒNG/BẠC/VÀNG dễ đọc
+15. Boss spawn → StoryOverlay top: "● BOSS CẤP 1" + dialogue 17sp dễ đọc
+16. Font test: nhìn UI text → font system của device (Roboto trên Android, không Orbitron)
+```
+
 ### Wave 5 known limitations (still deferred)
 
 The following SkillNode entries persist ranks but the per-node special effects are NOT wired to controllers — only their parent's stat bonus takes effect through EffectiveStats:

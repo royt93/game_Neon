@@ -98,20 +98,20 @@ fun AchievementBanner(
         Text(
             text = "🏆 THÀNH TỰU · $tierLabel",
             color = tierColor,
-            fontSize = 11.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
         )
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(3.dp))
         Text(
             text = achievement.title,
             color = Color.White,
-            fontSize = 18.sp,
+            fontSize = 20.sp,
             fontWeight = FontWeight.Black,
         )
         Text(
             text = achievement.description,
-            color = Color.White.copy(alpha = 0.75f),
-            fontSize = 12.sp,
+            color = Color.White.copy(alpha = 0.8f),
+            fontSize = 14.sp,
         )
     }
 }

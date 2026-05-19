@@ -24,11 +24,13 @@ import com.tranphuloi.neon.common.NeonTheme
 import com.tranphuloi.neon.data.LocalAchievements
 import com.tranphuloi.neon.data.LocalLeaderboard
 import com.tranphuloi.neon.data.LocalMetaProgression
+import com.tranphuloi.neon.data.LocalRunPersistence
 import com.tranphuloi.neon.data.LocalSettings
 import com.tranphuloi.neon.navigation.DifficultyPicker
 import com.tranphuloi.neon.navigation.Game
 import com.tranphuloi.neon.navigation.GameOver
 import com.tranphuloi.neon.navigation.GamePause
+import com.tranphuloi.neon.navigation.Menu
 import com.tranphuloi.neon.navigation.MetaUpgrade
 import com.tranphuloi.neon.navigation.ModePicker
 import com.tranphuloi.neon.navigation.ModifierPicker
@@ -38,6 +40,7 @@ import com.tranphuloi.neon.ui.dlg.difficulty.DialogDifficultyPicker
 import com.tranphuloi.neon.ui.dlg.metaupgrade.DialogMetaUpgrade
 import com.tranphuloi.neon.ui.dlg.modepicker.DialogModePicker
 import com.tranphuloi.neon.ui.dlg.modifierpicker.DialogModifierPicker
+import com.tranphuloi.neon.ui.menu.MenuScreen
 import com.tranphuloi.neon.ui.dlg.settings.DialogSettings
 import com.tranphuloi.neon.ui.dlg.gameover.DialogGameOver
 import com.tranphuloi.neon.ui.dlg.gamepause.DialogGamePause
@@ -100,6 +103,7 @@ class MainActivity : ComponentActivity() {
                 LocalLeaderboard provides app.leaderboard,
                 LocalAchievements provides app.achievements,
                 LocalMetaProgression provides app.metaProgression,
+                LocalRunPersistence provides app.runPersistence,
                 com.tranphuloi.neon.data.LocalRunStats provides remember {
                     androidx.compose.runtime.mutableStateOf<com.tranphuloi.neon.data.RunStats?>(null)
                 },
@@ -135,11 +139,35 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate(DifficultyPicker.route)
                                 },
                                 onStartGame = {
-                                    Logger.d("Nav: Splash → Game")
+                                    Logger.d("Nav: Splash → Menu (round 25 — was Game)")
                                     with(navController) {
                                         popBackStack()
-                                        navigate(Game.route)
+                                        navigate(Menu.route)
                                     }
+                                },
+                            )
+                        }
+                        composable(route = Menu.route) {
+                            MenuScreen(
+                                onPlay = {
+                                    Logger.d("Nav: Menu → Game")
+                                    navController.navigate(Game.route)
+                                },
+                                onOpenModePicker = {
+                                    Logger.d("Nav: Menu → ModePicker")
+                                    navController.navigate(ModePicker.route)
+                                },
+                                onOpenModifierPicker = {
+                                    Logger.d("Nav: Menu → ModifierPicker")
+                                    navController.navigate(ModifierPicker.route)
+                                },
+                                onOpenMetaUpgrade = {
+                                    Logger.d("Nav: Menu → MetaUpgrade")
+                                    navController.navigate(MetaUpgrade.route)
+                                },
+                                onOpenSettings = {
+                                    Logger.d("Nav: Menu → Settings")
+                                    navController.navigate(SettingsRoute.route)
                                 },
                             )
                         }
@@ -172,6 +200,13 @@ class MainActivity : ComponentActivity() {
                                     Logger.d("Nav: GamePause → Settings")
                                     navController.navigate(SettingsRoute.route)
                                 },
+                                onBackToMenu = {
+                                    Logger.d("Nav: GamePause → Menu (checkpoint preserved)")
+                                    navController.navigate(Menu.route) {
+                                        popUpTo(Menu.route) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                },
                             )
                         }
                         dialog(route = SettingsRoute.route) {
@@ -180,24 +215,12 @@ class MainActivity : ComponentActivity() {
                                     Logger.d("Nav: Settings → back")
                                     navController.popBackStack()
                                 },
-                                onOpenModePicker = {
-                                    Logger.d("Nav: Settings → ModePicker")
-                                    navController.navigate(ModePicker.route)
-                                },
-                                onOpenModifierPicker = {
-                                    Logger.d("Nav: Settings → ModifierPicker")
-                                    navController.navigate(ModifierPicker.route)
-                                },
-                                onOpenMetaUpgrade = {
-                                    Logger.d("Nav: Settings → MetaUpgrade")
-                                    navController.navigate(MetaUpgrade.route)
-                                },
                             )
                         }
                         dialog(route = DifficultyPicker.route) {
                             DialogDifficultyPicker(onPicked = {
-                                Logger.d("Nav: DifficultyPicker → Game")
-                                navController.navigate(Game.route) {
+                                Logger.d("Nav: DifficultyPicker → Menu (first-time onboarding)")
+                                navController.navigate(Menu.route) {
                                     popUpTo(Splash.route) { inclusive = true }
                                     launchSingleTop = true
                                 }
@@ -205,20 +228,16 @@ class MainActivity : ComponentActivity() {
                         }
                         dialog(route = ModePicker.route) {
                             DialogModePicker(onPicked = {
-                                Logger.d("Nav: ModePicker → Game (restart with new mode)")
-                                navController.navigate(Game.route) {
-                                    popUpTo(Game.route) { inclusive = true }
-                                    launchSingleTop = true
-                                }
+                                // Round 25 — was Game restart; now just dismiss.
+                                // User picks Play from Menu to apply the new mode.
+                                Logger.d("Nav: ModePicker → back (mode saved)")
+                                navController.popBackStack()
                             })
                         }
                         dialog(route = ModifierPicker.route) {
                             DialogModifierPicker(onPicked = {
-                                Logger.d("Nav: ModifierPicker → Game (restart with new modifier)")
-                                navController.navigate(Game.route) {
-                                    popUpTo(Game.route) { inclusive = true }
-                                    launchSingleTop = true
-                                }
+                                Logger.d("Nav: ModifierPicker → back (modifier saved)")
+                                navController.popBackStack()
                             })
                         }
                         dialog(route = MetaUpgrade.route) {
@@ -243,6 +262,13 @@ class MainActivity : ComponentActivity() {
                                     Logger.d("Nav: GameOver → Game (restart, popUpTo Game inclusive)")
                                     navController.navigate(Game.route) {
                                         popUpTo(Game.route) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onBackToMenu = {
+                                    Logger.d("Nav: GameOver → Menu (checkpoint preserved)")
+                                    navController.navigate(Menu.route) {
+                                        popUpTo(Menu.route) { inclusive = true }
                                         launchSingleTop = true
                                     }
                                 },

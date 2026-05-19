@@ -3,22 +3,18 @@ package com.tranphuloi.neon.common
 import androidx.compose.material.Typography
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import com.tranphuloi.neon.R
 
-val OrbitronFontFamily = FontFamily(
-    Font(R.font.font_orbitron_regular),
-    Font(R.font.font_orbitron_medium, FontWeight.Medium),
-    Font(R.font.font_orbitron_semibold, FontWeight.SemiBold),
-    Font(R.font.font_orbitron_bold, FontWeight.Bold),
-    Font(R.font.font_orbitron_black, FontWeight.Black),
-)
-
+/**
+ * Round 25 — switched from custom Orbitron font to device default.
+ * Custom font files still ship in res/font/ (won't affect APK noticeably; can
+ * remove in a separate cleanup pass when no Composable references them).
+ * All Text composables now render with the system font family.
+ */
 val Typography = Typography(
-    defaultFontFamily = OrbitronFontFamily,
+    defaultFontFamily = FontFamily.Default,
     body1 = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,

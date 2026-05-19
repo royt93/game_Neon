@@ -1,28 +1,29 @@
 <resources>
 <!--    <string name="app_name">Sky force U*S*A</string>-->
-    <string name="game_left_button">Move left</string>
-    <string name="game_settings_button">Settings</string>
-    <string name="game_hp_indicator">HP indicator</string>
-    <string name="game_right_button">Move right</string>
-    <string name="ship">Ship</string>
-    <string name="enemy">Enemy</string>
-    <string name="enemy_laser">Enemy laser</string>
-    <string name="space_object">Space object</string>
-    <string name="booster">Booster</string>
-    <string name="laser">Starship laser</string>
-    <string name="splash">Splash image</string>
-    <string name="restart_game_button">Restart</string>
-    <string name="resume_game_button">Resume</string>
-    <string name="settings_button">Settings</string>
-    <string name="game_pause_dialog_title">PAUSE</string>
-    <string name="game_over_dialog_title">GAME OVER</string>
-    <string name="game_over_dialog_score">Minerals: %1$s</string>
-    <string name="mineral_content_description">Mineral</string>
-    <string name="explosion_content_description">Explosion</string>
+    <!-- Round 26: Vietnamese is the design language. Default strings.xml is Vietnamese-first. values-en/ keeps English fallback for non-Vietnamese device locales. -->
+    <string name="game_left_button">Sang trái</string>
+    <string name="game_settings_button">Cài đặt</string>
+    <string name="game_hp_indicator">Chỉ số HP</string>
+    <string name="game_right_button">Sang phải</string>
+    <string name="ship">Phi thuyền</string>
+    <string name="enemy">Kẻ địch</string>
+    <string name="enemy_laser">Tia của địch</string>
+    <string name="space_object">Vật thể không gian</string>
+    <string name="booster">Vật phẩm</string>
+    <string name="laser">Tia laser</string>
+    <string name="splash">Ảnh khởi động</string>
+    <string name="restart_game_button">Chơi lại</string>
+    <string name="resume_game_button">Tiếp tục</string>
+    <string name="settings_button">Cài đặt</string>
+    <string name="game_pause_dialog_title">TẠM DỪNG</string>
+    <string name="game_over_dialog_title">KẾT THÚC</string>
+    <string name="game_over_dialog_score">Khoáng vật: %1$s</string>
+    <string name="mineral_content_description">Khoáng vật</string>
+    <string name="explosion_content_description">Vụ nổ</string>
     <!-- 14c Auto-revive token -->
-    <string name="revived_banner">REVIVED!</string>
+    <string name="revived_banner">HỒI SINH!</string>
     <!-- 17c Daily challenge -->
-    <string name="daily_challenge_label">Daily Challenge</string>
-    <string name="daily_seed_label">Day %1$s</string>
-    <string name="daily_best_today">Today\'s best: %1$s</string>
+    <string name="daily_challenge_label">Thử Thách Ngày</string>
+    <string name="daily_seed_label">Ngày %1$s</string>
+    <string name="daily_best_today">Tốt nhất hôm nay: %1$s</string>
 </resources>

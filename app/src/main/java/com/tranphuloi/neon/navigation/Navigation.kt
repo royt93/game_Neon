@@ -2,6 +2,8 @@ package com.tranphuloi.neon.navigation
 
 sealed class Navigation(val route: String)
 object Splash : Navigation(route = "splash")
+/** Round 25 — start menu: pick mode / continue / open settings before entering Game. */
+object Menu : Navigation(route = "menu")
 object Game : Navigation(route = "game")
 object GamePause : Navigation(route = "game-pause")
 object GameOver : Navigation(route = "game-over")

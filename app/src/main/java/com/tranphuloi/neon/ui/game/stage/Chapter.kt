@@ -26,7 +26,7 @@ enum class Chapter(
 ) {
     ASTEROID_BELT(
         id = 1,
-        displayName = "ASTEROID BELT",
+        displayName = "VÀNH ĐAI TIỂU HÀNH TINH",
         tintArgb = 0xFFFFB048,                        // warm gold-orange
         regularEnemyDrawables = listOf(
             R.drawable.enemy_red_1,
@@ -39,7 +39,7 @@ enum class Chapter(
     ),
     NEBULA_CLOUD(
         id = 2,
-        displayName = "NEBULA CLOUD",
+        displayName = "MÂY TINH VÂN",
         tintArgb = 0xFFB14CFF,                        // violet
         regularEnemyDrawables = listOf(
             R.drawable.enemy_green_1,
@@ -53,7 +53,7 @@ enum class Chapter(
     ),
     ICE_PLANET(
         id = 3,
-        displayName = "ICE PLANET",
+        displayName = "HÀNH TINH BĂNG",
         tintArgb = 0xFF00F0FF,                        // cyan ice
         regularEnemyDrawables = listOf(
             R.drawable.enemy_light_blue_1,
@@ -68,7 +68,7 @@ enum class Chapter(
     ),
     HOSTILE_STATION(
         id = 4,
-        displayName = "HOSTILE STATION",
+        displayName = "TRẠM THÙ ĐỊCH",
         tintArgb = 0xFFFF2D55,                        // red alert
         regularEnemyDrawables = listOf(
             R.drawable.enemy_red_2,
@@ -82,7 +82,7 @@ enum class Chapter(
     ),
     GALAXY_CORE(
         id = 5,
-        displayName = "GALAXY CORE",
+        displayName = "LÕI THIÊN HÀ",
         tintArgb = 0xFFFF2DE0,                        // deep magenta
         regularEnemyDrawables = listOf(
             R.drawable.enemy_red_3,

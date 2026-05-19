@@ -72,7 +72,7 @@ fun TutorialOverlay(modifier: Modifier = Modifier) {
         ) {
             Spacer(modifier = Modifier.height(80.dp))
             Text(
-                text = "TAP & HOLD",
+                text = "GIỮ & DI",
                 color = NeonCyan,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Black,
@@ -80,7 +80,7 @@ fun TutorialOverlay(modifier: Modifier = Modifier) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "the arrows below to move",
+                text = "mũi tên bên dưới để điều khiển",
                 color = Color.White,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Medium,
@@ -93,8 +93,8 @@ fun TutorialOverlay(modifier: Modifier = Modifier) {
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Tap anywhere to dismiss",
-                color = Color.White.copy(alpha = 0.7f),
+                text = "Chạm bất kỳ để đóng",
+                color = Color.White.copy(alpha = 0.75f),
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center,
             )

@@ -98,14 +98,14 @@ fun StoryOverlay(
         Text(
             text = "● ${line.speaker}",
             color = speakerColor,
-            fontSize = 11.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = line.text,
             color = Color.White,
-            fontSize = 14.sp,
+            fontSize = 17.sp,
             fontWeight = FontWeight.SemiBold,
         )
     }

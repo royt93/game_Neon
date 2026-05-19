@@ -209,7 +209,7 @@ private fun ReviveTokenBadge() {
             fontWeight = FontWeight.Black,
         )
         Text(
-            text = "REVIVE",
+            text = "HỒI SINH",
             color = pulseColor,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,

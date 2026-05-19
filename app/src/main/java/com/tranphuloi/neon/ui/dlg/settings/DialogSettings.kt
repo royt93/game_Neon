@@ -53,31 +53,25 @@ import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.data.Difficulty
 import com.tranphuloi.neon.data.LocalSettings
 import com.tranphuloi.neon.data.ShipSkin
-import com.tranphuloi.neon.ui.game.mode.GameMode
 import com.tranphuloi.neon.utils.Logger
 import kotlinx.coroutines.launch
 
 /**
- * Round 24 — clean redesign of DialogSettings.
+ * Round 24/27 — clean DialogSettings.
  *
- * Old layout dumped 11 widgets into a single flat column → felt cluttered.
- * New layout groups into 4 sections with header + thin divider:
+ * Round 27 simplified to 3 sections (was 4): mode/buff/upgrade rows moved to
+ * MenuScreen's primary navigation grid to eliminate duplication.
  *
- *   ÂM THANH       — Music slider + SFX slider
- *   CHƠI            — Vibration toggle + Reduce motion toggle + Difficulty pills + Ship skin pills
- *   CHUẨN BỊ RUN    — Game mode row + Modifier row + Upgrades row (each click-through)
- *   ỨNG DỤNG        — Rate / Share / Privacy links
+ *   ÂM THANH    — Music slider + SFX slider
+ *   CHƠI         — Vibration + Reduce motion checkboxes + Difficulty pills + Ship skin pills
+ *   ỨNG DỤNG     — Rate / Share / Privacy links
  *
  * Compact spacing (10dp section gap, 4dp inter-row gap), small section headers
- * with subtle horizontal divider above each, vertical scroll if content overflows
- * small screens.
+ * with subtle horizontal divider above each, vertical scroll on small screens.
  */
 @Composable
 fun DialogSettings(
     onDismiss: () -> Unit,
-    onOpenModePicker: () -> Unit = {},
-    onOpenModifierPicker: () -> Unit = {},
-    onOpenMetaUpgrade: () -> Unit = {},
 ) {
     val settings = LocalSettings.current
     val scope = rememberCoroutineScope()
@@ -89,10 +83,7 @@ fun DialogSettings(
     val reduceMotion by settings.reduceMotion.collectAsState(initial = false)
     val difficulty by settings.difficulty.collectAsState(initial = Difficulty.NORMAL)
     val shipSkin by settings.shipSkin.collectAsState(initial = ShipSkin.REGULAR)
-    val lastModeKey by settings.lastMode.collectAsState(initial = "campaign")
-    val lastMode = GameMode.fromKey(lastModeKey)
-    val lastModifierKey by settings.lastModifier.collectAsState(initial = "none")
-    val lastModifier = com.tranphuloi.neon.ui.game.modifier.RunModifier.fromKey(lastModifierKey)
+    // Round 27 — lastMode / lastModifier reads removed; that info now lives in MenuScreen.
 
     LaunchedEffect(Unit) { Logger.d("DialogSettings shown") }
 
@@ -193,40 +184,11 @@ fun DialogSettings(
                 }
             }
 
-            // ────── Section 3: Chuẩn bị run ──────
-            SectionHeader(label = "CHUẨN BỊ RUN", color = NeonViolet)
-            NavRow(
-                label = "Chế độ",
-                value = lastMode.displayName,
-                actionHint = "Đổi",
-                color = NeonViolet,
-                onClick = {
-                    Logger.d("Settings: Open ModePicker (current=${lastMode.key})")
-                    onOpenModePicker()
-                },
-            )
-            NavRow(
-                label = "Buff",
-                value = lastModifier.displayName,
-                actionHint = "Đổi",
-                color = NeonGold,
-                onClick = {
-                    Logger.d("Settings: Open ModifierPicker (current=${lastModifier.key})")
-                    onOpenModifierPicker()
-                },
-            )
-            NavRow(
-                label = "Nâng cấp",
-                value = "Cây kỹ năng",
-                actionHint = "Mở ➤",
-                color = NeonCyan,
-                onClick = {
-                    Logger.d("Settings: Open MetaUpgrade")
-                    onOpenMetaUpgrade()
-                },
-            )
+            // Round 27 — "CHUẨN BỊ RUN" section removed (duplicate with MenuScreen
+            // 2x2 grid). Settings dialog now focuses on audio + gameplay toggles +
+            // app links only. Mode / Buff / Upgrade access lives in MenuScreen.
 
-            // ────── Section 4: Ứng dụng ──────
+            // ────── Section 3: Ứng dụng ──────
             SectionHeader(label = "ỨNG DỤNG", color = Color.White.copy(alpha = 0.6f))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -283,22 +245,22 @@ fun DialogSettings(
     }
 }
 
-/** Subtle section header: small caps label with thin divider line above. */
+/** Section header: bolder caps label with thin divider line above. Round 25 — bumped from 10sp → 13sp. */
 @Composable
 private fun SectionHeader(label: String, color: Color) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(color.copy(alpha = 0.25f)),
+                .background(color.copy(alpha = 0.3f)),
         )
         Text(
             text = label,
             color = color,
-            fontSize = 10.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Black,
-            style = TextStyle(letterSpacing = 3.sp),
+            style = TextStyle(letterSpacing = 2.5.sp),
         )
     }
 }
@@ -319,13 +281,13 @@ private fun SettingSlider(
                 label,
                 color = color,
                 fontWeight = FontWeight.Bold,
-                fontSize = 13.sp,
+                fontSize = 16.sp,
                 modifier = Modifier.weight(1f),
             )
             Text(
                 "${localValue.toInt()}",
                 color = color,
-                fontSize = 13.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
             )
         }
@@ -359,7 +321,7 @@ private fun SettingCheck(
             onCheckedChange = onChange,
             colors = CheckboxDefaults.colors(checkedColor = NeonCyan)
         )
-        Text(label, color = Color.White, fontSize = 13.sp)
+        Text(label, color = Color.White, fontSize = 15.sp)
     }
 }
 
@@ -377,8 +339,8 @@ private fun LabelledPillRow(
             label,
             color = color,
             fontWeight = FontWeight.Bold,
-            fontSize = 12.sp,
-            modifier = Modifier.width(82.dp),
+            fontSize = 14.sp,
+            modifier = Modifier.width(92.dp),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             content()
@@ -396,62 +358,17 @@ private fun Pill(
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(if (selected) color.copy(alpha = 0.5f) else Color.Transparent)
-            .border(BorderStroke(1.dp, color), RoundedCornerShape(16.dp))
+            .border(BorderStroke(1.dp, color), RoundedCornerShape(18.dp))
             .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 5.dp)
+            .padding(horizontal = 14.dp, vertical = 7.dp)
     ) {
         Text(
             label,
             color = if (selected) Color.White else color,
             fontWeight = FontWeight.Bold,
-            fontSize = 12.sp,
-        )
-    }
-}
-
-/**
- * Navigation row: label on left, current value mid-right, action hint far right.
- * Click anywhere to invoke onClick. Used for Mode / Modifier / Upgrade pickers.
- */
-@Composable
-private fun NavRow(
-    label: String,
-    value: String,
-    actionHint: String,
-    color: Color,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .border(BorderStroke(1.dp, color.copy(alpha = 0.7f)), RoundedCornerShape(8.dp))
-            .background(color.copy(alpha = 0.06f))
-            .clickable { onClick() }
-            .padding(horizontal = 12.dp, vertical = 9.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            label,
-            color = color,
-            fontWeight = FontWeight.Bold,
-            fontSize = 12.sp,
-            modifier = Modifier.width(72.dp),
-        )
-        Text(
-            value,
-            color = Color.White,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 13.sp,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            actionHint,
-            color = color.copy(alpha = 0.85f),
-            fontWeight = FontWeight.Bold,
-            fontSize = 11.sp,
+            fontSize = 14.sp,
         )
     }
 }
@@ -467,11 +384,11 @@ private fun FlatLink(
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
-            .clip(RoundedCornerShape(6.dp))
-            .border(BorderStroke(1.dp, color.copy(alpha = 0.5f)), RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(8.dp))
+            .border(BorderStroke(1.dp, color.copy(alpha = 0.55f)), RoundedCornerShape(8.dp))
             .clickable { onClick() }
-            .padding(vertical = 8.dp),
+            .padding(vertical = 11.dp),
     ) {
-        Text(label, color = color, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+        Text(label, color = color, fontWeight = FontWeight.Bold, fontSize = 14.sp)
     }
 }

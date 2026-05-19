@@ -85,14 +85,14 @@ fun DialogMetaUpgrade(onDismiss: () -> Unit) {
                     text = "♦ $balance",
                     color = NeonCyan,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
+                    fontSize = 22.sp,
                 )
             }
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = "Dùng khoáng vật tích lũy mua nâng cấp vĩnh viễn.",
-                color = Color.White.copy(alpha = 0.7f),
-                fontSize = 11.sp,
+                color = Color.White.copy(alpha = 0.75f),
+                fontSize = 14.sp,
             )
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -150,10 +150,10 @@ private fun NodeRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(color.copy(alpha = 0.10f * rowAlpha))
-            .border(BorderStroke(1.dp, color.copy(alpha = rowAlpha)), RoundedCornerShape(8.dp))
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .border(BorderStroke(1.dp, color.copy(alpha = rowAlpha)), RoundedCornerShape(10.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -161,52 +161,52 @@ private fun NodeRow(
                     text = node.displayName,
                     color = color.copy(alpha = rowAlpha),
                     fontWeight = FontWeight.Black,
-                    fontSize = 14.sp,
+                    fontSize = 16.sp,
                 )
                 Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                 Text(
                     text = "[$currentRank/${node.maxRank}]",
                     color = Color.White.copy(alpha = 0.75f * rowAlpha),
-                    fontSize = 11.sp,
+                    fontSize = 13.sp,
                 )
             }
             Text(
                 text = node.description,
-                color = Color.White.copy(alpha = 0.7f * rowAlpha),
-                fontSize = 11.sp,
+                color = Color.White.copy(alpha = 0.75f * rowAlpha),
+                fontSize = 13.sp,
             )
             if (!prereqMet) {
                 Text(
                     text = "Khóa — cần cấp ${node.minRequiredParentRank} của nốt cha",
-                    color = NeonViolet.copy(alpha = 0.8f),
-                    fontSize = 10.sp,
+                    color = NeonViolet.copy(alpha = 0.85f),
+                    fontSize = 12.sp,
                 )
             }
         }
         // Right side: buy button or status.
         when {
-            atMax -> Text("TỐI ĐA", color = NeonGold, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-            !prereqMet -> Text("●", color = NeonViolet, fontSize = 14.sp)
+            atMax -> Text("TỐI ĐA", color = NeonGold, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            !prereqMet -> Text("●", color = NeonViolet, fontSize = 16.sp)
             else -> {
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .background(
                             if (canAfford) color.copy(alpha = 0.25f) else Color.Transparent
                         )
                         .border(
                             BorderStroke(1.dp, color.copy(alpha = if (canAfford) 0.9f else 0.35f)),
-                            RoundedCornerShape(8.dp),
+                            RoundedCornerShape(10.dp),
                         )
                         .clickable(enabled = canAfford) { onBuy() }
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
                 ) {
                     Text(
                         text = "♦ $nextCost",
                         color = if (canAfford) color else Color.White.copy(alpha = 0.4f),
                         fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
+                        fontSize = 14.sp,
                     )
                 }
             }

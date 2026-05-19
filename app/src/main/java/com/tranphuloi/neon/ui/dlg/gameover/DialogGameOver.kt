@@ -41,14 +41,21 @@ import com.tranphuloi.neon.data.LeaderboardEntry
 import com.tranphuloi.neon.data.LocalLeaderboard
 import com.tranphuloi.neon.data.LocalRunStats
 import com.tranphuloi.neon.utils.Logger
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 @Composable
-fun DialogGameOver(score: String, onRestartGame: () -> Unit) {
+fun DialogGameOver(
+    score: String,
+    onRestartGame: () -> Unit,
+    onBackToMenu: () -> Unit = {},
+) {
     val leaderboard = LocalLeaderboard.current
     val meta = com.tranphuloi.neon.data.LocalMetaProgression.current
+    val runPersistence = com.tranphuloi.neon.data.LocalRunPersistence.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val entries by leaderboard.topEntries.collectAsState(initial = emptyList())
     // 17c Daily challenge — separate top-N for today's UTC day key, displayed
     // alongside the all-time list.
@@ -95,13 +102,13 @@ fun DialogGameOver(score: String, onRestartGame: () -> Unit) {
         titleSize = 36.sp,
         body = {
             ScoreRow(
-                label = "MINERALS",
+                label = "KHOÁNG VẬT",
                 value = score,
                 accentColor = NeonGold,
             )
             Spacer(modifier = Modifier.height(8.dp))
             ScoreRow(
-                label = "BEST",
+                label = "KỶ LỤC",
                 value = highestSoFar.toString(),
                 accentColor = NeonCyan,
             )
@@ -119,7 +126,7 @@ fun DialogGameOver(score: String, onRestartGame: () -> Unit) {
                         .padding(horizontal = 14.dp, vertical = 4.dp),
                 ) {
                     Text(
-                        text = "★ NEW BEST ★",
+                        text = "★ KỶ LỤC MỚI ★",
                         color = NeonGold,
                         fontWeight = FontWeight.Black,
                         fontSize = 13.sp,
@@ -162,13 +169,28 @@ fun DialogGameOver(score: String, onRestartGame: () -> Unit) {
             )
         },
         actions = {
+            // Round 26 — Restart = fresh run from stage 0 (clears checkpoint).
+            // Use Vietnamese label "CHƠI LẠI" for clarity even if locale not vi.
             NeonDialogButton(
-                text = stringResource(id = R.string.restart_game_button).uppercase(),
+                text = "CHƠI LẠI",
                 color = NeonCyan,
                 leadingGlyph = "▶",
                 onClick = {
-                    Logger.d("DialogGameOver: Restart pressed")
+                    Logger.d("DialogGameOver: Restart pressed — clearing checkpoint then navigate Game")
+                    val modeKey = runStatsState?.gameModeKey ?: "campaign"
+                    scope.launch { runPersistence.clearCheckpoint(modeKey) }
                     onRestartGame()
+                },
+            )
+            // Round 26 — Menu = back to MenuScreen WITHOUT clearing checkpoint,
+            // so user can retry from last stage via Continue button later.
+            NeonDialogButton(
+                text = "VỀ MENU",
+                color = NeonMagenta,
+                leadingGlyph = "◀",
+                onClick = {
+                    Logger.d("DialogGameOver: Back to Menu pressed (checkpoint preserved)")
+                    onBackToMenu()
                 },
             )
         },
@@ -180,12 +202,12 @@ private fun VictoryPanel() {
     val difficulty by com.tranphuloi.neon.data.LocalSettings.current.difficulty
         .collectAsState(initial = com.tranphuloi.neon.data.Difficulty.NORMAL)
     val (heading, subtitle) = when (difficulty) {
-        com.tranphuloi.neon.data.Difficulty.EASY -> "GALAXY SAVED" to
-            "You bested the Overlord on Easy. Try Normal next time!"
-        com.tranphuloi.neon.data.Difficulty.NORMAL -> "GALAXY OVERLORD DEFEATED" to
-            "Excellent piloting. The galaxy owes you peace, Captain."
-        com.tranphuloi.neon.data.Difficulty.HARD -> "LEGENDARY VICTORY" to
-            "Hard mode conquered. You are a Sky Force U*S*A legend."
+        com.tranphuloi.neon.data.Difficulty.EASY -> "THIÊN HÀ ĐƯỢC CỨU" to
+            "Đã hạ Bá Vương trên độ DỄ. Thử độ VỪA lần sau nhé!"
+        com.tranphuloi.neon.data.Difficulty.NORMAL -> "BÁ VƯƠNG BỊ HẠ" to
+            "Lái tàu xuất sắc. Thiên hà nợ anh sự bình yên, Đội trưởng."
+        com.tranphuloi.neon.data.Difficulty.HARD -> "CHIẾN THẮNG HUYỀN THOẠI" to
+            "Chinh phục độ KHÓ. Anh là huyền thoại Sky Force U*S*A."
     }
     Column(
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -238,22 +260,22 @@ private fun EndlessPanel(
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Text(
-            text = "ENDLESS",
+            text = "VÔ TẬN",
             color = com.tranphuloi.neon.common.NeonViolet,
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             style = TextStyle(letterSpacing = 4.sp),
         )
         Spacer(modifier = Modifier.height(2.dp))
-        StatLine(label = "SURVIVED", value = currentStr)
-        StatLine(label = "BEST EVER", value = bestStr)
+        StatLine(label = "SỐNG SÓT", value = currentStr)
+        StatLine(label = "TỐT NHẤT", value = bestStr)
         if (currentSeconds >= bestSeconds && currentSeconds > 0) {
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "★ NEW ENDLESS BEST ★",
+                text = "★ KỶ LỤC MỚI VÔ TẬN ★",
                 color = com.tranphuloi.neon.common.NeonViolet,
                 fontWeight = FontWeight.Black,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 style = TextStyle(letterSpacing = 2.sp),
             )
         }
@@ -300,22 +322,22 @@ private fun DailyPanel(
         }
         Spacer(modifier = Modifier.height(2.dp))
         StatLine(
-            label = "TODAY'S BEST",
+            label = "TỐT NHẤT HÔM NAY",
             value = bestToday.toString(),
         )
         if (dailyEntries.size >= 2) {
             StatLine(
-                label = "RUNS TODAY",
+                label = "SỐ LẦN CHƠI",
                 value = dailyEntries.size.toString(),
             )
         }
         if (currentScore > 0 && currentScore == bestToday && dailyEntries.size >= 2) {
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "★ TODAY'S TOP RUN ★",
+                text = "★ KỶ LỤC HÔM NAY ★",
                 color = NeonMagenta,
                 fontWeight = FontWeight.Black,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 style = TextStyle(letterSpacing = 2.sp),
             )
         }
@@ -343,20 +365,20 @@ private fun StatsPanel(stats: com.tranphuloi.neon.data.RunStats) {
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Text(
-            text = "RUN STATS",
+            text = "THỐNG KÊ",
             color = NeonCyan.copy(alpha = 0.7f),
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             style = TextStyle(letterSpacing = 4.sp),
         )
         Spacer(modifier = Modifier.height(2.dp))
-        StatLine(label = "TIME", value = timeStr)
-        StatLine(label = "STAGE REACHED", value = stats.stagesReached.toString())
-        StatLine(label = "ENEMIES KILLED", value = stats.enemiesKilled.toString())
+        StatLine(label = "THỜI GIAN", value = timeStr)
+        StatLine(label = "MÀN ĐẠT", value = stats.stagesReached.toString())
+        StatLine(label = "DIỆT ĐỊCH", value = stats.enemiesKilled.toString())
         if (stats.bossesDefeated > 0) {
-            StatLine(label = "BOSSES DEFEATED", value = stats.bossesDefeated.toString())
+            StatLine(label = "HẠ BOSS", value = stats.bossesDefeated.toString())
         }
-        StatLine(label = "MAX COMBO", value = "×${stats.maxCombo}")
+        StatLine(label = "COMBO TỐI ĐA", value = "×${stats.maxCombo}")
     }
 }
 
@@ -433,9 +455,9 @@ private fun LeaderboardList(
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Text(
-            text = "TOP RUNS",
+            text = "TOP CAO ĐIỂM",
             color = NeonCyan.copy(alpha = 0.7f),
-            fontSize = 10.sp,
+            fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             style = TextStyle(letterSpacing = 4.sp),
         )

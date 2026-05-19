@@ -53,15 +53,20 @@ class SurvivalProvider : StageProvider {
  */
 class BossRushProvider : StageProvider {
     private val script: List<Stage> = buildList {
-        add(StageMessage(message = "BOSS RUSH", durationMillis = 3, chapterId = 1))
-        add(StageMessage(message = "Get ready!", durationMillis = 2, chapterId = 1))
+        add(StageMessage(message = "CHIẾN BOSS", durationMillis = 3, chapterId = 1))
+        add(StageMessage(message = "Sẵn sàng!", durationMillis = 2, chapterId = 1))
         allBosses.forEachIndexed { i, boss ->
             add(boss)
             if (i < allBosses.size - 1) {
-                add(StageMessage(message = "Next!", durationMillis = 2, chapterId = boss.chapterId))
+                add(StageMessage(message = BOSS_RUSH_GAP_MESSAGE, durationMillis = 2, chapterId = boss.chapterId))
             }
         }
-        add(StageMessage(message = "ALL CLEAR!", durationMillis = 3, chapterId = 5))
+        add(StageMessage(message = "VƯỢT ẢI!", durationMillis = 3, chapterId = 5))
+    }
+
+    companion object {
+        /** Sentinel: GameState matches this exact string to trigger between-boss heal. */
+        const val BOSS_RUSH_GAP_MESSAGE = "Tiếp!"
     }
 
     override fun hasAt(index: Int): Boolean = index in script.indices

@@ -56,15 +56,15 @@ fun DialogDifficultyPicker(onPicked: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "PICK DIFFICULTY",
+                text = "CHỌN ĐỘ KHÓ",
                 color = NeonMagenta,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.h5,
             )
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "Can be changed later in Settings",
-                color = Color.White.copy(alpha = 0.7f),
+                text = "Có thể đổi sau ở Cài đặt",
+                color = Color.White.copy(alpha = 0.75f),
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -92,7 +92,11 @@ fun DialogDifficultyPicker(onPicked: () -> Unit) {
                         .padding(vertical = 10.dp),
                 ) {
                     Text(
-                        text = d.key.uppercase(),
+                        text = when (d) {
+                            Difficulty.EASY -> "DỄ"
+                            Difficulty.NORMAL -> "VỪA"
+                            Difficulty.HARD -> "KHÓ"
+                        },
                         color = color,
                         fontWeight = FontWeight.Black,
                         style = MaterialTheme.typography.h6,
