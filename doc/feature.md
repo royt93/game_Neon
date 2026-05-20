@@ -792,6 +792,118 @@ User picks (all Recommended): strategic ~50-60 Logger calls / Custom NeonBottomS
     nav routes / dialog open-close / mode pick / GAME_OVER branch / checkpoint save
 ```
 
+### Round 29 — NeonBottomSheet polish
+
+User feedback after round 28 self-test:
+1. Sheet needs padding bottom 56dp for edge-to-edge / system gesture clearance.
+2. DialogModifierPicker "BỎ QUA" button duplicate with ✕ — remove.
+3. DialogMetaUpgrade fixed-height LazyColumn (420dp) doesn't wrap content.
+4. Sheet display shows status bar (weird) — hide it.
+5. Scrim dim should be black opacity 0.8 (was 0.7).
+
+Fixed:
+- ✅ **Padding bottom 56dp** — SheetContent Column `padding(bottom = 56dp)` (was 18dp).
+- ✅ **BỎ QUA removed** — DialogModifierPicker TextButton xóa. ✕ tap now applies NONE modifier automatically (semantic equivalent).
+- ✅ **Wrap content height** — DialogMetaUpgrade LazyColumn `Modifier.height(420dp)` → `Modifier.heightIn(max = 480dp)`. Short list shrinks; tall list caps at 480dp + sheet scrolls.
+- ✅ **Status bar hide in sheet** — Dialog has own Window. Inside NeonBottomSheet, LaunchedEffect lấy `DialogWindowProvider.window` qua `LocalView.parent`, gọi `WindowCompat.setDecorFitsSystemWindows(false)` + `insetsController.hide(systemBars())`. Activity already hides bars (round 25) but Dialog window inherits separately.
+- ✅ **Scrim alpha 0.8** — `Color.Black.copy(alpha = 0.8f)`.
+
+Round 29 files modified:
+- `common/NeonBottomSheet.kt` — scrim 0.8, bottom padding 56dp, status bar hide via DialogWindowProvider.
+- `ui/dlg/modifierpicker/DialogModifierPicker.kt` — BỎ QUA removed, ✕ applies NONE.
+- `ui/dlg/metaupgrade/DialogMetaUpgrade.kt` — heightIn(max=480dp).
+
+### Round 30 — sheet revamp + Menu bottom space
+
+User feedback:
+1. Scrim dim still visible — remove entirely.
+2. Settings sheet UI cramped — needs breathing room.
+3. Skill tree UI not lively, info unclear.
+4. Buff picker UI not lively, info unclear.
+5. Mode picker UI not lively, info unclear.
+6. MenuScreen has too much center bottom space.
+
+Fixed:
+- ✅ **Scrim removed** — alpha 0.8 → 0f. Box still captures click for dismiss but visually transparent (no dim).
+- ✅ **Settings revamp** — new `SectionPanel(headerLabel, glyph, color, content)` helper. 3 sections wrap with NeonBgEdge background + border + icon glyph header (♪ ÂM THANH / ⊞ CHƠI / ✦ ỨNG DỤNG). Section spacing 10dp → 18dp.
+- ✅ **MetaUpgrade revamp** — icon box 48dp per node (♥/⚔/◉/⊞/⚡/✚/✦/★/❂/⚝/◐/∞/♡/☆/✪) + TIER I/II/III badge + ProgressBarSegments (filled rect per rank/maxRank) + lock icon when prereq unmet + buy button column stacks ♦ + cost.
+- ✅ **ModifierPicker revamp** — icon box 46dp per modifier (⚡/◊/⊘/◉/⚔/⊞/☠/✦) + gold score multiplier badge + StatBarsRow showing HP/DMG/SPD/MAG horizontal bars (green/cyan = buff, red = debuff, white dim = neutral).
+- ✅ **ModePicker revamp** — icon box 56dp per mode (⊕/∞/⏱/☠/◌) + mode name 18sp + meta info chip (e.g. "5 chương · 100 màn" / "60 giây" / "~9 boss") + ▶ chevron.
+- ✅ **MenuScreen bottom space** — verticalScroll removed + `Spacer(Modifier.weight(1f))` before button grid → pushes grid to bottom edge on tall screens.
+
+Round 30 files modified:
+- `common/NeonBottomSheet.kt` — scrim alpha 0.
+- `ui/dlg/settings/DialogSettings.kt` — SectionPanel helper + 3 sections wrapped.
+- `ui/dlg/metaupgrade/DialogMetaUpgrade.kt` — icon + tier badge + progress bar + nodeGlyph() + ProgressBarSegments().
+- `ui/dlg/modifierpicker/DialogModifierPicker.kt` — icon box + score badge + StatBarsRow + StatBar.
+- `ui/dlg/modepicker/DialogModePicker.kt` — icon box + meta info chip + chevron layout.
+- `ui/menu/MenuScreen.kt` — verticalScroll removed, Spacer(weight=1f) trick.
+
+### Round 31 — audit fixes (heightIn max + MenuScreen adaptive + cleanup)
+
+Audit findings post-round-30:
+1. NeonBottomSheet không cap max height → sheets có thể overflow trên small screens (MetaUpgrade risk cao).
+2. MenuScreen bỏ verticalScroll → có thể clip trên screen < 480dp tall.
+3. Legacy SectionHeader helper dead code.
+
+Fixed:
+- ✅ **Sheet heightIn max 90%** — NeonBottomSheet Column `.heightIn(max = configuration.screenHeightDp.dp * 0.9f)`. Inner LazyColumn / verticalScroll vẫn scroll bình thường nhưng sheet tổng không vượt 90% viewport.
+- ✅ **MenuScreen BoxWithConstraints adaptive** — `maxHeight >= 720.dp` → fillMaxSize + Spacer(weight=1f) push grid xuống bottom. < 720dp → verticalScroll + spacedBy(12dp) fallback.
+- ✅ **Cleanup** — xóa legacy `SectionHeader` (~17 LOC), thay fully-qualified `androidx.compose.foundation.layout.Arrangement` references trong MetaUpgrade + ModifierPicker bằng imported `Arrangement`.
+
+Round 31 files modified:
+- `common/NeonBottomSheet.kt` — heightIn max + heightIn import.
+- `ui/menu/MenuScreen.kt` — BoxWithConstraints wrapper + scroll fallback.
+- `ui/dlg/settings/DialogSettings.kt` — SectionHeader removed.
+- `ui/dlg/metaupgrade/DialogMetaUpgrade.kt` + `ui/dlg/modifierpicker/DialogModifierPicker.kt` — qualified Arrangement references cleaned.
+
+### Round 32 — UX feedback (menu spacers + Settings CHƠI groups + sheet padding + animation)
+
+User feedback:
+1. MenuScreen vẫn có dead space ở center area.
+2. Settings CHƠI section UI quá khít — Rung/Reduce/Difficulty/Skin dồn dập.
+3. Sheet bottom padding 56dp quá lớn — đổi 32dp.
+4. Sheet exit slide animation không thấy (instant disappear).
+
+Fixed:
+- ✅ **MenuScreen redistribute spacers** — thay 1 Spacer(weight=1f) bằng 2: Spacer(weight=0.3f) sau Title + Spacer(weight=0.7f) sau Play (gate by tallEnough). Net: title cao hơn, logo + info + play cluster ~60% upper, grid bottom, gap chia 30/70.
+- ✅ **Settings CHƠI ControlGroup** — new helper composable wrap mỗi control group (Rung+Reduce / Difficulty / Skin) trong sub-panel `Color.Black.copy(alpha=0.22f)` background + RoundedCorner 10dp + padding 12/10dp. Inter-group spacing 10dp.
+- ✅ **Sheet padding bottom 56dp → 32dp** — SheetContent Column.
+- ✅ **Sheet exit animation delay** — `rememberCoroutineScope()` + `dismissWithAnim` set visible=false rồi `launch { delay(220L); onDismiss() }`. 220ms > exit anim 200ms → slide-down + fade play đầy đủ trước khi NavHost pop dialog.
+
+Round 32 files modified:
+- `ui/menu/MenuScreen.kt` — 2 weighted spacers, title-area + play-area.
+- `ui/dlg/settings/DialogSettings.kt` — ControlGroup helper + 3 sub-panels in CHƠI section.
+- `common/NeonBottomSheet.kt` — bottom padding 32dp + coroutineScope + delay 220ms before onDismiss.
+
+### Round 33 — menu title + notch + feature.md audit
+
+User feedback:
+1. MenuScreen title "SKY FORCE" hơi bé, bị che bởi notch.
+2. Audit feature.md.
+
+Fixed:
+- ✅ **Title bigger** — "SKY FORCE" 36 → **44sp**, "U*S*A" 22 → **28sp**, letterSpacing tăng 4→5sp / 6→7sp, neonGlow intensity 0.7→0.75 + radius 1.7→1.8.
+- ✅ **Clear notch area** — MenuScreen content Column thêm `Modifier.windowInsetsPadding(WindowInsets.displayCutout)` trước padding hard-coded. Activity đã hide status bar (round 25) nhưng physical notch cutout vẫn occupy space → reserve insets explicitly.
+- ✅ **feature.md audit** — rounds 29-33 đã được document đầy đủ. Wave 5 status line corrected (round 23 đã wire toàn bộ modifier — không còn "rest deferred").
+
+Round 33 files modified:
+- `ui/menu/MenuScreen.kt` — TitleBlock fontSize 36→44sp / 22→28sp, displayCutout insets padding.
+- `doc/feature.md` — round 29-33 sections appended, Wave 5 status corrected.
+
+### Rounds 23-33 verification (cumulative)
+
+- `./gradlew assembleDevDebug` BUILD SUCCESSFUL.
+- `./gradlew compileProductionReleaseKotlin` BUILD SUCCESSFUL.
+- ~290+ Logger.d call sites with `roy93~` auto-prefix.
+- NeonBottomSheet common component used by 7 dialogs (Settings, GameOver, GamePause, DifficultyPicker, ModePicker, ModifierPicker, MetaUpgrade).
+- Per-mode checkpoint persistence (Campaign / Survival / TimeAttack / BossRush / Endless) — survives cold launch.
+- 4 modifier multipliers (hp/dmg/speed/magnet/score/noShieldDrops) all wired through Ship / Lasers / Booster controllers.
+- 4 skill tree base nodes (HP/Damage/Speed/Magnet) propagate via EffectiveStats.
+- Vietnamese-first all UI (GameMode / RunModifier / SkillNode / StoryRegistry / Achievement / Stage / Chapter / picker dialogs / settings / game over / pause).
+- Custom Orbitron font removed; device default font.
+- BackHandler in Game opens pause sheet instead of exiting.
+
 ### Manual test cho round 27
 
 ```
@@ -1329,14 +1441,27 @@ Các architectural refactors quá lớn để gộp chung:
 - [ ] 42x Roguelike buffs + curses
 - [ ] 44x Environmental hazards (extended — ice slip mechanic, solar flares)
 
-## Wave 5 ✅ DONE (round 22)
+## Wave 5 ✅ DONE (round 22 base + round 23 audit fixes)
 - [x] 23x Endless mode (procedural scaling + endless leaderboard)
 - [x] 43x Game modes (Survival / TimeAttack / BossRush via StageProvider)
-- [x] 25x Random modifiers (picker + scoreMul + magnetMul applied; rest deferred)
+- [x] 25x Random modifiers (all multipliers fully wired in round 23: hp/dmg/speed/magnet/score/noShieldDrops)
 - [x] 28x Procedural patterns (V / SineWave from chapter 2)
 - [x] 46x Achievements expansion (+20 Bronze/Silver/Gold tiered)
 - [x] 47x Story / lore (chapter intros + boss taunts)
 - [x] 48x Permanent progression (15-node skill tree + lifetime minerals)
+
+## Wave 5 polish + UX revamp ✅ DONE (rounds 23-33)
+- [x] Round 23 — audit fixes: modifier plumbing, BOSS_RUSH_CLEAR gate, TIME_ATTACK victory branch, StageController saver
+- [x] Round 24 — StoryOverlay reposition + Vietnamese translation + DialogSettings redesign
+- [x] Round 25 — MenuScreen built + per-mode checkpoint persistence + device font + font sizes boosted
+- [x] Round 26 — Vietnamese gaps closed + death-keeps-checkpoint + chapter intro fix + orbitron font deleted
+- [x] Round 27 — MenuScreen revamp (starfield + icons) + dialog dedup + pause MENU button + BackHandler
+- [x] Round 28 — NeonBottomSheet common + migrate 7 dialogs + MenuScreen animations (stagger/idle/comet)
+- [x] Round 29 — sheet padding 56dp + remove BỎ QUA + wrap content height + hide status bar in sheet + scrim 0.8
+- [x] Round 30 — scrim removed + Settings/MetaUpgrade/Modifier/Mode revamp with icons + MenuScreen bottom space fixed
+- [x] Round 31 — sheet heightIn max 90% + MenuScreen BoxWithConstraints adaptive
+- [x] Round 32 — sheet padding 32dp + slide animation delay onDismiss + Menu redistribute spacers + Settings ControlGroup
+- [x] Round 33 — Menu title 44sp + displayCutout windowInsetsPadding + feature.md audit
 
 ## Wave 6 (Polish + accessibility)
 - [ ] 26x Photo mode

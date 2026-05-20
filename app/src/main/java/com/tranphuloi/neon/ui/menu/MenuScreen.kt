@@ -14,6 +14,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
@@ -133,6 +136,10 @@ fun MenuScreen(
             val tallEnough = maxHeight >= 720.dp
             val baseColumnMod = Modifier
                 .fillMaxSize()
+                // Round 33 — windowInsetsPadding clears notch / status-bar cutout area
+                // so title isn't masked. Activity hides status bar (round 25)
+                // but display cutout still occupies layout space → must reserve.
+                .windowInsetsPadding(WindowInsets.displayCutout)
                 .padding(horizontal = 22.dp, vertical = 24.dp)
             val columnMod = if (tallEnough) baseColumnMod
             else baseColumnMod.verticalScroll(rememberScrollState())
@@ -290,19 +297,21 @@ private fun TitleBlock() {
         Text(
             text = "SKY FORCE",
             color = NeonCyan,
-            fontSize = 36.sp,
+            // Round 33 — title 36 → 44sp for stronger hero presence.
+            fontSize = 44.sp,
             fontWeight = FontWeight.Black,
-            style = TextStyle(letterSpacing = 4.sp),
+            style = TextStyle(letterSpacing = 5.sp),
             modifier = Modifier
                 .graphicsLayer { alpha = glow }
-                .neonGlow(NeonCyan, intensity = 0.7f, radiusFactor = 1.7f),
+                .neonGlow(NeonCyan, intensity = 0.75f, radiusFactor = 1.8f),
         )
         Text(
             text = "U*S*A",
             color = NeonMagenta,
-            fontSize = 22.sp,
+            // Round 33 — subtitle 22 → 28sp, scales with main title.
+            fontSize = 28.sp,
             fontWeight = FontWeight.Black,
-            style = TextStyle(letterSpacing = 6.sp),
+            style = TextStyle(letterSpacing = 7.sp),
             modifier = Modifier.neonGlow(NeonMagenta, intensity = 0.5f, radiusFactor = 1.4f),
         )
     }
