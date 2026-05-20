@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -134,8 +135,9 @@ fun NeonBottomSheet(
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Scrim — semi-transparent backdrop. Round 29: alpha 0.8 per spec.
-        val scrimAlpha = if (visible) 0.8f else 0f
+        // Round 30 — scrim dim REMOVED per user spec. Background is transparent
+        // (alpha = 0) but Box still captures tap events to handle dismiss.
+        val scrimAlpha = 0f
         val noopInteraction = remember { MutableInteractionSource() }
         Box(
             modifier = Modifier
@@ -197,9 +199,17 @@ private fun SheetContent(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val cornerShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+    // Round 31 — cap sheet height at 90% of screen so content can't overflow above
+    // the visible area on tall content (e.g. MetaUpgrade skill tree). Inner content
+    // with verticalScroll / LazyColumn still scrolls past this cap.
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val maxSheetHeight = remember(configuration.screenHeightDp) {
+        (configuration.screenHeightDp * 0.9f).dp
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(max = maxSheetHeight)
             .clip(cornerShape)
             .background(NeonBgMid)
             .border(BorderStroke(2.dp, accentColor), cornerShape)

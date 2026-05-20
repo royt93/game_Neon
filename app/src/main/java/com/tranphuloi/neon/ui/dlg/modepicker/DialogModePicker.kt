@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
@@ -88,22 +90,37 @@ fun DialogModePicker(onPicked: () -> Unit) {
                     GameMode.ENDLESS -> NeonViolet
                     else -> NeonCyan
                 }
+                val glyph = when (mode) {
+                    GameMode.CAMPAIGN -> "⊕"
+                    GameMode.SURVIVAL -> "∞"
+                    GameMode.TIME_ATTACK -> "⏱"
+                    GameMode.BOSS_RUSH -> "☠"
+                    GameMode.ENDLESS -> "◌"
+                    else -> "?"
+                }
                 val description = when (mode) {
-                    GameMode.CAMPAIGN -> "5 chương · 100 màn"
+                    GameMode.CAMPAIGN -> "Cốt truyện chính"
                     GameMode.SURVIVAL -> "Sóng vô tận · đua điểm"
-                    GameMode.TIME_ATTACK -> "60 giây · điểm tối đa"
-                    GameMode.BOSS_RUSH -> "Tất cả boss · liên tiếp"
-                    GameMode.ENDLESS -> "Thời gian sống · tăng cấp dần"
+                    GameMode.TIME_ATTACK -> "Đua điểm trong thời gian giới hạn"
+                    GameMode.BOSS_RUSH -> "Đánh tất cả boss liên tiếp"
+                    GameMode.ENDLESS -> "Sống sót · tăng độ khó liên tục"
                     else -> ""
                 }
-                Box(
-                    contentAlignment = Alignment.Center,
+                val metaInfo = when (mode) {
+                    GameMode.CAMPAIGN -> "5 chương · 100 màn"
+                    GameMode.SURVIVAL -> "Vô tận · scaling +15%/wave"
+                    GameMode.TIME_ATTACK -> "60 giây"
+                    GameMode.BOSS_RUSH -> "~9 boss"
+                    GameMode.ENDLESS -> "Vô tận · scaling exp"
+                    else -> ""
+                }
+                // Round 30 revamp — card layout: icon left + title/description/meta right
+                androidx.compose.foundation.layout.Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .padding(vertical = 5.dp)
+                        .padding(vertical = 6.dp)
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(color.copy(alpha = 0.15f))
-                        .border(BorderStroke(1.5.dp, color), RoundedCornerShape(14.dp))
                         .clickable {
                             Logger.d("ModePicker: chose ${mode.key}")
                             scope.launch {
@@ -111,21 +128,64 @@ fun DialogModePicker(onPicked: () -> Unit) {
                                 onPicked()
                             }
                         }
-                        .padding(vertical = 14.dp, horizontal = 16.dp),
+                        .background(color.copy(alpha = 0.13f))
+                        .border(BorderStroke(1.5.dp, color), RoundedCornerShape(14.dp))
+                        .padding(horizontal = 16.dp, vertical = 14.dp),
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Icon box: 56dp circular accent
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(color.copy(alpha = 0.22f))
+                            .border(BorderStroke(1.dp, color.copy(alpha = 0.7f)), RoundedCornerShape(12.dp)),
+                    ) {
+                        Text(
+                            text = glyph,
+                            color = color,
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Black,
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = mode.displayName,
                             color = color,
                             fontWeight = FontWeight.Black,
-                            style = MaterialTheme.typography.h6,
+                            fontSize = 18.sp,
                         )
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = description,
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 14.sp,
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 13.sp,
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        // Meta info chip
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(color.copy(alpha = 0.18f))
+                                .border(BorderStroke(0.5.dp, color.copy(alpha = 0.45f)), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 8.dp, vertical = 3.dp),
+                        ) {
+                            Text(
+                                text = metaInfo,
+                                color = color.copy(alpha = 0.9f),
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "▶",
+                        color = color.copy(alpha = 0.7f),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                    )
                 }
             }
         }

@@ -13,6 +13,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,9 +25,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -121,16 +122,24 @@ fun MenuScreen(
         // Layer 1b: comet streak (round 28) — parabolic trajectory, 8-15s gap
         CometStreak(modifier = Modifier.fillMaxSize())
 
-        // Layer 2: content — round 28 adaptive layout with stagger entry anims.
-        // SpaceBetween distributes content vertically; sections sized naturally
-        // by their wrapping content. verticalScroll fallback for very small screens.
-        Column(
-            modifier = Modifier
+        // Layer 2: content — round 31 adaptive layout via BoxWithConstraints.
+        //   - Tall screens (≥ 720dp): fillMaxSize + Spacer(weight=1f) push grid
+        //     to bottom edge, removing dead-space.
+        //   - Short screens (< 720dp, landscape, small phones): switch to
+        //     verticalScroll + spacedBy(12dp) so content can't clip.
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            val tallEnough = maxHeight >= 720.dp
+            val baseColumnMod = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 22.dp, vertical = 28.dp),
+                .padding(horizontal = 22.dp, vertical = 24.dp)
+            val columnMod = if (tallEnough) baseColumnMod
+            else baseColumnMod.verticalScroll(rememberScrollState())
+        Column(
+            modifier = columnMod,
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // ─── Title (stagger 0ms) ───
             EntryAnim(stepIndex = 0) { TitleBlock() }
@@ -158,6 +167,9 @@ fun MenuScreen(
                     },
                 )
             }
+
+            // Round 30 — flexible spacer pushes 2x2 grid to bottom on tall screens
+            Spacer(modifier = Modifier.weight(1f))
 
             // ─── 2x2 icon grid (stagger 480ms — single anim for both rows) ───
             EntryAnim(stepIndex = 4) {
@@ -218,8 +230,8 @@ fun MenuScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
         }
+        }       // end BoxWithConstraints (round 31)
     }
 }
 

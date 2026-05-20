@@ -38,7 +38,8 @@
       "Bash(grep -n \"LEVEL 1 BOSS\\\\|LEVEL 2 BOSS\\\\|GALAXY OVERLORD\\\\|BOSS$\" /Users/loitran/AndroidStudioProjects/@mckimquyen/@gameKotlin/5_Neon/app/src/main/java/com/tranphuloi/neon/ui/game/state/GameState.kt)",
       "Bash(grep -n \"^}\\\\|^    }\\\\|FlatLink\\\\|}$\" /Users/loitran/AndroidStudioProjects/@mckimquyen/@gameKotlin/5_Neon/app/src/main/java/com/tranphuloi/neon/ui/dlg/settings/DialogSettings.kt)",
       "Bash(awk -F: '{sum += $2} END {print \"Total Logger calls:\", sum}')",
-      "Bash(awk -F: '{sum += $2} END {print \"Total:\", sum}')"
+      "Bash(awk -F: '{sum += $2} END {print \"Total:\", sum}')",
+      "Bash(grep -n \"^        }$\\\\|^    }$\\\\|^}$\" /Users/loitran/AndroidStudioProjects/@mckimquyen/@gameKotlin/5_Neon/app/src/main/java/com/tranphuloi/neon/ui/menu/MenuScreen.kt)"
     ]
   }
 }

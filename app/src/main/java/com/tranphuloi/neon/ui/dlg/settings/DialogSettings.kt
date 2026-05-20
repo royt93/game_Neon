@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -99,127 +100,129 @@ fun DialogSettings(
             modifier = Modifier
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            // Round 30 — 18dp section gap for breathing room (was 10dp).
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             // ────── Section 1: Âm thanh ──────
-            SectionHeader(label = "ÂM THANH", color = NeonCyan)
-            SettingSlider(
-                label = "Nhạc",
-                value = musicVolume,
-                color = NeonCyan,
-                onChange = { scope.launch { settings.setMusicVolume(it) } },
-            )
-            SettingSlider(
-                label = "Hiệu ứng",
-                value = sfxVolume,
-                color = NeonGold,
-                onChange = { scope.launch { settings.setSfxVolume(it) } },
-            )
+            SectionPanel(headerLabel = "ÂM THANH", glyph = "♪", color = NeonCyan) {
+                SettingSlider(
+                    label = "Nhạc",
+                    value = musicVolume,
+                    color = NeonCyan,
+                    onChange = { scope.launch { settings.setMusicVolume(it) } },
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                SettingSlider(
+                    label = "Hiệu ứng",
+                    value = sfxVolume,
+                    color = NeonGold,
+                    onChange = { scope.launch { settings.setSfxVolume(it) } },
+                )
+            }
 
             // ────── Section 2: Chơi ──────
-            SectionHeader(label = "CHƠI", color = NeonMagenta)
-            // Two checkboxes side by side to compact.
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                SettingCheck(
-                    label = "Rung",
-                    value = vibrationEnabled,
-                    onChange = { scope.launch { settings.setVibrationEnabled(it) } },
-                    modifier = Modifier.weight(1f),
-                )
-                SettingCheck(
-                    label = "Giảm chuyển động",
-                    value = reduceMotion,
-                    onChange = { scope.launch { settings.setReduceMotion(it) } },
-                    modifier = Modifier.weight(1f),
-                )
-            }
-            LabelledPillRow(label = "Độ khó", color = NeonMagenta) {
-                Difficulty.values().forEach { d ->
-                    val labelText = when (d) {
-                        Difficulty.EASY -> "Dễ"
-                        Difficulty.NORMAL -> "Vừa"
-                        Difficulty.HARD -> "Khó"
-                    }
-                    Pill(
-                        label = labelText,
-                        selected = d == difficulty,
-                        color = NeonMagenta,
-                        onClick = { scope.launch { settings.setDifficulty(d) } }
+            SectionPanel(headerLabel = "CHƠI", glyph = "⊞", color = NeonMagenta) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    SettingCheck(
+                        label = "Rung",
+                        value = vibrationEnabled,
+                        onChange = { scope.launch { settings.setVibrationEnabled(it) } },
+                        modifier = Modifier.weight(1f),
+                    )
+                    SettingCheck(
+                        label = "Giảm chuyển động",
+                        value = reduceMotion,
+                        onChange = { scope.launch { settings.setReduceMotion(it) } },
+                        modifier = Modifier.weight(1f),
                     )
                 }
-            }
-            LabelledPillRow(label = "Skin tàu", color = NeonGold) {
-                ShipSkin.values().forEach { s ->
-                    val labelText = when (s) {
-                        ShipSkin.REGULAR -> "Thường"
-                        ShipSkin.BOOSTED -> "Cường hóa"
-                    }
-                    Pill(
-                        label = labelText,
-                        selected = s == shipSkin,
-                        color = NeonGold,
-                        onClick = { scope.launch { settings.setShipSkin(s) } }
-                    )
-                }
-            }
-
-            // Round 27 — "CHUẨN BỊ RUN" section removed (duplicate with MenuScreen
-            // 2x2 grid). Settings dialog now focuses on audio + gameplay toggles +
-            // app links only. Mode / Buff / Upgrade access lives in MenuScreen.
-
-            // ────── Section 3: Ứng dụng ──────
-            SectionHeader(label = "ỨNG DỤNG", color = Color.White.copy(alpha = 0.6f))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                FlatLink(
-                    label = "Đánh giá",
-                    color = NeonCyan,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Logger.d("Settings: Rate clicked")
-                    val intent = Intent(
-                        Intent.ACTION_VIEW,
-                        Uri.parse("market://details?id=${context.packageName}")
-                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    runCatching { context.startActivity(intent) }.onFailure {
-                        Logger.w("Settings: Play Store not available", it)
-                    }
-                }
-                FlatLink(
-                    label = "Chia sẻ",
-                    color = NeonMagenta,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Logger.d("Settings: Share clicked")
-                    val intent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/plain"
-                        putExtra(
-                            Intent.EXTRA_TEXT,
-                            "Sky Force U*S*A — bắn phi thuyền vũ trụ synthwave. " +
-                                "https://play.google.com/store/apps/details?id=${context.packageName}"
+                Spacer(modifier = Modifier.height(12.dp))
+                LabelledPillRow(label = "Độ khó", color = NeonMagenta) {
+                    Difficulty.values().forEach { d ->
+                        val labelText = when (d) {
+                            Difficulty.EASY -> "Dễ"
+                            Difficulty.NORMAL -> "Vừa"
+                            Difficulty.HARD -> "Khó"
+                        }
+                        Pill(
+                            label = labelText,
+                            selected = d == difficulty,
+                            color = NeonMagenta,
+                            onClick = { scope.launch { settings.setDifficulty(d) } }
                         )
                     }
-                    runCatching {
-                        context.startActivity(Intent.createChooser(intent, "Chia sẻ qua"))
-                    }.onFailure { Logger.w("Settings: Share intent failed", it) }
                 }
-                FlatLink(
-                    label = "Riêng tư",
-                    color = NeonGold,
-                    modifier = Modifier.weight(1f),
+                Spacer(modifier = Modifier.height(8.dp))
+                LabelledPillRow(label = "Skin tàu", color = NeonGold) {
+                    ShipSkin.values().forEach { s ->
+                        val labelText = when (s) {
+                            ShipSkin.REGULAR -> "Thường"
+                            ShipSkin.BOOSTED -> "Cường hóa"
+                        }
+                        Pill(
+                            label = labelText,
+                            selected = s == shipSkin,
+                            color = NeonGold,
+                            onClick = { scope.launch { settings.setShipSkin(s) } }
+                        )
+                    }
+                }
+            }
+
+            // ────── Section 3: Ứng dụng ──────
+            SectionPanel(headerLabel = "ỨNG DỤNG", glyph = "✦", color = Color.White.copy(alpha = 0.7f)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Logger.d("Settings: Privacy clicked")
-                    val intent = Intent(
-                        Intent.ACTION_VIEW,
-                        Uri.parse("https://example.com/privacy")
-                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    runCatching { context.startActivity(intent) }.onFailure {
-                        Logger.w("Settings: Privacy URL open failed", it)
+                    FlatLink(
+                        label = "Đánh giá",
+                        color = NeonCyan,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Logger.d("Settings: Rate clicked")
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("market://details?id=${context.packageName}")
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        runCatching { context.startActivity(intent) }.onFailure {
+                            Logger.w("Settings: Play Store not available", it)
+                        }
+                    }
+                    FlatLink(
+                        label = "Chia sẻ",
+                        color = NeonMagenta,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Logger.d("Settings: Share clicked")
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(
+                                Intent.EXTRA_TEXT,
+                                "Sky Force U*S*A — bắn phi thuyền vũ trụ synthwave. " +
+                                    "https://play.google.com/store/apps/details?id=${context.packageName}"
+                            )
+                        }
+                        runCatching {
+                            context.startActivity(Intent.createChooser(intent, "Chia sẻ qua"))
+                        }.onFailure { Logger.w("Settings: Share intent failed", it) }
+                    }
+                    FlatLink(
+                        label = "Riêng tư",
+                        color = NeonGold,
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Logger.d("Settings: Privacy clicked")
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://example.com/privacy")
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        runCatching { context.startActivity(intent) }.onFailure {
+                            Logger.w("Settings: Privacy URL open failed", it)
+                        }
                     }
                 }
             }
@@ -227,25 +230,46 @@ fun DialogSettings(
     }
 }
 
-/** Section header: bolder caps label with thin divider line above. Round 25 — bumped from 10sp → 13sp. */
+/**
+ * Round 30 — Section panel: each settings group lives in its own subtle card
+ * with a glyph + header + grouped content. Replaces the flat SectionHeader.
+ */
 @Composable
-private fun SectionHeader(label: String, color: Color) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(color.copy(alpha = 0.3f)),
-        )
-        Text(
-            text = label,
-            color = color,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Black,
-            style = TextStyle(letterSpacing = 2.5.sp),
-        )
+private fun SectionPanel(
+    headerLabel: String,
+    glyph: String,
+    color: Color,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    androidx.compose.foundation.layout.Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(com.tranphuloi.neon.common.NeonBgEdge.copy(alpha = 0.55f))
+            .border(BorderStroke(1.dp, color.copy(alpha = 0.45f)), RoundedCornerShape(14.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = glyph,
+                color = color,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Black,
+            )
+            androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = headerLabel,
+                color = color,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Black,
+                style = TextStyle(letterSpacing = 3.sp),
+            )
+        }
+        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(10.dp))
+        content()
     }
 }
+
 
 @Composable
 private fun SettingSlider(

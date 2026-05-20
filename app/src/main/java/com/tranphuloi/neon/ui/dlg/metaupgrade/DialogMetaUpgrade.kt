@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -135,70 +137,172 @@ private fun NodeRow(
     }
     val rowAlpha = if (!prereqMet) 0.4f else 1f
 
+    val glyph = nodeGlyph(node.key)
+    val tierLabel = when (node.tierIndex) {
+        0 -> "TIER I"
+        1 -> "TIER II"
+        else -> "TIER III"
+    }
+
+    // Round 30 revamp — icon + tier badge + progress bar + buy button
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(color.copy(alpha = 0.10f * rowAlpha))
-            .border(BorderStroke(1.dp, color.copy(alpha = rowAlpha)), RoundedCornerShape(10.dp))
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .border(BorderStroke(1.dp, color.copy(alpha = rowAlpha)), RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 12.dp),
     ) {
+        // Icon box 48dp
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(color.copy(alpha = 0.20f * rowAlpha))
+                .border(BorderStroke(1.dp, color.copy(alpha = 0.65f * rowAlpha)), RoundedCornerShape(10.dp)),
+        ) {
+            Text(
+                text = if (!prereqMet) "🔒" else glyph,
+                color = color.copy(alpha = rowAlpha),
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Black,
+            )
+        }
+        Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
+            // Tier badge + node name
             Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(color.copy(alpha = 0.25f * rowAlpha))
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                ) {
+                    Text(
+                        text = tierLabel,
+                        color = color.copy(alpha = rowAlpha),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black,
+                    )
+                }
+                Spacer(modifier = Modifier.padding(horizontal = 4.dp))
                 Text(
                     text = node.displayName,
                     color = color.copy(alpha = rowAlpha),
                     fontWeight = FontWeight.Black,
                     fontSize = 16.sp,
                 )
-                Spacer(modifier = Modifier.padding(horizontal = 4.dp))
-                Text(
-                    text = "[$currentRank/${node.maxRank}]",
-                    color = Color.White.copy(alpha = 0.75f * rowAlpha),
-                    fontSize = 13.sp,
-                )
             }
+            Spacer(modifier = Modifier.height(4.dp))
+            // Progress bar
+            ProgressBarSegments(
+                currentRank = currentRank,
+                maxRank = node.maxRank,
+                color = color.copy(alpha = rowAlpha),
+            )
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = node.description,
-                color = Color.White.copy(alpha = 0.75f * rowAlpha),
-                fontSize = 13.sp,
+                color = Color.White.copy(alpha = 0.80f * rowAlpha),
+                fontSize = 12.sp,
             )
             if (!prereqMet) {
                 Text(
                     text = "Khóa — cần cấp ${node.minRequiredParentRank} của nốt cha",
                     color = NeonViolet.copy(alpha = 0.85f),
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                 )
             }
         }
+        Spacer(modifier = Modifier.width(8.dp))
         // Right side: buy button or status.
         when {
-            atMax -> Text("TỐI ĐA", color = NeonGold, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            !prereqMet -> Text("●", color = NeonViolet, fontSize = 16.sp)
+            atMax -> Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(NeonGold.copy(alpha = 0.25f))
+                    .border(BorderStroke(1.dp, NeonGold), RoundedCornerShape(10.dp))
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+            ) {
+                Text("TỐI ĐA", color = NeonGold, fontWeight = FontWeight.Black, fontSize = 13.sp)
+            }
+            !prereqMet -> Text("🔒", color = NeonViolet, fontSize = 18.sp)
             else -> {
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
                         .background(
-                            if (canAfford) color.copy(alpha = 0.25f) else Color.Transparent
+                            if (canAfford) color.copy(alpha = 0.30f) else Color.Transparent
                         )
                         .border(
                             BorderStroke(1.dp, color.copy(alpha = if (canAfford) 0.9f else 0.35f)),
                             RoundedCornerShape(10.dp),
                         )
                         .clickable(enabled = canAfford) { onBuy() }
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
                 ) {
-                    Text(
-                        text = "♦ $nextCost",
-                        color = if (canAfford) color else Color.White.copy(alpha = 0.4f),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "♦",
+                            color = if (canAfford) NeonGold else Color.White.copy(alpha = 0.4f),
+                            fontWeight = FontWeight.Black,
+                            fontSize = 13.sp,
+                        )
+                        Text(
+                            text = "$nextCost",
+                            color = if (canAfford) color else Color.White.copy(alpha = 0.4f),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                        )
+                    }
                 }
             }
+        }
+    }
+}
+
+/** Map node key → unicode glyph icon. */
+private fun nodeGlyph(key: String): String = when (key) {
+    com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_HP -> "♥"
+    com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_DAMAGE -> "⚔"
+    com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_MAGNET -> "◉"
+    "meta_shield" -> "⊞"
+    com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_SPEED -> "⚡"
+    "meta_regen" -> "✚"
+    "meta_crit" -> "✦"
+    "meta_lifetime" -> "★"
+    "meta_shield_burst" -> "❂"
+    "meta_dash" -> "⚝"
+    "meta_extra_bomb" -> "◐"
+    "meta_combo_keep" -> "∞"
+    "meta_revive_drop" -> "♡"
+    "meta_legendary_hp" -> "☆"
+    "meta_legendary_dmg" -> "✪"
+    else -> "?"
+}
+
+/**
+ * Round 30 — visual progress bar: maxRank segments, currentRank filled.
+ * Each segment is a rounded rect with a small gap between.
+ */
+@Composable
+private fun ProgressBarSegments(currentRank: Int, maxRank: Int, color: Color) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        for (i in 0 until maxRank) {
+            val filled = i < currentRank
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(if (filled) color else Color.White.copy(alpha = 0.12f)),
+            )
         }
     }
 }
