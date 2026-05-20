@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.utils.Logger
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * Round 28 — NeonBottomSheet: shared bottom-sheet component for all dialog
@@ -96,6 +97,7 @@ fun NeonBottomSheet(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     var visible by remember { mutableStateOf(false) }
+    val coroutineScope = androidx.compose.runtime.rememberCoroutineScope()
     LaunchedEffect(Unit) {
         Logger.d("NeonBottomSheet \"$title\" mounting")
         // Tiny delay so initial state is hidden → triggers slide-in.
@@ -123,14 +125,22 @@ fun NeonBottomSheet(
         }
     }
 
-    /** Wrap onDismiss so we play exit animation before propagating. */
+    /**
+     * Round 32 — wrap onDismiss so the exit slide animation actually plays
+     * before NavHost pops the dialog. Previously onDismiss propagated
+     * immediately and NavHost destroyed the Dialog Window — exit animation
+     * was cancelled mid-frame and user saw an instant disappearance.
+     * Now: set visible = false → AnimatedVisibility plays exit (~200ms) → then
+     * launch coroutine to delay 220ms before calling onDismiss.
+     */
     val dismissWithAnim: () -> Unit = remember(onDismiss) {
         {
-            Logger.d("NeonBottomSheet \"$title\" dismiss requested")
+            Logger.d("NeonBottomSheet \"$title\" dismiss requested → playing exit anim then onDismiss")
             visible = false
-            // Caller's onDismiss runs immediately — the sheet animates out
-            // while NavHost pops; visually OK because pop is also animated.
-            onDismiss()
+            coroutineScope.launch {
+                delay(220L)
+                onDismiss()
+            }
         }
     }
 
@@ -233,9 +243,9 @@ private fun SheetContent(
                     }
                 } else mod
             }
-            // Round 29 — bottom padding 56dp so content clears system nav bar /
-            // gesture inset area when edge-to-edge is enabled.
-            .padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 56.dp),
+            // Round 32 — bottom padding 32dp (was 56dp). Reduced per user spec —
+            // 32dp still clears typical gesture/3-button nav area on modern devices.
+            .padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 32.dp),
     ) {
         // ─── Drag handle ───
         Box(

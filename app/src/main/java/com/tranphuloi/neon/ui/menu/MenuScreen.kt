@@ -144,6 +144,10 @@ fun MenuScreen(
             // ─── Title (stagger 0ms) ───
             EntryAnim(stepIndex = 0) { TitleBlock() }
 
+            // Round 32 — small breathing spacer after title pushes logo into
+            // visual center area (was: title flush, logo touching).
+            if (tallEnough) Spacer(modifier = Modifier.weight(0.3f))
+
             // ─── Splash ship logo (stagger 120ms) ───
             EntryAnim(stepIndex = 1) { ShipLogo() }
 
@@ -168,8 +172,10 @@ fun MenuScreen(
                 )
             }
 
-            // Round 30 — flexible spacer pushes 2x2 grid to bottom on tall screens
-            Spacer(modifier = Modifier.weight(1f))
+            // Round 32 — primary spacer between Play button and bottom grid.
+            // Total free space distributes 30/70 between top (after title) and
+            // bottom (before grid) on tall screens — visually balanced.
+            if (tallEnough) Spacer(modifier = Modifier.weight(0.7f))
 
             // ─── 2x2 icon grid (stagger 480ms — single anim for both rows) ───
             EntryAnim(stepIndex = 4) {

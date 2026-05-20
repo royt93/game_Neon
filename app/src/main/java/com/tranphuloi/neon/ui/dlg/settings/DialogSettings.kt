@@ -121,53 +121,61 @@ fun DialogSettings(
             }
 
             // ────── Section 2: Chơi ──────
+            // Round 32 — each control group lives in its own subtle sub-panel
+            // so Rung / Giảm chuyển động / Độ khó / Skin tàu feel separated.
             SectionPanel(headerLabel = "CHƠI", glyph = "⊞", color = NeonMagenta) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    SettingCheck(
-                        label = "Rung",
-                        value = vibrationEnabled,
-                        onChange = { scope.launch { settings.setVibrationEnabled(it) } },
-                        modifier = Modifier.weight(1f),
-                    )
-                    SettingCheck(
-                        label = "Giảm chuyển động",
-                        value = reduceMotion,
-                        onChange = { scope.launch { settings.setReduceMotion(it) } },
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                LabelledPillRow(label = "Độ khó", color = NeonMagenta) {
-                    Difficulty.values().forEach { d ->
-                        val labelText = when (d) {
-                            Difficulty.EASY -> "Dễ"
-                            Difficulty.NORMAL -> "Vừa"
-                            Difficulty.HARD -> "Khó"
-                        }
-                        Pill(
-                            label = labelText,
-                            selected = d == difficulty,
-                            color = NeonMagenta,
-                            onClick = { scope.launch { settings.setDifficulty(d) } }
+                ControlGroup {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        SettingCheck(
+                            label = "Rung",
+                            value = vibrationEnabled,
+                            onChange = { scope.launch { settings.setVibrationEnabled(it) } },
+                            modifier = Modifier.weight(1f),
+                        )
+                        SettingCheck(
+                            label = "Giảm chuyển động",
+                            value = reduceMotion,
+                            onChange = { scope.launch { settings.setReduceMotion(it) } },
+                            modifier = Modifier.weight(1f),
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                LabelledPillRow(label = "Skin tàu", color = NeonGold) {
-                    ShipSkin.values().forEach { s ->
-                        val labelText = when (s) {
-                            ShipSkin.REGULAR -> "Thường"
-                            ShipSkin.BOOSTED -> "Cường hóa"
+                Spacer(modifier = Modifier.height(10.dp))
+                ControlGroup {
+                    LabelledPillRow(label = "Độ khó", color = NeonMagenta) {
+                        Difficulty.values().forEach { d ->
+                            val labelText = when (d) {
+                                Difficulty.EASY -> "Dễ"
+                                Difficulty.NORMAL -> "Vừa"
+                                Difficulty.HARD -> "Khó"
+                            }
+                            Pill(
+                                label = labelText,
+                                selected = d == difficulty,
+                                color = NeonMagenta,
+                                onClick = { scope.launch { settings.setDifficulty(d) } }
+                            )
                         }
-                        Pill(
-                            label = labelText,
-                            selected = s == shipSkin,
-                            color = NeonGold,
-                            onClick = { scope.launch { settings.setShipSkin(s) } }
-                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                ControlGroup {
+                    LabelledPillRow(label = "Skin tàu", color = NeonGold) {
+                        ShipSkin.values().forEach { s ->
+                            val labelText = when (s) {
+                                ShipSkin.REGULAR -> "Thường"
+                                ShipSkin.BOOSTED -> "Cường hóa"
+                            }
+                            Pill(
+                                label = labelText,
+                                selected = s == shipSkin,
+                                color = NeonGold,
+                                onClick = { scope.launch { settings.setShipSkin(s) } }
+                            )
+                        }
                     }
                 }
             }
@@ -241,7 +249,7 @@ private fun SectionPanel(
     color: Color,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    androidx.compose.foundation.layout.Column(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
@@ -256,7 +264,7 @@ private fun SectionPanel(
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Black,
             )
-            androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = headerLabel,
                 color = color,
@@ -265,11 +273,26 @@ private fun SectionPanel(
                 style = TextStyle(letterSpacing = 3.sp),
             )
         }
-        androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         content()
     }
 }
 
+/**
+ * Round 32 — sub-panel inside a SectionPanel: groups related controls with a
+ * subtle dark background so adjacent groups don't bleed visually into each other.
+ */
+@Composable
+private fun ControlGroup(content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color.Black.copy(alpha = 0.22f))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        content = content,
+    )
+}
 
 @Composable
 private fun SettingSlider(
