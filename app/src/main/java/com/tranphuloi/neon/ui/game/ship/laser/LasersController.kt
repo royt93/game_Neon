@@ -41,6 +41,14 @@ class LasersController(
     val fireLaserId = uuidUtils.getUuid()
     val fireLaserRepeatTime = Millis(100)
     fun fireLasers(ship: Ship) {
+        // Round 35 (35x) — bullet-type override takes priority over normal lasers.
+        // Triple-laser fan still applies for spread shot.
+        if (ship.activeBulletType != BulletType.NORMAL) {
+            val newLasers = fireBulletTypeLasers(ship)
+            shipLasers = shipLasers + newLasers
+            updateShipLasersUI()
+            return
+        }
 
         val lasers = if (ship.laserBoosterEnabled) {
             // Laser bottom flush with ship top (`ship.yOffset`). Since laser height
@@ -81,6 +89,35 @@ class LasersController(
 
         shipLasers = shipLasers + lasers
         updateShipLasersUI()
+    }
+
+    /**
+     * Round 35 (35x) — bullet-type variant fire. Centers on ship like NORMAL.
+     * Returns the new lasers spawned this tick (typically 1, triple-spread = 3).
+     */
+    private fun fireBulletTypeLasers(ship: Ship): List<Laser> {
+        val centerX = ship.xOffset + ship.width / 2
+        val top = ship.yOffset - 22f
+        val templates: List<Laser> = when (ship.activeBulletType) {
+            BulletType.PIERCING -> listOf(
+                PiercingShipLaser(
+                    id = uuidUtils.getUuid(),
+                    xOffset = centerX - 3f,
+                    yOffset = top,
+                    yRange = screenHeight,
+                ),
+            )
+            BulletType.PLASMA -> listOf(
+                PlasmaShipLaser(
+                    id = uuidUtils.getUuid(),
+                    xOffset = centerX - PlasmaShipLaser.PLASMA_WIDTH / 2,
+                    yOffset = top - 12f,
+                    yRange = screenHeight,
+                ),
+            )
+            BulletType.NORMAL -> emptyList()                // unreachable; gated at caller
+        }
+        return templates
     }
 
     val processShipLasersId = uuidUtils.getUuid()
@@ -183,7 +220,42 @@ class LasersController(
                     target.yOffset,
                     target.isBoss,
                 )
-                destroyShipLaser(laser)
+                // Round 35 (35x) — PIERCING / PLASMA collision behavior.
+                when (laser.bulletType) {
+                    BulletType.PIERCING -> {
+                        // Decrement pierce; destroy only when exhausted.
+                        laser.pierceRemaining = laser.pierceRemaining - 1
+                        Logger.d("PIERCING hit: enemy=${target.enemyId.take(6)} pierceRemaining=${laser.pierceRemaining}")
+                        if (laser.pierceRemaining <= 0) {
+                            destroyShipLaser(laser)
+                        }
+                    }
+                    BulletType.PLASMA -> {
+                        // AoE damage: enemies within radius take 50% damage.
+                        val aoeRadius = laser.bulletType.aoeRadius
+                        val hitCenterX = target.xOffset + target.width / 2f
+                        val hitCenterY = target.yOffset + target.height / 2f
+                        val aoeDmg = effectiveDamage * 0.5f
+                        enemies.forEachIndexed { i, other ->
+                            if (i == index) return@forEachIndexed
+                            val dx = (other.xOffset + other.width / 2f) - hitCenterX
+                            val dy = (other.yOffset + other.height / 2f) - hitCenterY
+                            if (dx * dx + dy * dy <= aoeRadius * aoeRadius) {
+                                other.onObjectImpact(aoeDmg)
+                                onLaserHit(
+                                    other.enemyId,
+                                    aoeDmg.toInt(),
+                                    other.xOffset + other.width / 2f,
+                                    other.yOffset,
+                                    other.isBoss,
+                                )
+                            }
+                        }
+                        Logger.d("PLASMA hit + AoE: enemy=${target.enemyId.take(6)} radius=${aoeRadius}px")
+                        destroyShipLaser(laser)
+                    }
+                    BulletType.NORMAL -> destroyShipLaser(laser)
+                }
                 updateShipLasersUI()
             }
         }

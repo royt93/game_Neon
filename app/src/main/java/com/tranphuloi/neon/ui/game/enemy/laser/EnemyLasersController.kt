@@ -10,6 +10,11 @@ class EnemyLasersController(
     private val screenHeight: Float,
     initialEnemyLasers: List<Laser>,
     private val setEnemyLasers: (List<Laser>) -> Unit,
+    /**
+     * Round 34 (41x) — STUN status effect check. If true, skip fire-laser for
+     * the picked enemy this tick. Default = false → no stun gating.
+     */
+    private val isEnemyStunned: (enemyId: String) -> Boolean = { false },
 ) {
 
     init {
@@ -24,6 +29,11 @@ class EnemyLasersController(
     fun fireEnemyLasers(enemies: List<Enemy>) {
         if (enemies.isEmpty()) return
         val enemy = enemies.random()
+        // Round 34 (41x) — skip fire if enemy STUNNED.
+        if (isEnemyStunned(enemy.enemyId)) {
+            Logger.d("EnemyLasersController.fireEnemyLasers: enemy=${enemy.enemyId.take(6)} STUNNED — skip fire")
+            return
+        }
         val generatedLasers = enemy.generateLasers()
         enemyLasers = enemyLasers + generatedLasers
         Logger.d("EnemyLasersController.fireEnemyLasers: enemy=${enemy.enemyId.take(6)} fired ${generatedLasers.size} laser(s) (active=${enemyLasers.size})")

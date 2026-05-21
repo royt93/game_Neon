@@ -25,4 +25,11 @@ data class EnemyUI(
     val currentPhase: Int = 0,
     /** 34d Wall-clock of last phase transition; 0 if none. Drives PhaseTransitionBanner. */
     val phaseTransitionMillis: Long = 0L,
+    /**
+     * Round 35 (42x) — ARGB tint colors for active status effects (BURN / SLOW /
+     * STUN). Empty when no effect. GameWorld overlays one tinted Image per
+     * value. Stored as `Long` (0xAARRGGBB) instead of `StatusEffect` enum so
+     * EnemyUI stays self-contained and Serializable-friendly.
+     */
+    val activeStatusEffectTints: List<Long> = emptyList(),
 ) : Serializable

@@ -57,6 +57,13 @@ android {
         }
     }
 
+    testOptions {
+        unitTests {
+            // Stub android.util.Log etc. so Logger calls don't throw in JVM tests.
+            returnDefaultValues = true
+        }
+    }
+
     lint {
         // material3 is only on the classpath transitively; source uses Material 1 only.
         disable += "UsingMaterialAndMaterial3Libraries"
@@ -94,6 +101,8 @@ dependencies {
     /*System splash (Android 12+ API + back-port)*/
     implementation "androidx.core:core-splashscreen:1.0.1"
     debugImplementation "com.squareup.leakcanary:leakcanary-android:2.14"
+    /*Unit tests (JVM, no Android runtime). Run via `./gradlew test`.*/
+    testImplementation "junit:junit:4.13.2"
 }
 
 kotlin {

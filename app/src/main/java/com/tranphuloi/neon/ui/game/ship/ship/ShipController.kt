@@ -33,6 +33,11 @@ class ShipController(
      * RunModifier (TRIPLE_SPEED, TANK) + AGILITY skill node.
      */
     private val speedMultiplier: () -> Float = { 1f },
+    /**
+     * Round 34 (44x) — ICE_PATCHES hazard: ship glides ~200ms after release.
+     * GameState passes lambda checking current stage's hazard type.
+     */
+    private val isIceHazardActive: () -> Boolean = { false },
 ) {
 
     init {
@@ -45,6 +50,11 @@ class ShipController(
 
     var movingLeft = false
     var movingRight = false
+
+    // Round 34 (44x) — ICE_PATCHES slip: residual horizontal velocity that
+    // decays each tick. Set on movement release; while > 0 ship continues
+    // gliding briefly. Only applied when isIceHazardActive() == true.
+    private var slipVelocityX: Float = 0f
 
     // 19b Charge shot — auto-charge while no damage taken. Every CHARGE_FILL_MS
     // (8s) without taking a hit, fires an ultimate laser. Reset on damage.
@@ -109,15 +119,28 @@ class ShipController(
         // ship.width * 0.75. Was asymmetric (-21px vs +29px overlap, ~8px diff).
         val leftLimit = -ship.width / 4f
         val rightLimit = screenWidth - ship.width * 0.75f
+        // Round 34 (44x) — ICE_PATCHES slip. Snapshot whether ice active this
+        // tick, then apply residual velocity for ~200ms after movement release.
+        val iceActive = isIceHazardActive()
         if (movingLeft && ship.xOffset > leftLimit) {
             newX -= effSpeed
+            if (iceActive) slipVelocityX = -effSpeed * 0.85f
         } else if (movingLeft) {
             movingLeft = false
         }
         if (movingRight && ship.xOffset < rightLimit) {
             newX += effSpeed
+            if (iceActive) slipVelocityX = effSpeed * 0.85f
         } else if (movingRight) {
             movingRight = false
+        }
+        // Apply slip velocity (only meaningful when no input + ice active).
+        if (iceActive && !movingLeft && !movingRight && kotlin.math.abs(slipVelocityX) > 0.01f) {
+            newX += slipVelocityX
+            slipVelocityX *= 0.93f                       // decay ~7%/tick → ~200ms half-life
+            newX = newX.coerceIn(leftLimit, rightLimit)
+        } else if (!iceActive) {
+            slipVelocityX = 0f                           // reset when leaving ice zone
         }
         // Bank rotation lerp toward target (-16° / 0° / +16°), smoothing 0.18.
         // Single ship.copy() per tick to avoid 3 setShip allocations.
@@ -335,6 +358,13 @@ class ShipController(
                             Logger.d("Booster: REVIVE_TOKEN ignored — already holding one")
                         }
                     }
+                    // Round 35 (35x) — activate bullet type for 10s.
+                    BoosterType.PIERCING_BOOSTER -> setBulletType(
+                        com.tranphuloi.neon.ui.game.ship.laser.BulletType.PIERCING
+                    )
+                    BoosterType.PLASMA_BOOSTER -> setBulletType(
+                        com.tranphuloi.neon.ui.game.ship.laser.BulletType.PLASMA
+                    )
                 }
             }
         }
@@ -379,6 +409,26 @@ class ShipController(
         if (shieldEndDurationMillis < currentTime) enableShield(enable = false)
         if (laserBoosterEndDurationMillis < currentTime) enableLaserBooster(enable = false)
         if (tripleLaserBoosterEndDurationMillis < currentTime) enableTripleLaserBooster(enable = false)
+        // Round 35 (35x) — expire active bullet type.
+        if (ship.bulletTypeEndMillis > 0L && currentTime >= ship.bulletTypeEndMillis) {
+            Logger.d("BulletType: ${ship.activeBulletType} expired → revert to NORMAL")
+            ship = ship.copy(
+                activeBulletType = com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL,
+                bulletTypeEndMillis = 0L,
+            )
+            setShip(ship)
+        }
+    }
+
+    /**
+     * Round 35 (35x) — activate [type] bullet for its activeDurationMillis.
+     * Picking up another bullet-type booster overrides any existing one.
+     */
+    private fun setBulletType(type: com.tranphuloi.neon.ui.game.ship.laser.BulletType) {
+        val endMillis = System.currentTimeMillis() + type.activeDurationMillis
+        ship = ship.copy(activeBulletType = type, bulletTypeEndMillis = endMillis)
+        setShip(ship)
+        Logger.d("BulletType: activated $type for ${type.activeDurationMillis}ms (ends @ $endMillis)")
     }
 
     private fun updateShieldEnabled(enable: Boolean) {

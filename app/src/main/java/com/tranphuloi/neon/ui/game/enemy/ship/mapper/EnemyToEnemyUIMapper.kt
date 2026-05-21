@@ -5,7 +5,10 @@ import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyUI
 
 class EnemyToEnemyUIMapper {
 
-    operator fun invoke(enemy: Enemy): EnemyUI {
+    operator fun invoke(
+        enemy: Enemy,
+        activeStatusEffectTints: List<Long> = emptyList(),
+    ): EnemyUI {
         return with(enemy) {
             EnemyUI(
                 enemyId = enemyId,
@@ -23,6 +26,7 @@ class EnemyToEnemyUIMapper {
                 isInEntryPhase = isInEntryPhase,
                 currentPhase = currentPhase,
                 phaseTransitionMillis = phaseTransitionMillis,
+                activeStatusEffectTints = activeStatusEffectTints,
             )
         }
     }

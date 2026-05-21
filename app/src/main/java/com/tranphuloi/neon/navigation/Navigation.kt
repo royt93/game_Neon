@@ -15,3 +15,5 @@ object ModePicker : Navigation(route = "mode-picker")
 object ModifierPicker : Navigation(route = "modifier-picker")
 /** Wave 5 (48x) — meta progression / skill tree. */
 object MetaUpgrade : Navigation(route = "meta-upgrade")
+/** Wave 4 (42x) round 34 — roguelike buff picker (post-boss). */
+object BuffPicker : Navigation(route = "buff-picker")

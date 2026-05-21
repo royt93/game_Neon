@@ -332,6 +332,22 @@ fun GameWorld(
                             modifier = Modifier.size(width = it.width.dp, height = it.height.dp)
                         )
                     }
+                    // Round 35 (42x) — status effect tint overlay. One Image per active
+                    // effect; the ARGB tint encodes its identity (orange=BURN, cyan=SLOW,
+                    // yellow=STUN). Pulse alpha at ~3Hz so the overlay is visibly "alive".
+                    if (it.activeStatusEffectTints.isNotEmpty()) {
+                        val pulse = 0.65f + 0.35f * kotlin.math.sin(nowMillis / 160.0).toFloat()
+                        it.activeStatusEffectTints.forEach { argb ->
+                            Image(
+                                painterResource(id = it.drawableId),
+                                contentDescription = null,
+                                contentScale = ContentScale.FillBounds,
+                                colorFilter = ColorFilter.tint(Color(argb.toInt())),
+                                alpha = pulse,
+                                modifier = Modifier.size(width = it.width.dp, height = it.height.dp),
+                            )
+                        }
+                    }
                 }
             }
         }

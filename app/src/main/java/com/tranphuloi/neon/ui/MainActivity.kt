@@ -30,6 +30,7 @@ import com.tranphuloi.neon.navigation.Game
 import com.tranphuloi.neon.navigation.GameOver
 import com.tranphuloi.neon.navigation.GamePause
 import com.tranphuloi.neon.navigation.Menu
+import com.tranphuloi.neon.navigation.BuffPicker
 import com.tranphuloi.neon.navigation.MetaUpgrade
 import com.tranphuloi.neon.navigation.ModePicker
 import com.tranphuloi.neon.navigation.ModifierPicker
@@ -108,6 +109,9 @@ class MainActivity : ComponentActivity() {
                 com.tranphuloi.neon.data.LocalRunStats provides remember {
                     androidx.compose.runtime.mutableStateOf<com.tranphuloi.neon.data.RunStats?>(null)
                 },
+                com.tranphuloi.neon.ui.game.buff.LocalActiveBuffs provides remember {
+                    androidx.compose.runtime.mutableStateOf<List<com.tranphuloi.neon.ui.game.buff.RunBuff>>(emptyList())
+                },
             ) {
                 NeonTheme {
                     val navController = rememberNavController()
@@ -181,6 +185,10 @@ class MainActivity : ComponentActivity() {
                                 onGameOver = { score ->
                                     Logger.d("Nav: Game → GameOver (score=$score)")
                                     navController.navigate("${GameOver.route}/$score")
+                                },
+                                onOpenBuffPicker = {
+                                    Logger.d("Nav: Game → BuffPicker (post-boss reward)")
+                                    navController.navigate(BuffPicker.route)
                                 },
                             )
                         }
@@ -268,6 +276,23 @@ class MainActivity : ComponentActivity() {
                                 Logger.d("Nav: MetaUpgrade → back")
                                 navController.popBackStack()
                             })
+                        }
+                        dialog(
+                            route = BuffPicker.route,
+                            dialogProperties = com.tranphuloi.neon.common.bottomSheetDialogProperties(),
+                        ) {
+                            val activeBuffs = com.tranphuloi.neon.ui.game.buff.LocalActiveBuffs.current
+                            com.tranphuloi.neon.ui.dlg.buffpicker.DialogBuffPicker(
+                                onPicked = { picked ->
+                                    if (picked != null) {
+                                        Logger.d("Nav: BuffPicker → applied ${picked.key} (total buffs: ${activeBuffs.value.size + 1})")
+                                        activeBuffs.value = activeBuffs.value + picked
+                                    } else {
+                                        Logger.d("Nav: BuffPicker → skipped (no buff applied)")
+                                    }
+                                    navController.popBackStack()
+                                },
+                            )
                         }
                         dialog(
                             route = "${GameOver.route}/{score}",

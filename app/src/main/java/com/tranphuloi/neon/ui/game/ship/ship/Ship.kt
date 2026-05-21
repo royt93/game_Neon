@@ -18,6 +18,12 @@ data class Ship(
     val shieldEndMillis: Long = 0L,
     val laserBoosterEndMillis: Long = 0L,
     val tripleLaserBoosterEndMillis: Long = 0L,
+    // Round 35 (35x) — active bullet type override. Default NORMAL = existing
+    // ShipLaser/ShipBoostedLaser flow. Set by PIERCING_BOOSTER / PLASMA_BOOSTER
+    // pickup with timed end-millis. ShipController clears back to NORMAL on expiry.
+    val activeBulletType: com.tranphuloi.neon.ui.game.ship.laser.BulletType =
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL,
+    val bulletTypeEndMillis: Long = 0L,
     val xOffset: Float,
     val yOffset: Float,
     val hp: Int = 1000,

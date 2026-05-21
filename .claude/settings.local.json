@@ -39,7 +39,13 @@
       "Bash(grep -n \"^}\\\\|^    }\\\\|FlatLink\\\\|}$\" /Users/loitran/AndroidStudioProjects/@mckimquyen/@gameKotlin/5_Neon/app/src/main/java/com/tranphuloi/neon/ui/dlg/settings/DialogSettings.kt)",
       "Bash(awk -F: '{sum += $2} END {print \"Total Logger calls:\", sum}')",
       "Bash(awk -F: '{sum += $2} END {print \"Total:\", sum}')",
-      "Bash(grep -n \"^        }$\\\\|^    }$\\\\|^}$\" /Users/loitran/AndroidStudioProjects/@mckimquyen/@gameKotlin/5_Neon/app/src/main/java/com/tranphuloi/neon/ui/menu/MenuScreen.kt)"
+      "Bash(grep -n \"^        }$\\\\|^    }$\\\\|^}$\" /Users/loitran/AndroidStudioProjects/@mckimquyen/@gameKotlin/5_Neon/app/src/main/java/com/tranphuloi/neon/ui/menu/MenuScreen.kt)",
+      "Bash(grep *)",
+      "Bash(./gradlew :app:compileDevDebugKotlin)",
+      "Bash(./gradlew :app:testDevDebugUnitTest)",
+      "Bash(./gradlew :app:compileDevDebugKotlin :app:testDevDebugUnitTest)",
+      "Bash(./gradlew :app:compileProductionReleaseKotlin)",
+      "Bash(./gradlew :app:compileProductionReleaseKotlin :app:testDevDebugUnitTest)"
     ]
   }
 }

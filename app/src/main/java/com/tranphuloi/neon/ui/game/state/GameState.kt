@@ -132,16 +132,31 @@ fun rememberGameState(): GameState {
             metaUpgrades = kotlinx.coroutines.runBlocking { metaRepo.allRanks.first() },
         )
     }
-    val effectiveStats = remember(runContext) {
-        val es = com.tranphuloi.neon.ui.game.state.EffectiveStats.compute(runContext)
-        Logger.d("rememberGameState: effectiveStats computed=$es")
-        Logger.d("  · hpMul=${es.hpMul} (Ship initial HP × ${es.hpMul})")
-        Logger.d("  · damageMul=${es.damageMul} (laser impactPower × ${es.damageMul})")
-        Logger.d("  · speedMul=${es.speedMul} (ShipController movementSpeed × ${es.speedMul})")
-        Logger.d("  · magnetMul=${es.magnetMul} (MineralsController magnetRadius × ${es.magnetMul})")
-        Logger.d("  · scoreMul=${es.scoreMul} (mineralsEarned × ${es.scoreMul})")
-        Logger.d("  · noShieldDrops=${es.noShieldDrops}, bossesOnly=${es.bossesOnly}")
-        es
+    // Round 34 (42x) — activeBuffs is a reactive MutableState. Reads here so
+    // effectiveStats recomputes when buff picked. baseStats computed once;
+    // mergedStats = baseStats × buffMultipliers (recompute on buff change).
+    val activeBuffsState = com.tranphuloi.neon.ui.game.buff.LocalActiveBuffs.current
+    val activeBuffs by activeBuffsState
+    val baseEffectiveStats = remember(runContext) {
+        com.tranphuloi.neon.ui.game.state.EffectiveStats.compute(runContext)
+    }
+    val effectiveStats = remember(baseEffectiveStats, activeBuffs) {
+        val buffMul = com.tranphuloi.neon.ui.game.buff.BuffMultipliers.from(activeBuffs)
+        val merged = baseEffectiveStats.copy(
+            hpMul = (baseEffectiveStats.hpMul * buffMul.hpMul).coerceIn(0.3f, 3.0f),
+            damageMul = (baseEffectiveStats.damageMul * buffMul.damageMul).coerceIn(0.5f, 4.0f),
+            speedMul = (baseEffectiveStats.speedMul * buffMul.speedMul).coerceIn(0.5f, 3.5f),
+            magnetMul = (baseEffectiveStats.magnetMul * buffMul.magnetMul).coerceIn(0.5f, 3.0f),
+            scoreMul = (baseEffectiveStats.scoreMul * buffMul.scoreMul).coerceIn(0.5f, 4.0f),
+        )
+        Logger.d("rememberGameState: effectiveStats computed=$merged (with ${activeBuffs.size} active buffs)")
+        Logger.d("  · hpMul=${merged.hpMul} (Ship initial HP × ${merged.hpMul})")
+        Logger.d("  · damageMul=${merged.damageMul} (laser impactPower × ${merged.damageMul})")
+        Logger.d("  · speedMul=${merged.speedMul} (ShipController movementSpeed × ${merged.speedMul})")
+        Logger.d("  · magnetMul=${merged.magnetMul} (MineralsController magnetRadius × ${merged.magnetMul})")
+        Logger.d("  · scoreMul=${merged.scoreMul} (mineralsEarned × ${merged.scoreMul})")
+        Logger.d("  · noShieldDrops=${merged.noShieldDrops}, bossesOnly=${merged.bossesOnly}")
+        merged
     }
     val stageProvider = remember(runMode) {
         Logger.d("rememberGameState: building stageProvider for mode=${runMode.key}")
@@ -194,6 +209,12 @@ fun rememberGameState(): GameState {
     // to 60% for 2s + pulse red vignette + light screen shake. Once per boss (gated
     // by enemyId so a new boss can re-trigger).
     var bossSlowMotionStartedAtMillis by remember { mutableLongStateOf(0L) }
+    // Round 34 (42x) — boss kill buff offer trigger. GameScreen watches this
+    // and navigates to BuffPicker when value changes from 0.
+    var bossKillBuffOfferMillis by remember { mutableLongStateOf(0L) }
+    // Round 34 (44x) — current stage hazard reactively tracked. Updated via
+    // stageController.onStageAdvance below. ShipController reads this for slip mechanic.
+    var currentHazard by remember { mutableStateOf<com.tranphuloi.neon.ui.game.stage.HazardType?>(null) }
     var bossSlowMotionTriggeredForId by remember { mutableStateOf<String?>(null) }
     // (settingsRepo / difficultyState / runMode / runModifier / runContext /
     //  effectiveStats / stageProvider / timeAttackLimitSec hoisted above
@@ -358,6 +379,11 @@ fun rememberGameState(): GameState {
             // 25x/48x — modifier + skill tree speed multiplier (TRIPLE_SPEED ×3,
             // TANK ×0.7, AGILITY +6%/rank).
             speedMultiplier = { effectiveStats.speedMul },
+            // Round 34 (44x) — ICE_PATCHES hazard active reads from currentHazard state
+            // which is updated by stageController.onStageAdvance (declared below).
+            isIceHazardActive = {
+                currentHazard == com.tranphuloi.neon.ui.game.stage.HazardType.ICE_PATCHES
+            },
         )
     }
 
@@ -367,6 +393,13 @@ fun rememberGameState(): GameState {
     val damageNumberController = remember {
         DamageNumberController(updateState = { damageNumbers = it })
     }
+    // Round 34 (41x) — StatusEffectController. Applies BURN/SLOW/STUN to enemies
+    // via onLaserHit (random 10% chance for now until BulletType refactor wires
+    // effects to specific bullet types). Tick processes BURN dmg + drops expired.
+    val statusEffectController = remember {
+        com.tranphuloi.neon.ui.game.status.StatusEffectController()
+    }
+    var statusEffectTick by remember { mutableLongStateOf(0L) }     // bumped each loop to force HUD recompose
     val lasersController = remember {
         LasersController(
             screenWidth = screenWidth,
@@ -385,6 +418,13 @@ fun rememberGameState(): GameState {
                 val miniSize = if (isBoss) 60f else 45f
                 explosionsController.addExplosion(x, y, miniSize, miniSize)
                 hitStopController.freezeForHit()
+                // Round 34 (41x) — 10% chance to apply random status effect per hit.
+                // Boss has reduced chance (5%) so they don't burn-stack-die unfairly.
+                val chance = if (isBoss) 0.05f else 0.10f
+                if (kotlin.random.Random.nextFloat() < chance) {
+                    val effect = com.tranphuloi.neon.ui.game.status.StatusEffect.values().random()
+                    statusEffectController.apply(targetId, effect, System.currentTimeMillis())
+                }
             },
             // 25x/48x — modifier + skill tree damage multiplier applied per hit.
             damageMultiplier = { effectiveStats.damageMul },
@@ -509,6 +549,12 @@ fun rememberGameState(): GameState {
                 if (enemy.isBoss) {
                     bossesDefeatedTotal++
                     smartBombs++       // reward: +1 smart bomb per boss kill
+                    // Round 34 (42x) — trigger roguelike buff picker after every
+                    // boss kill (except FinalBoss → that's victory branch).
+                    if (enemy !is com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBoss) {
+                        bossKillBuffOfferMillis = System.currentTimeMillis()
+                        Logger.d("Boss killed → trigger BuffPicker @ $bossKillBuffOfferMillis")
+                    }
                     // 34d: detect FinalBoss kill → triggers victory ending.
                     // Force GAME_OVER 4s later so the GameOver dialog (with VictoryPanel)
                     // shows automatically. Without this, stage script ends after VICTORY!
@@ -576,8 +622,11 @@ fun rememberGameState(): GameState {
     val enemyLaserController = remember {
         EnemyLasersController(
             screenHeight = screenHeight,
-            initialEnemyLasers = enemyLasers
-        ) { enemyLasers = it }
+            initialEnemyLasers = enemyLasers,
+            setEnemyLasers = { enemyLasers = it },
+            // Round 34 (41x) — STUN: skip fire if enemy is stunned this tick.
+            isEnemyStunned = { enemyId -> statusEffectController.isStunned(enemyId) },
+        )
     }
 
     var gameMessage by rememberSaveable { mutableStateOf("") }
@@ -622,6 +671,12 @@ fun rememberGameState(): GameState {
             onStageAdvance = { idx, newStage ->
                 magnetRadiusState.floatValue = (80f + (idx / 5) * 10f).coerceAtMost(200f)
                 lastStageAdvanceMillis = System.currentTimeMillis()
+                // Round 34 (44x) — refresh currentHazard state from new stage.
+                // ShipController reads this reactively for ice slip mechanic.
+                currentHazard = if (newStage is com.tranphuloi.neon.ui.game.stage.StageGame) {
+                    newStage.hazard
+                } else null
+                Logger.d("Stage advance: currentHazard updated to $currentHazard")
                 // 12c: Wave clear bonus — fires when player completes a wave cluster.
                 // Definition tightened in round 20: prev = StageGame AND new ≠ StageGame.
                 // Without this gate, the new procedural script (12 short StageGame entries
@@ -753,6 +808,9 @@ fun rememberGameState(): GameState {
 
     val monitorLoopInSecId = rememberSaveable { UUID.randomUUID().toString() }
     val monitorLoopRepeatTime = remember { Millis(1000) }
+    // Round 34 (41x) — status effect tick id + cadence (250ms).
+    val statusEffectTickId = rememberSaveable { UUID.randomUUID().toString() }
+    val statusEffectRepeatTime = remember { Millis(250) }
     fun monitorLoopInSec() {
         updateGameTime()
         updateGameTimeIndicator()
@@ -1033,6 +1091,24 @@ fun rememberGameState(): GameState {
                             repeatTime = monitorLoopRepeatTime,
                             doWork = { monitorLoopInSec() }
                         )
+                        // Round 34 (41x) — status effect tick every 250ms.
+                        // Applies BURN damage, expires effects, cleans dead-enemy entries.
+                        tinker(
+                            id = statusEffectTickId,
+                            repeatTime = statusEffectRepeatTime,
+                            doWork = {
+                                val now = System.currentTimeMillis()
+                                val burnDmg = statusEffectController.processTick(enemies, now)
+                                if (burnDmg.isNotEmpty()) {
+                                    burnDmg.forEach { (enemyId, dmg) ->
+                                        enemies.firstOrNull { it.enemyId == enemyId }
+                                            ?.onObjectImpact(dmg)
+                                    }
+                                }
+                                // Bump tick var to force HUD recompose if needed (cheap, mutableLongStateOf)
+                                statusEffectTick = now
+                            }
+                        )
                         if (frameCount % 1000L == 0L) {
                             // Periodic memory log roughly every 8s at the IO loop's pace.
                             val rt = Runtime.getRuntime()
@@ -1077,6 +1153,10 @@ fun rememberGameState(): GameState {
             LeakWatch.watch(damageNumberController, "GameState.onDispose → DamageNumberController must be GC'd")
             LeakWatch.watch(pickupPopupController, "GameState.onDispose → PickupPopupController must be GC'd")
             LeakWatch.watch(hitStopController, "GameState.onDispose → HitStopController must be GC'd")
+            LeakWatch.watch(comboController, "GameState.onDispose → ComboController must be GC'd")
+            LeakWatch.watch(impactSparkController, "GameState.onDispose → ImpactSparkController must be GC'd")
+            LeakWatch.watch(pickupBurstController, "GameState.onDispose → PickupBurstController must be GC'd")
+            LeakWatch.watch(statusEffectController, "GameState.onDispose → StatusEffectController must be GC'd")
         }
     }
 
@@ -1092,7 +1172,11 @@ fun rememberGameState(): GameState {
         ultimateLasers = ultimateLasers.map { lasersMapper(it) },
         spaceObjects = spaceObjects.map { spaceObjectsMapper(it) },
         boosters = boosters.map { boosterMapper(it) },
-        enemies = enemies.map { enemyMapper(it) },
+        enemies = enemies.map { e ->
+            // Round 35 (42x) — feed active status effects to UI tint overlay.
+            val tints = statusEffectController.effectsFor(e.enemyId).map { it.tintColorArgb }
+            enemyMapper(e, tints)
+        },
         enemyLasers = enemyLasers.map { lasersMapper(it) },
         gameTimeIndicator = gameTimeIndicator,
         minerals = minerals.map { mineralToMineralUIMapper(it) },
@@ -1165,6 +1249,7 @@ fun rememberGameState(): GameState {
         revivedShownAtMillis = revivedShownAtMillis,
         hasReviveToken = ship.hasReviveToken,
         bossSlowMotionStartedAtMillis = bossSlowMotionStartedAtMillis,
+        bossKillBuffOfferMillis = bossKillBuffOfferMillis,
         gameMode = runMode,
         timeAttackLimitSec = timeAttackLimitSec,
         timeAttackEnded = timeAttackEnded,
@@ -1237,6 +1322,8 @@ data class GameState(
     val revivedShownAtMillis: Long,
     val hasReviveToken: Boolean,
     val bossSlowMotionStartedAtMillis: Long,
+    /** Round 34 (42x) — set when boss killed; GameScreen LaunchedEffect triggers BuffPicker nav. */
+    val bossKillBuffOfferMillis: Long,
     /** Wave 5 (43x) — current run mode, decided at GameState construction. */
     val gameMode: com.tranphuloi.neon.ui.game.mode.GameMode,
     /** TIME_ATTACK only — countdown seconds (0 in other modes). */

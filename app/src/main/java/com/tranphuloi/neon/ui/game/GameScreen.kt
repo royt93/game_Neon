@@ -97,6 +97,7 @@ private fun stageTintColor(chapterId: Int): Color {
 fun GameScreen(
     onGamePause: () -> Unit,
     onGameOver: (score: String) -> Unit,
+    onOpenBuffPicker: () -> Unit = {},
 ) {
     LaunchedEffect(Unit) { Logger.d("GameScreen entered") }
     val haptic = LocalHaptic.current
@@ -107,6 +108,18 @@ fun GameScreen(
     val tutorialShown by settings.tutorialShown.collectAsState(initial = true) // optimistic to avoid flash on first compose
 
     val gameState = rememberGameState()
+
+    // Round 34 (42x) — post-boss roguelike buff picker. When bossKillBuffOfferMillis
+    // changes (boss killed, non-final), wait for boss-rank overlay to finish
+    // (~2s) then navigate to BuffPicker. Game continues running behind sheet.
+    LaunchedEffect(gameState.bossKillBuffOfferMillis) {
+        if (gameState.bossKillBuffOfferMillis > 0L) {
+            Logger.d("BuffPicker offer triggered @ ${gameState.bossKillBuffOfferMillis}, delaying 2.2s for rank overlay")
+            kotlinx.coroutines.delay(2200L)
+            Logger.d("BuffPicker navigating now")
+            onOpenBuffPicker()
+        }
+    }
 
     // Round 27 — intercept system back press while game is RUNNING.
     // Previously back popped the Game route → user lost run + state. Now back
@@ -344,6 +357,14 @@ fun GameScreen(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .zIndex(300f)
+        )
+        // Round 35 (42x) — show stacked roguelike buffs as small chip row
+        // below IndicatorStatus.
+        com.tranphuloi.neon.ui.game.controls.ActiveBuffsHud(
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(top = 90.dp)
+                .zIndex(300f),
         )
         ButtonSettings(
             modifier = Modifier
