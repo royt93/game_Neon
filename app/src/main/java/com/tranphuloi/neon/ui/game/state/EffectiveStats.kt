@@ -1,6 +1,8 @@
 package com.tranphuloi.neon.ui.game.state
 
 import androidx.compose.runtime.Immutable
+import com.tranphuloi.neon.ui.game.buff.BuffMultipliers
+import com.tranphuloi.neon.ui.game.buff.RunBuff
 
 /**
  * Wave 5 foundation — pure function computing player stats from RunContext +
@@ -27,6 +29,21 @@ data class EffectiveStats(
     val noShieldDrops: Boolean,
     val bossesOnly: Boolean,
 ) {
+    /**
+     * Round 36 — merge roguelike buffs onto already-computed stats. Same caps as
+     * [compute]. Extracted from GameState so the math is unit-testable.
+     */
+    fun withBuffs(buffs: List<RunBuff>): EffectiveStats {
+        val b = BuffMultipliers.from(buffs)
+        return copy(
+            hpMul = (hpMul * b.hpMul).coerceIn(0.3f, 3.0f),
+            damageMul = (damageMul * b.damageMul).coerceIn(0.5f, 4.0f),
+            speedMul = (speedMul * b.speedMul).coerceIn(0.5f, 3.5f),
+            magnetMul = (magnetMul * b.magnetMul).coerceIn(0.5f, 3.0f),
+            scoreMul = (scoreMul * b.scoreMul).coerceIn(0.5f, 4.0f),
+        )
+    }
+
     companion object {
         /** Meta upgrade keys → per-rank effect. Each rank adds the listed delta. */
         private const val META_HP_PER_RANK = 0.10f          // +10% hp per rank

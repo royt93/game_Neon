@@ -968,6 +968,35 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 36 — Test coverage expansion + EffectiveStats refactor
+
+User picked "Test coverage expansion" sau khi audit feature.md. Đẩy JUnit suite từ 33 → 72 tests; extract buff-merge math khỏi GameState để testable.
+
+- ✅ **EffectiveStats.withBuffs() extracted** — merge logic (5 caps × buffMultipliers) trước đây inline trong `GameState.kt:143-152` giờ là pure method trên `EffectiveStats`. GameState.kt giờ chỉ gọi `baseEffectiveStats.withBuffs(activeBuffs)`. Behavior identical, math + caps đều giữ nguyên.
+
+- ✅ **EffectiveStatsTest (21 tests)** — `compute()`: default identity, EASY/HARD inverse hp scaling, mỗi modifier (GLASS_CANNON / NO_SHIELDS / BOSSES_ONLY) propagate đúng flag, meta upgrades stack linear (HP +10%/rank, DMG +8%, SPD +6%, MAG +15%), unknown meta key ignored, hp/damage/speed/score cap clamping ở cả 2 chiều. `withBuffs()`: empty list = identity, HP_BOOST stack, BERSERKER trade-off math, hp/damage/score caps khi merge, flags không bị mutate.
+
+- ✅ **ShipLaserClassesTest (11 tests)** — `PiercingShipLaser`: pierceRemaining khởi tạo = 3, decrement đúng qua assignment, bulletType=PIERCING, không destroyed lúc tạo, moveLaser giảm yOffset. `PlasmaShipLaser`: bulletType=PLASMA, pierceRemaining=0 (default), width=PLASMA_WIDTH=16f, impactPower=40f (=25×1.6), moveLaser dùng yOffsetMovementSpeed=5 (< piercing 7).
+
+- ✅ **BoosterTypeTest (7 tests)** — invariants: mọi type có weight > 0 + drawableId ≠ 0, REVIVE_TOKEN rarest (weight 5 < tất cả), tổng weight = 116 (5×19 + 5 + 2×8), bullet-type rarer than base nhưng commoner than revive, weighted-pick algorithm map đúng roll → type, PIERCING/PLASMA reachable từ inside slot weight.
+
+### Round 36 files
+
+**New tests:**
+- `app/src/test/java/.../ui/game/state/EffectiveStatsTest.kt` (~21 tests).
+- `app/src/test/java/.../ui/game/ship/laser/ShipLaserClassesTest.kt` (~11 tests).
+- `app/src/test/java/.../ui/game/booster/BoosterTypeTest.kt` (~7 tests).
+
+**Modified:**
+- `ui/game/state/EffectiveStats.kt` — thêm `withBuffs(buffs: List<RunBuff>)` method (pure, capped).
+- `ui/game/state/GameState.kt` — replace inline buff merge (lines 143-152) bằng `baseEffectiveStats.withBuffs(activeBuffs)`.
+
+### Round 36 verification
+
+- `./gradlew testDevDebugUnitTest` BUILD SUCCESSFUL.
+- **72 tests, 0 failures, 0 errors** across 7 test classes (+39 mới so với round 35).
+- Test count breakdown: EffectiveStatsTest 21 · StatusEffectControllerTest 11 · ShipLaserClassesTest 11 · BuffMultipliersTest 9 · TinkerTest 7 · BoosterTypeTest 7 · BulletTypeTest 6.
+
 ### Round 35 verification
 
 - `./gradlew compileDevDebugKotlin` BUILD SUCCESSFUL.

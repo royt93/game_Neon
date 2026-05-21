@@ -141,14 +141,8 @@ fun rememberGameState(): GameState {
         com.tranphuloi.neon.ui.game.state.EffectiveStats.compute(runContext)
     }
     val effectiveStats = remember(baseEffectiveStats, activeBuffs) {
-        val buffMul = com.tranphuloi.neon.ui.game.buff.BuffMultipliers.from(activeBuffs)
-        val merged = baseEffectiveStats.copy(
-            hpMul = (baseEffectiveStats.hpMul * buffMul.hpMul).coerceIn(0.3f, 3.0f),
-            damageMul = (baseEffectiveStats.damageMul * buffMul.damageMul).coerceIn(0.5f, 4.0f),
-            speedMul = (baseEffectiveStats.speedMul * buffMul.speedMul).coerceIn(0.5f, 3.5f),
-            magnetMul = (baseEffectiveStats.magnetMul * buffMul.magnetMul).coerceIn(0.5f, 3.0f),
-            scoreMul = (baseEffectiveStats.scoreMul * buffMul.scoreMul).coerceIn(0.5f, 4.0f),
-        )
+        // Round 36 — merge logic extracted to EffectiveStats.withBuffs() for unit testability.
+        val merged = baseEffectiveStats.withBuffs(activeBuffs)
         Logger.d("rememberGameState: effectiveStats computed=$merged (with ${activeBuffs.size} active buffs)")
         Logger.d("  · hpMul=${merged.hpMul} (Ship initial HP × ${merged.hpMul})")
         Logger.d("  · damageMul=${merged.damageMul} (laser impactPower × ${merged.damageMul})")
