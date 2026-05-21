@@ -38,13 +38,30 @@ enum class Difficulty(val key: String, val multiplier: Float) {
     }
 }
 
-enum class ShipSkin(val key: String) {
-    REGULAR("regular"),
-    BOOSTED("boosted");
+/**
+ * Wave 6 (45x) round 38 — ship aura color customization. The picker in
+ * DialogSettings stores the user choice; GameWorld reads it via
+ * `LocalSettings.current.shipSkin.collectAsState()` to color the ship's
+ * neon-glow modifier.
+ *
+ * Old keys `regular` / `boosted` are silently migrated to AURA_CYAN by
+ * [fromKey]'s fallback (the previous values were a dead setting — picker
+ * existed but nothing read it in-game, so no save data depends on them).
+ */
+enum class ShipSkin(
+    val key: String,
+    val displayName: String,
+    val glowColorHex: Long,
+) {
+    AURA_CYAN(key = "aura_cyan", displayName = "Cyan", glowColorHex = 0xFF00F0FF),
+    AURA_GOLD(key = "aura_gold", displayName = "Vàng", glowColorHex = 0xFFFFCB47),
+    AURA_MAGENTA(key = "aura_magenta", displayName = "Hồng", glowColorHex = 0xFFFF2DE0),
+    AURA_VIOLET(key = "aura_violet", displayName = "Tím", glowColorHex = 0xFFB14CFF),
+    AURA_REDALERT(key = "aura_red", displayName = "Đỏ", glowColorHex = 0xFFFF2D55);
 
     companion object {
         fun fromKey(key: String?): ShipSkin =
-            values().firstOrNull { it.key == key } ?: REGULAR
+            entries.firstOrNull { it.key == key } ?: AURA_CYAN
     }
 }
 

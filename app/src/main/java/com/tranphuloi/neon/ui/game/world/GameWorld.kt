@@ -22,6 +22,7 @@ import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
@@ -91,6 +92,12 @@ fun GameWorld(
 
     val imageLoader = rememberImageLoader()
 
+    // Round 38 — ship aura color from Settings. Defaults to AURA_CYAN's glow so
+    // first-run / unset preference renders the original cyan look unchanged.
+    val settings = com.tranphuloi.neon.data.LocalSettings.current
+    val shipSkin by settings.shipSkin.collectAsState(initial = com.tranphuloi.neon.data.ShipSkin.AURA_CYAN)
+    val shipGlowColor = Color(shipSkin.glowColorHex)
+
     val infiniteTransition = rememberInfiniteTransition()
     val shipShieldColor by infiniteTransition.animateColor(
         initialValue = ShipShieldOne,
@@ -146,7 +153,9 @@ fun GameWorld(
                 modifier = Modifier
                     .size(width = it.width.dp, height = it.height.dp)
                     .offset(x = it.xOffset.dp, y = it.yOffset.dp)
-                    .neonGlow(color = NeonCyan, intensity = 0.7f, radiusFactor = 2.4f)
+                    // Round 38 — laser glow follows ship aura so the visual reads as
+                    // "ship's own bullets" rather than disconnected cyan tracers.
+                    .neonGlow(color = shipGlowColor, intensity = 0.7f, radiusFactor = 2.4f)
             )
         }
         ultimateLasers.forEach {
@@ -263,7 +272,7 @@ fun GameWorld(
                         rotationZ = ship.spawnRotation + ship.bankRotation
                     }
                     .neonGlow(
-                        color = NeonCyan,
+                        color = shipGlowColor,
                         intensity = 0.5f + glowBoost + chargeBoost,
                         radiusFactor = 1.5f + glowBoost * 0.4f + chargeBoost * 0.6f,
                     )

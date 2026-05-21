@@ -968,6 +968,31 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 38 — Wave 6 start: ship aura color customization (45x)
+
+User said "tiếp tục phase tiếp theo đi". Picked Wave 6 (Accessibility & Polish), started with ship customization since `ShipSkin` enum was already partly wired (DataStore + picker UI) but had been a dead setting — nothing read it for game rendering. This round makes it real.
+
+- ✅ **ShipSkin enum redefined** — was `REGULAR / BOOSTED` (cosmetic-only labels with no rendering effect). Now 5 color variants: `AURA_CYAN`, `AURA_GOLD`, `AURA_MAGENTA`, `AURA_VIOLET`, `AURA_REDALERT`. Each carries `key` (DataStore), `displayName` (Vietnamese label), and `glowColorHex` (ARGB Long fed into Compose `Color(...)`). Old persisted keys "regular" / "boosted" silently migrate to `AURA_CYAN` via `fromKey`'s fallback (no save data depended on them anyway).
+
+- ✅ **GameWorld wires shipSkin → ship glow** — collects `settings.shipSkin` via `LocalSettings.current` near the top of `GameWorld` (initial = AURA_CYAN so first composition before flow resolves still renders the original cyan). Passes the resolved `Color(skin.glowColorHex)` into the ship sprite's `.neonGlow(...)` modifier, replacing the hardcoded `NeonCyan`.
+
+- ✅ **Ship laser glow follows aura** — same color also feeds the `shipLasers.forEach { ... .neonGlow(...) }` block. Visual reads as "ship's own bullets" instead of cyan tracers from a red ship. Enemy lasers / ultimate lasers / spark FX keep their own palette — only ship-originated visuals follow the skin.
+
+- ✅ **DialogSettings picker revamped** — old "Skin tàu / Thường / Cường hóa" replaced with "Hào quang tàu / Cyan / Vàng / Hồng / Tím / Đỏ". Each Pill uses its own skin's `Color(glowColorHex)` so the chip IS the color preview — no separate swatch needed.
+
+### Round 38 files
+
+**Modified:**
+- `data/SettingsRepository.kt` — `ShipSkin` enum redefined (5 colors with glowColorHex), `fromKey` fallback → `AURA_CYAN`.
+- `ui/dlg/settings/DialogSettings.kt` — picker labels via `s.displayName`, Pill colors via `Color(s.glowColorHex)`, initial state collectAsState → `AURA_CYAN`.
+- `ui/game/world/GameWorld.kt` — collect shipSkin + derive `shipGlowColor` once near function top; thread into ship + ship-laser `.neonGlow(color = shipGlowColor, ...)`. Added `androidx.compose.runtime.collectAsState` import.
+
+### Round 38 verification
+
+- `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest` BUILD SUCCESSFUL.
+- **72 tests still pass.**
+- Manual test path: Settings → "Hào quang tàu" → pick non-cyan → enter game → ship glow + laser glow match picked color. Restart app → preference persists.
+
 ### Round 37 — Hot-path Logger.d audit (8 spam sources removed)
 
 User flagged log `roy93~ rememberGameState: composing — entry point` ném liên tục. Root cause: `rememberGameState()` recomposes ~125Hz (refreshHandler tail-read drives the game loop's per-frame Compose re-render). Audited entire codebase for similar issues.
@@ -1649,7 +1674,7 @@ Các architectural refactors quá lớn để gộp chung:
 - [ ] 36x Loadout system
 - [ ] 39x Item rarity tiers
 - [ ] 40x Item combos
-- [ ] 45x Ship customization
+- [x] 45x Ship customization (round 38 — 5-color aura glow wired into ship + ship-laser rendering)
 
 ## Wave 7 (Architecture deferred)
 - [ ] Vb Hilt

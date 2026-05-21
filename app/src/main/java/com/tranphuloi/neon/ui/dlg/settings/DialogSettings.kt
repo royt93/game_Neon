@@ -83,7 +83,7 @@ fun DialogSettings(
     val vibrationEnabled by settings.vibrationEnabled.collectAsState(initial = true)
     val reduceMotion by settings.reduceMotion.collectAsState(initial = false)
     val difficulty by settings.difficulty.collectAsState(initial = Difficulty.NORMAL)
-    val shipSkin by settings.shipSkin.collectAsState(initial = ShipSkin.REGULAR)
+    val shipSkin by settings.shipSkin.collectAsState(initial = ShipSkin.AURA_CYAN)
     // Round 27 — lastMode / lastModifier reads removed; that info now lives in MenuScreen.
 
     LaunchedEffect(Unit) { Logger.d("DialogSettings shown") }
@@ -163,16 +163,14 @@ fun DialogSettings(
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 ControlGroup {
-                    LabelledPillRow(label = "Skin tàu", color = NeonGold) {
-                        ShipSkin.values().forEach { s ->
-                            val labelText = when (s) {
-                                ShipSkin.REGULAR -> "Thường"
-                                ShipSkin.BOOSTED -> "Cường hóa"
-                            }
+                    // Round 38 — Ship aura color picker. Each Pill uses its own
+                    // skin's glow color so the swatch IS the color preview.
+                    LabelledPillRow(label = "Hào quang tàu", color = NeonGold) {
+                        ShipSkin.entries.forEach { s ->
                             Pill(
-                                label = labelText,
+                                label = s.displayName,
                                 selected = s == shipSkin,
-                                color = NeonGold,
+                                color = Color(s.glowColorHex),
                                 onClick = { scope.launch { settings.setShipSkin(s) } }
                             )
                         }
