@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -77,6 +78,9 @@ fun DialogSettings(
     val settings = LocalSettings.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    // Round 39 — accent colors here come from LocalNeonPalette so toggling
+    // "Chế độ màu" inside this dialog gives immediate visual feedback.
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
 
     val musicVolume by settings.musicVolume.collectAsState(initial = 80)
     val sfxVolume by settings.sfxVolume.collectAsState(initial = 90)
@@ -84,6 +88,9 @@ fun DialogSettings(
     val reduceMotion by settings.reduceMotion.collectAsState(initial = false)
     val difficulty by settings.difficulty.collectAsState(initial = Difficulty.NORMAL)
     val shipSkin by settings.shipSkin.collectAsState(initial = ShipSkin.AURA_CYAN)
+    val colorBlindMode by settings.colorBlindMode.collectAsState(
+        initial = com.tranphuloi.neon.data.ColorBlindMode.NORMAL,
+    )
     // Round 27 — lastMode / lastModifier reads removed; that info now lives in MenuScreen.
 
     LaunchedEffect(Unit) { Logger.d("DialogSettings shown") }
@@ -145,7 +152,7 @@ fun DialogSettings(
                 }
                 Spacer(modifier = Modifier.height(10.dp))
                 ControlGroup {
-                    LabelledPillRow(label = "Độ khó", color = NeonMagenta) {
+                    LabelledPillRow(label = "Độ khó", color = palette.magenta) {
                         Difficulty.values().forEach { d ->
                             val labelText = when (d) {
                                 Difficulty.EASY -> "Dễ"
@@ -165,13 +172,28 @@ fun DialogSettings(
                 ControlGroup {
                     // Round 38 — Ship aura color picker. Each Pill uses its own
                     // skin's glow color so the swatch IS the color preview.
-                    LabelledPillRow(label = "Hào quang tàu", color = NeonGold) {
+                    LabelledPillRow(label = "Hào quang tàu", color = palette.gold) {
                         ShipSkin.entries.forEach { s ->
                             Pill(
                                 label = s.displayName,
                                 selected = s == shipSkin,
                                 color = Color(s.glowColorHex),
                                 onClick = { scope.launch { settings.setShipSkin(s) } }
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                ControlGroup {
+                    // Round 39 — Color blind mode picker. Wong-derived palette swap
+                    // applied to LocalNeonPalette via MainActivity provider.
+                    LabelledPillRow(label = "Chế độ màu", color = palette.cyan) {
+                        com.tranphuloi.neon.data.ColorBlindMode.entries.forEach { m ->
+                            Pill(
+                                label = m.displayName,
+                                selected = m == colorBlindMode,
+                                color = palette.cyan,
+                                onClick = { scope.launch { settings.setColorBlindMode(m) } }
                             )
                         }
                     }
@@ -358,18 +380,22 @@ private fun LabelledPillRow(
     color: Color,
     content: @Composable () -> Unit,
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
+    // Round 39 — was a single Row with fixed-width label + non-wrapping inner Row.
+    // 5-item Pill rows (ship aura picker) overflowed horizontally on narrow screens
+    // and the last Pill rendered visually clipped/distorted. FlowRow wraps Pills
+    // onto a second line when they don't fit; label stays above content.
+    Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             label,
             color = color,
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp,
-            modifier = Modifier.width(92.dp),
+            modifier = Modifier.padding(bottom = 6.dp),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
             content()
         }
     }

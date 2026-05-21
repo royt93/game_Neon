@@ -97,6 +97,17 @@ class MainActivity : ComponentActivity() {
         Logger.d("MainActivity.onCreate: App cast OK, entering setContent")
         setContent {
             Logger.d("MainActivity.setContent: composing NavHost root")
+            // Round 39 — resolve active palette from colorBlindMode setting once at root
+            // so every consumer of LocalNeonPalette sees the same value.
+            val colorBlindMode by app.settings.colorBlindMode.collectAsState(
+                initial = com.tranphuloi.neon.data.ColorBlindMode.NORMAL,
+            )
+            val palette = when (colorBlindMode) {
+                com.tranphuloi.neon.data.ColorBlindMode.NORMAL ->
+                    com.tranphuloi.neon.common.NeonPalette.NORMAL
+                com.tranphuloi.neon.data.ColorBlindMode.COLORBLIND_SAFE ->
+                    com.tranphuloi.neon.common.NeonPalette.COLORBLIND_SAFE
+            }
             CompositionLocalProvider(
                 LocalAudioPlayer provides audioHolder,
                 LocalHaptic provides haptic,
@@ -106,6 +117,7 @@ class MainActivity : ComponentActivity() {
                 LocalAchievements provides app.achievements,
                 LocalMetaProgression provides app.metaProgression,
                 LocalRunPersistence provides app.runPersistence,
+                com.tranphuloi.neon.common.LocalNeonPalette provides palette,
                 com.tranphuloi.neon.data.LocalRunStats provides remember {
                     androidx.compose.runtime.mutableStateOf<com.tranphuloi.neon.data.RunStats?>(null)
                 },

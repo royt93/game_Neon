@@ -25,6 +25,28 @@ object SettingsKeys {
     val LAST_MODE = stringPreferencesKey("last_mode")
     /** Wave 5 (25x) — last picked RunModifier, applied to next run. "none" by default. */
     val LAST_MODIFIER = stringPreferencesKey("last_modifier")
+    /** Wave 6 (27x) round 39 — color blind mode key; values from [ColorBlindMode.key]. */
+    val COLOR_BLIND_MODE = stringPreferencesKey("color_blind_mode")
+}
+
+/**
+ * Wave 6 (27x) round 39 — accessibility mode for UI palette. Game entity
+ * bitmaps (ship/enemy/laser sprites) are NOT recolored; this only affects
+ * Compose-rendered surfaces that read [com.tranphuloi.neon.common.LocalNeonPalette].
+ *
+ * - NORMAL: original cyan/magenta/gold/violet/red neon palette.
+ * - COLORBLIND_SAFE: Wong-derived palette (blue / orange / yellow / pink /
+ *   vermillion) chosen to remain distinguishable under deuteranopia /
+ *   protanopia / tritanopia.
+ */
+enum class ColorBlindMode(val key: String, val displayName: String) {
+    NORMAL(key = "normal", displayName = "Tiêu chuẩn"),
+    COLORBLIND_SAFE(key = "cb_safe", displayName = "Mù màu");
+
+    companion object {
+        fun fromKey(key: String?): ColorBlindMode =
+            entries.firstOrNull { it.key == key } ?: NORMAL
+    }
 }
 
 enum class Difficulty(val key: String, val multiplier: Float) {
@@ -103,6 +125,10 @@ class SettingsRepository(private val appContext: Context) {
     val lastModifier: Flow<String> = appContext.dataStore.data.map {
         it[SettingsKeys.LAST_MODIFIER] ?: "none"
     }
+    /** Wave 6 (27x) round 39 — color blind mode. Defaults to NORMAL. */
+    val colorBlindMode: Flow<ColorBlindMode> = appContext.dataStore.data.map {
+        ColorBlindMode.fromKey(it[SettingsKeys.COLOR_BLIND_MODE])
+    }
 
     suspend fun setReduceMotion(value: Boolean) {
         Logger.d("SettingsRepository.setReduceMotion=$value")
@@ -150,5 +176,10 @@ class SettingsRepository(private val appContext: Context) {
     suspend fun setLastModifier(key: String) {
         Logger.d("SettingsRepository.setLastModifier=$key")
         appContext.dataStore.edit { it[SettingsKeys.LAST_MODIFIER] = key }
+    }
+
+    suspend fun setColorBlindMode(value: ColorBlindMode) {
+        Logger.d("SettingsRepository.setColorBlindMode=${value.key}")
+        appContext.dataStore.edit { it[SettingsKeys.COLOR_BLIND_MODE] = value.key }
     }
 }

@@ -968,6 +968,37 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 39 — Wave 6 Color blind mode (27x) + bonus picker layout fix
+
+User said "tiếp tục đi, hãy dùng AskUserQuestion" — picked 27x Color blind mode. Mid-round user reported the round-38 Hào quang tàu picker was visually warped (5 pills overflowed horizontally, last pill rendered distorted). Both addressed.
+
+- ✅ **ColorBlindMode enum + DataStore field** — new `ColorBlindMode { NORMAL, COLORBLIND_SAFE }` in SettingsRepository with `key` + Vietnamese `displayName`. Backed by `SettingsKeys.COLOR_BLIND_MODE` stringPreferencesKey. `colorBlindMode: Flow<ColorBlindMode>` + `setColorBlindMode(value)` setter added.
+
+- ✅ **NeonPalette + LocalNeonPalette infra** — new `NeonPalette` data class (5 channels: cyan / magenta / violet / gold / redAlert) in `common/Color.kt`. Two presets: `NORMAL` (original cyberpunk palette, same as top-level vals) and `COLORBLIND_SAFE` (Wong-derived: #56B4E9 sky blue, #E69F00 orange, #CC79A7 muted pink, #F0E442 yellow, #D55E00 vermillion — safe under deuteranopia / protanopia / tritanopia). `LocalNeonPalette = staticCompositionLocalOf { NORMAL }` provides default for previews/tests.
+
+- ✅ **MainActivity provides palette** — collects `settings.colorBlindMode` once at root, maps to `NeonPalette.NORMAL` or `NeonPalette.COLORBLIND_SAFE`, provides via the existing `CompositionLocalProvider`. All Composables under the NavHost can now read `LocalNeonPalette.current.cyan` etc.
+
+- ✅ **DialogSettings picker + proof-of-concept wiring** — new "Chế độ màu / Tiêu chuẩn ↔ Mù màu" row. Three label accents in DialogSettings (Độ khó / Hào quang tàu / Chế độ màu) now read from `LocalNeonPalette.current.{magenta,gold,cyan}` instead of hardcoded constants, so toggling the mode gives immediate visual feedback inside the dialog itself.
+
+- ✅ **Bonus: LabelledPillRow → FlowRow (fixes Hào quang tàu warped UI)** — was a single horizontal Row with fixed-width label + non-wrapping inner Row. 5-pill ship aura picker overflowed horizontally on narrow screens → last pill rendered distorted. Restructured as Column(label, FlowRow(pills)) so pills wrap to a second line when there's no room. Applies to all 3 picker rows (Độ khó / Hào quang tàu / Chế độ màu); the 3-pill Độ khó row is unaffected since it still fits.
+
+- ⚠️ **Scope note** — round 39 wires only 3 visible label accents to the palette. Broader migration of 40+ files using `NeonCyan/Magenta/Gold/Violet/RedAlert` directly is deferred. The infrastructure is in place; future rounds can migrate banners / HUD / overlays incrementally as needed. Game entity bitmaps (ship / enemy / laser sprites) are intentionally NOT recolored — that would require new drawable assets.
+
+### Round 39 files
+
+**Modified:**
+- `data/SettingsRepository.kt` — added `ColorBlindMode` enum + `SettingsKeys.COLOR_BLIND_MODE` + `colorBlindMode` Flow + `setColorBlindMode` setter.
+- `common/Color.kt` — added `NeonPalette` data class with NORMAL + COLORBLIND_SAFE presets + `LocalNeonPalette` CompositionLocal.
+- `ui/MainActivity.kt` — collect colorBlindMode at root, map to palette, provide via CompositionLocalProvider.
+- `ui/dlg/settings/DialogSettings.kt` — added Chế độ màu picker section; rewrote `LabelledPillRow` to use Column + FlowRow (fixes 5-pill overflow); 3 label colors now read from `LocalNeonPalette.current`.
+
+### Round 39 verification
+
+- `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest` BUILD SUCCESSFUL.
+- **72 tests still pass.**
+- Manual test path: Settings → "Chế độ màu" → tap "Mù màu" → 3 label colors swap (magenta→orange, gold→yellow, cyan→sky-blue) inside the dialog itself. Tap "Tiêu chuẩn" to revert. Preference persists across cold launch.
+- Manual test path (UI fix): Settings → "Hào quang tàu" → 5 pills (Cyan/Vàng/Hồng/Tím/Đỏ) wrap to 2 lines on narrow screens instead of clipping the last item.
+
 ### Round 38 — Wave 6 start: ship aura color customization (45x)
 
 User said "tiếp tục phase tiếp theo đi". Picked Wave 6 (Accessibility & Polish), started with ship customization since `ShipSkin` enum was already partly wired (DataStore + picker UI) but had been a dead setting — nothing read it for game rendering. This round makes it real.
@@ -1669,7 +1700,7 @@ Các architectural refactors quá lớn để gộp chung:
 
 ## Wave 6 (Polish + accessibility)
 - [ ] 26x Photo mode
-- [ ] 27x Color blind mode
+- [x] 27x Color blind mode (round 39 — Wong palette + LocalNeonPalette infra + Settings picker; broader UI migration deferred)
 - [ ] 29x Secondary weapon
 - [ ] 36x Loadout system
 - [ ] 39x Item rarity tiers
