@@ -45,7 +45,11 @@
       "Bash(./gradlew :app:testDevDebugUnitTest)",
       "Bash(./gradlew :app:compileDevDebugKotlin :app:testDevDebugUnitTest)",
       "Bash(./gradlew :app:compileProductionReleaseKotlin)",
-      "Bash(./gradlew :app:compileProductionReleaseKotlin :app:testDevDebugUnitTest)"
+      "Bash(./gradlew :app:compileProductionReleaseKotlin :app:testDevDebugUnitTest)",
+      "Bash(sort -t: -k2 -rn)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(./gradlew :app:compileDevDebugKotlin :app:testDevDebugUnitTest :app:compileProductionReleaseKotlin)"
     ]
   }
 }

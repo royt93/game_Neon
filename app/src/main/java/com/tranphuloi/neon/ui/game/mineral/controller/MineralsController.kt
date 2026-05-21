@@ -54,9 +54,9 @@ class MineralsController(
             }
         }
         minerals = minerals.filterNot { it.removed }
-        if (picked > 0) {
-            Logger.d("MineralsController: magnet picked $picked minerals (radius=$r)")
-        }
+        // Round 37 — was logging picked count per 5ms tick. During a magnet sweep
+        // through a mineral cluster this fired up to 200×/sec. GameState already
+        // emits a per-event log when minerals are awarded via consumePickedThisTick.
         pickedThisTick = picked
         updateMinerals(minerals)
     }

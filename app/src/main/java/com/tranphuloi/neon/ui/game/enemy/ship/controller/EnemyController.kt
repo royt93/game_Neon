@@ -61,9 +61,9 @@ class EnemyController(
                 leftScreen++
             }
         }
-        if (leftScreen > 0) {
-            Logger.d("EnemyController.processEnemies: $leftScreen enemies left screen (active=${enemies.size})")
-        }
+        // Round 37 — was logging "$leftScreen enemies left screen" per 5ms tick.
+        // Mid-wave that fired multiple times per second. Active enemy count is
+        // available via UI; left-screen events aren't actionable signal.
         updateEnemies()
     }
 

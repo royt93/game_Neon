@@ -224,8 +224,10 @@ class LasersController(
                 when (laser.bulletType) {
                     BulletType.PIERCING -> {
                         // Decrement pierce; destroy only when exhausted.
+                        // Round 37 — removed per-hit Logger.d (fired inside Millis(1) tick;
+                        // during a PIERCING run through enemy formations this spammed dozens
+                        // of lines per second). onLaserHit upstream already records the hit.
                         laser.pierceRemaining = laser.pierceRemaining - 1
-                        Logger.d("PIERCING hit: enemy=${target.enemyId.take(6)} pierceRemaining=${laser.pierceRemaining}")
                         if (laser.pierceRemaining <= 0) {
                             destroyShipLaser(laser)
                         }
@@ -251,7 +253,9 @@ class LasersController(
                                 )
                             }
                         }
-                        Logger.d("PLASMA hit + AoE: enemy=${target.enemyId.take(6)} radius=${aoeRadius}px")
+                        // Round 37 — removed per-hit Logger.d (fired inside Millis(1) tick).
+                        // onLaserHit handles the per-target signal; AoE participants are
+                        // logged via their own onLaserHit calls a few lines above.
                         destroyShipLaser(laser)
                     }
                     BulletType.NORMAL -> destroyShipLaser(laser)

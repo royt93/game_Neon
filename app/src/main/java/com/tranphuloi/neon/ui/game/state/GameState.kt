@@ -64,8 +64,10 @@ import java.util.UUID
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
 fun rememberGameState(): GameState {
-
-    Logger.d("rememberGameState: composing — entry point")
+    // Round 37 — was Logger.d("rememberGameState: composing — entry point") here, but
+    // the function recomposes ~125Hz (refreshHandler read at function tail drives the
+    // game loop's per-frame recompose). That made the log fire 125×/sec. Entry-point
+    // logging happens once inside the `remember { ... UuidUtils() }` block below.
     val configuration = LocalConfiguration.current
     val screenWidth = rememberSaveable { configuration.screenWidthDp.toFloat() }
     val screenHeight = rememberSaveable { configuration.screenHeightDp.toFloat() }

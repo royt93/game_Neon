@@ -968,6 +968,42 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 37 — Hot-path Logger.d audit (8 spam sources removed)
+
+User flagged log `roy93~ rememberGameState: composing — entry point` ném liên tục. Root cause: `rememberGameState()` recomposes ~125Hz (refreshHandler tail-read drives the game loop's per-frame Compose re-render). Audited entire codebase for similar issues.
+
+- ✅ **GameState.kt:68 entry log removed** — fired ~125 lines/sec while game running. Init context still logged once inside `remember { UuidUtils() }` block (line 73, unchanged).
+
+- ✅ **5ms-tick controller cleanup (4 sites)** — these fire whenever items removed/picked, but per 5ms tick → 200Hz worst case. All were aggregate stats with no signal not already covered by per-event upstream logs:
+    - `BoosterController.kt:57` — "removed N boosters" (covered by GameState Booster picked-up event)
+    - `MineralsController.kt:58` — "magnet picked N minerals" (could spike to ~200×/sec on mineral cluster sweep)
+    - `SpaceObjectsController.kt:47` — "removed N rocks" (covered by onLaserHit hit log)
+    - `EnemyLasersController.kt:53` — "removed N off-screen lasers" (5-15×/sec in normal play)
+    - `EnemyController.kt:65` — "$N enemies left screen" (mid-wave fired multiple times per second)
+
+- ✅ **1ms collision-tick cleanup (2 sites in LasersController)** — `monitorLaserCollision` runs at Millis(1) = 1000Hz; previous round 35 added PIERCING/PLASMA per-hit logs there for debugging:
+    - `LasersController.kt:228` — "PIERCING hit … pierceRemaining=X" (fired N×3 times per piercing run through a formation)
+    - `LasersController.kt:254` — "PLASMA hit + AoE radius=Npx" (one per impact; onLaserHit already records hit)
+
+- ✅ **Safe sites verified** — ShipController (18 calls), GameState (47 remaining), AudioPlayerHolder (15), MainActivity (40), BackgroundController (9), GameScreen (13), StatusEffectController (5) all classified PER-EVENT or ONCE (inside `remember`/`init`/`LaunchedEffect(Unit)`). No further hot-path firing.
+
+### Round 37 files
+
+**Modified:**
+- `ui/game/state/GameState.kt` — removed entry log + breadcrumb explaining why.
+- `ui/game/booster/BoosterController.kt`
+- `ui/game/mineral/controller/MineralsController.kt`
+- `ui/game/spaceObject/SpaceObjectsController.kt`
+- `ui/game/enemy/laser/EnemyLasersController.kt`
+- `ui/game/enemy/ship/controller/EnemyController.kt`
+- `ui/game/ship/laser/LasersController.kt` — removed PIERCING + PLASMA hit logs from 1000Hz collision tick.
+
+### Round 37 verification
+
+- `./gradlew compileDevDebugKotlin testDevDebugUnitTest compileProductionReleaseKotlin` BUILD SUCCESSFUL.
+- **72 tests still pass** (no test depended on the removed logs).
+- Expected log volume reduction in active combat: ~125Hz entry-log + ~50Hz aggregate ticks = effectively gone. Per-event logs (collisions, pickups, deaths) remain so debugging signal is preserved.
+
 ### Round 36 — Test coverage expansion + EffectiveStats refactor
 
 User picked "Test coverage expansion" sau khi audit feature.md. Đẩy JUnit suite từ 33 → 72 tests; extract buff-merge math khỏi GameState để testable.

@@ -47,14 +47,11 @@ class BoosterController(
     val processBoostersId = uuidUtils.getUuid()
     val processBoostersRepeatTime = Millis(5)
     fun processBoosters() {
-        val before = boosters.size
+        // Round 37 — was logging "$before → $after" every 5ms tick whenever boosters
+        // were removed. Redundant with GameState's per-event booster pickup log.
         boosters.forEach {
             if (it.collected) boosters -= it
             it.moveObject()
-        }
-        val after = boosters.size
-        if (before != after) {
-            Logger.d("BoosterController.processBoosters: $before → $after (removed ${before - after})")
         }
         updateBoosters()
     }

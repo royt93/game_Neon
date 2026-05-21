@@ -39,13 +39,10 @@ class SpaceObjectsController(
     val processSpaceObjectsId = UUID.randomUUID().toString()
     val processSpaceObjectsRepeatTime = Millis(5)
     fun processSpaceObjects() {
+        // Round 37 — was logging "removed N" every 5ms tick. Redundant with the
+        // per-rock onLaserHit log path. Aggregate stats add noise without signal.
         spaceObjects.forEach { it.moveObject() }
-        val before = spaceObjects.size
         spaceObjects = spaceObjects.toMutableList().apply { removeAll { it.hp <= 0 } }
-        val removed = before - spaceObjects.size
-        if (removed > 0) {
-            Logger.d("SpaceObjectsController.processSpaceObjects: removed $removed (active=${spaceObjects.size})")
-        }
         updateSpaceObjectsUI()
     }
 

@@ -43,14 +43,12 @@ class EnemyLasersController(
     val processLasersId = UUID.randomUUID().toString()
     val processLasersRepeatTime = Millis(5)
     fun processLasers() {
-        val before = enemyLasers.size
+        // Round 37 — was logging "removed N off-screen/destroyed" every 5ms tick.
+        // Enemy lasers fall off the bottom edge constantly; this fired 5-15×/sec
+        // during normal play. Per-collision events log impacts elsewhere.
         enemyLasers.forEach {
             it.moveLaser()
             if (it.yOffset > screenHeight || it.destroyed) destroyEnemyLaser(it)
-        }
-        val removed = before - enemyLasers.size
-        if (removed > 0) {
-            Logger.d("EnemyLasersController.processLasers: removed $removed (off-screen/destroyed), active=${enemyLasers.size}")
         }
         updateShipLasers()
     }
