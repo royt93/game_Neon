@@ -28,6 +28,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -156,29 +157,37 @@ fun GameWorld(
         // uses `offset` (TopStart default). Switching lasers to the same TopStart
         // `.offset` coord system as the ship means laser.yOffset / xOffset can be
         // expressed in ship-coords directly — no parent-height arithmetic.
+        // Round 46 — `key(it.id)` stabilises Compose's slot table across recompositions.
+        // Without it, when laser[3] flies off-screen and laser[4] becomes laser[3], Compose
+        // treats slot 3 as "changed" and re-creates the Composable node. With stable keys
+        // Compose recognises the same laser identity at a different position → reuses the node.
         shipLasers.forEach {
-            Image(
-                painterResource(id = it.drawableId),
-                contentDescription = stringResource(id = R.string.laser),
-                contentScale = ContentScale.FillBounds,
-                modifier = Modifier
-                    .size(width = it.width.dp, height = it.height.dp)
-                    .offset(x = it.xOffset.dp, y = it.yOffset.dp)
-                    // Round 38 — laser glow follows ship aura so the visual reads as
-                    // "ship's own bullets" rather than disconnected cyan tracers.
-                    .neonGlow(color = shipGlowColor, intensity = 0.7f, radiusFactor = 2.4f)
-            )
+            key(it.id) {
+                Image(
+                    painterResource(id = it.drawableId),
+                    contentDescription = stringResource(id = R.string.laser),
+                    contentScale = ContentScale.FillBounds,
+                    modifier = Modifier
+                        .size(width = it.width.dp, height = it.height.dp)
+                        .offset(x = it.xOffset.dp, y = it.yOffset.dp)
+                        // Round 38 — laser glow follows ship aura so the visual reads as
+                        // "ship's own bullets" rather than disconnected cyan tracers.
+                        .neonGlow(color = shipGlowColor, intensity = 0.7f, radiusFactor = 2.4f)
+                )
+            }
         }
         ultimateLasers.forEach {
-            Image(
-                painterResource(id = it.drawableId),
-                contentDescription = stringResource(id = R.string.laser),
-                modifier = Modifier
-                    .size(width = it.width.dp, height = it.height.dp)
-                    .offset(x = it.xOffset.dp, y = it.yOffset.dp)
-                    .neonGlow(color = NeonGold, intensity = 0.85f, radiusFactor = 2.0f)
-                    .rotate(degrees = it.rotation)
-            )
+            key(it.id) {
+                Image(
+                    painterResource(id = it.drawableId),
+                    contentDescription = stringResource(id = R.string.laser),
+                    modifier = Modifier
+                        .size(width = it.width.dp, height = it.height.dp)
+                        .offset(x = it.xOffset.dp, y = it.yOffset.dp)
+                        .neonGlow(color = NeonGold, intensity = 0.85f, radiusFactor = 2.0f)
+                        .rotate(degrees = it.rotation)
+                )
+            }
         }
         spaceObjects.forEach {
             Image(
@@ -321,8 +330,14 @@ fun GameWorld(
             )
         }
         val nowMillis = System.currentTimeMillis()
+        // Round 46 — `key(it.enemyId)` is the biggest single perf win here: at peak
+        // wave the enemies list churns 30-50 items per second. Without stable keys
+        // Compose treats every list shift as a node teardown + recreate (HP bar,
+        // sprite, status-effect overlay), which compounds with the per-frame
+        // recompose driven by refreshHandler. Stable id → reuse the node.
         enemies.forEach {
-            val sinceHit = nowMillis - it.lastImpactMillis
+            key(it.enemyId) {
+                val sinceHit = nowMillis - it.lastImpactMillis
             val hitFlash = if (it.lastImpactMillis > 0L && sinceHit in 0..120) {
                 (1f - sinceHit / 120f).coerceIn(0f, 1f)
             } else 0f
@@ -401,6 +416,7 @@ fun GameWorld(
                     }
                 }
             }
+            }   // close key(it.enemyId)
         }
         // Boss entry lightning crackle — drawn after enemies so bolts overlay the
         // boss + thrust trail. Filter for entry-phase boss(es) only.
@@ -413,18 +429,20 @@ fun GameWorld(
         PickupBurstOverlay(bursts = pickupBursts)
         // Round 41 (29x.2) — active mines. Pulse alpha at ~2.5Hz so it reads as "armed".
         mines.forEach { m ->
-            val age = (System.currentTimeMillis() - m.createdAtMillis).coerceAtLeast(0L)
-            // Symmetric oscillation: |sin| swings 0..1 (every 200ms half-period) — gives a
-            // smooth "armed and blinking" feel rather than asymmetric clamp-to-floor.
-            val pulse = 0.55f + 0.45f * kotlin.math.abs(kotlin.math.sin(age / 200.0).toFloat())
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(com.tranphuloi.neon.ui.game.ship.weapon.Mine.SIZE.dp)
-                    .offset(x = m.xOffset.dp, y = m.yOffset.dp)
-                    .neonGlow(color = NeonRedAlert, intensity = 0.7f * pulse, radiusFactor = 2.0f),
-            ) {
-                Text(text = "◆", color = NeonRedAlert, fontSize = 22.sp)
+            key(m.id) {
+                val age = (System.currentTimeMillis() - m.createdAtMillis).coerceAtLeast(0L)
+                // Symmetric oscillation: |sin| swings 0..1 (every 200ms half-period) — gives a
+                // smooth "armed and blinking" feel rather than asymmetric clamp-to-floor.
+                val pulse = 0.55f + 0.45f * kotlin.math.abs(kotlin.math.sin(age / 200.0).toFloat())
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .size(com.tranphuloi.neon.ui.game.ship.weapon.Mine.SIZE.dp)
+                        .offset(x = m.xOffset.dp, y = m.yOffset.dp)
+                        .neonGlow(color = NeonRedAlert, intensity = 0.7f * pulse, radiusFactor = 2.0f),
+                ) {
+                    Text(text = "◆", color = NeonRedAlert, fontSize = 22.sp)
+                }
             }
         }
         // Round 41 (29x.2) — BURST sweep visual: a fading horizontal cyan band across
@@ -474,14 +492,16 @@ fun GameWorld(
             ExplosionBurstOverlay(explosion = it)
         }
         enemyLasers.forEach {
-            Image(
-                painterResource(id = it.drawableId),
-                contentDescription = stringResource(id = R.string.enemy_laser),
-                modifier = Modifier
-                    .size(width = it.width.dp, height = it.height.dp)
-                    .offset(x = it.xOffset.dp, y = it.yOffset.dp)
-                    .neonGlow(color = NeonRedAlert, intensity = 0.55f, radiusFactor = 1.8f)
-            )
+            key(it.id) {
+                Image(
+                    painterResource(id = it.drawableId),
+                    contentDescription = stringResource(id = R.string.enemy_laser),
+                    modifier = Modifier
+                        .size(width = it.width.dp, height = it.height.dp)
+                        .offset(x = it.xOffset.dp, y = it.yOffset.dp)
+                        .neonGlow(color = NeonRedAlert, intensity = 0.55f, radiusFactor = 1.8f)
+                )
+            }
         }
         // 2c+10b: Damage numbers overlay (top-most game-world layer).
         // Hidden during boss intro to avoid clutter with the boss name banner.

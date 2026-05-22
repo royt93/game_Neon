@@ -29,10 +29,31 @@ class EnemyController(
 
     val addEnemyId = uuidUtils.getUuid()
     fun addEnemy(type: EnemyType) {
+        // Round 47 — entity cap (perf fix). At peak (chapter 2 NEBULA_FOG) the
+        // enemies list hit 53 in user repro logs → 53 EnemyUI allocations per
+        // tick from the mapper @ ~125Hz → GC pressure. Bosses bypass the cap
+        // (always spawn) so boss waves can never be skipped due to swarm
+        // overflow.
+        val isBossSpawn = type is com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType ||
+            type is com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBossType ||
+            type is com.tranphuloi.neon.ui.game.enemy.ship.model.LevelTwoBossType ||
+            type is com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBossType
+        if (!isBossSpawn && enemies.size >= MAX_REGULAR_ENEMIES) {
+            // Round 47 + audit fix — must be Logger.v: stage script attempts a
+            // spawn every 200-1000ms, so when the cap holds we'd otherwise
+            // pump 2-5 Logger.d lines/sec right back into logcat.
+            Logger.v { "EnemyController.addEnemy: SKIPPED (cap=$MAX_REGULAR_ENEMIES reached, current=${enemies.size})" }
+            return
+        }
         val newEnemies = enemyFactory(type = type, getShip = getShip)
         this.enemies += newEnemies
         Logger.v { "EnemyController.addEnemy: type=${type::class.simpleName} spawned ${newEnemies.size} (active=${this.enemies.size})" }
         updateEnemies()
+    }
+
+    companion object {
+        /** Round 47 — soft cap for non-boss enemies. Bosses bypass this gate. */
+        const val MAX_REGULAR_ENEMIES = 30
     }
 
     val processEnemiesId = uuidUtils.getUuid()

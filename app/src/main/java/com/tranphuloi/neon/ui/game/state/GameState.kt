@@ -386,7 +386,7 @@ fun rememberGameState(): GameState {
                     ship.xOffset + ship.width / 2f,
                     ship.yOffset + ship.height / 2f,
                 )
-                Logger.d("Ship damaged event @ $lastShipDamageMillis (will trigger shake+flash)")
+                Logger.v { "Ship damaged event @ $lastShipDamageMillis (will trigger shake+flash)" }
             },
             onBoosterPickedUp = { x, y ->
                 lastBoosterPickupMillis = System.currentTimeMillis()
@@ -1252,7 +1252,13 @@ fun rememberGameState(): GameState {
         boosters = boosters.map { boosterMapper(it) },
         enemies = enemies.map { e ->
             // Round 35 (42x) — feed active status effects to UI tint overlay.
-            val tints = statusEffectController.effectsFor(e.enemyId).map { it.tintColorArgb }
+            // Round 48 — use the singleton emptyList() when no effects active
+            // (the common case). The previous `Set.map { ... }` allocated a fresh
+            // ArrayList per enemy per tick even when empty → 30 enemies × ~125Hz
+            // ≈ 3750 wasted ArrayList<Long>/sec at peak.
+            val effects = statusEffectController.effectsFor(e.enemyId)
+            val tints = if (effects.isEmpty()) emptyList()
+                else effects.map { it.tintColorArgb }
             enemyMapper(e, tints)
         },
         enemyLasers = enemyLasers.map { lasersMapper(it) },

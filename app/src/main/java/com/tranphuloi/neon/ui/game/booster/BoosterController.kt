@@ -30,13 +30,16 @@ class BoosterController(
     val addBoosterRepeatTime = Millis(4000)
     fun addBooster() {
         if (boosters.size >= MAX_BOOSTERS) {
-            Logger.d("BoosterController.addBooster: SKIPPED (cap=$MAX_BOOSTERS reached, current=${boosters.size})")
+            // Round 47 audit — was Logger.d but addBooster fires every 4s,
+            // and when SHIELD modifier is active this skip-path can pump
+            // logcat. Verbose-only for consistency with other skip logs.
+            Logger.v { "BoosterController.addBooster: SKIPPED (cap=$MAX_BOOSTERS reached, current=${boosters.size})" }
             return
         }
         val booster = generateBooster(width = BOOSTER_SIZE, maxXOffset = screenWidth - BOOSTER_SIZE)
         // 25x NO_SHIELDS modifier — drop SHIELD rolls.
         if (noShieldDrops() && booster.type == BoosterType.SHIELD_BOOSTER) {
-            Logger.d("BoosterController.addBooster: SKIPPED SHIELD (NO_SHIELDS modifier active)")
+            Logger.v { "BoosterController.addBooster: SKIPPED SHIELD (NO_SHIELDS modifier active)" }
             return
         }
         boosters += booster

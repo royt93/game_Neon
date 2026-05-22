@@ -28,6 +28,10 @@ class EnemyLasersController(
     val fireEnemyLaserRepeatTime = Millis(1000)
     fun fireEnemyLasers(enemies: List<Enemy>) {
         if (enemies.isEmpty()) return
+        // Round 47 — cap in-flight enemy lasers. Bosses can spawn 3 lasers per
+        // fire (multi-shot) so 30 is ~10 boss volleys' worth still on-screen
+        // before throttle kicks in. Off-screen scroll clears the list naturally.
+        if (enemyLasers.size >= MAX_ENEMY_LASERS) return
         val enemy = enemies.random()
         // Round 34 (41x) — skip fire if enemy STUNNED.
         if (isEnemyStunned(enemy.enemyId)) {
@@ -38,6 +42,11 @@ class EnemyLasersController(
         enemyLasers = enemyLasers + generatedLasers
         Logger.v { "EnemyLasersController.fireEnemyLasers: enemy=${enemy.enemyId.take(6)} fired ${generatedLasers.size} laser(s) (active=${enemyLasers.size})" }
         updateShipLasers()
+    }
+
+    companion object {
+        /** Round 47 — max in-flight enemy lasers. Above this, new fire is dropped. */
+        const val MAX_ENEMY_LASERS = 30
     }
 
     val processLasersId = UUID.randomUUID().toString()

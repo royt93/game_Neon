@@ -41,6 +41,10 @@ class LasersController(
     val fireLaserId = uuidUtils.getUuid()
     val fireLaserRepeatTime = Millis(100)
     fun fireLasers(ship: Ship) {
+        // Round 47 — cap so laser-booster spam + triple-laser at firing rate 100ms
+        // doesn't allow the in-flight list to grow unbounded during heavy waves.
+        // 25 ≈ ~2.5s of fire at max rate; off-screen scroll keeps the list flowing.
+        if (shipLasers.size >= MAX_SHIP_LASERS) return
         // Round 35 (35x) — bullet-type override takes priority over normal lasers.
         // Triple-laser fan still applies for spread shot.
         if (ship.activeBulletType != BulletType.NORMAL) {
@@ -314,5 +318,7 @@ class LasersController(
 
     companion object {
         const val ULTIMATE_LASERS_COUNT = 9
+        /** Round 47 — max in-flight ship lasers. New shots beyond this are dropped. */
+        const val MAX_SHIP_LASERS = 25
     }
 }
