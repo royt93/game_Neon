@@ -122,13 +122,52 @@ class LasersController(
 
     val processShipLasersId = uuidUtils.getUuid()
     val processShipLasersRepeatTime = Millis(5)
-    fun processShipLasers() {
+    /**
+     * Round 40 (29x) — [enemies] threaded in so [MissileLaser] instances can
+     * update their `targetX` each tick before moveLaser. Non-missile lasers
+     * ignore it. Pass `emptyList()` if no enemies are alive — missiles will
+     * fly straight up.
+     */
+    fun processShipLasers(enemies: List<Enemy> = emptyList()) {
+        // Homing update: nearest enemy x for any MissileLaser. O(L × E) but
+        // both lists are tiny (<20 each) so cheap at 5ms tick.
+        if (shipLasers.any { it is MissileLaser } && enemies.isNotEmpty()) {
+            shipLasers.forEach { laser ->
+                if (laser is MissileLaser) {
+                    val nearest = enemies.minByOrNull {
+                        val dx = (it.xOffset + it.width / 2f) - laser.xOffset
+                        val dy = it.yOffset - laser.yOffset
+                        dx * dx + dy * dy
+                    }
+                    laser.targetX = nearest?.let { it.xOffset + it.width / 2f }
+                }
+            }
+        } else {
+            shipLasers.forEach { (it as? MissileLaser)?.targetX = null }
+        }
         shipLasers.forEach {
             it.moveLaser()
             // Cleanup once laser scrolls fully off the top of the screen.
             // (Coord system is now TopStart; laser leaves top when yOffset < -height.)
             if (it.yOffset < -100f || it.destroyed) destroyShipLaser(it)
         }
+        updateShipLasersUI()
+    }
+
+    /**
+     * Round 40 (29x) — fire one homing missile from the ship's nose.
+     * targetX seeds the initial homing target so the missile doesn't lurch
+     * sideways on its first tick.
+     */
+    fun fireMissile(ship: Ship, initialTargetX: Float?) {
+        val missile = MissileLaser(
+            id = uuidUtils.getUuid(),
+            xOffset = ship.xOffset + ship.width / 2f - 4f,           // 4 = half of width 8
+            yOffset = ship.yOffset - 28f,                            // height = 28
+            yRange = screenHeight,
+        ).also { it.targetX = initialTargetX }
+        Logger.d("LasersController.fireMissile: spawned at (${missile.xOffset.toInt()},${missile.yOffset.toInt()}) target=$initialTargetX")
+        shipLasers = shipLasers + missile
         updateShipLasersUI()
     }
 

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -43,6 +44,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import com.tranphuloi.neon.R
@@ -87,6 +89,10 @@ fun GameWorld(
     lastBoosterPickupMillis: Long,
     lastMineralPickupMillis: Long,
     chargeProgress: Float,
+    /** Round 41 (29x.2) — active mines (rendered as glowing diamonds). */
+    mines: List<com.tranphuloi.neon.ui.game.ship.weapon.Mine> = emptyList(),
+    /** Round 41 (29x.2) — wall-clock of last BURST sweep; 0 = no active sweep. */
+    lastBurstSweepMillis: Long = 0L,
     modifier: Modifier = Modifier,
 ) {
 
@@ -97,6 +103,8 @@ fun GameWorld(
     val settings = com.tranphuloi.neon.data.LocalSettings.current
     val shipSkin by settings.shipSkin.collectAsState(initial = com.tranphuloi.neon.data.ShipSkin.AURA_CYAN)
     val shipGlowColor = Color(shipSkin.glowColorHex)
+    // Round 41 — BURST sweep uses palette.cyan so it follows Color Blind mode.
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
 
     val infiniteTransition = rememberInfiniteTransition()
     val shipShieldColor by infiniteTransition.animateColor(
@@ -369,6 +377,35 @@ fun GameWorld(
         ImpactSparkOverlay(sparks = impactSparks)
         // Pickup burst (ring shockwave + 8 sparkles) on item collected.
         PickupBurstOverlay(bursts = pickupBursts)
+        // Round 41 (29x.2) — active mines. Pulse alpha at ~2.5Hz so it reads as "armed".
+        mines.forEach { m ->
+            val age = (System.currentTimeMillis() - m.createdAtMillis).coerceAtLeast(0L)
+            // Symmetric oscillation: |sin| swings 0..1 (every 200ms half-period) — gives a
+            // smooth "armed and blinking" feel rather than asymmetric clamp-to-floor.
+            val pulse = 0.55f + 0.45f * kotlin.math.abs(kotlin.math.sin(age / 200.0).toFloat())
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(com.tranphuloi.neon.ui.game.ship.weapon.Mine.SIZE.dp)
+                    .offset(x = m.xOffset.dp, y = m.yOffset.dp)
+                    .neonGlow(color = NeonRedAlert, intensity = 0.7f * pulse, radiusFactor = 2.0f),
+            ) {
+                Text(text = "◆", color = NeonRedAlert, fontSize = 22.sp)
+            }
+        }
+        // Round 41 (29x.2) — BURST sweep visual: a fading horizontal cyan band across
+        // the upper 2/3 of the screen, lasting 280ms after fire.
+        if (lastBurstSweepMillis > 0L) {
+            val sweepAge = System.currentTimeMillis() - lastBurstSweepMillis
+            if (sweepAge in 0L..280L) {
+                val alpha = (1f - sweepAge / 280f).coerceIn(0f, 1f) * 0.55f
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(palette.cyan.copy(alpha = alpha)),
+                )
+            }
+        }
         minerals.forEach {
             Box(
                 modifier = Modifier

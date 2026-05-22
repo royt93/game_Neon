@@ -91,6 +91,9 @@ fun DialogSettings(
     val colorBlindMode by settings.colorBlindMode.collectAsState(
         initial = com.tranphuloi.neon.data.ColorBlindMode.NORMAL,
     )
+    val secondaryWeapon by settings.secondaryWeapon.collectAsState(
+        initial = com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.MISSILE,
+    )
     // Round 27 — lastMode / lastModifier reads removed; that info now lives in MenuScreen.
 
     LaunchedEffect(Unit) { Logger.d("DialogSettings shown") }
@@ -179,6 +182,21 @@ fun DialogSettings(
                                 selected = s == shipSkin,
                                 color = Color(s.glowColorHex),
                                 onClick = { scope.launch { settings.setShipSkin(s) } }
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                ControlGroup {
+                    // Round 41 (29x.2) — Secondary weapon picker. Reads + writes
+                    // settings.secondaryWeapon flow. Pill labels show glyph + name.
+                    LabelledPillRow(label = "Vũ khí phụ", color = palette.redAlert) {
+                        com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.entries.forEach { w ->
+                            Pill(
+                                label = "${w.glyph} ${w.displayName}",
+                                selected = w == secondaryWeapon,
+                                color = palette.redAlert,
+                                onClick = { scope.launch { settings.setSecondaryWeapon(w) } }
                             )
                         }
                     }

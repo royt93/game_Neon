@@ -968,6 +968,88 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 41 — Wave 6 Secondary weapon: wire MINE + BURST + Settings picker (29x.2)
+
+Follow-up to round 40. Completes the 3-weapon secondary slot — MISSILE / MINE / BURST all now live, picker in Settings selects active one.
+
+- ✅ **SettingsRepository.secondaryWeapon flow** — new `SettingsKeys.SECONDARY_WEAPON` stringPreferencesKey + `secondaryWeapon: Flow<SecondaryWeapon>` reading via `SecondaryWeapon.fromName(...)` + `setSecondaryWeapon(value)` setter. Default = MISSILE. Enum gained `fromName` companion.
+
+- ✅ **MINE secondary** — new `ui/game/ship/weapon/Mine.kt` data class. Constants: SIZE 24, EXPLOSION_DAMAGE 80, AOE_RADIUS 110, TRIGGER_RADIUS 60, LIFETIME_MS 10000. `Mine` is owned by `GameState.mines` (mutableStateOf list). Spawned just behind ship (`yOffset = ship.yOffset + ship.height + 8`). Game loop runs a per-tick proximity scan: any enemy entering TRIGGER_RADIUS detonates the mine immediately; else auto-detonate after LIFETIME_MS. On detonation: AoE damage to all enemies within AOE_RADIUS + report damage numbers + spawn explosion. Inlined in main loop (no separate controller) since logic is small + list typically holds 0-2 mines.
+
+- ✅ **BURST secondary** — instant fire-and-forget. Picks up to 5 nearest enemies in the upper 2/3 of the screen, applies 40 dmg each + spawns damage numbers. Visual: `lastBurstSweepMillis` timestamp drives a cyan horizontal band fading over 280ms across the full screen (rendered in GameWorld).
+
+- ✅ **GameState fire branch refactor** — renamed `lastMissileFireMillis` → `lastSecondaryFireMillis`. Renamed `fireMissile` → `fireSecondary`, now `when (activeSecondaryWeapon)` branches into the 3 paths. Cooldown duration sourced from `activeSecondaryWeapon.cooldownMs` (5/7/8s). Active weapon collected from `settingsRepo.secondaryWeapon` via `collectAsState`. New `mines` + `lastBurstSweepMillis` state added to data class fields.
+
+- ✅ **SecondaryWeaponButton glyph reactive** — already accepted `glyph` parameter from round 40. GameScreen now passes `gameState.activeSecondaryWeapon.glyph` so the button face shows 🚀 / 💠 / 💥 depending on picker selection. Field rename `missileCooldownProgress` → `secondaryCooldownProgress`.
+
+- ✅ **GameWorld renders mines + burst sweep** — added `mines` + `lastBurstSweepMillis` params (default emptyList/0 so existing call sites compile). Mines render as ◆ glyph with pulse alpha (0.55→1.0 @ ~2.5Hz) + NeonRedAlert glow. BURST sweep = NeonCyan-tinted Box fillMaxSize with alpha fading 0.55→0 over 280ms.
+
+- ✅ **Settings picker** — new "Vũ khí phụ / 🚀 Tên lửa / 💠 Mìn / 💥 Quét" row. Label color reads `palette.redAlert` so it follows Color Blind mode swap from round 39.
+
+### Round 41 files
+
+**New:**
+- `ui/game/ship/weapon/Mine.kt` (~30 LOC — data class + constants).
+
+**Modified:**
+- `data/SettingsRepository.kt` — SECONDARY_WEAPON key + secondaryWeapon flow + setSecondaryWeapon setter.
+- `ui/game/ship/weapon/SecondaryWeapon.kt` — added `fromName(...)` companion.
+- `ui/game/state/GameState.kt` — renames (`lastMissileFireMillis` → `lastSecondaryFireMillis`, `missileCooldownProgress` → `secondaryCooldownProgress`, `fireMissile` → `fireSecondary`), added `mines` + `lastBurstSweepMillis` state + `activeSecondaryWeapon` collected, branched fire logic, mine proximity tick inside game loop. Data class gained 4 new fields.
+- `ui/game/world/GameWorld.kt` — `mines` + `lastBurstSweepMillis` params + mine rendering (◆ glyph + pulse glow) + BURST cyan sweep overlay. Added `Text` + `sp` imports.
+- `ui/game/GameScreen.kt` — pass `mines` + `lastBurstSweepMillis` to GameWorld, use `gameState.activeSecondaryWeapon.glyph` for button.
+- `ui/dlg/settings/DialogSettings.kt` — new "Vũ khí phụ" picker row.
+
+### Round 41 verification
+
+- `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest` BUILD SUCCESSFUL.
+- **72 tests still pass.**
+- Manual test path:
+  1. Settings → "Vũ khí phụ" → tap 💠 Mìn → close → enter game.
+  2. Tap secondary button → mine dropped behind ship (◆ pulsing red).
+  3. Enemy approaches mine → detonates → AoE explosion + damage to nearby enemies.
+  4. Drop mine in empty area, wait 10s → auto-detonates (no enemies hit).
+  5. Settings → tap 💥 Quét → fire → cyan sweep flashes across upper screen, up to 5 enemies take 40dmg + damage numbers fly out.
+  6. Settings → tap 🚀 Tên lửa → behavior unchanged from round 40.
+
+### Round 40 — Wave 6 Secondary weapon: homing MISSILE (29x)
+
+User said "tiếp đi bro" → picked 29x Secondary weapon. Round 40 implements MISSILE only; MINE + BURST are stubbed in the enum for the upcoming 36x Loadout work.
+
+- ✅ **MissileLaser (homing)** — new `ui/game/ship/laser/MissileLaser.kt` extending `Laser`. yOffset moves up at 9px/tick (vs 7 normal laser). Each tick `LasersController.processShipLasers(enemies)` finds the nearest enemy and writes its x into `targetX`; `moveLaser()` nudges `xOffset` by up to `HOMING_X_STEP = 4f` per tick (soft homing — keeps game feel by missing evasive distant targets). Sprite rotates up to ±25° to face flight direction. impactPower 60f (2.4× a normal 25-power laser). NORMAL bullet type (single-hit destroy).
+
+- ✅ **SecondaryWeapon enum** — new `ui/game/ship/weapon/SecondaryWeapon.kt` with three entries (MISSILE wired; MINE/BURST reserved for round 41+). Each carries `displayName` (Vietnamese), `cooldownMs`, `glyph`.
+
+- ✅ **SecondaryWeaponButton** — new `ui/game/controls/SecondaryWeaponButton.kt`. Same 42dp footprint as `SmartBombButton` but the badge is a cooldown ring (Canvas arc, 360° → 0° clockwise from 12 o'clock) instead of a count. Disabled (no glow + dim border) while cooldown < 1.0. Sits at BottomEnd, padding(end=8.dp, bottom=206.dp) — 50dp above the smart bomb.
+
+- ✅ **GameState fire + cooldown state** — `lastMissileFireMillis` (rememberSaveable so config-change rotation doesn't grant a free fire). Cooldown derived as `(now - last) / 5000ms`, clamped to 1.0. New `fireMissile()` callback validates: cooldown ready + game RUNNING + ship sprite visible. Picks nearest enemy at fire-time as initial target so the missile doesn't lurch on tick 1. Exposed via `missileCooldownProgress: Float` + `fireMissile: () -> Unit` on the GameState data class.
+
+- ✅ **LasersController fireMissile + homing tick** — `fireMissile(ship, initialTargetX)` spawns a MissileLaser at ship nose. `processShipLasers(enemies = emptyList())` got an enemies param (default empty for back-compat); when there are MissileLasers AND enemies, runs the homing nearest-enemy lookup O(L × E) per 5ms tick (both lists are < 20 so cheap). When no enemies, missiles fly straight up via `targetX = null`. The existing `monitorLaserCollision` already handles destroying the missile on hit via the NORMAL bullet-type branch.
+
+- ✅ **GameScreen render** — `SecondaryWeaponButton` mounted next to `SmartBombButton`.
+
+### Round 40 files
+
+**New:**
+- `ui/game/ship/laser/MissileLaser.kt` (~50 LOC — homing laser).
+- `ui/game/ship/weapon/SecondaryWeapon.kt` (~25 LOC — enum stub for 3 types, MISSILE wired).
+- `ui/game/controls/SecondaryWeaponButton.kt` (~85 LOC — button with cooldown ring).
+
+**Modified:**
+- `ui/game/ship/laser/LasersController.kt` — `processShipLasers(enemies)` for homing update + new `fireMissile(ship, initialTargetX)`.
+- `ui/game/state/GameState.kt` — added `lastMissileFireMillis` rememberSaveable + `missileCooldownProgress` derived + `fireMissile` callback + new fields on returned GameState data class. Threaded `enemies` into the processShipLasers tinker doWork.
+- `ui/game/GameScreen.kt` — render SecondaryWeaponButton in the same BottomEnd column as smart bomb.
+
+### Round 40 verification
+
+- `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest` BUILD SUCCESSFUL.
+- **72 tests still pass.**
+- Manual test path:
+  1. Start a run → 🚀 button appears above 💣 with full cooling ring at first frame, then ring disappears = ready.
+  2. Tap 🚀 → missile spawns at ship nose, flies up, curves toward nearest enemy, deals 60dmg.
+  3. Tap again immediately → no-op (cooldown). Ring re-appears, sweeps from full → empty over 5s.
+  4. Fire with no enemy on screen → missile flies straight up.
+  5. Fire while paused / on game-over → no-op.
+
 ### Round 39 — Wave 6 Color blind mode (27x) + bonus picker layout fix
 
 User said "tiếp tục đi, hãy dùng AskUserQuestion" — picked 27x Color blind mode. Mid-round user reported the round-38 Hào quang tàu picker was visually warped (5 pills overflowed horizontally, last pill rendered distorted). Both addressed.
@@ -1701,7 +1783,7 @@ Các architectural refactors quá lớn để gộp chung:
 ## Wave 6 (Polish + accessibility)
 - [ ] 26x Photo mode
 - [x] 27x Color blind mode (round 39 — Wong palette + LocalNeonPalette infra + Settings picker; broader UI migration deferred)
-- [ ] 29x Secondary weapon
+- [x] 29x Secondary weapon (round 40 MISSILE homing + round 41 MINE proximity + BURST instant sweep + Settings picker)
 - [ ] 36x Loadout system
 - [ ] 39x Item rarity tiers
 - [ ] 40x Item combos

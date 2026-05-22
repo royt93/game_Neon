@@ -393,6 +393,17 @@ fun GameScreen(
                 .padding(end = 8.dp, bottom = 156.dp)
                 .zIndex(310f)
         )
+        // Round 40 (29x) → 41 — secondary weapon button. Glyph reflects active
+        // weapon (MISSILE / MINE / BURST) picked in Settings.
+        com.tranphuloi.neon.ui.game.controls.SecondaryWeaponButton(
+            glyph = gameState.activeSecondaryWeapon.glyph,
+            cooldownProgress = gameState.secondaryCooldownProgress,
+            onFire = { gameState.fireSecondary() },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 8.dp, bottom = 206.dp)
+                .zIndex(310f),
+        )
         // 1c: Compact boss HP bar (200dp wide). Pinned 16dp BELOW the Settings icon
         // (top-right). Settings ends ~y=76dp (top padding 16 + size 60), so 16dp gap
         // gives top=92dp.
@@ -441,6 +452,8 @@ fun GameScreen(
                 lastBoosterPickupMillis = gameState.lastBoosterPickupMillis,
                 lastMineralPickupMillis = gameState.lastMineralPickupMillis,
                 chargeProgress = gameState.chargeProgress,
+                mines = gameState.mines,
+                lastBurstSweepMillis = gameState.lastBurstSweepMillis,
                 modifier = Modifier
                     .weight(1f)
                     .layout { measurable, constraints ->

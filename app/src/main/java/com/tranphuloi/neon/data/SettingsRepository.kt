@@ -27,6 +27,8 @@ object SettingsKeys {
     val LAST_MODIFIER = stringPreferencesKey("last_modifier")
     /** Wave 6 (27x) round 39 — color blind mode key; values from [ColorBlindMode.key]. */
     val COLOR_BLIND_MODE = stringPreferencesKey("color_blind_mode")
+    /** Wave 6 (29x) round 41 — active secondary weapon name (matches SecondaryWeapon enum). */
+    val SECONDARY_WEAPON = stringPreferencesKey("secondary_weapon")
 }
 
 /**
@@ -129,6 +131,15 @@ class SettingsRepository(private val appContext: Context) {
     val colorBlindMode: Flow<ColorBlindMode> = appContext.dataStore.data.map {
         ColorBlindMode.fromKey(it[SettingsKeys.COLOR_BLIND_MODE])
     }
+    /**
+     * Wave 6 (29x) round 41 — secondary-weapon selection. Defaults to MISSILE.
+     * Read via [com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.fromName].
+     */
+    val secondaryWeapon: Flow<com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon> =
+        appContext.dataStore.data.map {
+            com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon
+                .fromName(it[SettingsKeys.SECONDARY_WEAPON])
+        }
 
     suspend fun setReduceMotion(value: Boolean) {
         Logger.d("SettingsRepository.setReduceMotion=$value")
@@ -181,5 +192,10 @@ class SettingsRepository(private val appContext: Context) {
     suspend fun setColorBlindMode(value: ColorBlindMode) {
         Logger.d("SettingsRepository.setColorBlindMode=${value.key}")
         appContext.dataStore.edit { it[SettingsKeys.COLOR_BLIND_MODE] = value.key }
+    }
+
+    suspend fun setSecondaryWeapon(value: com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon) {
+        Logger.d("SettingsRepository.setSecondaryWeapon=${value.name}")
+        appContext.dataStore.edit { it[SettingsKeys.SECONDARY_WEAPON] = value.name }
     }
 }

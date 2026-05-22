@@ -279,6 +279,25 @@ fun rememberGameState(): GameState {
     var finalBossDefeated by remember { mutableStateOf(false) }
     // 20b Smart bomb stack — start with 2, +1 per boss kill.
     var smartBombs by rememberSaveable { mutableIntStateOf(2) }
+    /**
+     * Round 40 (29x) — wall-clock of the last secondary-weapon fire. Cooldown
+     * progress = (now - last) / activeWeapon.cooldownMs, clamped to 1.0 (ready).
+     * Saved across config changes so a paused-then-rotated run doesn't get a
+     * free fire on resume.
+     */
+    var lastSecondaryFireMillis by rememberSaveable { mutableLongStateOf(0L) }
+    /** Round 41 (29x.2) — active mines list (MINE secondary). State lives here so
+     *  GameScreen renders + ticks read the same source of truth. */
+    var mines by remember {
+        mutableStateOf<List<com.tranphuloi.neon.ui.game.ship.weapon.Mine>>(emptyList())
+    }
+    /** Round 41 (29x.2) — wall-clock when last BURST sweep fired; drives the
+     *  fading horizontal sweep visual in GameWorld. 0 = no sweep active. */
+    var lastBurstSweepMillis by remember { mutableLongStateOf(0L) }
+    /** Round 41 — collected SecondaryWeapon selection from Settings. */
+    val activeSecondaryWeapon by settingsRepo.secondaryWeapon.collectAsState(
+        initial = com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.MISSILE,
+    )
     /** 46x — count of smart bombs used in current run (for SMART_BOMB_5 achievement). */
     var smartBombsUsedCount by rememberSaveable { mutableIntStateOf(0) }
     /**
@@ -1003,7 +1022,8 @@ fun rememberGameState(): GameState {
                             tinker(
                                 id = lasersController.processShipLasersId,
                                 repeatTime = lasersController.processShipLasersRepeatTime,
-                                doWork = { lasersController.processShipLasers() }
+                                // Round 40 — pass enemies so MissileLaser homing can update targetX.
+                                doWork = { lasersController.processShipLasers(enemies) }
                             )
                         }
                         if (spaceObjectsController.hasSpaceObjects()) {
@@ -1105,6 +1125,47 @@ fun rememberGameState(): GameState {
                                 statusEffectTick = now
                             }
                         )
+                        // Round 41 (29x.2) — Mine proximity / lifetime check. Inlined (no
+                        // separate controller) since the logic is small + mines list is
+                        // typically 0-2 active. Detonate when any enemy enters TRIGGER_RADIUS
+                        // or after LIFETIME_MS. On detonation: AoE damage all enemies within
+                        // AOE_RADIUS + spawn explosion.
+                        if (mines.isNotEmpty()) {
+                            val now = System.currentTimeMillis()
+                            val remaining = mutableListOf<com.tranphuloi.neon.ui.game.ship.weapon.Mine>()
+                            mines.forEach { m ->
+                                val triggered = enemies.any { e ->
+                                    val cx = e.xOffset + e.width / 2f
+                                    val cy = e.yOffset + e.height / 2f
+                                    val dx = cx - (m.xOffset + com.tranphuloi.neon.ui.game.ship.weapon.Mine.SIZE / 2f)
+                                    val dy = cy - (m.yOffset + com.tranphuloi.neon.ui.game.ship.weapon.Mine.SIZE / 2f)
+                                    val r = com.tranphuloi.neon.ui.game.ship.weapon.Mine.TRIGGER_RADIUS
+                                    dx * dx + dy * dy <= r * r
+                                }
+                                val expired = (now - m.createdAtMillis) >= com.tranphuloi.neon.ui.game.ship.weapon.Mine.LIFETIME_MS
+                                if (triggered || expired) {
+                                    val mcx = m.xOffset + com.tranphuloi.neon.ui.game.ship.weapon.Mine.SIZE / 2f
+                                    val mcy = m.yOffset + com.tranphuloi.neon.ui.game.ship.weapon.Mine.SIZE / 2f
+                                    val aoe = com.tranphuloi.neon.ui.game.ship.weapon.Mine.AOE_RADIUS
+                                    val dmg = com.tranphuloi.neon.ui.game.ship.weapon.Mine.EXPLOSION_DAMAGE
+                                    enemies.forEach { e ->
+                                        val cx = e.xOffset + e.width / 2f
+                                        val cy = e.yOffset + e.height / 2f
+                                        val dx = cx - mcx
+                                        val dy = cy - mcy
+                                        if (dx * dx + dy * dy <= aoe * aoe) {
+                                            e.onObjectImpact(dmg)
+                                            damageNumberController.report(e.enemyId, dmg.toInt(), cx, cy, e.isBoss)
+                                        }
+                                    }
+                                    explosionsController.addExplosion(mcx, mcy, aoe / 2f, aoe / 2f)
+                                    Logger.d("Mine detonated @ (${mcx.toInt()},${mcy.toInt()}) trigger=$triggered expired=$expired")
+                                } else {
+                                    remaining += m
+                                }
+                            }
+                            if (remaining.size != mines.size) mines = remaining
+                        }
                         if (frameCount % 1000L == 0L) {
                             // Periodic memory log roughly every 8s at the IO loop's pace.
                             val rt = Runtime.getRuntime()
@@ -1210,6 +1271,8 @@ fun rememberGameState(): GameState {
         maxComboReached = maxComboReached,
         stagesReached = stageController.currentIndex(),
         smartBombs = smartBombs,
+        mines = mines,
+        lastBurstSweepMillis = lastBurstSweepMillis,
         chargeProgress = shipController.chargeProgress(),
         dispatchSmartBomb = {
             if (smartBombs > 0 && gameStatus == GameStatus.RUNNING) {
@@ -1251,6 +1314,70 @@ fun rememberGameState(): GameState {
         timeAttackEnded = timeAttackEnded,
         storyLine = storyLine,
         storyShownMillis = storyShownMillis,
+        // Round 40 → 41 — secondary weapon. Progress 0..1; 1.0 → ready to fire.
+        // Cooldown duration comes from the active weapon (Settings).
+        activeSecondaryWeapon = activeSecondaryWeapon,
+        secondaryCooldownProgress = run {
+            if (lastSecondaryFireMillis == 0L) 1f
+            else {
+                val cd = activeSecondaryWeapon.cooldownMs
+                ((System.currentTimeMillis() - lastSecondaryFireMillis).toFloat() / cd).coerceIn(0f, 1f)
+            }
+        },
+        fireSecondary = {
+            val cd = activeSecondaryWeapon.cooldownMs
+            val now = System.currentTimeMillis()
+            val ready = (now - lastSecondaryFireMillis) >= cd
+            if (ready && gameStatus == GameStatus.RUNNING && !ship.shipSpriteHidden) {
+                when (activeSecondaryWeapon) {
+                    com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.MISSILE -> {
+                        val nearest = enemies.minByOrNull {
+                            val dx = (it.xOffset + it.width / 2f) - (ship.xOffset + ship.width / 2f)
+                            val dy = it.yOffset - ship.yOffset
+                            dx * dx + dy * dy
+                        }
+                        val tx = nearest?.let { it.xOffset + it.width / 2f }
+                        lasersController.fireMissile(ship, tx)
+                    }
+                    com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.MINE -> {
+                        // Drop a mine just behind the ship's tail.
+                        val mine = com.tranphuloi.neon.ui.game.ship.weapon.Mine(
+                            id = java.util.UUID.randomUUID().toString(),
+                            xOffset = ship.xOffset + ship.width / 2f - com.tranphuloi.neon.ui.game.ship.weapon.Mine.SIZE / 2f,
+                            yOffset = ship.yOffset + ship.height + 8f,
+                            createdAtMillis = now,
+                        )
+                        mines = mines + mine
+                        Logger.d("fireSecondary MINE: dropped at (${mine.xOffset.toInt()},${mine.yOffset.toInt()}) — total active=${mines.size}")
+                    }
+                    com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.BURST -> {
+                        // Instant: 40dmg to up to 5 nearest enemies in upper 2/3 of screen.
+                        val cutoffY = screenHeight * 2f / 3f
+                        val candidates = enemies
+                            .filter { it.yOffset < cutoffY }
+                            .sortedBy {
+                                val dx = (it.xOffset + it.width / 2f) - (ship.xOffset + ship.width / 2f)
+                                val dy = it.yOffset - ship.yOffset
+                                dx * dx + dy * dy
+                            }
+                            .take(5)
+                        candidates.forEach { e ->
+                            e.onObjectImpact(40f)
+                            damageNumberController.report(
+                                targetId = e.enemyId,
+                                damage = 40,
+                                xOffset = e.xOffset + e.width / 2f,
+                                yOffset = e.yOffset,
+                                isBoss = e.isBoss,
+                            )
+                        }
+                        lastBurstSweepMillis = now
+                        Logger.d("fireSecondary BURST: hit ${candidates.size} enemy(ies) for 40 each")
+                    }
+                }
+                lastSecondaryFireMillis = now
+            }
+        },
         moveShipLeft = { shipController.movingLeft = it },
         moveShipRight = { shipController.movingRight = it },
         toggleGameStatus = {
@@ -1312,6 +1439,16 @@ data class GameState(
     val stagesReached: Int,
     val smartBombs: Int,
     val dispatchSmartBomb: () -> Unit,
+    /** Round 40-41 (29x) — active secondary weapon (MISSILE / MINE / BURST). */
+    val activeSecondaryWeapon: com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon,
+    /** Round 40 (29x) — secondary weapon cooldown. 0=just fired, 1=ready. */
+    val secondaryCooldownProgress: Float,
+    /** Round 40 (29x) — fire the active secondary; no-op if on cooldown or game not RUNNING. */
+    val fireSecondary: () -> Unit,
+    /** Round 41 (29x.2) — active MINE list. Rendered by GameWorld. */
+    val mines: List<com.tranphuloi.neon.ui.game.ship.weapon.Mine>,
+    /** Round 41 (29x.2) — wall-clock of last BURST sweep (drives fading sweep visual). 0 = none. */
+    val lastBurstSweepMillis: Long,
     val chargeProgress: Float,
     val killCamStartedAtMillis: Long,
     val bossKillEventMillis: Long,
