@@ -968,6 +968,35 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 42 — Test coverage expansion for rounds 38-41 (72 → 113 tests)
+
+User picked "Test expansion" via AskUserQuestion. Round 38-41 added five new pure-logic surfaces (ShipSkin enum, ColorBlindMode + NeonPalette, SecondaryWeapon, Mine constants, MissileLaser homing math) with zero tests. This round seeds them.
+
+- ✅ **ShipSkinTest (9 tests)** — 5 entries × unique key + unique glowColorHex + non-empty displayName. Glow colors fully opaque (alpha byte = 0xFF). `fromKey` roundtrip for every skin, fallback to AURA_CYAN on null/unknown, migration check for old "regular" / "boosted" keys.
+
+- ✅ **ColorBlindModeTest (8 tests)** — 2 entries. `fromKey` roundtrip + null/unknown fallback to NORMAL. `NeonPalette.NORMAL` matches the top-level `NeonCyan/Magenta/Violet/Gold/RedAlert` constants. `NeonPalette.COLORBLIND_SAFE` differs from NORMAL on at least the red-confusable channels (magenta, redAlert) — the invariant that gives the colorblind mode its accessibility value. 5 distinct colors in the COLORBLIND_SAFE palette.
+
+- ✅ **SecondaryWeaponTest (8 tests)** — 3 entries × positive cooldown + unique glyph + non-empty displayName. Cooldown ordering invariant: `MISSILE.cd < MINE.cd < BURST.cd` (reflects power scaling). `fromName` roundtrip + null/unknown fallback to MISSILE.
+
+- ✅ **MineTest (5 tests)** — all constants positive. The critical invariant `TRIGGER_RADIUS < AOE_RADIUS` (so any enemy that triggers the mine is guaranteed to be inside the blast). Lifetime ≥ 3s (usability floor). Mine constructed with expected default `detonated = false`; `detonated` is mutable for game-loop marking.
+
+- ✅ **MissileLaserTest (11 tests)** — bulletType = NORMAL (single-hit), pierceRemaining = 0, starts not destroyed. impactPower > 25f (heavier than normal laser). `moveLaser` without target → straight up, x unchanged, rotation 0. `moveLaser` with target right → x nudges right + rotation positive. Target left → x nudges left + rotation negative. **Cap invariants**: target far right → lateral step exactly `HOMING_X_STEP`; rotation exactly `MAX_ROTATION_DEG`. Target aligned with missile x → no movement no rotation. 10 consecutive ticks accumulate `10 × yOffsetMovementSpeed` of vertical distance.
+
+### Round 42 files
+
+**New:**
+- `app/src/test/java/com/tranphuloi/neon/data/ShipSkinTest.kt` (9 tests).
+- `app/src/test/java/com/tranphuloi/neon/data/ColorBlindModeTest.kt` (8 tests).
+- `app/src/test/java/com/tranphuloi/neon/ui/game/ship/weapon/SecondaryWeaponTest.kt` (8 tests).
+- `app/src/test/java/com/tranphuloi/neon/ui/game/ship/weapon/MineTest.kt` (5 tests).
+- `app/src/test/java/com/tranphuloi/neon/ui/game/ship/laser/MissileLaserTest.kt` (11 tests).
+
+### Round 42 verification
+
+- `./gradlew testDevDebugUnitTest compileProductionReleaseKotlin` BUILD SUCCESSFUL.
+- **113 tests, 0 failures, 0 errors** across 12 test classes (+41 from round 36 baseline).
+- Test breakdown: EffectiveStatsTest 21 · StatusEffectControllerTest 11 · ShipLaserClassesTest 11 · MissileLaserTest 11 · BuffMultipliersTest 9 · ShipSkinTest 9 · ColorBlindModeTest 8 · SecondaryWeaponTest 8 · TinkerTest 7 · BoosterTypeTest 7 · BulletTypeTest 6 · MineTest 5.
+
 ### Round 41 — Wave 6 Secondary weapon: wire MINE + BURST + Settings picker (29x.2)
 
 Follow-up to round 40. Completes the 3-weapon secondary slot — MISSILE / MINE / BURST all now live, picker in Settings selects active one.
