@@ -17,3 +17,5 @@ object ModifierPicker : Navigation(route = "modifier-picker")
 object MetaUpgrade : Navigation(route = "meta-upgrade")
 /** Wave 4 (42x) round 34 — roguelike buff picker (post-boss). */
 object BuffPicker : Navigation(route = "buff-picker")
+/** Wave 6 (36x) round 45 — pre-game loadout (BulletType + SecondaryWeapon). */
+object LoadoutPicker : Navigation(route = "loadout-picker")

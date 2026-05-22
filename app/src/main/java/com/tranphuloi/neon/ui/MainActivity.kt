@@ -167,8 +167,10 @@ class MainActivity : ComponentActivity() {
                         composable(route = Menu.route) {
                             MenuScreen(
                                 onPlay = {
-                                    Logger.d("Nav: Menu → Game")
-                                    navController.navigate(Game.route)
+                                    // Round 45 (36x) — PLAY now goes through LoadoutPicker,
+                                    // which forwards to Game after the player confirms.
+                                    Logger.d("Nav: Menu → LoadoutPicker")
+                                    navController.navigate(com.tranphuloi.neon.navigation.LoadoutPicker.route)
                                 },
                                 onOpenModePicker = {
                                     Logger.d("Nav: Menu → ModePicker")
@@ -303,6 +305,25 @@ class MainActivity : ComponentActivity() {
                                         Logger.d("Nav: BuffPicker → skipped (no buff applied)")
                                     }
                                     navController.popBackStack()
+                                },
+                            )
+                        }
+                        // Round 45 (36x) — Loadout picker. PLAY tap → here → Game.
+                        // After confirm we replace LoadoutPicker on the back stack so a
+                        // back-press from Game returns to Menu, not the picker.
+                        dialog(
+                            route = com.tranphuloi.neon.navigation.LoadoutPicker.route,
+                            dialogProperties = com.tranphuloi.neon.common.bottomSheetDialogProperties(),
+                        ) {
+                            com.tranphuloi.neon.ui.dlg.loadoutpicker.DialogLoadoutPicker(
+                                onConfirm = {
+                                    Logger.d("Nav: LoadoutPicker → Game")
+                                    navController.navigate(Game.route) {
+                                        popUpTo(com.tranphuloi.neon.navigation.LoadoutPicker.route) {
+                                            inclusive = true
+                                        }
+                                        launchSingleTop = true
+                                    }
                                 },
                             )
                         }

@@ -49,4 +49,15 @@ enum class BulletType(
         aoeRadius = 80f,                            // damage radius on impact
         glyph = "◯",
     );
+
+    companion object {
+        /**
+         * Round 45 (36x) — parse by enum-name (matches DataStore persistence in
+         * [com.tranphuloi.neon.data.SettingsKeys.PREFERRED_BULLET_TYPE]).
+         * Falls back to [NORMAL] for null/unknown so old saves or corrupt
+         * preferences resolve to the inert baseline.
+         */
+        fun fromName(name: String?): BulletType =
+            entries.firstOrNull { it.name == name } ?: NORMAL
+    }
 }

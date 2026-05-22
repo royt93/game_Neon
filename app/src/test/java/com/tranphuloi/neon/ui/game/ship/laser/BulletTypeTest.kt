@@ -58,4 +58,31 @@ class BulletTypeTest {
             assertNotEquals("$it has empty displayName", "", it.displayName)
         }
     }
+
+    // -- fromName parse / fallback (round 45) ------------------------------
+
+    @Test
+    fun `fromName roundtrips for every type`() {
+        BulletType.entries.forEach {
+            assertEquals(it, BulletType.fromName(it.name))
+        }
+    }
+
+    @Test
+    fun `fromName returns NORMAL for null`() {
+        assertEquals(BulletType.NORMAL, BulletType.fromName(null))
+    }
+
+    @Test
+    fun `fromName returns NORMAL for unknown name`() {
+        assertEquals(BulletType.NORMAL, BulletType.fromName("WHATEVER"))
+    }
+
+    @Test
+    fun `fromName is case sensitive (enum names are uppercase)`() {
+        // Persisting via `enum.name` writes "PIERCING" — a lowercase "piercing"
+        // should NOT match. This guarantees DataStore corruption to lowercase
+        // doesn't silently match.
+        assertEquals(BulletType.NORMAL, BulletType.fromName("piercing"))
+    }
 }

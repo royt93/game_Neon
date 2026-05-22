@@ -186,6 +186,27 @@ fun rememberGameState(): GameState {
             )
         )
     }
+    // Round 45 (36x) — apply pre-game Loadout BulletType head-start (10s) once
+    // per run. Uses `Flow.first()` to wait for the DataStore-resolved value
+    // rather than `collectAsState`'s placeholder initial (which fires the
+    // effect with NORMAL on frame 1 and then "loses" the real value because
+    // we'd already flag loadoutApplied=true). rememberSaveable<Boolean>
+    // ensures a mid-run config-change rotation doesn't grant a fresh 10s.
+    var loadoutApplied by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (loadoutApplied) return@LaunchedEffect
+        val resolved = settingsRepo.preferredBulletType.first()
+        if (resolved != com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL) {
+            Logger.d("Loadout: applying preferredBulletType=$resolved for 10s head-start")
+            ship = ship.copy(
+                activeBulletType = resolved,
+                bulletTypeEndMillis = System.currentTimeMillis() + 10_000L,
+            )
+        } else {
+            Logger.d("Loadout: preferredBulletType=NORMAL → no head-start")
+        }
+        loadoutApplied = true
+    }
     var gameStatus by rememberSaveable { mutableStateOf(GameStatus.RUNNING) }
     fun setGameStatus(gameStt: GameStatus) {
         if (gameStatus != gameStt) {

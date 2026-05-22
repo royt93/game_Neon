@@ -29,6 +29,8 @@ object SettingsKeys {
     val COLOR_BLIND_MODE = stringPreferencesKey("color_blind_mode")
     /** Wave 6 (29x) round 41 — active secondary weapon name (matches SecondaryWeapon enum). */
     val SECONDARY_WEAPON = stringPreferencesKey("secondary_weapon")
+    /** Wave 6 (36x) round 45 — pre-game BulletType pick. Ship starts each run with this active for 10s. */
+    val PREFERRED_BULLET_TYPE = stringPreferencesKey("preferred_bullet_type")
 }
 
 /**
@@ -140,6 +142,17 @@ class SettingsRepository(private val appContext: Context) {
             com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon
                 .fromName(it[SettingsKeys.SECONDARY_WEAPON])
         }
+    /**
+     * Wave 6 (36x) round 45 — pre-game BulletType preference (Loadout). Default
+     * NORMAL = no head-start. GameState applies this with a 10s expiry at run
+     * init so the loadout is a "starting buff" rather than a permanent weapon
+     * swap (keeps booster pickups meaningful).
+     */
+    val preferredBulletType: Flow<com.tranphuloi.neon.ui.game.ship.laser.BulletType> =
+        appContext.dataStore.data.map {
+            com.tranphuloi.neon.ui.game.ship.laser.BulletType
+                .fromName(it[SettingsKeys.PREFERRED_BULLET_TYPE])
+        }
 
     suspend fun setReduceMotion(value: Boolean) {
         Logger.d("SettingsRepository.setReduceMotion=$value")
@@ -197,5 +210,10 @@ class SettingsRepository(private val appContext: Context) {
     suspend fun setSecondaryWeapon(value: com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon) {
         Logger.d("SettingsRepository.setSecondaryWeapon=${value.name}")
         appContext.dataStore.edit { it[SettingsKeys.SECONDARY_WEAPON] = value.name }
+    }
+
+    suspend fun setPreferredBulletType(value: com.tranphuloi.neon.ui.game.ship.laser.BulletType) {
+        Logger.d("SettingsRepository.setPreferredBulletType=${value.name}")
+        appContext.dataStore.edit { it[SettingsKeys.PREFERRED_BULLET_TYPE] = value.name }
     }
 }

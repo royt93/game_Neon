@@ -968,6 +968,72 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 45.5 — Loadout audit fixes (race condition + flash + palette + tests)
+
+User asked "bạn chắc chưa? mấy điểm thang 10?" — self-audit scored 7.5/10. Found 1 real bug + 2 missing polish items. All 3 fixed.
+
+- ✅ **Fix 1 — Race condition `collectAsState` vs `LaunchedEffect`** — the head-start `LaunchedEffect(preferredBulletType, loadoutApplied)` block fired on frame 1 with the placeholder `initial = NORMAL` (before DataStore resolved the user's actual pick), set `loadoutApplied = true`, then bailed early on frame N when the real PIERCING/PLASMA value arrived. **Head-start never applied for non-NORMAL picks.** Replaced with `LaunchedEffect(Unit) { val resolved = settingsRepo.preferredBulletType.first(); ... }` — blocks the effect coroutine until the real value arrives, applies once, sets `loadoutApplied = true`.
+
+- ✅ **Fix 1b — Frame-1 cosmetic flash in DialogLoadoutPicker** — was `collectAsState(initial = NORMAL/MISSILE)` which highlighted the inert default card for 10-30ms before DataStore resolved. Replaced with `produceState<BulletType?>(initialValue = null) { settings.preferredBulletType.collect { value = it } }`. Cards stay un-highlighted for the brief load window instead of showing a misleading flash.
+
+- ✅ **Fix 2 — `BulletType.fromName` + tests** — extracted the `entries.firstOrNull { it.name == name } ?: NORMAL` parsing into a companion `fromName(name: String?)` (mirrors `SecondaryWeapon.fromName` from round 41). `SettingsRepository.preferredBulletType` now uses it. Added 4 BulletTypeTest cases: roundtrip / null / unknown / case-sensitive ("piercing" doesn't match "PIERCING" — guards against silent corruption matches).
+
+- ✅ **Fix 3 — `LocalNeonPalette` in DialogLoadoutPicker** — was hardcoded `NeonCyan / NeonGold / NeonMagenta / NeonRedAlert / NeonViolet`. Replaced all 13 sites with `palette.cyan / .gold / .magenta / .redAlert / .violet` reading `LocalNeonPalette.current` once at top. `colorForBullet` + `colorForSecondary` helpers now take `NeonPalette` arg. Toggling "Chế độ màu → Mù màu" in Settings now recolors the loadout picker too.
+
+### Round 45.5 files
+
+**Modified:**
+- `ui/game/ship/laser/BulletType.kt` — added `companion object { fun fromName(name: String?): BulletType }`.
+- `data/SettingsRepository.kt` — `preferredBulletType` flow uses `BulletType.fromName(...)`.
+- `ui/game/state/GameState.kt` — head-start LaunchedEffect rewritten to `LaunchedEffect(Unit) { … flow.first() … }`.
+- `ui/dlg/loadoutpicker/DialogLoadoutPicker.kt` — `produceState<T?>` for both flows; 13 color sites switched to `palette.X`; `colorForBullet/colorForSecondary` take `palette` arg.
+- `app/src/test/java/.../ui/game/ship/laser/BulletTypeTest.kt` — +4 `fromName` test cases.
+
+### Round 45.5 verification
+
+- `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest` BUILD SUCCESSFUL.
+- **127 tests, 0 failures, 0 errors** (+4 from round 45).
+- Manual re-test: pick PIERCING in LoadoutPicker → enter Game → ship should fire piercing lasers from frame 1. Previously did NOT due to the race condition. Toggle Color Blind mode → re-open picker → accents shift to Wong palette.
+
+### Round 45 — Wave 6 Loadout system (36x)
+
+User picked "36x Loadout system" via AskUserQuestion. Pre-game picker route added between MenuScreen PLAY tap and Game entry. Player chooses primary BulletType (Normal/Piercing/Plasma) + secondary weapon (Missile/Mine/Burst). Closes out **5/7 Wave 6 items**.
+
+- ✅ **SettingsRepository.preferredBulletType flow** — new `SettingsKeys.PREFERRED_BULLET_TYPE` stringPreferencesKey + Flow that resolves to a `BulletType` (default NORMAL) + `setPreferredBulletType(value)` setter.
+
+- ✅ **Nav route LoadoutPicker** — new `object LoadoutPicker : Navigation(route = "loadout-picker")`. Wired in MainActivity as a `dialog(...)` route. PLAY in MenuScreen now navigates here instead of straight to Game.
+
+- ✅ **DialogLoadoutPicker (`ui/dlg/loadoutpicker/DialogLoadoutPicker.kt`)** — NeonBottomSheet with two sections:
+    1. **VŨ KHÍ CHÍNH**: 3 cards for `BulletType.entries`. Subtitle shows the head-start effect ("Xuyên qua 3 enemy · 10s head-start" / "+60% dmg · AoE 80px · 10s head-start" / "không buff khởi đầu").
+    2. **VŨ KHÍ PHỤ**: 3 cards for `SecondaryWeapon.entries` with cooldown + behaviour summary.
+    Selection persists immediately to Settings on tap (no separate save step). "BẮT ĐẦU" button at the bottom commits and navigates to Game with `popUpTo(LoadoutPicker, inclusive=true)` so back-press from Game returns to Menu, not the picker.
+
+- ✅ **GameState applies head-start BulletType** — collects `settingsRepo.preferredBulletType`. A `LaunchedEffect(preferredBulletType, loadoutApplied)` block runs once per run: if non-NORMAL, sets `ship.activeBulletType` + `ship.bulletTypeEndMillis = now + 10_000L`. `loadoutApplied` is `rememberSaveable` so a mid-run config-change rotation doesn't grant a free fresh 10s window. After expiry, ship reverts to NORMAL via the existing tick — player must pickup PIERCING/PLASMA boosters to re-activate (preserves booster value).
+
+### Round 45 files
+
+**New:**
+- `ui/dlg/loadoutpicker/DialogLoadoutPicker.kt` (~190 LOC — picker + helpers + color/subtitle lookups).
+
+**Modified:**
+- `navigation/Navigation.kt` — `LoadoutPicker` route.
+- `data/SettingsRepository.kt` — `PREFERRED_BULLET_TYPE` key + Flow + setter.
+- `ui/MainActivity.kt` — PLAY → LoadoutPicker; LoadoutPicker dialog route registered with popUpTo(inclusive) on confirm.
+- `ui/game/state/GameState.kt` — collect preferredBulletType + LaunchedEffect applying 10s head-start, gated by `loadoutApplied: rememberSaveable<Boolean>`.
+
+### Round 45 verification
+
+- `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest` BUILD SUCCESSFUL.
+- **123 tests still pass.**
+- Manual test path:
+  1. Menu → PLAY → "TRANG BỊ" bottom sheet appears with 6 cards.
+  2. Pick "Xuyên" + "Mìn" → tap "BẮT ĐẦU" → enter game.
+  3. First 10s of run: laser fires PIERCING shots (passes through 3 enemies). Secondary button glyph = 💠 (Mìn).
+  4. After 10s: bullet type reverts to NORMAL (no booster pickup needed to start).
+  5. Pick up a PLASMA_BOOSTER mid-run → PLASMA active for 10s (or 15s × rarity Rare).
+  6. Die → retry from menu → LoadoutPicker shows last pick selected → can change before BẮT ĐẦU.
+  7. Settings dialog "Vũ khí phụ" picker still works (same secondaryWeapon Settings flow).
+
 ### Round 44 — Fix gameplay lag via verbose-gated Logger.v
 
 User reported "game rất lag" during combat. Log capture showed ~70-100 `Logger.d` lines per second during a GODLIKE kill streak — string concat allocates, `Log.d` is mutex-guarded JNI, and the resulting GC pressure caused the heap to swing 12 → 44 MB → 10 MB (visible in PERF logs). Round 37 fixed *per-tick* spam; this round fixes *per-event* spam.
@@ -1909,7 +1975,7 @@ Các architectural refactors quá lớn để gộp chung:
 - [ ] 26x Photo mode
 - [x] 27x Color blind mode (round 39 — Wong palette + LocalNeonPalette infra + Settings picker; broader UI migration deferred)
 - [x] 29x Secondary weapon (round 40 MISSILE homing + round 41 MINE proximity + BURST instant sweep + Settings picker)
-- [ ] 36x Loadout system
+- [x] 36x Loadout system (round 45 — pre-game BulletType + SecondaryWeapon picker; BulletType head-start 10s on run init)
 - [x] 39x Item rarity tiers (round 43 — Common 75% / Rare 20% / Epic 5% with ring overlay + multiplier scaling on duration/heal)
 - [ ] 40x Item combos
 - [x] 45x Ship customization (round 38 — 5-color aura glow wired into ship + ship-laser rendering)
