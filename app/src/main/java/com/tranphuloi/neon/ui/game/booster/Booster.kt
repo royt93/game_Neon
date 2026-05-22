@@ -30,6 +30,25 @@ data class Booster(
         }
         pick
     }
+    // Round 43 (39x) — rarity rolled independently of type. REVIVE_TOKEN is always
+    // COMMON because it's a binary "has it / doesn't" effect — multiplier wouldn't
+    // do anything meaningful for a single-charge revive.
+    val rarity: BoosterRarity = if (type == BoosterType.REVIVE_TOKEN) {
+        BoosterRarity.COMMON
+    } else run {
+        val all = BoosterRarity.entries
+        val totalWeight = all.sumOf { it.weight }
+        var roll = Random.nextInt(totalWeight)
+        var pick = all.first()
+        for (r in all) {
+            if (roll < r.weight) {
+                pick = r
+                break
+            }
+            roll -= r.weight
+        }
+        pick
+    }
 
     private val createdAtMillis: Long = System.currentTimeMillis()
 

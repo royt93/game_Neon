@@ -63,7 +63,7 @@ class PickupPopupController(
             isComboBonus = isCombo,
         )
         popups = popups + popup
-        Logger.d("PickupPopupController.spawnMineralPickup '$text' at (${xOffset.toInt()},${yOffset.toInt()}) (active=${popups.size})")
+        Logger.v { "PickupPopupController.spawnMineralPickup '$text' at (${xOffset.toInt()},${yOffset.toInt()}) (active=${popups.size})" }
         updateState(popups)
     }
 

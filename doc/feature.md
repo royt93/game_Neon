@@ -968,6 +968,102 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 44 — Fix gameplay lag via verbose-gated Logger.v
+
+User reported "game rất lag" during combat. Log capture showed ~70-100 `Logger.d` lines per second during a GODLIKE kill streak — string concat allocates, `Log.d` is mutex-guarded JNI, and the resulting GC pressure caused the heap to swing 12 → 44 MB → 10 MB (visible in PERF logs). Round 37 fixed *per-tick* spam; this round fixes *per-event* spam.
+
+- ✅ **`Logger.v(lambda)` added** — new inline function with lazy message. Compiles to zero allocation at call sites when `Logger.VERBOSE` (default `false`) is off: the lambda is never invoked → no string concat, no Log.d call. Toggle to `true` to re-enable for debugging.
+- ✅ **`Logger.PREFIX` + `DEFAULT_TAG` made `const val` public** — needed so the inline function can reference them from call sites (Kotlin restriction).
+
+- ✅ **Converted hot-path `Logger.d` → `Logger.v`** across ~15 sites that spike during combat:
+    - `AudioPlayerHolder.setVolume` (the worst — 15-30× per music intensity transition).
+    - `MineralsController.addMinerals` (per pickup).
+    - `PickupPopupController.spawnMineralPickup` (per pickup).
+    - `ComboController.tier advance / reset / expired` (per kill).
+    - `StatusEffectController.apply / refresh / expire / cleared` (per status event).
+    - `EnemyLasersController.fireEnemyLasers` + STUNNED skip (per fire).
+    - `EnemyController.addEnemy` + `EnemyFactory.{ZigZag, Row, VFormation, SineWave} spawn` (per spawn).
+    - `BoosterController.addBooster` (per drop).
+    - `SpaceObjectsController.addSpaceRock` (per rock).
+    - `HapticController.vibrate` (per vibration).
+    - `ShipController` collisions (spaceObject / enemy / enemyLaser) + hp delta + i-frames + damage-absorbed.
+    - `GameState`: "Enemy killed" + "Booster picked up" + "SpaceRock impact ship".
+    - `GameScreen`: "Music intensity → ..." transition log.
+
+- ✅ **Logs kept at `Logger.d`** — sparse / sticky events that ARE useful in normal log review:
+    - Stage advance, run-mode/modifier init, RunPersistence save (~1-2/min).
+    - Boss intro, boss kill rank, BuffPicker offer, story overlay, nav transitions.
+    - Lifecycle events (ON_START/ON_RESUME/ON_PAUSE/ON_STOP).
+    - Init logs for all controllers (each fires once).
+    - Achievement unlocked, REVIVE_TOKEN stored/ignored, BulletType activated/expired, Booster shield/laser/triple ON/OFF (~few per minute).
+
+### Round 44 files
+
+**Modified:**
+- `utils/Logger.kt` — added `VERBOSE: Boolean = false` const + inline `v(message: () -> String)`. Made `PREFIX` / `DEFAULT_TAG` `const val` public.
+- `ui/game/audio/AudioPlayerHolder.kt` — `setVolume` → Logger.v.
+- `ui/game/mineral/controller/MineralsController.kt` — `addMinerals` → Logger.v.
+- `ui/game/pickup/PickupPopup.kt` — `spawnMineralPickup` → Logger.v.
+- `ui/game/combo/ComboController.kt` — reset/tier-advance/expired → Logger.v.
+- `ui/game/status/StatusEffectController.kt` — apply/refresh/expire/cleared → Logger.v.
+- `ui/game/enemy/laser/EnemyLasersController.kt` — fireEnemyLasers + STUNNED → Logger.v.
+- `ui/game/enemy/ship/controller/EnemyController.kt` — addEnemy → Logger.v.
+- `ui/game/enemy/ship/factory/EnemyFactory.kt` — all 4 spawn variants → Logger.v.
+- `ui/game/booster/BoosterController.kt` — addBooster → Logger.v.
+- `ui/game/spaceObject/SpaceObjectsController.kt` — addSpaceRock → Logger.v.
+- `ui/game/haptic/HapticController.kt` — vibrate → Logger.v.
+- `ui/game/ship/ship/ShipController.kt` — 3 collision sites + hp absorbed + hp delta + i-frames → Logger.v.
+- `ui/game/state/GameState.kt` — Enemy killed + Booster picked up + SpaceRock impact → Logger.v.
+- `ui/game/GameScreen.kt` — Music intensity transition log → Logger.v.
+
+### Round 44 verification
+
+- `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest` BUILD SUCCESSFUL.
+- **123 tests still pass.**
+- Expected log volume during GODLIKE kill streak: was ~70-100/sec, now ~3-8/sec (only sparse stage/boss/lifecycle/init logs left at Logger.d). GC pressure drops correspondingly.
+- Manual test path: run campaign, push combo to RAMPAGE+ during a big wave. Game should stay smooth even when 5+ enemies die simultaneously. If user needs the verbose stream back for debugging a specific bug, flip `Logger.VERBOSE = true` in `Logger.kt`.
+
+### Round 43 — Wave 6 Item rarity tiers (39x)
+
+User picked "39x Item rarity tiers" via AskUserQuestion. Booster drops now roll a rarity tier (Common 75% / Rare 20% / Epic 5%) that scales the effect strength and visually rings the sprite.
+
+- ✅ **BoosterRarity enum** — new `ui/game/booster/BoosterRarity.kt` with 3 tiers. Each carries `key` (DataStore-safe), `displayName` (Vietnamese), `weight` (75/20/5), `multiplier` (1.0/1.5/2.0), and `ringColorHex` (silver/sky-blue/gold). `fromKey` companion with COMMON fallback. Multiplier ordering enforced by tests (COMMON < RARE < EPIC).
+
+- ✅ **Booster rolls rarity at spawn** — same weighted-pick loop pattern as `BoosterType` (additive cumulative roll). REVIVE_TOKEN is hardcoded to COMMON because it's a binary effect — a multiplier wouldn't do anything meaningful for a one-charge revive.
+
+- ✅ **BoosterUI + Mapper** — projected `rarityRingColorHex: Long` + `isEliteRarity: Boolean` (true for RARE/EPIC). Defaults preserve back-compat for any non-mapped call sites.
+
+- ✅ **GameWorld rarity ring overlay** — booster render now wraps the sprite in a `Box` with a colored border ring (drawn behind the sprite). Common = static dim ring (subtle); Rare/Epic = pulse alpha at ~2Hz via `|sin|` + extra `neonGlow` halo at the ring color. So a rare booster reads instantly even on a busy screen.
+
+- ✅ **ShipController applies multiplier** — `enableShield / enableLaserBooster / enableTripleLaserBooster / setBulletType` all accept an optional `multiplier: Float = 1f` and scale their duration by it. HEALTH_BOOSTER heal amount also scaled (100 → 150 / 200). ULTIMATE_WEAPON_BOOSTER + REVIVE_TOKEN bypass scaling. Pickup site (`when (booster.type)`) reads `booster.rarity.multiplier` and passes it through.
+
+- ✅ **BoosterRarityTest (10 tests)** — enum has 3 entries, weights sum to 100 (tidy %), weight ordering COMMON > RARE > EPIC, multiplier ordering inverted, COMMON.multiplier exactly 1.0f (baseline behavior preserved), unique + opaque ring colors, non-empty displayNames, `fromKey` roundtrip + COMMON fallback.
+
+### Round 43 files
+
+**New:**
+- `ui/game/booster/BoosterRarity.kt` (~35 LOC — enum + fromKey).
+- `app/src/test/java/.../ui/game/booster/BoosterRarityTest.kt` (10 tests).
+
+**Modified:**
+- `ui/game/booster/Booster.kt` — `rarity: BoosterRarity` field rolled at spawn (with REVIVE_TOKEN → COMMON guard).
+- `ui/game/booster/BoosterUI.kt` — added `rarityRingColorHex` + `isEliteRarity` fields.
+- `ui/game/booster/BoosterToBoosterUIMapper.kt` — projects rarity into UI.
+- `ui/game/world/GameWorld.kt` — wrapped booster sprite in Box + rarity ring (border + pulse glow for elite). Added `BorderStroke`, `border`, `RoundedCornerShape` imports.
+- `ui/game/ship/ship/ShipController.kt` — added `multiplier: Float = 1f` param to enableShield / enableLaserBooster / enableTripleLaserBooster / setBulletType. Pickup site (`when (booster.type)`) passes `booster.rarity.multiplier`. HEALTH_BOOSTER heal also scaled.
+
+### Round 43 verification
+
+- `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest` BUILD SUCCESSFUL.
+- **123 tests, 0 failures, 0 errors** across 13 test classes (+10 from round 42).
+- Manual test path:
+  1. Start run → wait for booster to spawn.
+  2. Observe: most boosters have faint silver ring (Common). Occasionally a sky-blue ring with pulse glow drops (Rare ~20%). Rarely a gold ring with strong pulse (Epic ~5%).
+  3. Pick up a Rare SHIELD_BOOSTER → shield duration = 15s (vs 10s common).
+  4. Pick up an Epic HEALTH_BOOSTER → +200 HP (vs +100 common).
+  5. Pick up a Rare PIERCING_BOOSTER → piercing bullet active for 15s (vs 10s common).
+  6. REVIVE_TOKEN drops always Common (verified by code path — no visual rare drop).
+
 ### Round 42 — Test coverage expansion for rounds 38-41 (72 → 113 tests)
 
 User picked "Test expansion" via AskUserQuestion. Round 38-41 added five new pure-logic surfaces (ShipSkin enum, ColorBlindMode + NeonPalette, SecondaryWeapon, Mine constants, MissileLaser homing math) with zero tests. This round seeds them.
@@ -1814,7 +1910,7 @@ Các architectural refactors quá lớn để gộp chung:
 - [x] 27x Color blind mode (round 39 — Wong palette + LocalNeonPalette infra + Settings picker; broader UI migration deferred)
 - [x] 29x Secondary weapon (round 40 MISSILE homing + round 41 MINE proximity + BURST instant sweep + Settings picker)
 - [ ] 36x Loadout system
-- [ ] 39x Item rarity tiers
+- [x] 39x Item rarity tiers (round 43 — Common 75% / Rare 20% / Epic 5% with ring overlay + multiplier scaling on duration/heal)
 - [ ] 40x Item combos
 - [x] 45x Ship customization (round 38 — 5-color aura glow wired into ship + ship-laser rendering)
 

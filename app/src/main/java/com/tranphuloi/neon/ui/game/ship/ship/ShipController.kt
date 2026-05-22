@@ -230,43 +230,49 @@ class ShipController(
     private var shieldBoosterStartMillis: Long = 0
     private val shieldBoosterTimeMillis: Long = 10000
     private var shieldEndDurationMillis: Long = 0
-    private fun enableShield(enable: Boolean) {
+    /**
+     * Round 43 (39x) — [multiplier] scales the active duration by booster rarity
+     * (1.0 / 1.5 / 2.0). 1.0 = baseline COMMON behavior.
+     */
+    private fun enableShield(enable: Boolean, multiplier: Float = 1f) {
+        val dur = (shieldBoosterTimeMillis * multiplier).toLong()
         if (ship.shieldEnabled != enable) {
-            Logger.d("Booster: shield ${if (enable) "ON (+${shieldBoosterTimeMillis}ms)" else "OFF"}")
+            Logger.d("Booster: shield ${if (enable) "ON (+${dur}ms, mul=$multiplier)" else "OFF"}")
         }
         updateShieldEnabled(enable)
         if (enable) {
             shieldBoosterStartMillis = System.currentTimeMillis()
-            shieldEndDurationMillis = shieldBoosterStartMillis + shieldBoosterTimeMillis
+            shieldEndDurationMillis = shieldBoosterStartMillis + dur
         }
     }
 
     private var laserBoosterStartMillis: Long = 0
     private val laserBoosterTimeMillis: Long = 15000
     private var laserBoosterEndDurationMillis: Long = 0
-    private fun enableLaserBooster(enable: Boolean) {
+    private fun enableLaserBooster(enable: Boolean, multiplier: Float = 1f) {
+        val dur = (laserBoosterTimeMillis * multiplier).toLong()
         if (ship.laserBoosterEnabled != enable) {
-            Logger.d("Booster: laser ${if (enable) "ON (+${laserBoosterTimeMillis}ms)" else "OFF"}")
+            Logger.d("Booster: laser ${if (enable) "ON (+${dur}ms, mul=$multiplier)" else "OFF"}")
         }
         updateLaserBoosterEnabled(enable)
         if (enable) {
             laserBoosterStartMillis = System.currentTimeMillis()
-            laserBoosterEndDurationMillis = laserBoosterStartMillis + laserBoosterTimeMillis
+            laserBoosterEndDurationMillis = laserBoosterStartMillis + dur
         }
     }
 
     private var tripleLaserBoosterStartMillis: Long = 0
     private val tripleLaserBoosterTimeMillis: Long = 20000
     private var tripleLaserBoosterEndDurationMillis: Long = 0
-    private fun enableTripleLaserBooster(enable: Boolean) {
+    private fun enableTripleLaserBooster(enable: Boolean, multiplier: Float = 1f) {
+        val dur = (tripleLaserBoosterTimeMillis * multiplier).toLong()
         if (ship.tripleLaserBoosterEnabled != enable) {
-            Logger.d("Booster: triple-laser ${if (enable) "ON (+${tripleLaserBoosterTimeMillis}ms)" else "OFF"}")
+            Logger.d("Booster: triple-laser ${if (enable) "ON (+${dur}ms, mul=$multiplier)" else "OFF"}")
         }
         updateTripleLaserBoosterEnabled(enable)
         if (enable) {
             tripleLaserBoosterStartMillis = System.currentTimeMillis()
-            tripleLaserBoosterEndDurationMillis =
-                tripleLaserBoosterStartMillis + tripleLaserBoosterTimeMillis
+            tripleLaserBoosterEndDurationMillis = tripleLaserBoosterStartMillis + dur
         }
     }
 
@@ -303,7 +309,7 @@ class ShipController(
                 )
             }
             if (spaceRect.overlaps(if (ship.shieldEnabled) shipShieldRect else shipRect)) {
-                Logger.d("Collision: ship ↔ spaceObject (shield=${ship.shieldEnabled}, impactPower=${spaceObject.impactPower})")
+                Logger.v { "Collision: ship ↔ spaceObject (shield=${ship.shieldEnabled}, impactPower=${spaceObject.impactPower})" }
                 spaceObjects[spaceObjectIndex].onObjectImpact(spaceShipCollidePower)
                 // Visual feedback at rock center — sparks + mini explosion. Skipped for
                 // pickup-style space objects (boosters via spaceObject path) by checking
@@ -343,12 +349,15 @@ class ShipController(
                     booster.xOffset + booster.size / 2f,
                     booster.yOffset + booster.size / 2f,
                 )
+                // Round 43 (39x) — apply rarity multiplier to duration/amount effects.
+                val mul = booster.rarity.multiplier
                 when (booster.type) {
                     BoosterType.ULTIMATE_WEAPON_BOOSTER -> fileUltimateLaser()
-                    BoosterType.SHIELD_BOOSTER -> enableShield(enable = true)
-                    BoosterType.LASER_BOOSTER -> enableLaserBooster(enable = true)
-                    BoosterType.TRIPLE_LASER_BOOSTER -> enableTripleLaserBooster(enable = true)
-                    BoosterType.HEALTH_BOOSTER -> updateHp(100)
+                    BoosterType.SHIELD_BOOSTER -> enableShield(enable = true, multiplier = mul)
+                    BoosterType.LASER_BOOSTER -> enableLaserBooster(enable = true, multiplier = mul)
+                    BoosterType.TRIPLE_LASER_BOOSTER ->
+                        enableTripleLaserBooster(enable = true, multiplier = mul)
+                    BoosterType.HEALTH_BOOSTER -> updateHp((100 * mul).toInt())
                     BoosterType.REVIVE_TOKEN -> {
                         if (!ship.hasReviveToken) {
                             ship = ship.copy(hasReviveToken = true)
@@ -358,12 +367,14 @@ class ShipController(
                             Logger.d("Booster: REVIVE_TOKEN ignored — already holding one")
                         }
                     }
-                    // Round 35 (35x) — activate bullet type for 10s.
+                    // Round 35 (35x) — activate bullet type for 10s × rarity multiplier.
                     BoosterType.PIERCING_BOOSTER -> setBulletType(
-                        com.tranphuloi.neon.ui.game.ship.laser.BulletType.PIERCING
+                        com.tranphuloi.neon.ui.game.ship.laser.BulletType.PIERCING,
+                        multiplier = mul,
                     )
                     BoosterType.PLASMA_BOOSTER -> setBulletType(
-                        com.tranphuloi.neon.ui.game.ship.laser.BulletType.PLASMA
+                        com.tranphuloi.neon.ui.game.ship.laser.BulletType.PLASMA,
+                        multiplier = mul,
                     )
                 }
             }
@@ -376,7 +387,7 @@ class ShipController(
                 )
             }
             if (enemyRect.overlaps(if (ship.shieldEnabled) shipShieldRect else shipRect)) {
-                Logger.d("Collision: ship ↔ enemy id=${enemy.enemyId.take(6)} (shield=${ship.shieldEnabled})")
+                Logger.v { "Collision: ship ↔ enemy id=${enemy.enemyId.take(6)} (shield=${ship.shieldEnabled})" }
                 enemies[enemyIndex].onObjectImpact(spaceShipCollidePower)
 
                 val hpImpact: Int = when (ship.shieldEnabled && enemy.impactPower > 0) {
@@ -394,7 +405,7 @@ class ShipController(
                 )
             }
             if (enemyLaserRect.overlaps(if (ship.shieldEnabled) shipShieldRect else shipRect)) {
-                Logger.d("Collision: ship ↔ enemyLaser (shield=${ship.shieldEnabled}, impactPower=${enemyLaser.impactPower.toInt()})")
+                Logger.v { "Collision: ship ↔ enemyLaser (shield=${ship.shieldEnabled}, impactPower=${enemyLaser.impactPower.toInt()})" }
                 enemyLasers[enemyIndex].destroyed = true
 
                 val hpImpact: Float = when (ship.shieldEnabled && enemyLaser.impactPower > 0) {
@@ -424,11 +435,15 @@ class ShipController(
      * Round 35 (35x) — activate [type] bullet for its activeDurationMillis.
      * Picking up another bullet-type booster overrides any existing one.
      */
-    private fun setBulletType(type: com.tranphuloi.neon.ui.game.ship.laser.BulletType) {
-        val endMillis = System.currentTimeMillis() + type.activeDurationMillis
+    private fun setBulletType(
+        type: com.tranphuloi.neon.ui.game.ship.laser.BulletType,
+        multiplier: Float = 1f,
+    ) {
+        val dur = (type.activeDurationMillis * multiplier).toLong()
+        val endMillis = System.currentTimeMillis() + dur
         ship = ship.copy(activeBulletType = type, bulletTypeEndMillis = endMillis)
         setShip(ship)
-        Logger.d("BulletType: activated $type for ${type.activeDurationMillis}ms (ends @ $endMillis)")
+        Logger.d("BulletType: activated $type for ${dur}ms (mul=$multiplier, ends @ $endMillis)")
     }
 
     private fun updateShieldEnabled(enable: Boolean) {
@@ -477,7 +492,7 @@ class ShipController(
         if (ship.hp <= 0) return
         // Damage absorption: i-frames OR spawn animation. Healing (hpChange > 0) always applies.
         if (hpChange < 0 && (System.currentTimeMillis() < iframesEndMillis || isSpawning())) {
-            Logger.d("Ship hp: damage Δ=$hpChange ABSORBED (iframes or spawn)")
+            Logger.v { "Ship hp: damage Δ=$hpChange ABSORBED (iframes or spawn)" }
             return
         }
         val multiplier = damageMultiplier()
@@ -486,12 +501,12 @@ class ShipController(
         val newHp = (ship.hp + effective).coerceAtLeast(0)
         ship = ship.copy(hp = newHp)
         if (effective != 0) {
-            Logger.d("Ship hp: $before → ${ship.hp} (Δ=$effective, raw=$hpChange, multiplier=$multiplier)")
+            Logger.v { "Ship hp: $before → ${ship.hp} (Δ=$effective, raw=$hpChange, multiplier=$multiplier)" }
         }
         setShip(ship)
         if (effective < 0) {
             iframesEndMillis = System.currentTimeMillis() + IFRAMES_DURATION_MILLIS
-            Logger.d("Ship i-frames: ON until $iframesEndMillis (+${IFRAMES_DURATION_MILLIS}ms)")
+            Logger.v { "Ship i-frames: ON until $iframesEndMillis (+${IFRAMES_DURATION_MILLIS}ms)" }
             // 19b Reset auto-charge on damage so player must survive 8s clean to fire mega.
             resetCharge()
             onShipDamaged()

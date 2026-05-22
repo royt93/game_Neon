@@ -40,7 +40,7 @@ class BoosterController(
             return
         }
         boosters += booster
-        Logger.d("BoosterController.addBooster: type=${booster.type} at x=${booster.xOffset.toInt()} (active=${boosters.size}/$MAX_BOOSTERS)")
+        Logger.v { "BoosterController.addBooster: type=${booster.type} at x=${booster.xOffset.toInt()} (active=${boosters.size}/$MAX_BOOSTERS)" }
         updateBoosters()
     }
 

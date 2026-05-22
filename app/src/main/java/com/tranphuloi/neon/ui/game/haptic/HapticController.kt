@@ -49,7 +49,7 @@ class HapticController(private val appContext: Context) {
             if (now - last < pattern.minIntervalMs) return
             lastFireUptimeMs[pattern.ordinal] = now
         }
-        Logger.d("HapticController.vibrate $pattern (${pattern.durationMs}ms amp=${pattern.amplitude})")
+        Logger.v { "HapticController.vibrate $pattern (${pattern.durationMs}ms amp=${pattern.amplitude})" }
         runCatching {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 v.vibrate(VibrationEffect.createOneShot(pattern.durationMs, pattern.amplitude))

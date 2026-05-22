@@ -31,7 +31,7 @@ class EnemyController(
     fun addEnemy(type: EnemyType) {
         val newEnemies = enemyFactory(type = type, getShip = getShip)
         this.enemies += newEnemies
-        Logger.d("EnemyController.addEnemy: type=${type::class.simpleName} spawned ${newEnemies.size} (active=${this.enemies.size})")
+        Logger.v { "EnemyController.addEnemy: type=${type::class.simpleName} spawned ${newEnemies.size} (active=${this.enemies.size})" }
         updateEnemies()
     }
 

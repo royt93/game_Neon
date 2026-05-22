@@ -32,7 +32,7 @@ class SpaceObjectsController(
             screenHeight = screenHeight
         )
         spaceObjects = spaceObjects.toMutableList().apply { add(spaceRock) }
-        Logger.d("SpaceObjectsController.addSpaceRock: size=$rockSize at x=${rockXOffset.toInt()} y=${spaceRock.yOffset.toInt()} (active=${spaceObjects.size})")
+        Logger.v { "SpaceObjectsController.addSpaceRock: size=$rockSize at x=${rockXOffset.toInt()} y=${spaceRock.yOffset.toInt()} (active=${spaceObjects.size})" }
         updateSpaceObjectsUI()
     }
 

@@ -8,7 +8,9 @@ class BoosterToBoosterUIMapper {
                 xOffset = xOffset,
                 yOffset = yOffset,
                 size = size,
-                drawableId = type.drawableId
+                drawableId = type.drawableId,
+                rarityRingColorHex = rarity.ringColorHex,
+                isEliteRarity = rarity != BoosterRarity.COMMON,
             )
         }
     }

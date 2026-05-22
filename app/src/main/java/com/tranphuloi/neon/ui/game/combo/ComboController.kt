@@ -19,14 +19,14 @@ class ComboController(
     fun onEnemyKilled(): ComboTier {
         val now = System.currentTimeMillis()
         if (now - lastKillMillis > resetWindowMillis) {
-            if (count > 0) Logger.d("ComboController: reset (gap=${now - lastKillMillis}ms)")
+            if (count > 0) Logger.v { "ComboController: reset (gap=${now - lastKillMillis}ms)" }
             count = 0
         }
         count++
         lastKillMillis = now
         val tier = ComboTier.forCount(count)
         if (tier != lastTier && tier != ComboTier.NONE) {
-            Logger.d("ComboController: tier advance ${lastTier.name} → ${tier.name} (count=$count)")
+            Logger.v { "ComboController: tier advance ${lastTier.name} → ${tier.name} (count=$count)" }
             onTierAdvance(tier)
         }
         lastTier = tier
@@ -37,7 +37,7 @@ class ComboController(
         if (count == 0) return
         val now = System.currentTimeMillis()
         if (now - lastKillMillis > resetWindowMillis) {
-            Logger.d("ComboController: expired (count was=$count)")
+            Logger.v { "ComboController: expired (count was=$count)" }
             count = 0
             lastTier = ComboTier.NONE
         }

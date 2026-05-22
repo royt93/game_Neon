@@ -12,4 +12,11 @@ data class BoosterUI(
     val yOffset: Float,
     val size: Float,
     @DrawableRes val drawableId: Int,
+    /**
+     * Round 43 (39x) — ARGB ring color for the rarity tier overlay.
+     * 0 = no ring (defensive default; not used by current callers).
+     */
+    val rarityRingColorHex: Long = 0L,
+    /** Round 43 (39x) — true if rarity is RARE or EPIC; drives ring pulse intensity. */
+    val isEliteRarity: Boolean = false,
 ) : Serializable

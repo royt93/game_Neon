@@ -37,7 +37,7 @@ class EnemyFactory(
                         type = type
                     )
                     enemies += enemy
-                    Logger.d("EnemyFactory: ZigZag spawn drawable=${type.drawableId} hp=${type.hp} formation=${type.formation}")
+                    Logger.v { "EnemyFactory: ZigZag spawn drawable=${type.drawableId} hp=${type.hp} formation=${type.formation}" }
                 }
 
                 is Row -> {
@@ -54,7 +54,7 @@ class EnemyFactory(
                         )
                         enemies += enemy
                     }
-                    Logger.d("EnemyFactory: Row spawn count=${type.formation.rowCount} drawable=${type.drawableId} hp=${type.hp}")
+                    Logger.v { "EnemyFactory: Row spawn count=${type.formation.rowCount} drawable=${type.drawableId} hp=${type.hp}" }
                 }
 
                 is VFormation -> {
@@ -80,7 +80,7 @@ class EnemyFactory(
                             initialYOffset = ys,
                         )
                     }
-                    Logger.d("EnemyFactory: VFormation spawn count=$n drawable=${type.drawableId}")
+                    Logger.v { "EnemyFactory: VFormation spawn count=$n drawable=${type.drawableId}" }
                 }
 
                 is SineWave -> {
@@ -98,7 +98,7 @@ class EnemyFactory(
                             initialYOffset = -i * yStep,
                         )
                     }
-                    Logger.d("EnemyFactory: SineWave spawn count=$n drawable=${type.drawableId}")
+                    Logger.v { "EnemyFactory: SineWave spawn count=$n drawable=${type.drawableId}" }
                 }
             }
         } else if (type is LevelOneBossType && enemies.isEmpty()) {

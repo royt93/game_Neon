@@ -370,7 +370,7 @@ fun rememberGameState(): GameState {
             onBoosterPickedUp = { x, y ->
                 lastBoosterPickupMillis = System.currentTimeMillis()
                 pickupBurstController.spawn(x, y)
-                Logger.d("Booster picked up @ ($x,$y) ts=$lastBoosterPickupMillis")
+                Logger.v { "Booster picked up @ ($x,$y) ts=$lastBoosterPickupMillis" }
             },
             onShipRevived = {
                 revivedShownAtMillis = System.currentTimeMillis()
@@ -388,7 +388,7 @@ fun rememberGameState(): GameState {
                 // shake/flash already triggered separately via onShipDamaged → updateHp.
                 impactSparkController.spawnBurst(x, y)
                 explosionsController.addExplosion(x, y, 70f, 70f)
-                Logger.d("SpaceRock impact ship @ ($x,$y) — visual burst")
+                Logger.v { "SpaceRock impact ship @ ($x,$y) — visual burst" }
             },
             damageMultiplier = { difficultyState.value.multiplier },
             // 25x/48x — modifier + skill tree speed multiplier (TRIPLE_SPEED ×3,
@@ -628,7 +628,7 @@ fun rememberGameState(): GameState {
                         unlockAchievement(Achievement.BOSS_RUSH_S)
                     }
                 }
-                Logger.d("Enemy killed (id=${enemy.enemyId.take(6)}…) → combo=$comboCount tier=$comboTier boss=${enemy.isBoss}")
+                Logger.v { "Enemy killed (id=${enemy.enemyId.take(6)}…) → combo=$comboCount tier=$comboTier boss=${enemy.isBoss}" }
             }
         )
     }

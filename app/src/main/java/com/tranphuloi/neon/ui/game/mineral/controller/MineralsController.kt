@@ -27,7 +27,7 @@ class MineralsController(
             width = width
         )
         minerals += mineral
-        Logger.d("MineralsController.addMinerals: at (${xOffset.toInt()},${yOffset.toInt()}) +$mineralAmount → total active=${minerals.size}")
+        Logger.v { "MineralsController.addMinerals: at (${xOffset.toInt()},${yOffset.toInt()}) +$mineralAmount → total active=${minerals.size}" }
         updateMinerals(minerals)
         updateMineralsEarnedTotal(mineralAmount)
     }

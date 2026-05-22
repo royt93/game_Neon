@@ -260,7 +260,7 @@ fun GameScreen(
     }
     val animatedIntensity = remember { Animatable(0.85f) }
     LaunchedEffect(intensityTarget) {
-        Logger.d("Music intensity → $intensityTarget (animating from ${animatedIntensity.value})")
+        Logger.v { "Music intensity → $intensityTarget (animating from ${animatedIntensity.value})" }
         animatedIntensity.animateTo(intensityTarget, animationSpec = tween(500))
     }
     val effectiveMusicVolume = (musicVolumePref * animatedIntensity.value).toInt().coerceIn(0, 100)

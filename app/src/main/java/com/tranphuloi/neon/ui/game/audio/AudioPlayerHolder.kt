@@ -84,7 +84,10 @@ class AudioPlayerHolder(private val appContext: Context) : DefaultLifecycleObser
 
     fun setVolume(percent: Int) {
         val v = (percent.coerceIn(0, 100)) / 100f
-        Logger.d("AudioPlayerHolder.setVolume percent=$percent → vol=$v")
+        // Round 44 — music intensity transitions step through volume 15-30× over
+        // ~1s each. At Logger.d that pumped logcat with dozens of lines per
+        // transition. Moved to verbose-only gate.
+        Logger.v { "AudioPlayerHolder.setVolume percent=$percent → vol=$v" }
         player?.volume = v
     }
 

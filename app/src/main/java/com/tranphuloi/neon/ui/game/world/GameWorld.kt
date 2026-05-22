@@ -6,9 +6,12 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.absoluteOffset
@@ -189,14 +192,45 @@ fun GameWorld(
             )
         }
         boosters.forEach {
-            Image(
-                painterResource(id = it.drawableId),
-                contentDescription = stringResource(id = R.string.booster),
+            // Round 43 (39x) — rarity ring overlay drawn behind the sprite (Box order:
+            // ring first, sprite on top). Common is barely visible; Rare/Epic pulse.
+            Box(
+                contentAlignment = Alignment.Center,
                 modifier = Modifier
                     .size(it.size.dp)
-                    .offset(x = it.xOffset.dp, y = it.yOffset.dp)
-                    .neonGlow(color = NeonGold, intensity = 0.6f, radiusFactor = 1.8f)
-            )
+                    .offset(x = it.xOffset.dp, y = it.yOffset.dp),
+            ) {
+                if (it.rarityRingColorHex != 0L) {
+                    val ringColor = Color(it.rarityRingColorHex)
+                    val ringPulse = if (it.isEliteRarity) {
+                        0.6f + 0.4f * kotlin.math.abs(
+                            kotlin.math.sin(System.currentTimeMillis() / 240.0).toFloat()
+                        )
+                    } else {
+                        0.35f                                  // common: static dim ring
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(it.size.dp)
+                            .border(
+                                BorderStroke(2.dp, ringColor.copy(alpha = ringPulse)),
+                                RoundedCornerShape(50),
+                            )
+                            .neonGlow(
+                                color = ringColor,
+                                intensity = if (it.isEliteRarity) 0.55f * ringPulse else 0f,
+                                radiusFactor = 1.6f,
+                            ),
+                    )
+                }
+                Image(
+                    painterResource(id = it.drawableId),
+                    contentDescription = stringResource(id = R.string.booster),
+                    modifier = Modifier
+                        .size(it.size.dp)
+                        .neonGlow(color = NeonGold, intensity = 0.6f, radiusFactor = 1.8f)
+                )
+            }
         }
         // 3b: Ship engine flame trail — drawn before ship sprite so flame appears
         // to emanate from engines (ship Image covers the flame's top edge).

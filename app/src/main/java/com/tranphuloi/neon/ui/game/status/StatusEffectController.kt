@@ -37,10 +37,10 @@ class StatusEffectController {
         )
         if (existing >= 0) {
             list[existing] = refreshed
-            Logger.d("StatusEffect: refresh $type on enemy=${enemyId.take(6)} (expires=${refreshed.expiresAtMillis})")
+            Logger.v { "StatusEffect: refresh $type on enemy=${enemyId.take(6)} (expires=${refreshed.expiresAtMillis})" }
         } else {
             list.add(refreshed)
-            Logger.d("StatusEffect: apply $type on enemy=${enemyId.take(6)} (expires=${refreshed.expiresAtMillis})")
+            Logger.v { "StatusEffect: apply $type on enemy=${enemyId.take(6)} (expires=${refreshed.expiresAtMillis})" }
         }
     }
 
@@ -81,7 +81,7 @@ class StatusEffectController {
                 val eff = effIter.next()
                 if (nowMillis >= eff.expiresAtMillis) {
                     effIter.remove()
-                    Logger.d("StatusEffect: expire ${eff.type} on enemy=${enemyId.take(6)}")
+                    Logger.v { "StatusEffect: expire ${eff.type} on enemy=${enemyId.take(6)}" }
                     continue
                 }
                 if (eff.type == StatusEffect.BURN) {
@@ -103,7 +103,7 @@ class StatusEffectController {
     /** Drop all effects for [enemyId] (e.g. enemy destroyed). */
     fun clearFor(enemyId: String) {
         if (effectsByEnemy.remove(enemyId) != null) {
-            Logger.d("StatusEffect: cleared all effects for enemy=${enemyId.take(6)} (destroyed/removed)")
+            Logger.v { "StatusEffect: cleared all effects for enemy=${enemyId.take(6)} (destroyed/removed)" }
         }
     }
 
