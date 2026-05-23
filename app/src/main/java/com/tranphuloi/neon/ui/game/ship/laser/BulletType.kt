@@ -48,6 +48,51 @@ enum class BulletType(
         pierceCount = 0,
         aoeRadius = 80f,                            // damage radius on impact
         glyph = "◯",
+    ),
+
+    // Round 67 (Wave 10a) — 3 new bullet types with FULL behaviors implemented.
+    // KAMEHAMEHA/ATOMIC/SPLIT/ZIGZAG/SMOKE deferred to Round 68+ (each requires
+    // dedicated movement/spawn/AoE logic worth its own focused round).
+    //
+    // Picked the 3 simplest-to-implement behaviors for Round 67:
+    //   FIRE   — reuses existing BURN status effect (Round 34) on hit
+    //   HOMING — mirrors MissileLaser pattern (already proven Round 40)
+    //   BOUNCE — adds bounceCount field + edge-detect in moveLaser
+    FIRE(
+        displayName = "Lửa",
+        activeDurationMillis = 10_000L,
+        damageMultiplier = 1.2f,
+        pierceCount = 0,
+        aoeRadius = 0f,
+        glyph = "♨",                               // steam/heat symbol (Unicode, not emoji)
+    ),
+    HOMING(
+        displayName = "Đuổi theo",
+        activeDurationMillis = 10_000L,
+        damageMultiplier = 0.8f,
+        pierceCount = 0,
+        aoeRadius = 0f,
+        glyph = "◎",                               // bullseye target
+    ),
+    BOUNCE(
+        displayName = "Phản xạ",
+        activeDurationMillis = 12_000L,
+        damageMultiplier = 0.7f,
+        pierceCount = 0,
+        aoeRadius = 0f,
+        glyph = "⇄",                               // double-arrow bounce
+    ),
+    // Round 67.5 — GIANT bullet (đạn khổng lồ). User-listed in original vision
+    // (msg Round 67). ×2 size visual + ×2 damage. Simpler than KAMEHAMEHA
+    // (no charge-up mechanic). Reuses ShipLaser body via new GiantShipLaser
+    // subclass at 2× dimensions.
+    GIANT(
+        displayName = "Khổng lồ",
+        activeDurationMillis = 10_000L,
+        damageMultiplier = 2f,
+        pierceCount = 0,
+        aoeRadius = 0f,
+        glyph = "⬤",                               // large filled circle
     );
 
     companion object {

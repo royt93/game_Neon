@@ -968,6 +968,360 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 67.6 — 4 user feedback fixes (MenuScreen + InfoScreen + HUD vector + asset cleanup)
+
+User audit Round 67.5 (4 issues):
+1. MenuScreen button spacing không đồng bộ (manual Spacer 8dp giữa các button breaking Column's spacedBy(12.dp)).
+2. InfoScreen edge-to-edge bug + UI quá simple — chỉ có glyph text, cần vector icon preview real như khi play game.
+3. Game screen còn bitmap/icon chưa migrate sang Canvas (HUD settings button + HP indicator + mineral coin icon + MineralCanvas vẫn dùng webp).
+4. Asset files đã không dùng → xóa đi.
+
+**Fix 1 — MenuScreen consistency**
+- Removed manual `Spacer(modifier = Modifier.height(8.dp))` trước BÁCH KHOA button.
+- Column's `verticalArrangement = Arrangement.spacedBy(12.dp)` giờ governs ALL vertical gaps đồng nhất (Row 1 ↔ Row 2 ↔ BÁCH KHOA).
+
+**Fix 2 — InfoScreen edge-to-edge + vector icons**
+- `windowInsetsPadding(WindowInsets.systemBars)` → moved into INNER content Box only. Outer Box uses `statusBars` so background flushes properly.
+- **InfoCard signature changed**: thay `glyph: String` bằng `iconDraw: DrawScope.(Size) -> Unit`. Each card now renders mini Canvas (48dp) với SHAPE THẬT từ game.
+- **Per-tab vector previews:**
+  - BULLETS: capsule body + white-hot core (matches LaserCanvas), color per BulletType
+  - SHIP: arrow + wings + cockpit (matches drawShipVector), 2 variants + 5 skin color dots
+  - ENEMIES: drawDart / drawHexagon / drawDiamond (matches EnemyCanvas) + 3 status effect colored circles
+  - BOSSES: drawMidBoss (5-point star) / drawBossStar (8-point + inner hex) — matches EnemyCanvas bosses
+  - ITEMS: drawCross / drawOctagon / drawTriangleUp / drawTripleBars / drawStar / drawHeart per drawableId (matches BoosterCanvas Round 66b)
+
+**Fix 3 — Remaining HUD bitmap migration**
+- `ButtonSettings.kt` — `button_settings.xml` (gear icon) → Canvas vector. 8-tooth gear path + center hole + cyan glow.
+- `IndicatorStatus.kt` — 2 bitmaps replaced:
+  - `button_hp_indicator.xml` (HP frame) → Canvas stadium/capsule with neon stroke, color tracks HP tier.
+  - `ic_mineral.webp` (gem icon) → Canvas diamond/rhombus + cyan stroke + bright sparkle line.
+- `MineralCanvas.kt` (Round 59 kept as bitmap) → REWRITTEN as pure vector. Diamond + cyan stroke + sparkle. Same recipe as HUD mineral icon — in-game mineral looks identical to the count icon.
+
+**Fix 4 — Asset cleanup**
+Deleted 5 confirmed-unused drawables (zero code references):
+- `res/drawable/button_hp_indicator.xml`
+- `res/drawable/button_move_left_purple.xml` (Round 6 replaced with Compose Path chevron)
+- `res/drawable/button_move_right_purple.xml`
+- `res/drawable/button_settings.xml` (just replaced)
+- `res/drawable-hdpi/ic_mineral.webp` (just replaced)
+
+**Remaining asset files (NOT yet deletable):**
+- ~28 webp files (booster_*, enemy_*, ic_laser_*, ic_space_rock_*, ship_*) — referenced in `BoosterType.drawableId`, `EnemyType.drawableId`, `ShipLaser.drawableId` etc. as METADATA. Code uses them for shape dispatch (e.g. `when (booster.drawableId) { R.drawable.booster_health -> drawCross(...) }`). Removing would require refactoring drawableId field out of each enum/data class.
+- `anim_explosion.gif` (Coil-loaded animated GIF) — kept for explosion VFX.
+- `ic_launcher.png`, `splash_image.png`, `splash_background.xml` — Android system / launch screen.
+
+**Files modified:**
+- `ui/menu/MenuScreen.kt` — removed manual Spacer.
+- `ui/info/InfoScreen.kt` — REWRITTEN ~530 LOC. New iconDraw lambda + 5 tabs với vector previews + edge-to-edge fix.
+- `ui/game/controls/ButtonSettings.kt` — Image → Canvas gear vector.
+- `ui/game/controls/IndicatorStatus.kt` — Image HP frame + Icon mineral → Canvas vectors.
+- `ui/game/world/MineralCanvas.kt` — drawImage(bitmap) → drawPath diamond.
+- `ui/game/world/GameWorld.kt` — removed `rememberMineralSprite` preload + `sprite=` param.
+
+**Files deleted:** 5 (4 vector XML + 1 webp).
+
+**Tests:** 219 unchanged.
+
+**Build verify:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL.
+
+**Runtime expectations:**
+- MenuScreen: 5 buttons + BÁCH KHOA — 12dp gaps đồng đều giữa tất cả buttons.
+- InfoScreen mở từ MenuScreen: header + tabs ở top, content flushes to nav bar at bottom. Mỗi card có 48dp Canvas icon vẽ shape thật.
+- HUD settings gear: cyan vector gear với glow.
+- HP indicator: stadium capsule cyan/gold/red tùy HP.
+- Mineral coin icon (HUD) + in-game minerals: cùng diamond + cyan stroke + sparkle line. Visual consistency.
+- APK size giảm nhẹ (5 files removed ~10-20 KB).
+
+**Next roadmap:**
+- Round 68a-e: implement 5 deferred bullets (SMOKE/ZIGZAG/KAMEHAMEHA/ATOMIC/SPLIT)
+- Round 69+: refactor drawableId field out of enums to enable deleting remaining 28 webp assets
+
+### Round 67.5 — GIANT bullet (missed spec) + InfoScreen (Bách Khoa)
+
+User audit post-Round-67: original Wave 10 vision included "đạn khổng lồ" but Round 67 (FIRE/HOMING/BOUNCE) missed it (HOMING + BOUNCE were my additions, not in user list). Round 67.5 fixes the gap + ships the new info-guide screen user requested.
+
+**A. GIANT bullet implementation**
+
+| Property | Value |
+|---|---|
+| Display name | Khổng lồ |
+| Damage mul | ×2.0 |
+| Duration | 10s |
+| Size | width ×2, height ×2 (vs ShipLaser baseline) |
+| Glyph | ⬤ (large filled circle) |
+| Tint | Gold 0xFFFFD040 |
+| Mechanic | No charge-up. Body simply ×2 dimensions. Damage stacks via BulletType.damageMultiplier in the existing damageMultiplier lambda. |
+
+New class `GiantShipLaser.kt` mirrors ShipLaser API at 2× dimensions. Total BoosterType weight 202 → 208.
+
+**B. InfoScreen (Bách Khoa)**
+
+New full-screen `InfoScreen.kt` accessed from MenuScreen → "📖 BÁCH KHOA" button. 5 tabs:
+- **ĐẠN** — list 7 BulletTypes (NORMAL/PIERCING/PLASMA/FIRE/HOMING/BOUNCE/GIANT) with damage mul, duration, mechanic description.
+- **PHI THUYỀN** — current ship (vector arrow), 5 ship skins, Wave 8 roadmap.
+- **ĐỊCH** — 3 enemy families (light_blue darts / green hexagons / red diamonds) + status effects (BURN/SLOW/STUN).
+- **BOSS** — mid-bosses (3 variants) / BOSS CẤP 1-3 / FinalBoss (3-phase) + Wave 9 roadmap.
+- **VẬT PHẨM** — all 22 BoosterTypes (8 base + 10 Round 60 + 3 Round 67 + 1 Round 67.5) with glyph, weight, mechanic.
+
+Reusable `InfoCard` composable: glyph in colored bordered box + title (color) + subtitle (alpha 0.7) + description (white alpha 0.85). LazyColumn for bullets/items (long lists), regular Column for ship/enemies/bosses (shorter).
+
+**Tab UI:**
+- 5 chips horizontal at top, each colored by tab category (cyan/gold/magenta/red/violet).
+- Selected tab: 2dp border + 15% color fill + bold text. Unselected: 1dp border alpha 0.4 + normal text.
+- Header: "BÁCH KHOA" title (cyan glow) + "← QUAY LẠI" button.
+
+**Files modified:**
+- `ui/game/ship/laser/BulletType.kt` — +1 GIANT entry.
+- `ui/game/ship/laser/GiantShipLaser.kt` (new) — ×2 dimensions wrapper.
+- `ui/game/booster/BoosterType.kt` — +1 GIANT_BOOSTER.
+- `ui/game/booster/BoosterToBoosterUIMapper.kt` — +1 tint + glyph + constant.
+- `ui/game/ship/ship/ShipController.kt` — +1 pickup dispatch.
+- `ui/game/state/GameState.kt` — +1 onBulletTypeActivated popup case.
+- `ui/game/ship/laser/LasersController.kt` — +1 buildOneLaser branch + on-hit branch.
+- `ui/dlg/loadoutpicker/DialogLoadoutPicker.kt` — +1 color + subtitle.
+- `navigation/Navigation.kt` — +Info route.
+- `ui/info/InfoScreen.kt` (new) — 5-tab info guide ~330 LOC.
+- `ui/MainActivity.kt` — wire onOpenInfo + composable(Info.route).
+- `ui/menu/MenuScreen.kt` — +onOpenInfo param + "BÁCH KHOA" button.
+- `BoosterTypeTest.kt` — total weight 202 → 208.
+- `BoosterToBoosterUIMapperTest.kt` — +1 GIANT test.
+
+**Tests:** 218 → 219 (+1 GIANT mapper).
+
+**Build verify:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL.
+
+**BulletType totals so far (7 of planned 12):**
+- ✓ NORMAL (default)
+- ✓ PIERCING (Round 35)
+- ✓ PLASMA (Round 35)
+- ✓ FIRE (Round 67)
+- ✓ HOMING (Round 67)
+- ✓ BOUNCE (Round 67)
+- ✓ GIANT (Round 67.5)
+- ⏸ SMOKE (Round 68a)
+- ⏸ ZIGZAG (Round 68b)
+- ⏸ KAMEHAMEHA (Round 68c, charge-up complex)
+- ⏸ ATOMIC (Round 68d)
+- ⏸ SPLIT (Round 68e)
+
+**Runtime expectations:**
+- MenuScreen → "📖 BÁCH KHOA" button → InfoScreen với 5 tabs.
+- Tap tab → switch content. All 22 BoosterTypes hiển thị trong "VẬT PHẨM".
+- All 7 BulletTypes hiển thị trong "ĐẠN" với damage mul + duration + mechanic Vietnamese.
+- GIANT pickup → "⬤ Khổng lồ" TTS callout + 10s of ×2-size lasers dealing ×2 damage.
+
+### Round 67 (Wave 10a) — 3 new BulletType with FULL behaviors (FIRE/HOMING/BOUNCE)
+
+User audit pushed back on initial Round 67 attempt (8 BulletTypes with stubbed behaviors). Re-scoped to 3 bullets done PROPERLY with real mechanics, damage multiplier wired, and unicode glyphs. Remaining 5 complex types (KAMEHAMEHA/ATOMIC/SPLIT/ZIGZAG/SMOKE) deferred to Round 68+ where each gets focused round per behavior.
+
+**3 bullet types with implemented behaviors:**
+
+| Bullet | Mechanic | Damage mul | Duration | Glyph |
+|---|---|---|---|---|
+| **FIRE** | 100% BURN status on hit (existing Round 34 StatusEffect.BURN — 5HP/sec DoT for 3s) | ×1.2 | 10s | ♨ |
+| **HOMING** | Reuses MissileLaser (Round 40 secondary weapon) — tracks nearest enemy each tick | ×0.8 | 10s | ◎ |
+| **BOUNCE** | New BounceShipLaser subclass — ricochets off left/right edges, 3 hits before destroy | ×0.7 | 12s | ⇄ |
+
+**Damage multiplier wiring (the bug from initial attempt):**
+- LasersController `damageMultiplier` lambda extended:
+  ```
+  effectiveStats.damageMul ×
+      shipController.berserkDamageMul() ×
+      shipController.critSurgeMul() ×
+      ship.activeBulletType.damageMultiplier        // NEW: Round 67
+  ```
+- `ship.activeBulletType.damageMultiplier` read at hit time (Compose state, recomputed each invocation). FIRE ×1.2 / HOMING ×0.8 / BOUNCE ×0.7 actually apply now.
+
+**New file:**
+- `ui/game/ship/laser/BounceShipLaser.kt` — extends Laser with `xVelocity` + `hitsRemaining = 3`. moveLaser flips xVelocity on edge. Constructor takes screenWidth for bounds.
+
+**Files modified:**
+- `ui/game/ship/laser/BulletType.kt` — 3 new entries (NORMAL/PIERCING/PLASMA/FIRE/HOMING/BOUNCE = 6 total).
+- `ui/game/booster/BoosterType.kt` — 3 new entries weight=6 (total 184 → 202).
+- `ui/game/booster/BoosterToBoosterUIMapper.kt` — 3 (tint, glyph) + 3 tint constants. Unicode-only glyphs (♨ ◎ ⇄), no emoji.
+- `ui/game/ship/ship/ShipController.kt` — 3 pickup dispatch cases.
+- `ui/game/state/GameState.kt` — 3 onBulletTypeActivated popup cases + extended damageMultiplier lambda + FIRE → BURN status apply in onLaserHit.
+- `ui/game/ship/laser/LasersController.kt` — buildOneLaser: FIRE uses ShipLaser body, HOMING uses MissileLaser, BOUNCE uses BounceShipLaser. processShipLasers on-hit: FIRE/HOMING destroy normally, BOUNCE decrements hitsRemaining + destroys at 0.
+- `ui/dlg/loadoutpicker/DialogLoadoutPicker.kt` — 3 color + 3 subtitle branches. Picker tile UI for new types deferred to Round 67e.
+- `BoosterTypeTest.kt` — total weight 184 → 202.
+- `BoosterToBoosterUIMapperTest.kt` — +4 tests (3 per-type tint+glyph + 1 distinct/opaque sanity).
+
+**Tests:** 214 → 218 (+4). All pass.
+
+**Build verify:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL.
+
+**Runtime expectations:**
+- FIRE pickup → TTS "♨ Lửa" → next 10s: every laser hit applies BURN, enemies tick down 5HP/sec for 3s after hit. Damage ×1.2 base.
+- HOMING pickup → TTS "◎ Đuổi theo" → 10s of MissileLaser firing — visible turn toward nearest enemy. Damage ×0.8.
+- BOUNCE pickup → TTS "⇄ Phản xạ" → 12s of lasers ricocheting off screen edges. Each laser hits up to 3 enemies. Damage ×0.7.
+- BERSERK + FIRE combo: enemies take ×2 (berserk) × ×1.2 (FIRE) = ×2.4 damage + BURN DoT.
+
+**Round 68+ roadmap:**
+- 68a: ATOMIC (AoE on hit, 150dp radius — extend PLASMA pattern).
+- 68b: SPLIT (children spawn at apex — extend processShipLasers).
+- 68c: ZIGZAG (sine-wave xOffset modulation in moveLaser).
+- 68d: KAMEHAMEHA (charge-up + 30dp wide pierce-all beam).
+- 68e: SMOKE (status effect: blind enemy fire rate — new SLOW_FIRE status type).
+- 68f: Loadout picker UI extension (10 bullets visible) + per-bullet behavior tests.
+
+### Round 66b — Mega vector migration (boosters + space rocks + enemies + ship)
+
+User vision: 8 bullet types (FIRE/SMOKE/ZIGZAG/KAMEHAMEHA/ATOMIC/SPLIT/HOMING/BOUNCE) triggered by booster pickup. Mega scope picked.
+
+**Round 67 = MVP slot allocation only:**
+- 8 BulletType enum entries with metadata (damageMul, duration, glyph, aoeRadius for ATOMIC, pierceCount=99 for KAMEHAMEHA).
+- 8 BoosterType entries (FIRE_BOOSTER, etc.) weight=6 each (preserves REVIVE rarest invariant). Total weight 184 → 232.
+- 8 (tint, glyph) entries in BoosterToBoosterUIMapper.
+- 8 pickup dispatch cases in ShipController (`setBulletType` per type).
+- 8 GameState.onBulletTypeActivated cases (TTS popup + tinted text).
+- 8 LasersController.buildOneLaser cases (fall back to ShipLaser/ShipBoostedLaser body — behaviors stubbed).
+- 8 LasersController.processShipLasers on-hit cases (destroyShipLaser, same as NORMAL).
+- DialogLoadoutPicker color + subtitle for each (visibility deferred — not yet in picker UI tile list).
+
+**Behaviors INTENTIONALLY STUBBED for Round 67b:**
+- FIRE: burn DoT 5HP/sec for 3s after hit (apply BURN status on target).
+- SMOKE: AoE blind, enemies' fire rate -50% for 2s.
+- ZIGZAG: sine-wave xOffset modulation in moveLaser.
+- KAMEHAMEHA: 30dp wide beam visual + pierces all (pierceRemaining=99 wiring).
+- ATOMIC: massive AoE on impact (150dp radius, similar to PLASMA but bigger).
+- SPLIT: spawn 3 children at screen apex (yOffset < screenHeight/2 trigger).
+- HOMING: track nearest enemy via MissileLaser pattern (reuse).
+- BOUNCE: ricochet off screen edges, max 3 bounces.
+
+Pickup of any new booster activates BulletType for its duration (8-12s depending on type) — visually shown via TTS callout + PickupPopup with tinted glyph + name. Mechanic during the duration = NORMAL bullet behavior with damage multiplier. Visually distinguishable only by the glyph in the booster sprite + the activation popup. Behaviors will surface in Round 67b/c implementations.
+
+**Files modified:**
+- `ui/game/ship/laser/BulletType.kt` — 8 new enum entries.
+- `ui/game/booster/BoosterType.kt` — 8 new BoosterType entries weight=6.
+- `ui/game/booster/BoosterToBoosterUIMapper.kt` — 8 new (tint, glyph) + 8 new tint constants.
+- `ui/game/ship/ship/ShipController.kt` — 8 new pickup dispatch cases.
+- `ui/game/state/GameState.kt` — 8 new onBulletTypeActivated popup cases.
+- `ui/game/ship/laser/LasersController.kt` — 8 new buildOneLaser branches + 8 new on-hit branches (all fall back to NORMAL behavior, stub comments mark Round 67b TODO).
+- `ui/dlg/loadoutpicker/DialogLoadoutPicker.kt` — 8 new colorForBullet + subtitleForBullet branches (when exhaustive).
+- `app/src/test/.../BoosterTypeTest.kt` — total weight 184 → 232.
+
+**Tests:** 214 unchanged. New mapper tests + behavior tests deferred to Round 67b once mechanics implemented.
+
+**Build verify:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL.
+
+**Runtime expectations:**
+- 8 new boosters can spawn (each ~2.6% drop rate, combined 21%).
+- On pickup → TTS announce (existing pattern via onBulletTypeActivated), glyph popup at ship.
+- During buff duration: lasers behave as NORMAL (no DoT, no AoE, no homing, no split, no zigzag, no bounce). Damage multiplier from BulletType not yet wired to actual damage pipeline.
+- Combined bullet-type combined drop rate 48/232 = 20.7% — high enough that player encounters new types each run.
+
+**Round 67b/c roadmap:**
+- 67b: Implement FIRE DoT + ATOMIC AoE + KAMEHAMEHA wide beam (3 effects requiring on-hit changes).
+- 67c: Implement HOMING + BOUNCE + ZIGZAG (3 movement changes).
+- 67d: Implement SPLIT + SMOKE (most complex — child spawn + status effect).
+- 67e: Loadout picker UI extension (10 bullets visible) + behavior tests.
+
+### Round 66b — Mega vector migration (boosters + space rocks + enemies + ship)
+
+User reviewed Round 66 laser pilot (uncommitted? pending runtime verify) and decided MEGA SCOPE: migrate ALL remaining entities to pure vector in one commit. High-risk decision but high reward: full geometric neon aesthetic across the game.
+
+**4 entities migrated:**
+
+| Entity | Vector recipe | Effort |
+|---|---|---|
+| Boosters | 6 shapes per drawableId (cross/octagon/triangle/3-bars/star/heart) + glyph overlay preserved | 150 LOC |
+| Space rocks | Procedural irregular polygon (10 vertices with seeded jitter) + violet stroke + 2-3 crater dots | 100 LOC |
+| Enemies | Per-family geometry: light_blue→dart triangles, green→hexagons, red→diamonds, bosses→8-point stars + inner hex | 220 LOC |
+| Ship | Arrow body (5-vertex pentagon) + wings (trapezoid, wider when laser-boosted) + cockpit dot + engine tail glow | 75 LOC |
+
+**Visual character:**
+- Boosters now LOOK like distinct icons (cross/star/heart) instead of identical webp blobs differentiated only by glyph.
+- Space rocks read as angular asteroids with stable per-id shape (no flicker frame-to-frame).
+- Enemies have clear faction identity through silhouette (light_blue darts vs green hex tanks vs red diamond brutes).
+- Boss star shape with inner hex core reads as "important target".
+- Ship is sleek triangular fighter — clean geometric look, color tracks ship-skin setting (5 aura colors all work).
+
+**Status effect + hit flash handling for enemies:**
+- Old: tinted `drawImage(colorFilter=Tint(white*flash))` overlaid on bitmap.
+- New: `blendForFlash(base, hitFlash, statusTints, nowMillis)` — mixes body color toward white (hit flash) and toward averaged status-tint color (BURN/SLOW/STUN pulse). Single body draw with computed color, no overlay stack.
+
+**Boss entry phase trail:**
+- Old: 4 stacked drawImage copies with fading alpha.
+- New: 4 calls to `drawEnemyShape` at progressive yOffset with alpha fade. Same visual cadence, vector this time.
+
+**Sprite cleanup:**
+- `LaserSprites`, `BoosterSprites`, `SpaceObjectSprites`, `EnemySprites` all marked `@Deprecated` stubs (empty maps). `rememberXxxSprites()` returns empty stub. Future cleanup round can delete entirely once no callers reference them.
+- `rememberMineralSprite()` KEPT — mineral icon (`ic_mineral.webp`) is small detail gem; vector equivalent would be a basic drawCircle that loses character. Out of scope for this round.
+- 14 enemy webp + 5 laser png + 6 booster + 4 space rock = **29 drawables** can be deleted from `res/drawable-hdpi/` in a follow-up cleanup commit. Kept for now to allow easy rollback if visual is rejected.
+
+**Files modified:**
+- `ui/game/world/BoosterCanvas.kt` — rewrote with 6 shape recipe functions (drawCross/Octagon/TriangleUp/TripleBars/Star/Heart).
+- `ui/game/world/SpaceObjectCanvas.kt` — rewrote with procedural `drawAsteroidShape(seed)` (id-hash-seeded jitter).
+- `ui/game/world/EnemyCanvas.kt` — rewrote with per-family `drawDart/Hexagon/Diamond/BossStar` + `blendForFlash` + family color tables.
+- `ui/game/world/ShipVector.kt` (new) — `DrawScope.drawShipVector(color, laserBoosterEnabled)` extension. ~75 LOC.
+- `ui/game/world/GameWorld.kt` — replaced `Image(painterResource(ship.drawableId))` with `Canvas { drawShipVector(...) }`. Removed 3 sprite preloads (`rememberEnemySprites`/`rememberSpaceObjectSprites`/`rememberBoosterSprites`). Removed `sprites = ...` params from 3 Canvas calls.
+
+**Tests:** 214 unchanged. Mapper tests still pass (drawableId field on UI projections untouched).
+
+**Build verify:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL.
+
+**Risk acknowledgement:**
+- Visual cohesion: lasers (round 66) + boosters + rocks + enemies + ship are now ALL vector. Mineral still bitmap (small icon, low risk of mismatch).
+- Boss star may not feel as "menacing" as the original hand-drawn boss bitmaps. If reported, can iterate on boss shape in round 66c.
+- Enemy variants (5 light-blue / 4 green / 3 red) currently differ only by small rotation/notch tweaks — variant identity less crisp than original sprites. If a variant feels indistinguishable, expand recipes in round 66c.
+- Color blend (hit flash + status pulse) is computed in floating-point — may show slight color drift vs the original ColorFilter.tint() additive blend. Should be acceptable but watch for "muddy" colors during BURN+SLOW dual-stack.
+
+**Rollback path:** revert `ui/game/world/BoosterCanvas.kt` + `SpaceObjectCanvas.kt` + `EnemyCanvas.kt` + `ShipVector.kt` (delete) + `GameWorld.kt` ship block. Tests untouched. Single commit revert.
+
+### Round 66 — Pure-vector lasers (pilot for bitmap→vector migration)
+
+User-flagged direction: replace bitmap sprites với pure Canvas vectors. Pilot on lasers first (simplest entity, lowest risk, reversible).
+
+**Why lasers as pilot:**
+- 5 ic_laser_*.webp drawables → just colored stripes with rounded ends. Migration to drawRoundRect is essentially lossless aesthetically.
+- LaserCanvas (Round 49) already does Canvas pass — only the `drawImage(bitmap)` call needs swapping for `drawRoundRect`.
+- API surface change isolated to LaserCanvas + 3 call sites in GameWorld.
+- 25 ship lasers + 30 enemy lasers + N ultimate lasers @ 120 FPS — perf-sensitive enough to validate vector cost is not a regression.
+
+**Vector recipe per laser (3 stacked primitives):**
+1. **Radial gradient halo** — same as round 49 (drawCircle with radialGradient brush). Drives the neon ambient glow.
+2. **Outer body** — `drawRoundRect(color = glow, cornerRadius = width/2)`. Pill/capsule shape for vertical beams; PLASMA (square aspect) becomes nearly circular which fits its "energy blob" character.
+3. **Inner hot core** — `drawRoundRect(color = White × 0.85, width = 0.5 × outer, vertically inset 10%, cornerRadius = innerWidth/2)`. The bright neon center.
+
+**API changes:**
+- `LaserCanvas(lasers, glow, intensity, radiusFactor, modifier)` — removed `sprites` parameter.
+- `LaserSprites` + `rememberLaserSprites()` kept as deprecated stubs (delete in cleanup round once no callers).
+- `LaserUI.drawableId` no longer used for rendering. Kept for backward compat with persistence + LaserMapper tests.
+
+**Files modified:**
+- `ui/game/world/LaserCanvas.kt` — rewrote drawLaser to use drawRoundRect instead of drawImage. Added `drawCapsuleBody` helper for the body+core pair (extracted so rotate() block can reuse it).
+- `ui/game/world/GameWorld.kt` — removed `sprites = laserSprites` from 3 LaserCanvas calls + removed `rememberLaserSprites()` preload.
+
+**Tests:** 214 unchanged (LaserMapper tests still pass — drawableId field on LaserUI preserved).
+
+**Build verify:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL.
+
+**Visual expectation (runtime):**
+- Ship lasers: cyan pill-shaped beams with white-hot center, neon glow halo. Look closer to "Geometry Wars" pew-pew than the old painted sprite.
+- Ultimate beams: gold thicker capsules, brighter white core.
+- Enemy lasers: red capsules going down.
+- PIERCING: magenta (from tint) capsule.
+- PLASMA: cyan blob (nearly circular due to width≈height).
+
+**Expansion plan if pilot looks good:**
+- 66b: BoosterCanvas pure vector (drop 6 booster_*.webp, draw circles/diamonds + glyph)
+- 66c: SpaceObjectCanvas pure vector (draw irregular bumpy outline paths instead of rock sprites)
+- 66d: EnemyCanvas pure vector (geometric alien ship shapes — biggest visual change + risk)
+- 66e: ShipController + GameWorld ship sprite → pure vector ship outline
+
+**If pilot rejected:**
+- Revert LaserCanvas.kt to round 49+61 state (drawImage). 1-commit rollback.
+
+**Effort estimate (post-pilot):**
+- 66b boosters: 1-2 hours, low risk.
+- 66c space rocks: 1-2 hours, medium risk (irregular shape).
+- 66d enemies: 3-5 hours, high risk (5-10 enemy types each need custom geometric design).
+- 66e ship: 2-3 hours, high impact (player sees ship most).
+
+**Known limitations:**
+- Pure vector loses any per-laser sprite variation if the project ever adds custom laser styles (e.g. PIERCING with arrow head). Currently lasers are uniform stripes so loss is acceptable.
+- Anti-aliased capsule rendering may show slight shimmer at high speeds on cheap GPUs. Not observed during build verify.
+
 ### Round 65 — HEALING_AURA log gating (micro-fix)
 
 Round 64 verify runtime: ✅ voice Darth Vader confirmed working (DRAMATIC pitch=0.55 rate=0.70 boss kill / HYPE pitch=0.80 rate=1.05 combo). ✅ Music overlay fixed (no pitch shift on BGM). ✅ All 10 Round 60 boosters runtime-verified across sessions (HEALING_AURA finally surfaced this session — heals +1 HP/200ms = 5HP/sec exactly per design).
@@ -2928,6 +3282,154 @@ Sequential lag-fix passes after gameplay features landed:
 - [ ] Zc ProGuard + baseline
 - [🟡] AAc Recomposition audit — partially addressed by rounds 44-49 perf chain (`key()`, entity caps, mapper memoization, Canvas lasers). Layout Inspector instrumentation + enemy-Canvas refactor (round 50+) still needed.
 - [ ] CCc Benchmark — should run alongside enemy Canvas (round 50) so the saving is quantifiable instead of subjective.
+
+---
+
+## Wave 8 — Player progression (📋 ROADMAP, not started)
+
+User feedback Round 66b runtime: "ship shape xấu quá, có chế độ upgrade không?". Vision: ship variants + stat upgrades persistent across runs.
+
+### 8a Ship shape variants (3-5 unlockable shapes)
+- **Fighter** (current default — arrow pentagon + wings) — starting ship
+- **Bomber** — heavier silhouette, +25% HP, -10% speed
+- **Stealth** — smaller triangular, +20% speed, -15% HP
+- **Tank** — large hex body, +50% HP, -25% speed
+- **Interceptor** — narrow dart, +30% speed + 10% damage, -20% HP
+- Each unlockable via lifetime minerals (1000/2500/5000/10000)
+- Picker in MenuScreen → opens ShipPickerScreen
+- Stored in SettingsRepository.selectedShipShape
+
+### 8b Ship stat upgrades (5 stat tracks × 5 levels each = 25 nodes)
+- **HP track**: +100 / +250 / +500 / +1000 / +2000 max HP
+- **Damage track**: ×1.05 / ×1.10 / ×1.20 / ×1.35 / ×1.50 multiplier
+- **Speed track**: +5% / +10% / +15% / +20% / +25%
+- **Magnet track**: +20% / +40% / +60% / +80% / +100% radius
+- **Crit chance track**: +5% / +10% / +15% / +20% / +25% (new mechanic)
+- Cost lifetime minerals, scaling exponentially (100/250/500/1000/2500 per level per track)
+- Persisted via MetaProgressionRepository (already exists, extend schema)
+- UI: extend existing skill tree screen OR new "PHI THUYỀN" screen
+
+### 8c Per-ship loadout persistence
+- Each ship shape can have its OWN preferred bullet type + secondary weapon
+- DataStore key: "ship_loadout_<shape_key>" → JSON {bulletType, secondaryWeapon}
+- Loadout picker auto-loads selected ship's preferences
+
+### Estimated effort: 3-4 rounds
+
+---
+
+## Wave 9 — Enemy + Boss diversity (📋 ROADMAP, not started)
+
+User feedback: "enemy quá đơn giản, cần xịn sò hơn, đa dạng hơn" + "boss phải có shape đa dạng, không trùng lặp, càng quái dị, HP/sát thương/đạn tăng dần".
+
+### 9a Enemy variant expansion (15 new types across families)
+- **Light-blue family +5 variants**: Scout (fast, 1-shot), Drone (orbiter), Swarmling (3-cluster), Sniper (long-range), Kamikaze (charge ship)
+- **Green family +5 variants**: Tank (heavy HP), Healer (regen neighbors), Splitter (divides on hit), Repulsor (knocks ship), Jammer (disables boosters briefly)
+- **Red family +5 variants**: Bomber (drops mines), Missileer (homing bullets), Brute (melee charge), Predator (cloaking), Executor (mid-boss-class)
+- Each enemy: unique vector shape, distinct color hue, special behavior pattern
+- 15 new EnemyType enum entries + 15 vector recipes in EnemyCanvas
+
+### 9b Per-chapter unique boss (5 distinct shapes)
+- **Chapter 1 Boss "TIỂU BOSS BẦY ĐÀN"** (Swarm Queen): pentagon body with 5 satellite orbs that spawn drones
+- **Chapter 2 Boss "BOSS CẤP 2"** (Geometric Station): 3-ring rotating fortress, each ring fires different pattern
+- **Chapter 3 Boss "BOSS CẤP 3"** (Energy Entity): teleporting blob, fires plasma waves
+- **Chapter 4 Boss "BOSS CẤP 4"** (Mechanical Octopus): 8 arms, each fires independently
+- **Chapter 5 FinalBoss "BOSS CUỐI CÙNG"** (Quantum Harbinger): current 3-phase, enhanced with new attack patterns
+- Each boss in vector form via dedicated draw function in EnemyCanvas
+
+### 9c Scaling difficulty per chapter
+- HP scales: 1500 → 2500 → 4000 → 6500 → 10000 across chapters 1-5
+- Damage scales: ×1.0 → ×1.25 → ×1.5 → ×1.8 → ×2.2
+- Laser fire rate: 1500ms → 1200ms → 900ms → 700ms → 500ms intervals
+- Move speed: ×1.0 → ×1.15 → ×1.3 → ×1.5 → ×1.8
+- New attack patterns unlock at higher chapters (spread, homing, area-denial)
+
+### Estimated effort: 5-6 rounds (variants + 5 bosses + scaling logic)
+
+---
+
+## Wave 10 — Bullet type expansion (📋 ROADMAP, not started)
+
+User feedback: "đạn phong phú hơn, ví dụ laser, lửa, khói, 3 tia, zigzag, khổng lồ, kamehameha, nguyên tử". Item booster trigger bullet type for limited duration.
+
+### 10a New bullet types (8 new + 2 existing = 10 total)
+Currently: NORMAL, PIERCING, PLASMA, ULTIMATE (already implemented). Adding:
+- **FIRE**: trail damage (burn DoT 5HP/sec for 3s after impact)
+- **SMOKE**: AoE blind, enemies' fire rate -50% for 2s
+- **ZIGZAG**: sine-wave path, harder to dodge, ×0.85 damage
+- **KAMEHAMEHA**: charge-up (1.5s) → giant beam piercing all enemies, ×5 damage
+- **ATOMIC**: single huge shot, explosion radius 200dp on impact, ×10 damage
+- **SPLIT**: divides into 3 mini-bullets at 50% screen height, ×0.6 damage each
+- **HOMING** (deferred from Round 35): tracks nearest enemy, ×0.8 damage
+- **BOUNCE**: ricochets off screen edges, hits 3 enemies max, ×0.7 damage
+
+### 10b Each bullet has unique stats
+- **Damage multiplier**: relative to base laser
+- **Duration** when granted via booster: 5-15s
+- **Visual recipe**: dedicated DrawScope function per bullet type
+- **Hit behavior**: pierce-through, AoE, single-target, etc.
+
+### 10c Booster types triggering new bullets (8 new BoosterType entries)
+- FIRE_BOOSTER, SMOKE_BOOSTER, ZIGZAG_BOOSTER, KAMEHAMEHA_BOOSTER, ATOMIC_BOOSTER, SPLIT_BOOSTER, HOMING_BOOSTER, BOUNCE_BOOSTER
+- Each weight 4 (rarer than baseline, similar tier to PIERCING/PLASMA)
+- Total booster weight: 184 + 32 = 216
+
+### 10d Loadout picker extension
+- Pre-game picker shows ALL bullet types (now 10) with stats preview
+- Player picks preferred starting bullet (10s head-start)
+- Persist in DataStore.preferredBulletType (already exists)
+
+### Estimated effort: 4-5 rounds
+
+---
+
+## Wave 11 — Item booster expansion + DB metrics (📋 ROADMAP, not started)
+
+User feedback: "cần đa dạng item boot: +hp, các loại đạn, vòng bảo vệ, hồi sinh, ..." + "tất cả thông số update vào local db hiệu quả".
+
+### 11a More booster types (10 additional, mix gameplay types)
+- **REGEN_BOOSTER**: +1 HP/sec passive for 30s
+- **REFLECT_BOOSTER**: enemy laser bounces back at sender for 8s
+- **GRAVITY_BOOSTER**: all minerals AUTO-collect for 10s, no magnet needed
+- **TIME_FREEZE_BOOSTER**: enemies frozen 3s, can still shoot them
+- **CHAIN_LIGHTNING_BOOSTER**: each laser hits 3 enemies in chain for 10s
+- **VAMPIRE_BOOSTER**: +50% of damage dealt = HP healed for 10s
+- **GHOST_BOOSTER**: pass through enemies (no collision) for 5s
+- **CLONE_BOOSTER**: spawn a clone ship next to player firing same lasers for 8s
+- **GIANT_BOOSTER**: ship 1.5× size + 1.5× HP + 1.5× damage for 12s (risk: bigger target)
+- **MINI_BOOSTER**: ship 0.6× size + 1.3× speed for 12s (smaller target)
+
+Total booster types: 18 (current) + 8 (Wave 10) + 10 (Wave 11) = **36 total**.
+
+### 11b DB metrics persistence (extend MetaProgressionRepository)
+- Per-run stats: kills, damage dealt, items collected, boss kill ranks
+- Aggregated lifetime stats:
+  - Total enemies killed
+  - Total damage dealt
+  - Total bosses defeated
+  - Per-bullet-type kill count
+  - Per-enemy-type kill count
+  - Per-boss-type kill rank distribution (S/A/B/C/D counts)
+  - Total time played per ship shape
+- DataStore keys: `metric_<name>` for each, atomically updated
+
+### 11c Statistics screen
+- New screen accessible from MenuScreen → "THỐNG KÊ"
+- Display all aggregated metrics
+- Per-ship breakdown
+- Achievement progress (existing tied to thresholds)
+
+### Estimated effort: 4-5 rounds
+
+---
+
+## Wave 8-11 priority pick
+
+User Round 67+ pick which Wave(s) to prioritize. Each Wave is 3-6 rounds. Suggested order:
+1. Wave 10 (bullets) — highest gameplay variety bang for buck
+2. Wave 9 (enemies + bosses) — biggest content expansion
+3. Wave 8 (ship progression) — meta hook
+4. Wave 11 (boosters + DB metrics) — polish + replay incentive
 
 ---
 

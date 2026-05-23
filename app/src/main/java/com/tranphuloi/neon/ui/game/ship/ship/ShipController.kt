@@ -612,6 +612,27 @@ class ShipController(
                         multiplier = mul,
                         rarity = booster.rarity,
                     )
+                    // Round 67 (Wave 10a) — 3 bullet-type boosters.
+                    BoosterType.FIRE_BOOSTER -> setBulletType(
+                        com.tranphuloi.neon.ui.game.ship.laser.BulletType.FIRE,
+                        multiplier = mul,
+                        rarity = booster.rarity,
+                    )
+                    BoosterType.HOMING_BOOSTER -> setBulletType(
+                        com.tranphuloi.neon.ui.game.ship.laser.BulletType.HOMING,
+                        multiplier = mul,
+                        rarity = booster.rarity,
+                    )
+                    BoosterType.BOUNCE_BOOSTER -> setBulletType(
+                        com.tranphuloi.neon.ui.game.ship.laser.BulletType.BOUNCE,
+                        multiplier = mul,
+                        rarity = booster.rarity,
+                    )
+                    BoosterType.GIANT_BOOSTER -> setBulletType(
+                        com.tranphuloi.neon.ui.game.ship.laser.BulletType.GIANT,
+                        multiplier = mul,
+                        rarity = booster.rarity,
+                    )
                     // Round 60 (38x) — 10 new boosters dispatch. 8 are timed
                     // buffs (enable + auto-expire), 2 are one-shot (QUICK_HEAL
                     // applies HP directly, MINERAL_SUPERCHARGE delegates to

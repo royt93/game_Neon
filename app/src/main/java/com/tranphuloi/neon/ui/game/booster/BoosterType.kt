@@ -46,4 +46,13 @@ enum class BoosterType(
     MINERAL_SUPERCHARGE(R.drawable.booster_health, weight = 6),
     HEALING_AURA(R.drawable.booster_health, weight = 6),
     DOUBLE_FIRE(R.drawable.booster_red_lasers, weight = 6),
+
+    // Round 67 (Wave 10a) — 3 new bullet-type boosters with full behaviors.
+    // Weight=6 each (REVIVE-rarest invariant preserved). +18 total weight,
+    // new total 202. Each new booster ~3.0% drop rate.
+    FIRE_BOOSTER(R.drawable.booster_red_lasers, weight = 6),
+    HOMING_BOOSTER(R.drawable.booster_triple_laser, weight = 6),
+    BOUNCE_BOOSTER(R.drawable.booster_red_lasers, weight = 6),
+    // Round 67.5 — GIANT bullet booster. Total weight 202 → 208.
+    GIANT_BOOSTER(R.drawable.booster_ultimate_weapon, weight = 6),
 }

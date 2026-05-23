@@ -233,12 +233,22 @@ private fun colorForBullet(b: BulletType, palette: NeonPalette): Color = when (b
     BulletType.NORMAL -> palette.cyan
     BulletType.PIERCING -> palette.gold
     BulletType.PLASMA -> palette.violet
+    // Round 67 (Wave 10a) — 3 new bullet types. Default colors so when() is
+    // exhaustive; picker tile grid update deferred to Round 67e (UI polish).
+    BulletType.FIRE -> palette.redAlert
+    BulletType.HOMING -> palette.magenta
+    BulletType.BOUNCE -> palette.cyan
+    BulletType.GIANT -> palette.gold
 }
 
 private fun subtitleForBullet(b: BulletType): String = when (b) {
     BulletType.NORMAL -> "Đạn tiêu chuẩn · không buff khởi đầu"
     BulletType.PIERCING -> "Xuyên qua 3 enemy · 10s head-start"
     BulletType.PLASMA -> "+60% dmg · AoE 80px · 10s head-start"
+    BulletType.FIRE -> "Đạn lửa · BURN DoT · ${b.activeDurationMillis / 1000}s"
+    BulletType.HOMING -> "Đuổi địch · ×${b.damageMultiplier} dmg · ${b.activeDurationMillis / 1000}s"
+    BulletType.BOUNCE -> "Phản xạ ×3 hits · ×${b.damageMultiplier} dmg · ${b.activeDurationMillis / 1000}s"
+    BulletType.GIANT -> "Đạn khổng lồ · ×${b.damageMultiplier} dmg · ${b.activeDurationMillis / 1000}s"
 }
 
 private fun colorForSecondary(w: SecondaryWeapon, palette: NeonPalette): Color = when (w) {

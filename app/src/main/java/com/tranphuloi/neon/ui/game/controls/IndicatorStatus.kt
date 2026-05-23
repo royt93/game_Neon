@@ -85,11 +85,12 @@ fun IndicatorStatus(
 
     Column(modifier = modifier.padding(start = buttonPaddingEnd, top = buttonPaddingTop)) {
         Box(modifier = modifier.height(height = height)) {
-            Image(
-                painter = painterResource(id = R.drawable.button_hp_indicator),
-                contentDescription = stringResource(id = R.string.game_hp_indicator),
+            // Round 67.6 — Vector HP frame replacing button_hp_indicator.webp.
+            // Stadium (capsule) outline + neon glow, color tracks HP tier.
+            androidx.compose.foundation.Canvas(
                 modifier = Modifier
                     .align(Alignment.Center)
+                    .size(width = 150.dp, height = height)
                     .graphicsLayer {
                         scaleX = hpPulse
                         scaleY = hpPulse
@@ -98,8 +99,19 @@ fun IndicatorStatus(
                         color = hpColor,
                         intensity = 0.35f + hpFlashIntensity,
                         radiusFactor = 1.2f + hpFlashIntensity * 0.5f,
-                    )
-            )
+                    ),
+            ) {
+                val r = size.height / 2f
+                drawRoundRect(
+                    color = hpColor.copy(alpha = 0.10f),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(r),
+                )
+                drawRoundRect(
+                    color = hpColor,
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(r),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = size.height * 0.04f),
+                )
+            }
             Text(
                 text = "${hp}hp",
                 color = hpColor,
@@ -148,10 +160,9 @@ fun IndicatorStatus(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_mineral),
-                contentDescription = stringResource(id = R.string.mineral_content_description),
-                tint = Color.Unspecified,
+            // Round 67.6 — Vector mineral gem replacing ic_mineral.webp.
+            // Diamond/rhombus filled gold with bright cyan core highlight.
+            androidx.compose.foundation.Canvas(
                 modifier = Modifier
                     .size(22.dp)
                     .graphicsLayer {
@@ -162,8 +173,31 @@ fun IndicatorStatus(
                         color = NeonGold,
                         intensity = 0.5f + mineralFlashIntensity,
                         radiusFactor = 1.6f + mineralFlashIntensity * 0.5f,
-                    )
-            )
+                    ),
+            ) {
+                // Diamond/rhombus gem with cyan core sparkle.
+                val cx = size.width / 2f
+                val cy = size.height / 2f
+                val halfW = size.width * 0.42f
+                val halfH = size.height * 0.46f
+                val path = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(cx, cy - halfH)
+                    lineTo(cx + halfW, cy)
+                    lineTo(cx, cy + halfH)
+                    lineTo(cx - halfW, cy)
+                    close()
+                }
+                drawPath(path, NeonGold)
+                drawPath(path, NeonCyan,
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = size.width * 0.08f))
+                // Inner sparkle line
+                drawLine(
+                    color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
+                    start = androidx.compose.ui.geometry.Offset(cx - halfW * 0.3f, cy - halfH * 0.3f),
+                    end = androidx.compose.ui.geometry.Offset(cx + halfW * 0.15f, cy + halfH * 0.15f),
+                    strokeWidth = size.width * 0.10f,
+                )
+            }
             Text(
                 text = mineralsEarnedTotal,
                 fontWeight = FontWeight.SemiBold,

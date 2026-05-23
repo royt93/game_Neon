@@ -26,6 +26,12 @@ class BoosterToBoosterUIMapper {
             BoosterType.MINERAL_SUPERCHARGE -> MINERAL_SUPERCHARGE_TINT_ARGB to "✦"
             BoosterType.HEALING_AURA -> HEALING_AURA_TINT_ARGB to "+"
             BoosterType.DOUBLE_FIRE -> DOUBLE_FIRE_TINT_ARGB to "⚯"
+            // Round 67 (Wave 10a) — 3 bullet-type boosters with full behaviors.
+            // Unicode-only glyphs (no emoji) to match neon vector aesthetic.
+            BoosterType.FIRE_BOOSTER -> FIRE_TINT_ARGB to "♨"
+            BoosterType.HOMING_BOOSTER -> HOMING_TINT_ARGB to "◎"
+            BoosterType.BOUNCE_BOOSTER -> BOUNCE_TINT_ARGB to "⇄"
+            BoosterType.GIANT_BOOSTER -> GIANT_TINT_ARGB to "⬤"
             else -> 0L to null
         }
         return with(booster) {
@@ -64,5 +70,11 @@ class BoosterToBoosterUIMapper {
         const val MINERAL_SUPERCHARGE_TINT_ARGB: Long = 0xFFFF9050L     // orange (energy flash)
         const val HEALING_AURA_TINT_ARGB: Long = 0xFF60FFAAL            // mint (continuous heal)
         const val DOUBLE_FIRE_TINT_ARGB: Long = 0xFFFF80E0L             // pink (double rate)
+
+        // Round 67 (Wave 10a) — 3 bullet-type tints.
+        const val FIRE_TINT_ARGB: Long = 0xFFFF6020L                    // bright orange (fire)
+        const val HOMING_TINT_ARGB: Long = 0xFFFF40A0L                  // hot pink (lock-on)
+        const val BOUNCE_TINT_ARGB: Long = 0xFF40FFD0L                  // mint (rubber bounce)
+        const val GIANT_TINT_ARGB: Long = 0xFFFFD040L                   // gold (heavyweight)
     }
 }

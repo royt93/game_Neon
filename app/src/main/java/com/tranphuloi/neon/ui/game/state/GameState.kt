@@ -474,18 +474,28 @@ fun rememberGameState(): GameState {
             // effective stats from round 52 rarity scaling at the ship
             // location for 500ms so player can verify tier-up at runtime.
             onBulletTypeActivated = { type, rarity, x, y ->
+                val mapper = com.tranphuloi.neon.ui.game.booster.BoosterToBoosterUIMapper
                 val (text, colorHex) = when (type) {
                     com.tranphuloi.neon.ui.game.ship.laser.BulletType.PIERCING -> {
                         val n = com.tranphuloi.neon.ui.game.ship.laser.BulletType
                             .pierceCountForRarity(rarity)
-                        "→ PIERCING ×$n" to com.tranphuloi.neon.ui.game.booster.BoosterToBoosterUIMapper.PIERCING_TINT_ARGB
+                        "→ PIERCING ×$n" to mapper.PIERCING_TINT_ARGB
                     }
                     com.tranphuloi.neon.ui.game.ship.laser.BulletType.PLASMA -> {
                         val r = (com.tranphuloi.neon.ui.game.ship.laser.BulletType.PLASMA.aoeRadius *
                             com.tranphuloi.neon.ui.game.ship.laser.BulletType
                                 .plasmaAoeMultiplierForRarity(rarity)).toInt()
-                        "◯ PLASMA ${r}px" to com.tranphuloi.neon.ui.game.booster.BoosterToBoosterUIMapper.PLASMA_TINT_ARGB
+                        "◯ PLASMA ${r}px" to mapper.PLASMA_TINT_ARGB
                     }
+                    // Round 67 (Wave 10a) — 3 bullet types with full behaviors.
+                    com.tranphuloi.neon.ui.game.ship.laser.BulletType.FIRE ->
+                        "♨ ${type.displayName}" to mapper.FIRE_TINT_ARGB
+                    com.tranphuloi.neon.ui.game.ship.laser.BulletType.HOMING ->
+                        "◎ ${type.displayName}" to mapper.HOMING_TINT_ARGB
+                    com.tranphuloi.neon.ui.game.ship.laser.BulletType.BOUNCE ->
+                        "⇄ ${type.displayName}" to mapper.BOUNCE_TINT_ARGB
+                    com.tranphuloi.neon.ui.game.ship.laser.BulletType.GIANT ->
+                        "⬤ ${type.displayName}" to mapper.GIANT_TINT_ARGB
                     else -> return@ShipController
                 }
                 pickupPopupController.spawnBulletTypeActivation(
@@ -541,14 +551,28 @@ fun rememberGameState(): GameState {
                     val effect = com.tranphuloi.neon.ui.game.status.StatusEffect.values().random()
                     statusEffectController.apply(targetId, effect, System.currentTimeMillis())
                 }
+                // Round 67 (Wave 10a) — FIRE bullet always applies BURN status
+                // on hit (100% chance during the FIRE buff window). This is
+                // the GUARANTEED effect, separate from the random 10% above.
+                if (ship.activeBulletType == com.tranphuloi.neon.ui.game.ship.laser.BulletType.FIRE) {
+                    statusEffectController.apply(
+                        targetId,
+                        com.tranphuloi.neon.ui.game.status.StatusEffect.BURN,
+                        System.currentTimeMillis(),
+                    )
+                }
             },
             // 25x/48x — modifier + skill tree damage multiplier applied per hit.
             // Round 60 (38x) — BERSERK + CRIT_SURGE stack multiplicatively on top.
             // BERSERK ×2 (12s), CRIT_SURGE ×3 (8s); both active = ×6 vs baseline.
+            // Round 67 (10a) — active BulletType damage multiplier stacks too.
+            // FIRE ×1.2, HOMING ×0.8, BOUNCE ×0.7. Read from current ship state
+            // each hit so transitions in/out of bullet-type window apply live.
             damageMultiplier = {
                 effectiveStats.damageMul *
                     shipController.berserkDamageMul() *
-                    shipController.critSurgeMul()
+                    shipController.critSurgeMul() *
+                    ship.activeBulletType.damageMultiplier
             },
         )
     }

@@ -109,6 +109,49 @@ class LasersController(
                 it.aoeRadiusMultiplier =
                     BulletType.plasmaAoeMultiplierForRarity(ship.activeBulletTypeRarity)
             }
+            // Round 67 — FIRE bullet: reuses ShipLaser body. Behavior via
+            // BURN status applied in onLaserHit (GameState wiring).
+            BulletType.FIRE -> if (ship.laserBoosterEnabled) {
+                ShipBoostedLaser(
+                    id = uuidUtils.getUuid(),
+                    xOffset = ship.xOffset + ship.width / 2 - SHIP_BOOSTED_LASER_WIDTH / 2 + dx,
+                    yOffset = ship.yOffset - 25f + dy,
+                    yRange = screenHeight,
+                )
+            } else {
+                ShipLaser(
+                    id = uuidUtils.getUuid(),
+                    xOffset = ship.xOffset + ship.width / 2 - SHIP_LASER_WIDTH / 2 + dx,
+                    yOffset = ship.yOffset - 20f + dy,
+                    yRange = screenHeight,
+                )
+            }
+            // Round 67 — HOMING: reuse MissileLaser for ship lasers (already
+            // tracks nearest enemy per round 40 pattern). Width 8 = same as
+            // ShipLaser so visual proportions match other bullets.
+            BulletType.HOMING -> MissileLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - 4f + dx,
+                yOffset = ship.yOffset - 24f + dy,
+                yRange = screenHeight,
+            )
+            // Round 67 — BOUNCE: ShipLaser with bounceRemaining=3 ricochet
+            // tracking via BounceShipLaser subclass.
+            BulletType.BOUNCE -> BounceShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - SHIP_LASER_WIDTH / 2 + dx,
+                yOffset = ship.yOffset - 20f + dy,
+                yRange = screenHeight,
+                screenWidth = screenWidth,
+            )
+            // Round 67.5 — GIANT: ×2 size + ×2 damage (mul applied via
+            // BulletType.damageMultiplier in damageMultiplier lambda).
+            BulletType.GIANT -> GiantShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - ShipLaser.SHIP_LASER_WIDTH + dx,
+                yOffset = ship.yOffset - 40f + dy,
+                yRange = screenHeight,
+            )
             BulletType.NORMAL -> if (ship.laserBoosterEnabled) {
                 ShipBoostedLaser(
                     id = uuidUtils.getUuid(),
@@ -310,6 +353,25 @@ class LasersController(
                         destroyShipLaser(laser)
                     }
                     BulletType.NORMAL -> destroyShipLaser(laser)
+                    // Round 67 — FIRE: destroy on hit, BURN status applied in
+                    // onLaserHit upstream (GameState).
+                    BulletType.FIRE -> destroyShipLaser(laser)
+                    // Round 67 — HOMING: MissileLaser is destroyed normally
+                    // on hit. Tracking happens in processShipLasers update.
+                    BulletType.HOMING -> destroyShipLaser(laser)
+                    // Round 67 — BOUNCE: don't destroy on hit (keep bouncing
+                    // until bounceRemaining=0 or off-screen). Decrement
+                    // pierce-style counter on the BounceShipLaser instead.
+                    BulletType.BOUNCE -> {
+                        val bounce = laser as? BounceShipLaser
+                        if (bounce != null) {
+                            bounce.hitsRemaining = bounce.hitsRemaining - 1
+                            if (bounce.hitsRemaining <= 0) destroyShipLaser(laser)
+                        } else {
+                            destroyShipLaser(laser)
+                        }
+                    }
+                    BulletType.GIANT -> destroyShipLaser(laser)
                 }
                 updateShipLasersUI()
             }

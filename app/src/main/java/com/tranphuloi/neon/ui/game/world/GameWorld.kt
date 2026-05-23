@@ -101,20 +101,15 @@ fun GameWorld(
 ) {
 
     val imageLoader = rememberImageLoader()
-    // Round 49 — pre-load all 5 laser sprite drawables as ImageBitmaps so the
-    // Canvas-based [LaserCanvas] doesn't go through resource resolution per
-    // frame. Loaded once at GameWorld level + shared across the 3 LaserCanvas
-    // calls below.
-    val laserSprites = com.tranphuloi.neon.ui.game.world.rememberLaserSprites()
-    // Round 57 — pre-load all 14 enemy sprite drawables for EnemyCanvas. Same
-    // pattern as laserSprites: decoded once per Composition, shared by every
-    // Canvas pass.
-    val enemySprites = com.tranphuloi.neon.ui.game.world.rememberEnemySprites()
-    // Round 59 — pre-load space-object / booster / mineral sprites for their
-    // Canvas-based render passes (same pattern as laser + enemy).
-    val spaceObjectSprites = com.tranphuloi.neon.ui.game.world.rememberSpaceObjectSprites()
-    val boosterSprites = com.tranphuloi.neon.ui.game.world.rememberBoosterSprites()
-    val mineralSprite = com.tranphuloi.neon.ui.game.world.rememberMineralSprite()
+    // Round 49 (refactored in Round 66) — LaserCanvas now renders pure-vector
+    // capsules (drawRoundRect + glow) instead of drawImage. Sprite preload
+    // removed. The 5 ic_laser_*.webp drawables can be deleted in a cleanup
+    // round once we confirm vector look is keeper.
+    // Round 66b — Enemy/SpaceObject/Booster sprite preloads removed; their
+    // Canvas now renders pure-vector shapes. Mineral keeps sprite (ic_mineral
+    // is a tiny gem icon, vector equivalent would be a single drawCircle
+    // which loses character — out of scope for this round).
+    // Round 67.6 — mineralSprite preload removed; MineralCanvas now vector.
 
     // Round 38 — ship aura color from Settings. Defaults to AURA_CYAN's glow so
     // first-run / unset preference renders the original cyan look unchanged.
@@ -202,7 +197,6 @@ fun GameWorld(
         // here, behind enemies; enemyLasers go later, in front).
         com.tranphuloi.neon.ui.game.world.LaserCanvas(
             lasers = shipLasers,
-            sprites = laserSprites,
             glow = shipGlowColor,
             intensity = 0.7f,
             radiusFactor = 2.4f,
@@ -210,7 +204,6 @@ fun GameWorld(
         )
         com.tranphuloi.neon.ui.game.world.LaserCanvas(
             lasers = ultimateLasers,
-            sprites = laserSprites,
             glow = NeonGold,
             intensity = 0.85f,
             radiusFactor = 2.0f,
@@ -221,7 +214,6 @@ fun GameWorld(
         // as round 49/57: visual parity, Compose subtree elimination.
         com.tranphuloi.neon.ui.game.world.SpaceObjectCanvas(
             spaceObjects = spaceObjects,
-            sprites = spaceObjectSprites,
             modifier = Modifier.fillMaxSize(),
         )
         // Round 59 — booster sprite layer (sprite + glow + PIERCING/PLASMA tint
@@ -233,7 +225,6 @@ fun GameWorld(
         // the overlay cost is negligible.
         com.tranphuloi.neon.ui.game.world.BoosterCanvas(
             boosters = boosters,
-            sprites = boosterSprites,
             modifier = Modifier.fillMaxSize(),
         )
         boosters.forEach {
@@ -385,17 +376,15 @@ fun GameWorld(
             // 19b Charge shot ramp — when player holds both arrows, glow + halo
             // intensity scale up to signal pending mega blast.
             val chargeBoost = chargeProgress * 0.6f
-            Image(
-                painterResource(id = ship.drawableId),
-                contentDescription = stringResource(id = R.string.ship),
-                contentScale = ContentScale.FillBounds,
+            // Round 66b — Ship pure vector: arrow body + wings + engine
+            // glow + cockpit. Replaces Image(ship.drawableId). Rotation +
+            // glow boost preserved via graphicsLayer + neonGlow on the
+            // Canvas modifier. Color tracks shipSkin (shipGlowColor).
+            Canvas(
                 modifier = Modifier
                     .width(ship.width.dp)
                     .height(ship.height.dp)
                     .graphicsLayer {
-                        // Rotation pivots on Image center (default transformOrigin
-                        // 0.5/0.5) — fixes bank-tilt drift caused by rotating outer
-                        // Box (whose center was offset from Image center).
                         rotationZ = ship.spawnRotation + ship.bankRotation
                     }
                     .neonGlow(
@@ -403,7 +392,12 @@ fun GameWorld(
                         intensity = 0.5f + glowBoost + chargeBoost,
                         radiusFactor = 1.5f + glowBoost * 0.4f + chargeBoost * 0.6f,
                     )
-            )
+            ) {
+                drawShipVector(
+                    color = shipGlowColor,
+                    laserBoosterEnabled = ship.laserBoosterEnabled,
+                )
+            }
         }
         val nowMillis = System.currentTimeMillis()
         // Round 57 — single Canvas pass replaces the prior per-enemy Compose
@@ -414,7 +408,6 @@ fun GameWorld(
         // animation isn't a simple draw recipe.
         EnemyCanvas(
             enemies = enemies,
-            sprites = enemySprites,
             nowMillis = nowMillis,
             modifier = Modifier.fillMaxSize(),
         )
@@ -480,7 +473,6 @@ fun GameWorld(
         // gradient + position preserved exactly.
         com.tranphuloi.neon.ui.game.world.MineralCanvas(
             minerals = minerals,
-            sprite = mineralSprite.bitmap,
             modifier = Modifier.fillMaxSize(),
         )
         explosions.forEach {
@@ -505,7 +497,6 @@ fun GameWorld(
         // before; same z-order as the prior forEach block.
         com.tranphuloi.neon.ui.game.world.LaserCanvas(
             lasers = enemyLasers,
-            sprites = laserSprites,
             glow = NeonRedAlert,
             intensity = 0.55f,
             radiusFactor = 1.8f,

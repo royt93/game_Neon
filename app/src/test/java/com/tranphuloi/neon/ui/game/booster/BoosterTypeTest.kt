@@ -36,9 +36,11 @@ class BoosterTypeTest {
     fun `weight distribution sums to expected total`() {
         val total = BoosterType.entries.sumOf { it.weight }
         // Round 55 — 5 base @ 19 + REVIVE @ 5 + 2 bullet-type @ 12 = 95 + 5 + 24 = 124
-        // Round 60 (38x) — +10 new boosters at weight 6 each = +60. New total 184.
+        // Round 60 (38x) — +10 new boosters at weight 6 each = +60. Total 184.
+        // Round 67 (10a) — +3 bullet-type boosters at weight 6 each = +18. Total 202.
+        // Round 67.5 — +1 GIANT_BOOSTER at weight 6 = +6. Total 208.
         // (Weight 6 chosen over 4 to keep REVIVE_TOKEN weight=5 the rarest drop.)
-        assertEquals(184, total)
+        assertEquals(208, total)
     }
 
     @Test

@@ -3,42 +3,42 @@ package com.tranphuloi.neon.ui.game.world
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import com.tranphuloi.neon.R
 import com.tranphuloi.neon.ui.game.ship.laser.LaserUI
 
 /**
- * Round 49 — Canvas-based draw of a laser list.
+ * Round 66 — Pure-vector laser rendering (pilot for the "no PNG textures"
+ * direction). Replaces the round 49 `drawImage(ImageBitmap)` path with three
+ * stacked draw primitives per laser:
+ *   1. Radial gradient halo (unchanged from round 49 — drives the neon glow).
+ *   2. Outer body: drawRoundRect tinted to `glow` color, full alpha.
+ *   3. Inner core: drawRoundRect white at alpha 0.85, half the width — gives
+ *      the "hot center" look characteristic of neon beams.
  *
- * Replaces a `forEach { Image(painterResource, Modifier.neonGlow(...)) }` Compose
- * loop with a single Canvas + DrawScope pass. For N in-flight lasers this
- * drops from N Composable subtrees to one. Each laser becomes a `drawImage` +
- * `drawCircle(radialGradient)` — equivalent visuals to the previous
- * `Modifier.neonGlow`.
+ * Why pilot here: lasers are the simplest entities in the game (vertical bars
+ * with glow). Migration from bitmap → vector is essentially lossless
+ * aesthetically (the original sprites were just colored stripes too) AND
+ * eliminates 5 webp drawables from the APK. If user approves the look, the
+ * same pattern can expand to boosters/space-rocks/enemies/ship in subsequent
+ * rounds (66b/c/d).
  *
- * Z-order: callers invoke this multiple times to preserve the prior layering
- * (ship + ultimate lasers go behind enemies; enemy lasers go in front).
- * Sprites are pre-loaded once into [LaserSprites] at the [GameWorld] level so
- * each Canvas reuses the same ImageBitmap cache without per-call resolution.
+ * API change vs round 49: the `LaserSprites` parameter is gone. Callers no
+ * longer need `rememberLaserSprites()` either. GameWorld.kt updated in the
+ * same commit. The `drawableId` field on `LaserUI` is now unused for
+ * rendering (kept for backward compat with persistence + mapper tests).
  */
 @Composable
 fun LaserCanvas(
     lasers: List<LaserUI>,
-    sprites: LaserSprites,
     glow: Color,
     intensity: Float,
     radiusFactor: Float,
@@ -48,45 +48,31 @@ fun LaserCanvas(
     val density = LocalDensity.current
     Canvas(modifier = modifier) {
         for (laser in lasers) {
-            drawLaser(laser, sprites, glow, intensity, radiusFactor, density)
+            drawLaser(laser, glow, intensity, radiusFactor, density)
         }
     }
 }
 
+/**
+ * Round 66 — kept as a type alias for backward compatibility. Future cleanup
+ * round can remove this + [rememberLaserSprites] once no callers reference
+ * them. Marked @Deprecated to surface usage sites.
+ */
 @Immutable
-data class LaserSprites(
-    val byDrawableId: Map<Int, ImageBitmap>,
-)
+@Deprecated("Round 66 — pure-vector LaserCanvas no longer needs sprites. Remove call site.")
+data class LaserSprites(val byDrawableId: Map<Int, Any> = emptyMap())
 
 @Composable
-fun rememberLaserSprites(): LaserSprites {
-    val blue7 = ImageBitmap.imageResource(R.drawable.ic_laser_blue_7)
-    val blue11 = ImageBitmap.imageResource(R.drawable.ic_laser_blue_11)
-    val red8 = ImageBitmap.imageResource(R.drawable.ic_laser_red_8)
-    val red14 = ImageBitmap.imageResource(R.drawable.ic_laser_red_14)
-    val red16 = ImageBitmap.imageResource(R.drawable.ic_laser_red_16)
-    return remember(blue7, blue11, red8, red14, red16) {
-        LaserSprites(
-            mapOf(
-                R.drawable.ic_laser_blue_7 to blue7,
-                R.drawable.ic_laser_blue_11 to blue11,
-                R.drawable.ic_laser_red_8 to red8,
-                R.drawable.ic_laser_red_14 to red14,
-                R.drawable.ic_laser_red_16 to red16,
-            )
-        )
-    }
-}
+@Deprecated("Round 66 — pure-vector LaserCanvas no longer needs sprites. Remove call site.")
+fun rememberLaserSprites(): LaserSprites = LaserSprites()
 
 private fun DrawScope.drawLaser(
     laser: LaserUI,
-    sprites: LaserSprites,
     glow: Color,
     intensity: Float,
     radiusFactor: Float,
     density: Density,
 ) {
-    val bitmap = sprites.byDrawableId[laser.drawableId] ?: return
     with(density) {
         val xPx = laser.xOffset.dp.toPx()
         val yPx = laser.yOffset.dp.toPx()
@@ -96,8 +82,8 @@ private fun DrawScope.drawLaser(
         val cy = yPx + hPx / 2f
         val glowR = (minOf(wPx, hPx) / 2f) * radiusFactor
 
-        // Glow (same recipe as Modifier.neonGlow — radial gradient with two
-        // opaque stops then transparent edge).
+        // 1. Glow halo (radial gradient, opaque center → transparent edge).
+        //    Same recipe as round 49 to preserve the neon ambient.
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(
@@ -112,24 +98,52 @@ private fun DrawScope.drawLaser(
             center = Offset(cx, cy),
         )
 
-        val dstOffset = IntOffset(xPx.toInt(), yPx.toInt())
-        val dstSize = IntSize(wPx.toInt(), hPx.toInt())
+        // 2-3. Body + core. Use cornerRadius = width/2 → pill/capsule shape
+        // for vertical beams. PLASMA (square ~aspect 1:1) becomes nearly
+        // circular which fits its "energy blob" character.
+        val bodyCorner = (wPx / 2f).coerceAtMost(hPx / 2f)
         if (laser.rotation != 0f) {
             rotate(degrees = laser.rotation, pivot = Offset(cx, cy)) {
-                drawImage(
-                    image = bitmap,
-                    dstOffset = dstOffset,
-                    dstSize = dstSize,
-                    filterQuality = FilterQuality.Low,
-                )
+                drawCapsuleBody(xPx, yPx, wPx, hPx, bodyCorner, glow)
             }
         } else {
-            drawImage(
-                image = bitmap,
-                dstOffset = dstOffset,
-                dstSize = dstSize,
-                filterQuality = FilterQuality.Low,
-            )
+            drawCapsuleBody(xPx, yPx, wPx, hPx, bodyCorner, glow)
         }
     }
+}
+
+/**
+ * Round 66 — the per-laser body draw. Extracted so the rotate() block can
+ * reuse it cleanly. Two stacked rounded rectangles: outer tinted to `glow`,
+ * inner white-hot core at ~50% the width with high alpha for the neon "bright
+ * center" feel.
+ */
+private fun DrawScope.drawCapsuleBody(
+    xPx: Float,
+    yPx: Float,
+    wPx: Float,
+    hPx: Float,
+    cornerRadius: Float,
+    glow: Color,
+) {
+    // Outer body — full tinted color.
+    drawRoundRect(
+        color = glow,
+        topLeft = Offset(xPx, yPx),
+        size = Size(wPx, hPx),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(cornerRadius),
+    )
+    // Inner hot core — white, 50% width centered, slightly inset vertically
+    // so the rounded ends stay tinted.
+    val coreW = wPx * 0.5f
+    val coreInsetY = hPx * 0.10f
+    val coreH = (hPx - coreInsetY * 2f).coerceAtLeast(1f)
+    val coreX = xPx + (wPx - coreW) / 2f
+    val coreY = yPx + coreInsetY
+    drawRoundRect(
+        color = Color.White.copy(alpha = 0.85f),
+        topLeft = Offset(coreX, coreY),
+        size = Size(coreW, coreH),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(coreW / 2f),
+    )
 }

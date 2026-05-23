@@ -215,7 +215,17 @@ class MainActivity : ComponentActivity() {
                                     Logger.d("Nav: Menu → Settings")
                                     navController.navigate(SettingsRoute.route)
                                 },
+                                onOpenInfo = {
+                                    Logger.d("Nav: Menu → Info (Bách Khoa)")
+                                    navController.navigate(com.tranphuloi.neon.navigation.Info.route)
+                                },
                             )
+                        }
+                        composable(route = com.tranphuloi.neon.navigation.Info.route) {
+                            com.tranphuloi.neon.ui.info.InfoScreen(onBack = {
+                                Logger.d("Nav: Info → back")
+                                navController.popBackStack()
+                            })
                         }
                         composable(route = Game.route) {
                             GameScreen(

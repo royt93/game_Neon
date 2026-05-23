@@ -3,71 +3,82 @@ package com.tranphuloi.neon.ui.game.world
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.FilterQuality
-import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import com.tranphuloi.neon.R
+import com.tranphuloi.neon.common.NeonCyan
+import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.ui.game.mineral.model.MineralUI
 
 /**
- * Round 59 — Canvas-based draw of the mineral list. All minerals share one
- * drawable (`ic_mineral`) and have no glow / rotation, just alpha + position.
- * Volume is moderate (~10-15 simultaneous after explosions) so the saving
- * vs the prior `forEach { Box { Icon } }` block is small in isolation, but
- * grouped with SpaceObjectCanvas + BoosterCanvas it closes the last
- * per-entity Composable forEach blocks in GameWorld's main render tree.
- *
- * Render size mirrors the pre-refactor block exactly: 25dp square (the
- * Icon's hard-coded `.size(25.dp)` modifier; `width` field on Mineral was
- * not actually consumed there, so we keep that quirk for parity).
+ * Round 67.6 — Pure-vector mineral rendering. Round 66b kept this as bitmap
+ * (`ic_mineral.webp`), this round closes the gap. Each mineral = gold diamond
+ * (rhombus) with cyan stroke + bright inner sparkle line. Vector recipe
+ * matches the new HUD mineral indicator in IndicatorStatus.kt so a mineral
+ * in flight looks identical to the count icon.
  */
 @Composable
 fun MineralCanvas(
     minerals: List<MineralUI>,
-    sprite: ImageBitmap,
     modifier: Modifier = Modifier,
 ) {
     if (minerals.isEmpty()) return
     val density = LocalDensity.current
     Canvas(modifier = modifier) {
         for (m in minerals) {
-            drawMineral(m, sprite, density)
+            drawMineral(m, density)
         }
     }
 }
 
 @Immutable
-data class MineralSprite(val bitmap: ImageBitmap)
+@Deprecated("Round 67.6 — pure-vector MineralCanvas no longer needs sprite.")
+data class MineralSprite(val bitmap: Any? = null)
 
 @Composable
-fun rememberMineralSprite(): MineralSprite {
-    val bitmap = ImageBitmap.imageResource(R.drawable.ic_mineral)
-    return remember(bitmap) { MineralSprite(bitmap) }
-}
+@Deprecated("Round 67.6 — pure-vector MineralCanvas no longer needs sprite.")
+fun rememberMineralSprite(): MineralSprite = MineralSprite()
 
 private fun DrawScope.drawMineral(
     mineral: MineralUI,
-    sprite: ImageBitmap,
     density: Density,
 ) {
     with(density) {
-        val sizePx = 25.dp.toPx()
+        val sizePx = 25.dp.toPx()                                       // matches Round 59 layout
         val xPx = mineral.xOffset.dp.toPx()
         val yPx = mineral.yOffset.dp.toPx()
-        drawImage(
-            image = sprite,
-            dstOffset = IntOffset(xPx.toInt(), yPx.toInt()),
-            dstSize = IntSize(sizePx.toInt(), sizePx.toInt()),
-            alpha = mineral.alpha.coerceIn(0f, 1f),
-            filterQuality = FilterQuality.Low,
+        val cx = xPx + sizePx / 2f
+        val cy = yPx + sizePx / 2f
+        val alpha = mineral.alpha.coerceIn(0f, 1f)
+
+        // Diamond/rhombus path
+        val halfW = sizePx * 0.42f
+        val halfH = sizePx * 0.46f
+        val path = Path().apply {
+            moveTo(cx, cy - halfH)
+            lineTo(cx + halfW, cy)
+            lineTo(cx, cy + halfH)
+            lineTo(cx - halfW, cy)
+            close()
+        }
+        drawPath(path, NeonGold.copy(alpha = alpha))
+        drawPath(
+            path,
+            NeonCyan.copy(alpha = alpha),
+            style = Stroke(width = sizePx * 0.08f),
+        )
+        // Inner sparkle line — diagonal hot-streak
+        drawLine(
+            color = Color.White.copy(alpha = alpha * 0.85f),
+            start = Offset(cx - halfW * 0.3f, cy - halfH * 0.3f),
+            end = Offset(cx + halfW * 0.15f, cy + halfH * 0.15f),
+            strokeWidth = sizePx * 0.10f,
         )
     }
 }

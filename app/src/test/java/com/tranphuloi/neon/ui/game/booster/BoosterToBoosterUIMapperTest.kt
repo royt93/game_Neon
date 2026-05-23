@@ -186,6 +186,48 @@ class BoosterToBoosterUIMapperTest {
     }
 
     @Test
+    fun `FIRE_BOOSTER gets orange tint + steam glyph`() {
+        val ui = mapper(boosterOfType(BoosterType.FIRE_BOOSTER))
+        assertEquals(BoosterToBoosterUIMapper.FIRE_TINT_ARGB, ui.tintColorHex)
+        assertEquals("♨", ui.glyph)
+    }
+
+    @Test
+    fun `HOMING_BOOSTER gets hot-pink tint + bullseye glyph`() {
+        val ui = mapper(boosterOfType(BoosterType.HOMING_BOOSTER))
+        assertEquals(BoosterToBoosterUIMapper.HOMING_TINT_ARGB, ui.tintColorHex)
+        assertEquals("◎", ui.glyph)
+    }
+
+    @Test
+    fun `BOUNCE_BOOSTER gets mint tint + double-arrow glyph`() {
+        val ui = mapper(boosterOfType(BoosterType.BOUNCE_BOOSTER))
+        assertEquals(BoosterToBoosterUIMapper.BOUNCE_TINT_ARGB, ui.tintColorHex)
+        assertEquals("⇄", ui.glyph)
+    }
+
+    @Test
+    fun `GIANT_BOOSTER gets gold tint + filled-circle glyph`() {
+        val ui = mapper(boosterOfType(BoosterType.GIANT_BOOSTER))
+        assertEquals(BoosterToBoosterUIMapper.GIANT_TINT_ARGB, ui.tintColorHex)
+        assertEquals("⬤", ui.glyph)
+    }
+
+    @Test
+    fun `Round 67 bullet-type tints distinct + opaque`() {
+        val tints = listOf(
+            BoosterToBoosterUIMapper.FIRE_TINT_ARGB,
+            BoosterToBoosterUIMapper.HOMING_TINT_ARGB,
+            BoosterToBoosterUIMapper.BOUNCE_TINT_ARGB,
+        )
+        assertEquals("tints should be unique", tints.size, tints.toSet().size)
+        tints.forEach {
+            val alpha = (it ushr 24) and 0xFFL
+            assertEquals("tint should be opaque", 0xFFL, alpha)
+        }
+    }
+
+    @Test
     fun `all 10 round 60 booster tints are distinct + opaque`() {
         val tints = listOf(
             BoosterToBoosterUIMapper.MAGNET_BOOST_TINT_ARGB,

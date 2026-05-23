@@ -19,3 +19,5 @@ object MetaUpgrade : Navigation(route = "meta-upgrade")
 object BuffPicker : Navigation(route = "buff-picker")
 /** Wave 6 (36x) round 45 — pre-game loadout (BulletType + SecondaryWeapon). */
 object LoadoutPicker : Navigation(route = "loadout-picker")
+/** Round 67.5 — Bách Khoa (info guide) screen accessed from MenuScreen. */
+object Info : Navigation(route = "info")

@@ -94,6 +94,7 @@ fun MenuScreen(
     onOpenModifierPicker: () -> Unit,
     onOpenMetaUpgrade: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenInfo: () -> Unit = {},
 ) {
     val settings = LocalSettings.current
     val meta = LocalMetaProgression.current
@@ -240,6 +241,19 @@ fun MenuScreen(
                             },
                         )
                     }
+                    // Round 67.6 — BÁCH KHOA in its own row, full width. Removed
+                    // manual Spacer(8dp) — Column's spacedBy(12.dp) now governs
+                    // ALL vertical gaps (consistent với 2 row trên + row này).
+                    MenuButton(
+                        label = "BÁCH KHOA",
+                        glyph = "❡",
+                        color = NeonViolet,
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = {
+                            Logger.d("MenuScreen: INFO tapped")
+                            onOpenInfo()
+                        },
+                    )
                 }
             }
 
