@@ -46,8 +46,28 @@ class EnemyController(
             return
         }
         val newEnemies = enemyFactory(type = type, getShip = getShip)
-        this.enemies += newEnemies
-        Logger.v { "EnemyController.addEnemy: type=${type::class.simpleName} spawned ${newEnemies.size} (active=${this.enemies.size})" }
+        // Round 55 — formation cap leak fix. EnemyFactory returns 1..N enemies
+        // (Row=rowCount, VFormation=count, ZigZag=1). Previous check only
+        // gated when ALREADY at cap; a Row of 5 spawning at enemies.size=29
+        // produced 34 active, breaking the cap by up to formation size. User
+        // log showed 32 enemies in chapter 1 with no boss → SmartBomb cleared
+        // 32. Trim formation tail to remaining slots so cap is strictly
+        // enforced. Bosses still bypass entirely.
+        val toAdd = if (isBossSpawn) {
+            newEnemies
+        } else {
+            val remainingSlots = (MAX_REGULAR_ENEMIES - enemies.size).coerceAtLeast(0)
+            val clamped = newEnemies.take(remainingSlots)
+            if (clamped.size < newEnemies.size) {
+                Logger.v {
+                    "EnemyController.addEnemy: TRIMMED formation ${newEnemies.size}→${clamped.size} " +
+                        "(cap=$MAX_REGULAR_ENEMIES, remaining=$remainingSlots)"
+                }
+            }
+            clamped
+        }
+        this.enemies += toAdd
+        Logger.v { "EnemyController.addEnemy: type=${type::class.simpleName} spawned ${toAdd.size} (active=${this.enemies.size})" }
         updateEnemies()
     }
 

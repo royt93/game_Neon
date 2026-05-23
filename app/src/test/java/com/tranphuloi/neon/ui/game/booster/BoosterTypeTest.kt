@@ -35,8 +35,21 @@ class BoosterTypeTest {
     @Test
     fun `weight distribution sums to expected total`() {
         val total = BoosterType.entries.sumOf { it.weight }
-        // 5 base @ 19 + REVIVE @ 5 + 2 bullet-type @ 8 = 95 + 5 + 16 = 116
-        assertEquals(116, total)
+        // Round 55 — 5 base @ 19 + REVIVE @ 5 + 2 bullet-type @ 12 = 95 + 5 + 24 = 124
+        assertEquals(124, total)
+    }
+
+    @Test
+    fun `bullet-type combined probability is roughly 1 in 5`() {
+        // Round 55 sanity check — PIERCING + PLASMA combined should be in the
+        // 15-25% band so they drop frequently enough to runtime-validate the
+        // round 52 rarity scaling. Below 15% = too rare (round 53/54 audit
+        // trigger); above 25% = drowns out the base types.
+        val total = BoosterType.entries.sumOf { it.weight }.toFloat()
+        val bulletShare =
+            (BoosterType.PIERCING_BOOSTER.weight + BoosterType.PLASMA_BOOSTER.weight) / total
+        assertTrue("expected 15-25% combined, got ${"%.1f".format(bulletShare * 100)}%",
+            bulletShare in 0.15f..0.25f)
     }
 
     @Test

@@ -968,6 +968,98 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 56 — Booster spawn instrumentation + RNG distribution validation
+
+Three consecutive runtime logs (160s + 93s + 27s = 280s) showed **0 PIERCING/PLASMA drops** across ~70 spawn attempts despite round 55 bumping weights 8 → 12 (combined 13.8% → 19.4%). At new rate, P(0/70) = `0.806^70` ≈ 5×10⁻⁷ — effectively impossible under correct RNG. Three hypotheses:
+- (a) APK on device didn't rebuild with weight=12 (Gradle/AGP cache miss)
+- (b) Subtle bias in `Booster.kt:19-32` weighted-pick algorithm
+- (c) Cumulative RNG variance — possible but vanishingly unlikely
+
+This round tests (b) directly + makes runtime spawn distribution observable.
+
+**Change 1 — `BoosterController.kt` spawn log promoted Logger.v → Logger.d:**
+
+```kotlin
+Logger.d("BoosterController.addBooster: type=${booster.type} rarity=${booster.rarity} at x=... (active=.../$MAX_BOOSTERS)")
+```
+
+Spawn fires every 4s when `boosters.size < 3` → ≤0.25 lines/sec sustained, well under spam threshold. Cap-skip and SHIELD-filter-skip logs stay Logger.v (those CAN spam). Now every booster spawn writes one line to default-build logcat, so the type distribution is observable without flipping VERBOSE.
+
+Side benefit: rarity is logged too, so the rarity roll (Round 43) is also visible — useful for cross-validating the Common 75% / Rare 20% / Epic 5% split.
+
+**Change 2 — New `BoosterTypeDistributionTest.kt` (7 tests, simulates 1000-2000 weighted rolls):**
+
+- `every booster type is reachable in 1000 rolls` — algorithm must produce each enum entry at least once (smoke test for loop termination bugs).
+- `distribution matches weights within 30 percent tolerance` — for each type, `actual ∈ [expected × 0.7, expected × 1.3]`. 30% band is ~3σ for the lowest-weight type (REVIVE_TOKEN), giving flake P ≈ 0.3% per type per run. Catches up to ~50% weight implementation errors.
+- `PIERCING reaches at least 50 in N=1000` — hard floor at 5% (expected 9.7%). 50 is ~5σ below mean; if this fails the weight=12 isn't taking effect.
+- `PLASMA reaches at least 50 in N=1000` — same hard floor.
+- `combined PIERCING+PLASMA reaches at least 150 in N=1000` — combined floor at 15% (expected 19.4%).
+- `weight ordering is preserved in observed counts (LASER greater than PIERCING greater than REVIVE)` — uses N=2000 for tail stability. Catches reversed-magnitude bugs that the tolerance test might miss if all weights drift proportionally.
+- `total tally equals N (no dropped or double-counted rolls)` — sanity-checks the algorithm doesn't miscount during accumulation.
+
+**Verification result:** 7/7 PASS. The weighted-pick algorithm is structurally sound at weight=12. So if the next runtime log STILL shows 0 PIERCING/PLASMA in the promoted Logger.d output → it's hypothesis (a) (build/install cache) — not a code bug.
+
+**Files modified:**
+- `ui/game/booster/BoosterController.kt` — success log Logger.v → Logger.d, added rarity to the log payload.
+- `app/src/test/.../BoosterTypeDistributionTest.kt` (new, 7 tests).
+
+**Build verify:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL. **179 tests pass** (172 → 179, +7).
+
+**Next validation step:** user runs ~60s with the new APK and reports back what `BoosterController.addBooster: type=...` lines appear. Expected ~15 lines (every 4s); PIERCING/PLASMA combined should appear ~3 times. If still 0 over 60s → run `./gradlew clean installDevDebug` to force a fresh APK install. If still 0 after that → escalate to a deeper audit of `Random.nextInt` behavior on the device's ART runtime (extremely unlikely but theoretically possible).
+
+### Round 55 — 3 fixes from runtime audit (booster refresh + enemy cap leak + bullet-type weight bump)
+
+Triggered by user's second runtime log (93s, ENDLESS+TANK, PIERCING+BURST). Round 53 fix verified — ChargeShot fired 2× in 93s. But 3 new issues surfaced:
+
+**Fix 1 — Booster refresh logic (LASER/SHIELD/TRIPLE_LASER silent downgrade)**
+
+User-visible bug: at 11:44:56 pickup Rare LASER (×1.5, +22500ms, expires @11:45:19). At 11:45:12 pickup Common LASER (×1.0) — no log because `enableLaserBooster` only logged when `ship.laserBoosterEnabled` state *changed*. But the timer was overwritten to `now + 15000` = 11:45:27, robbing ~5s remaining. Player loses Rare→Common stealth-downgrade.
+
+Same pattern in `enableShield` (10000ms base) and `enableTripleLaserBooster` (20000ms base).
+
+Fix: each method now compares `newEnd` vs `oldEnd`, uses `maxOf(oldEnd, newEnd)` to prevent downgrade, and emits one of 4 log lines via shared `logBoosterTransition`:
+- `ON (+Xms, mul=Y)` — first pickup, was disabled
+- `OFF` — buff expired
+- `REFRESHED (+gain ms, was=remaining ms remaining, mul=Y)` — pickup extends timer
+- `WASTED (offered=Xms mul=Y < remaining=Zms — kept existing buff)` — pickup would downgrade, ignored
+
+Net behaviour: shorter pickups during longer active buff are now no-ops. Player keeps the longer remaining time. Logged either way for observability.
+
+**Fix 2 — Enemy cap leak (`EnemyController.addEnemy`)**
+
+User log showed `SmartBomb cleared 32 enemies` in chapter 1 (no boss). `MAX_REGULAR_ENEMIES=30` was being violated by 2-4 units consistently. Root cause: cap check `if (enemies.size >= 30) return` only gated when *already* at cap, but `EnemyFactory(...)` can return 3-7 enemies per call (Row formation = `type.formation.rowCount`, VFormation = `type.formation.count`, ZigZag = 1). At enemies.size=29 a Row of 5 produces 34 active → overflow by 4.
+
+Fix: factory call result is now trimmed to `MAX_REGULAR_ENEMIES - enemies.size` remaining slots before append. Bosses (`MidBossType` / `LevelOneBossType` / `LevelTwoBossType` / `FinalBossType`) still bypass entirely. Trimmed formations log a `TRIMMED formation X→Y` line at Logger.v level (rare event in moderate play, but observable when investigating).
+
+Tradeoff: occasionally truncates a VFormation tail — asymmetric V is visually slightly off, but cap correctness > formation purity for chapter 1 perf.
+
+**Fix 3 — Bump PIERCING/PLASMA weight 8 → 12**
+
+Round 54 added tint + glyph badge but the type still has not been runtime-verified — 0 drops in 160s (round 52 log) and 0 drops in 93s (round 54 follow-up log). At 13.8% combined that's `P(0/40)=0.27%` and `P(0/23)=3.4%` — both technically possible RNG variance but the cumulative sample (0/63) suggests the rate is too low for QA.
+
+Bump each from 8→12. New math:
+- Total weight 116 → **124**
+- PIERCING 8/116=6.9% → **12/124=9.7%** each
+- Combined PIERCING+PLASMA **24/124=19.4%** (was 13.8%)
+- Expected drops in 90s (~23 attempts) = **4.5** (was 3.2)
+- P(0 in 23 trials at 19.4%) = `0.806^23` = **0.6%** (was 3.4%) — i.e. 6× less likely to see another zero-PIERCING/PLASMA run.
+
+Still below base-booster rate (16.4% each) so they remain "uncommon". Combined 19.4% stays inside the 15-25% sanity band asserted in the new `bullet-type combined probability is roughly 1 in 5` test.
+
+**Files modified:**
+- `ui/game/ship/ship/ShipController.kt` — 3 enable methods refactored to share `logBoosterTransition` helper. Uses `maxOf(oldEnd, newEnd)` for no-downgrade refresh semantics.
+- `ui/game/enemy/ship/controller/EnemyController.kt` — `addEnemy` trims `newEnemies` to remaining slots when not a boss spawn. New `TRIMMED formation` log.
+- `ui/game/booster/BoosterType.kt` — PIERCING_BOOSTER + PLASMA_BOOSTER weight 8 → 12. Comment block explains the tuning rationale.
+- `app/src/test/.../BoosterTypeTest.kt` — `weight distribution sums to expected total` updated 116 → 124. Added `bullet-type combined probability is roughly 1 in 5` sanity test (asserts 15-25% combined band, catches future weight tuning regressions in both directions).
+
+**Verification:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL. **172 tests pass** (171 → 172, +1 net: +1 new probability sanity test, weight-sum test reused with new constant).
+
+**Validation expectations for next run:**
+- A LASER pickup landing on top of a longer Rare/Epic buff should log `WASTED (offered=...< remaining=...)`.
+- A LASER pickup landing on top of expired/shorter buff should log `REFRESHED (+gain)`.
+- A chapter-1 SmartBomb should clear ≤30 enemies (not 32).
+- 90 seconds of play should see at least 1 magenta `→` (PIERCING) or cyan `◯` (PLASMA) drop with very high probability (~99.4%).
+
 ### Round 54 — PIERCING/PLASMA booster visual disambiguation
 
 User flagged that round 52's PIERCING/PLASMA rarity scaling was untestable runtime — 0 drops in 160s of gameplay. Audit found:

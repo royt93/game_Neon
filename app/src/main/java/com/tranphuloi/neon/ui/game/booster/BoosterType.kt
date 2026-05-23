@@ -17,7 +17,15 @@ enum class BoosterType(
     REVIVE_TOKEN(R.drawable.booster_revive, weight = 5),
     // Round 35 (35x) — bullet-type boosters. Activate ship.activeBulletType for
     // 10s. Reuse existing drawable assets (booster_red_lasers / booster_ultimate_weapon)
-    // since we don't have dedicated icons for these yet.
-    PIERCING_BOOSTER(R.drawable.booster_red_lasers, weight = 8),
-    PLASMA_BOOSTER(R.drawable.booster_ultimate_weapon, weight = 8),
+    // since we don't have dedicated icons for these yet. Round 54 added a
+    // magenta/cyan tint + glyph badge in BoosterToBoosterUIMapper so player
+    // can distinguish from LASER_BOOSTER / ULTIMATE_WEAPON_BOOSTER.
+    //
+    // Round 55 — bumped 8 → 12 each (combined 19.4%, was 13.8%). Empirically,
+    // 93s of gameplay produced 0 PIERCING+PLASMA drops (P=3.4% RNG variance);
+    // 19.4% combined means ~5 expected drops in 93s, enough to runtime-validate
+    // round 52 rarity scaling and round 54 visual disambiguation. Adjust the
+    // BoosterTypeTest weight-sum assertion if you tune further.
+    PIERCING_BOOSTER(R.drawable.booster_red_lasers, weight = 12),
+    PLASMA_BOOSTER(R.drawable.booster_ultimate_weapon, weight = 12),
 }

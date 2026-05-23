@@ -254,46 +254,116 @@ class ShipController(
     /**
      * Round 43 (39x) — [multiplier] scales the active duration by booster rarity
      * (1.0 / 1.5 / 2.0). 1.0 = baseline COMMON behavior.
+     *
+     * Round 55 — refresh logic: when picking up a buff while one is already
+     * active, use `max(oldEnd, newEnd)` to prevent silent downgrade (e.g.,
+     * Rare ×1.5 22.5s remaining → Common ×1.0 15s used to overwrite). Logs
+     * `REFRESHED` when newEnd > oldEnd, `WASTED` otherwise so the player can
+     * see what the pickup actually did.
      */
     private fun enableShield(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
         val dur = (shieldBoosterTimeMillis * multiplier).toLong()
-        if (ship.shieldEnabled != enable) {
-            Logger.d("Booster: shield ${if (enable) "ON (+${dur}ms, mul=$multiplier)" else "OFF"}")
+        val newEnd = now + dur
+        logBoosterTransition(
+            name = "shield",
+            wasEnabled = ship.shieldEnabled,
+            enable = enable,
+            oldEndMillis = shieldEndDurationMillis,
+            newEndMillis = newEnd,
+            now = now,
+            dur = dur,
+            multiplier = multiplier,
+        )
+        if (enable) {
+            shieldBoosterStartMillis = now
+            shieldEndDurationMillis = maxOf(shieldEndDurationMillis, newEnd)
         }
         updateShieldEnabled(enable)
-        if (enable) {
-            shieldBoosterStartMillis = System.currentTimeMillis()
-            shieldEndDurationMillis = shieldBoosterStartMillis + dur
-        }
     }
 
     private var laserBoosterStartMillis: Long = 0
     private val laserBoosterTimeMillis: Long = 15000
     private var laserBoosterEndDurationMillis: Long = 0
     private fun enableLaserBooster(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
         val dur = (laserBoosterTimeMillis * multiplier).toLong()
-        if (ship.laserBoosterEnabled != enable) {
-            Logger.d("Booster: laser ${if (enable) "ON (+${dur}ms, mul=$multiplier)" else "OFF"}")
+        val newEnd = now + dur
+        logBoosterTransition(
+            name = "laser",
+            wasEnabled = ship.laserBoosterEnabled,
+            enable = enable,
+            oldEndMillis = laserBoosterEndDurationMillis,
+            newEndMillis = newEnd,
+            now = now,
+            dur = dur,
+            multiplier = multiplier,
+        )
+        if (enable) {
+            laserBoosterStartMillis = now
+            laserBoosterEndDurationMillis = maxOf(laserBoosterEndDurationMillis, newEnd)
         }
         updateLaserBoosterEnabled(enable)
-        if (enable) {
-            laserBoosterStartMillis = System.currentTimeMillis()
-            laserBoosterEndDurationMillis = laserBoosterStartMillis + dur
-        }
     }
 
     private var tripleLaserBoosterStartMillis: Long = 0
     private val tripleLaserBoosterTimeMillis: Long = 20000
     private var tripleLaserBoosterEndDurationMillis: Long = 0
     private fun enableTripleLaserBooster(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
         val dur = (tripleLaserBoosterTimeMillis * multiplier).toLong()
-        if (ship.tripleLaserBoosterEnabled != enable) {
-            Logger.d("Booster: triple-laser ${if (enable) "ON (+${dur}ms, mul=$multiplier)" else "OFF"}")
+        val newEnd = now + dur
+        logBoosterTransition(
+            name = "triple-laser",
+            wasEnabled = ship.tripleLaserBoosterEnabled,
+            enable = enable,
+            oldEndMillis = tripleLaserBoosterEndDurationMillis,
+            newEndMillis = newEnd,
+            now = now,
+            dur = dur,
+            multiplier = multiplier,
+        )
+        if (enable) {
+            tripleLaserBoosterStartMillis = now
+            tripleLaserBoosterEndDurationMillis = maxOf(tripleLaserBoosterEndDurationMillis, newEnd)
         }
         updateTripleLaserBoosterEnabled(enable)
-        if (enable) {
-            tripleLaserBoosterStartMillis = System.currentTimeMillis()
-            tripleLaserBoosterEndDurationMillis = tripleLaserBoosterStartMillis + dur
+    }
+
+    /**
+     * Round 55 — single source-of-truth for booster activation/refresh logs.
+     * Distinguishes 4 cases so the gameplay actually surfaces in logcat:
+     *   - OFF (was enabled, now disabling)
+     *   - ON  (was disabled, now enabling — first pickup)
+     *   - REFRESHED (was enabled, new pickup extends the timer)
+     *   - WASTED (was enabled, new pickup would have shortened — kept existing)
+     */
+    private fun logBoosterTransition(
+        name: String,
+        wasEnabled: Boolean,
+        enable: Boolean,
+        oldEndMillis: Long,
+        newEndMillis: Long,
+        now: Long,
+        dur: Long,
+        multiplier: Float,
+    ) {
+        when {
+            !enable -> {
+                if (wasEnabled) Logger.d("Booster: $name OFF")
+            }
+            !wasEnabled -> {
+                Logger.d("Booster: $name ON (+${dur}ms, mul=$multiplier)")
+            }
+            newEndMillis > oldEndMillis -> {
+                val gain = newEndMillis - oldEndMillis
+                val oldRemaining = (oldEndMillis - now).coerceAtLeast(0L)
+                Logger.d("Booster: $name REFRESHED (+${gain}ms, was=${oldRemaining}ms remaining, mul=$multiplier)")
+            }
+            else -> {
+                val oldRemaining = (oldEndMillis - now).coerceAtLeast(0L)
+                Logger.d("Booster: $name WASTED (offered=${dur}ms mul=$multiplier < remaining=${oldRemaining}ms — kept existing buff)")
+            }
         }
     }
 
