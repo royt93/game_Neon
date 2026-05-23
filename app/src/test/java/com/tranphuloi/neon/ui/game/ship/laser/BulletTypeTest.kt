@@ -1,5 +1,6 @@
 package com.tranphuloi.neon.ui.game.ship.laser
 
+import com.tranphuloi.neon.ui.game.booster.BoosterRarity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -84,5 +85,55 @@ class BulletTypeTest {
         // should NOT match. This guarantees DataStore corruption to lowercase
         // doesn't silently match.
         assertEquals(BulletType.NORMAL, BulletType.fromName("piercing"))
+    }
+
+    // -- rarity scaling (round 52, 40x Item combos) ------------------------
+
+    @Test
+    fun `pierceCountForRarity matches Common-Rare-Epic 3-4-5`() {
+        assertEquals(3, BulletType.pierceCountForRarity(BoosterRarity.COMMON))
+        assertEquals(4, BulletType.pierceCountForRarity(BoosterRarity.RARE))
+        assertEquals(5, BulletType.pierceCountForRarity(BoosterRarity.EPIC))
+    }
+
+    @Test
+    fun `pierceCountForRarity is monotonically increasing`() {
+        val c = BulletType.pierceCountForRarity(BoosterRarity.COMMON)
+        val r = BulletType.pierceCountForRarity(BoosterRarity.RARE)
+        val e = BulletType.pierceCountForRarity(BoosterRarity.EPIC)
+        assertTrue("Rare ($r) must exceed Common ($c)", r > c)
+        assertTrue("Epic ($e) must exceed Rare ($r)", e > r)
+    }
+
+    @Test
+    fun `pierceCountForRarity Common matches base PIERCING`() {
+        assertEquals(
+            BulletType.PIERCING.pierceCount,
+            BulletType.pierceCountForRarity(BoosterRarity.COMMON),
+        )
+    }
+
+    @Test
+    fun `plasmaAoeMultiplierForRarity matches Common-Rare-Epic 1_0-1_375-1_75`() {
+        assertEquals(1.0f, BulletType.plasmaAoeMultiplierForRarity(BoosterRarity.COMMON), 0f)
+        assertEquals(1.375f, BulletType.plasmaAoeMultiplierForRarity(BoosterRarity.RARE), 0f)
+        assertEquals(1.75f, BulletType.plasmaAoeMultiplierForRarity(BoosterRarity.EPIC), 0f)
+    }
+
+    @Test
+    fun `plasmaAoeMultiplierForRarity yields effective radii 80-110-140`() {
+        val base = BulletType.PLASMA.aoeRadius
+        assertEquals(80f, base * BulletType.plasmaAoeMultiplierForRarity(BoosterRarity.COMMON), 0f)
+        assertEquals(110f, base * BulletType.plasmaAoeMultiplierForRarity(BoosterRarity.RARE), 0f)
+        assertEquals(140f, base * BulletType.plasmaAoeMultiplierForRarity(BoosterRarity.EPIC), 0f)
+    }
+
+    @Test
+    fun `plasmaAoeMultiplierForRarity is monotonically increasing`() {
+        val c = BulletType.plasmaAoeMultiplierForRarity(BoosterRarity.COMMON)
+        val r = BulletType.plasmaAoeMultiplierForRarity(BoosterRarity.RARE)
+        val e = BulletType.plasmaAoeMultiplierForRarity(BoosterRarity.EPIC)
+        assertTrue("Rare ($r) must exceed Common ($c)", r > c)
+        assertTrue("Epic ($e) must exceed Rare ($r)", e > r)
     }
 }

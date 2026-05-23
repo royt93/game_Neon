@@ -368,13 +368,17 @@ class ShipController(
                         }
                     }
                     // Round 35 (35x) — activate bullet type for 10s × rarity multiplier.
+                    // Round 52 (40x) — pass rarity through so PIERCING/PLASMA can
+                    // tier-up combat behaviour (pierce count + AoE radius).
                     BoosterType.PIERCING_BOOSTER -> setBulletType(
                         com.tranphuloi.neon.ui.game.ship.laser.BulletType.PIERCING,
                         multiplier = mul,
+                        rarity = booster.rarity,
                     )
                     BoosterType.PLASMA_BOOSTER -> setBulletType(
                         com.tranphuloi.neon.ui.game.ship.laser.BulletType.PLASMA,
                         multiplier = mul,
+                        rarity = booster.rarity,
                     )
                 }
             }
@@ -438,12 +442,22 @@ class ShipController(
     private fun setBulletType(
         type: com.tranphuloi.neon.ui.game.ship.laser.BulletType,
         multiplier: Float = 1f,
+        // Round 52 (40x Item combos) — rarity tier of the activating booster.
+        // Stored on Ship so LasersController can read it when firing PIERCING
+        // (pierce count) or PLASMA (AoE radius). Defaults to COMMON so the
+        // round 45 Loadout head-start (no booster involved) keeps baseline behaviour.
+        rarity: com.tranphuloi.neon.ui.game.booster.BoosterRarity =
+            com.tranphuloi.neon.ui.game.booster.BoosterRarity.COMMON,
     ) {
         val dur = (type.activeDurationMillis * multiplier).toLong()
         val endMillis = System.currentTimeMillis() + dur
-        ship = ship.copy(activeBulletType = type, bulletTypeEndMillis = endMillis)
+        ship = ship.copy(
+            activeBulletType = type,
+            bulletTypeEndMillis = endMillis,
+            activeBulletTypeRarity = rarity,
+        )
         setShip(ship)
-        Logger.d("BulletType: activated $type for ${dur}ms (mul=$multiplier, ends @ $endMillis)")
+        Logger.d("BulletType: activated $type rarity=$rarity for ${dur}ms (mul=$multiplier, ends @ $endMillis)")
     }
 
     private fun updateShieldEnabled(enable: Boolean) {

@@ -56,7 +56,8 @@
       "Bash(./gradlew :app:assembleDevDebug)",
       "Bash(./gradlew :app:testDevDebugUnitTest :app:compileProductionReleaseKotlin :app:assembleDevDebug)",
       "Bash(./gradlew :app:assembleDevDebug :app:compileProductionReleaseKotlin)",
-      "Bash(./gradlew :app:compileDevDebugKotlin :app:testDevDebugUnitTest :app:assembleDevDebug)"
+      "Bash(./gradlew :app:compileDevDebugKotlin :app:testDevDebugUnitTest :app:assembleDevDebug)",
+      "Bash(./gradlew :app:compileDevDebugKotlin :app:testDevDebugUnitTest :app:compileProductionReleaseKotlin :app:assembleDevDebug)"
     ]
   }
 }

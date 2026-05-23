@@ -24,6 +24,15 @@ data class Ship(
     val activeBulletType: com.tranphuloi.neon.ui.game.ship.laser.BulletType =
         com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL,
     val bulletTypeEndMillis: Long = 0L,
+    /**
+     * Round 52 (40x Item combos) — rarity of the booster that activated the
+     * current [activeBulletType]. Used to tier-up combat behaviour:
+     *  - PIERCING: pierceCount scales 3/4/5 for Common/Rare/Epic.
+     *  - PLASMA: AoE radius scales ×1.0 / ×1.375 / ×1.75.
+     * Loadout head-start (round 45) defaults to COMMON.
+     */
+    val activeBulletTypeRarity: com.tranphuloi.neon.ui.game.booster.BoosterRarity =
+        com.tranphuloi.neon.ui.game.booster.BoosterRarity.COMMON,
     val xOffset: Float,
     val yOffset: Float,
     val hp: Int = 1000,

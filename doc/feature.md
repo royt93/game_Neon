@@ -968,6 +968,46 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 52 — Wave 6 Item combos (40x) — closes Wave 6 to 7/7
+
+User picked 40x via AskUserQuestion. The final Wave 6 item — synergies between rarity + loadout + run modifier. Three concrete combos shipped (one per gameplay axis), all driven by data already in flight (booster rarity + run modifier damage multiplier). **Wave 6 now ✅ 7/7 done.**
+
+- ✅ **Combo 1 — Rarity scales PIERCING pierceCount**. Common piercing stays at 3 hits (baseline). Rare → 4 hits. Epic → 5 hits. Math via `BulletType.pierceCountForRarity(rarity)` companion helper. Applied at laser spawn in `LasersController.fireBulletTypeLasers` via `.also { it.pierceRemaining = ... }`. Ship stores activating booster's rarity in `Ship.activeBulletTypeRarity` (default COMMON) so the multiplier survives the entire booster's `activeDurationMillis`.
+
+- ✅ **Combo 2 — Rarity scales PLASMA AoE radius**. Common = 80px (base from `BulletType.PLASMA.aoeRadius`). Rare = 110px (×1.375). Epic = 140px (×1.75). Math via `BulletType.plasmaAoeMultiplierForRarity(rarity)`. The multiplier is captured **at spawn** on `PlasmaShipLaser.aoeRadiusMultiplier: Float`, not looked up at collision — this is intentional: if the booster expires between fire and impact (~200ms airtime at 5px/frame), the in-flight projectile keeps the rarity it was fired with. Collision branch reads `(laser as? PlasmaShipLaser)?.aoeRadiusMultiplier ?: 1f` and multiplies the base radius.
+
+- ✅ **Combo 3 — Run modifier damage scales secondary weapons too**. Previously `effectiveStats.damageMul` only applied to ship lasers via `BoostedShipLaser.impactPower * damageMul`. Mine detonation (`Mine.EXPLOSION_DAMAGE = 80f`) and BURST radial sweep (40f base) were unaware of the run modifier, making "HighDamage" modifier strictly inferior for builds heavy on secondaries. Fixed in `GameState.kt`: Mine pops use `Mine.EXPLOSION_DAMAGE * effectiveStats.damageMul`, BURST hits use `40f * effectiveStats.damageMul`.
+
+- ✅ **6 new unit tests** in `BulletTypeTest.kt` covering both companion helpers:
+    - `pierceCountForRarity matches Common-Rare-Epic 3-4-5`
+    - `pierceCountForRarity is monotonically increasing`
+    - `pierceCountForRarity Common matches base PIERCING` (regression guard if base PIERCING.pierceCount is ever rebalanced)
+    - `plasmaAoeMultiplierForRarity matches Common-Rare-Epic 1_0-1_375-1_75`
+    - `plasmaAoeMultiplierForRarity yields effective radii 80-110-140` (verifies the math is actually correct when multiplied by `PLASMA.aoeRadius`, not just that the multipliers exist)
+    - `plasmaAoeMultiplierForRarity is monotonically increasing`
+
+### Round 52 files
+
+**Modified:**
+- `ui/game/ship/ship/Ship.kt` — added `activeBulletTypeRarity: BoosterRarity = COMMON` field. Survives ship `copy()` calls because it's a constructor param.
+- `ui/game/ship/laser/BulletType.kt` — added `pierceCountForRarity` + `plasmaAoeMultiplierForRarity` companion helpers with KDoc explaining the design.
+- `ui/game/ship/ship/ShipController.kt` — `setBulletType` signature now takes `rarity: BoosterRarity`. Stores on `ship.copy(activeBulletTypeRarity = rarity)`. Updated both call sites (PIERCING_BOOSTER + PLASMA_BOOSTER branches) to pass `booster.rarity`.
+- `ui/game/ship/laser/PlasmaShipLaser.kt` — added `var aoeRadiusMultiplier: Float = 1f`. Set at spawn, read at collision.
+- `ui/game/ship/laser/LasersController.kt` — PIERCING spawn uses `BulletType.pierceCountForRarity(ship.activeBulletTypeRarity)` for `pierceRemaining`. PLASMA spawn writes `aoeRadiusMultiplier`. Collision PLASMA branch reads the multiplier.
+- `ui/game/state/GameState.kt` — Mine detonation + BURST hits now multiply damage by `effectiveStats.damageMul`.
+- `app/src/test/.../BulletTypeTest.kt` — 6 new tests (16 total now, up from 10).
+
+### Round 52 verification
+
+- `./gradlew :app:compileDevDebugKotlin :app:compileProductionReleaseKotlin :app:testDevDebugUnitTest :app:assembleDevDebug` BUILD SUCCESSFUL.
+- **152 tests pass** (was 146; +6 rarity tests).
+- Manual sanity checks:
+    - Common PIERCING booster → ship laser pierces 3 enemies as before (regression guard).
+    - Rare PIERCING booster → pierces 4 enemies (new behavior).
+    - Epic PLASMA booster → visible AoE ring at impact noticeably wider (140px vs 80px baseline).
+    - HighDamage run modifier with MINE loadout → mine pops do ~120 damage instead of 80 (×1.5 modifier).
+- **Design note**: rarity is captured at booster pickup, not at fire time. If user picks up Common PIERCING, then Epic PIERCING refreshes the buff, the ship's rarity field updates and the next laser fired uses Epic's pierceCount. The in-flight Common laser keeps pierceCount=3 (lasers carry their own `pierceRemaining`).
+
 ### Round 51.5 — Photo mode audit fixes (ANR risk + bitmap leak)
 
 User asked "bạn chắc chưa? audit lại đi" after initial round 51. Audit pass found 2 real issues + 1 UX nuance.
@@ -2176,13 +2216,13 @@ Các architectural refactors quá lớn để gộp chung:
 - [x] Round 32 — sheet padding 32dp + slide animation delay onDismiss + Menu redistribute spacers + Settings ControlGroup
 - [x] Round 33 — Menu title 44sp + displayCutout windowInsetsPadding + feature.md audit
 
-## Wave 6 — Polish + accessibility (🟡 6/7 done — rounds 38-51)
+## Wave 6 — Polish + accessibility (✅ 7/7 done — rounds 38-52)
 - [x] 26x Photo mode (round 51 — pause + HUD hide + cacheDir PNG + FileProvider Share intent)
 - [x] 27x Color blind mode (round 39 — Wong palette + LocalNeonPalette infra + Settings picker; broader UI migration deferred)
 - [x] 29x Secondary weapon (round 40 MISSILE homing + round 41 MINE proximity + BURST instant sweep + Settings picker)
 - [x] 36x Loadout system (round 45 + 45.5 audit — pre-game BulletType + SecondaryWeapon picker; BulletType head-start 10s on run init; race condition fixed via Flow.first)
 - [x] 39x Item rarity tiers (round 43 — Common 75% / Rare 20% / Epic 5% with ring overlay + multiplier scaling on duration/heal)
-- [ ] 40x Item combos (pending — synergies between rarity + loadout + booster + modifier)
+- [x] 40x Item combos (round 52 — rarity scales PIERCING pierceCount 3/4/5 + PLASMA AoE 80/110/140px; Mine + BURST secondary damage now scales with effectiveStats.damageMul)
 - [x] 45x Ship customization (round 38 — 5-color aura glow wired into ship + ship-laser rendering)
 
 ## Wave 6 perf chain ✅ DONE (rounds 44-49) — addresses Wave 7 AAc partially

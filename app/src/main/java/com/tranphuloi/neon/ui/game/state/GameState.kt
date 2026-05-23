@@ -1178,7 +1178,13 @@ fun rememberGameState(): GameState {
                                     val mcx = m.xOffset + com.tranphuloi.neon.ui.game.ship.weapon.Mine.SIZE / 2f
                                     val mcy = m.yOffset + com.tranphuloi.neon.ui.game.ship.weapon.Mine.SIZE / 2f
                                     val aoe = com.tranphuloi.neon.ui.game.ship.weapon.Mine.AOE_RADIUS
-                                    val dmg = com.tranphuloi.neon.ui.game.ship.weapon.Mine.EXPLOSION_DAMAGE
+                                    // Round 52 (40x Item combos) — Mine damage now scales by
+                                    // effectiveStats.damageMul so modifiers (DOUBLE_OR_NOTHING ×2,
+                                    // GLASS_CANNON ×2, BERSERKER ×1.5) + meta upgrades stack here
+                                    // like they already do for ship lasers. Previously Mine.EXPLOSION_DAMAGE
+                                    // was hardcoded 80f regardless of run setup.
+                                    val dmg = com.tranphuloi.neon.ui.game.ship.weapon.Mine.EXPLOSION_DAMAGE *
+                                        effectiveStats.damageMul
                                     enemies.forEach { e ->
                                         val cx = e.xOffset + e.width / 2f
                                         val cy = e.yOffset + e.height / 2f
@@ -1402,7 +1408,11 @@ fun rememberGameState(): GameState {
                     }
                     com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.BURST -> {
                         // Instant: 40dmg to up to 5 nearest enemies in upper 2/3 of screen.
+                        // Round 52 (40x Item combos) — BURST damage now scales by
+                        // effectiveStats.damageMul. Matches the Mine fix above + the existing
+                        // laser path (LasersController applies damageMultiplier callback).
                         val cutoffY = screenHeight * 2f / 3f
+                        val burstDmg = 40f * effectiveStats.damageMul
                         val candidates = enemies
                             .filter { it.yOffset < cutoffY }
                             .sortedBy {
@@ -1412,17 +1422,17 @@ fun rememberGameState(): GameState {
                             }
                             .take(5)
                         candidates.forEach { e ->
-                            e.onObjectImpact(40f)
+                            e.onObjectImpact(burstDmg)
                             damageNumberController.report(
                                 targetId = e.enemyId,
-                                damage = 40,
+                                damage = burstDmg.toInt(),
                                 xOffset = e.xOffset + e.width / 2f,
                                 yOffset = e.yOffset,
                                 isBoss = e.isBoss,
                             )
                         }
                         lastBurstSweepMillis = now
-                        Logger.d("fireSecondary BURST: hit ${candidates.size} enemy(ies) for 40 each")
+                        Logger.d("fireSecondary BURST: hit ${candidates.size} enemy(ies) for ${burstDmg.toInt()} each (damageMul=${effectiveStats.damageMul})")
                     }
                 }
                 lastSecondaryFireMillis = now

@@ -59,5 +59,30 @@ enum class BulletType(
          */
         fun fromName(name: String?): BulletType =
             entries.firstOrNull { it.name == name } ?: NORMAL
+
+        /**
+         * Round 52 (40x Item combos) — pierce count scales with the rarity of
+         * the booster that activated PIERCING. Common 3 (baseline) → Rare 4
+         * → Epic 5. Returns base [PIERCING.pierceCount] for non-PIERCING
+         * activations (defensive — caller shouldn't ask).
+         */
+        fun pierceCountForRarity(rarity: com.tranphuloi.neon.ui.game.booster.BoosterRarity): Int =
+            when (rarity) {
+                com.tranphuloi.neon.ui.game.booster.BoosterRarity.COMMON -> PIERCING.pierceCount
+                com.tranphuloi.neon.ui.game.booster.BoosterRarity.RARE -> PIERCING.pierceCount + 1
+                com.tranphuloi.neon.ui.game.booster.BoosterRarity.EPIC -> PIERCING.pierceCount + 2
+            }
+
+        /**
+         * Round 52 (40x Item combos) — PLASMA AoE radius scales with the
+         * rarity of the booster. Common 80px (baseline) → Rare 110px → Epic
+         * 140px. Caller multiplies [PLASMA.aoeRadius] by the returned factor.
+         */
+        fun plasmaAoeMultiplierForRarity(rarity: com.tranphuloi.neon.ui.game.booster.BoosterRarity): Float =
+            when (rarity) {
+                com.tranphuloi.neon.ui.game.booster.BoosterRarity.COMMON -> 1.0f
+                com.tranphuloi.neon.ui.game.booster.BoosterRarity.RARE -> 1.375f      // 80 → 110
+                com.tranphuloi.neon.ui.game.booster.BoosterRarity.EPIC -> 1.75f       // 80 → 140
+            }
     }
 }

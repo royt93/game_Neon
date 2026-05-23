@@ -27,6 +27,14 @@ data class PlasmaShipLaser(
 
     override val bulletType: BulletType = BulletType.PLASMA
 
+    /**
+     * Round 52 (40x Item combos) — multiplier applied to [BulletType.PLASMA.aoeRadius]
+     * at collision time. Set at spawn by [LasersController.fireBulletTypeLasers]
+     * from the activating booster's rarity (1.0 / 1.375 / 1.75 for Common /
+     * Rare / Epic via [BulletType.plasmaAoeMultiplierForRarity]).
+     */
+    var aoeRadiusMultiplier: Float = 1f
+
     override fun moveLaser() {
         yOffset -= yOffsetMovementSpeed
     }

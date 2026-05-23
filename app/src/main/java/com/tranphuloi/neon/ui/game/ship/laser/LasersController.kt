@@ -104,20 +104,30 @@ class LasersController(
         val top = ship.yOffset - 22f
         val templates: List<Laser> = when (ship.activeBulletType) {
             BulletType.PIERCING -> listOf(
+                // Round 52 (40x Item combos) — pierceCount tiers up by booster
+                // rarity: Common 3, Rare 4, Epic 5. Read from ship state.
                 PiercingShipLaser(
                     id = uuidUtils.getUuid(),
                     xOffset = centerX - 3f,
                     yOffset = top,
                     yRange = screenHeight,
-                ),
+                ).also {
+                    it.pierceRemaining =
+                        BulletType.pierceCountForRarity(ship.activeBulletTypeRarity)
+                },
             )
             BulletType.PLASMA -> listOf(
+                // Round 52 (40x Item combos) — PLASMA AoE radius tiers up by
+                // booster rarity: Common ×1.0, Rare ×1.375, Epic ×1.75.
                 PlasmaShipLaser(
                     id = uuidUtils.getUuid(),
                     xOffset = centerX - PlasmaShipLaser.PLASMA_WIDTH / 2,
                     yOffset = top - 12f,
                     yRange = screenHeight,
-                ),
+                ).also {
+                    it.aoeRadiusMultiplier =
+                        BulletType.plasmaAoeMultiplierForRarity(ship.activeBulletTypeRarity)
+                },
             )
             BulletType.NORMAL -> emptyList()                // unreachable; gated at caller
         }
@@ -277,7 +287,12 @@ class LasersController(
                     }
                     BulletType.PLASMA -> {
                         // AoE damage: enemies within radius take 50% damage.
-                        val aoeRadius = laser.bulletType.aoeRadius
+                        // Round 52 (40x Item combos) — radius scaled by
+                        // [PlasmaShipLaser.aoeRadiusMultiplier] set at spawn
+                        // from booster rarity. Common ×1.0 = 80px, Rare
+                        // ×1.375 = 110px, Epic ×1.75 = 140px.
+                        val rarityMul = (laser as? PlasmaShipLaser)?.aoeRadiusMultiplier ?: 1f
+                        val aoeRadius = laser.bulletType.aoeRadius * rarityMul
                         val hitCenterX = target.xOffset + target.width / 2f
                         val hitCenterY = target.yOffset + target.height / 2f
                         val aoeDmg = effectiveDamage * 0.5f
