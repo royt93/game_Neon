@@ -38,6 +38,18 @@ class ShipController(
      * GameState passes lambda checking current stage's hazard type.
      */
     private val isIceHazardActive: () -> Boolean = { false },
+    /**
+     * Round 58 — hint when a bullet-type buff (PIERCING/PLASMA) is activated
+     * via booster pickup. Caller spawns a visible PickupPopup with the
+     * effective stats (pierce count / AoE radius) so the player can verify
+     * round 52 rarity scaling without consulting logs.
+     */
+    private val onBulletTypeActivated: (
+        type: com.tranphuloi.neon.ui.game.ship.laser.BulletType,
+        rarity: com.tranphuloi.neon.ui.game.booster.BoosterRarity,
+        xOffset: Float,
+        yOffset: Float,
+    ) -> Unit = { _, _, _, _ -> },
 ) {
 
     init {
@@ -400,7 +412,7 @@ class ShipController(
                 )
             }
             if (spaceRect.overlaps(if (ship.shieldEnabled) shipShieldRect else shipRect)) {
-                Logger.v { "Collision: ship ↔ spaceObject (shield=${ship.shieldEnabled}, impactPower=${spaceObject.impactPower})" }
+                Logger.d("Collision: ship ↔ spaceObject (shield=${ship.shieldEnabled}, impactPower=${spaceObject.impactPower})")
                 spaceObjects[spaceObjectIndex].onObjectImpact(spaceShipCollidePower)
                 // Visual feedback at rock center — sparks + mini explosion. Skipped for
                 // pickup-style space objects (boosters via spaceObject path) by checking
@@ -482,7 +494,7 @@ class ShipController(
                 )
             }
             if (enemyRect.overlaps(if (ship.shieldEnabled) shipShieldRect else shipRect)) {
-                Logger.v { "Collision: ship ↔ enemy id=${enemy.enemyId.take(6)} (shield=${ship.shieldEnabled})" }
+                Logger.d("Collision: ship ↔ enemy id=${enemy.enemyId.take(6)} (shield=${ship.shieldEnabled})")
                 enemies[enemyIndex].onObjectImpact(spaceShipCollidePower)
 
                 val hpImpact: Int = when (ship.shieldEnabled && enemy.impactPower > 0) {
@@ -500,7 +512,7 @@ class ShipController(
                 )
             }
             if (enemyLaserRect.overlaps(if (ship.shieldEnabled) shipShieldRect else shipRect)) {
-                Logger.v { "Collision: ship ↔ enemyLaser (shield=${ship.shieldEnabled}, impactPower=${enemyLaser.impactPower.toInt()})" }
+                Logger.d("Collision: ship ↔ enemyLaser (shield=${ship.shieldEnabled}, impactPower=${enemyLaser.impactPower.toInt()})")
                 enemyLasers[enemyIndex].destroyed = true
 
                 val hpImpact: Float = when (ship.shieldEnabled && enemyLaser.impactPower > 0) {
@@ -549,6 +561,18 @@ class ShipController(
         )
         setShip(ship)
         Logger.d("BulletType: activated $type rarity=$rarity for ${dur}ms (mul=$multiplier, ends @ $endMillis)")
+        // Round 58 — visible hint popup at ship center so player sees the
+        // tier-up info from round 52 rarity scaling (pierce 3/4/5 or AoE
+        // 80/110/140px). Skipped for NORMAL since head-start applies it
+        // silently and the popup would be noise.
+        if (type != com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL) {
+            onBulletTypeActivated(
+                type,
+                rarity,
+                ship.xOffset + ship.width / 2f,
+                ship.yOffset,
+            )
+        }
     }
 
     private fun updateShieldEnabled(enable: Boolean) {
@@ -606,7 +630,7 @@ class ShipController(
         val newHp = (ship.hp + effective).coerceAtLeast(0)
         ship = ship.copy(hp = newHp)
         if (effective != 0) {
-            Logger.v { "Ship hp: $before → ${ship.hp} (Δ=$effective, raw=$hpChange, multiplier=$multiplier)" }
+            Logger.d("Ship hp: $before → ${ship.hp} (Δ=$effective, raw=$hpChange, multiplier=$multiplier)")
         }
         setShip(ship)
         if (effective < 0) {

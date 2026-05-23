@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.common.NeonGold
@@ -48,12 +49,19 @@ fun PickupPopupOverlay(popups: List<PickupPopup>) {
             t < 0.45f -> peakScale - (peakScale - 1f) * ((t - 0.18f) / 0.27f)
             else -> 1f
         }
-        // Always gold (was magenta-on-combo which confused users); larger font for combo
-        // emphasizes the bonus amount without changing color.
+        // Color: default NeonGold for mineral popups, override (e.g. magenta for
+        // PIERCING / cyan for PLASMA bullet-type activation hints — round 58).
+        // Font size tiers: 18sp large (bullet-type), 14sp combo-bonus, 12sp baseline.
+        val popupColor = if (p.colorHex != 0L) Color(p.colorHex) else NeonGold
+        val popupFontSize = when {
+            p.isLargeFont -> 18.sp
+            p.isComboBonus -> 14.sp
+            else -> 12.sp
+        }
         Text(
             text = p.text,
-            color = NeonGold,
-            fontSize = if (p.isComboBonus) 14.sp else 12.sp,
+            color = popupColor,
+            fontSize = popupFontSize,
             fontWeight = FontWeight.Bold,
             modifier = Modifier
                 .offset(x = p.xOffset.dp, y = yOffset.dp)

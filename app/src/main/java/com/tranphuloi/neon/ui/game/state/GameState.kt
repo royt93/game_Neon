@@ -337,6 +337,15 @@ fun rememberGameState(): GameState {
      * + 500ms delay path instead of the death path's LONG haptic + GAME_OVER sfx.
      */
     var timeAttackEnded by remember { mutableStateOf(false) }
+    // Round 58 — pickupPopupController hoisted above shipController so the
+    // onBulletTypeActivated callback wired into ShipController can reach it.
+    // Was declared further down (~line 530); the closure on `pickupPopupController`
+    // is captured by value at the lambda's declaration site, so forward refs
+    // don't resolve. Moving the val up fixes the unresolved reference.
+    var pickupPopups: List<PickupPopup> by remember { mutableStateOf(emptyList()) }
+    val pickupPopupController = remember {
+        PickupPopupController(updateState = { pickupPopups = it })
+    }
     val shipController = remember {
         Logger.d("rememberGameState: building ShipController (initial hp=${ship.hp})")
         ShipController(
@@ -430,6 +439,31 @@ fun rememberGameState(): GameState {
             isIceHazardActive = {
                 currentHazard == com.tranphuloi.neon.ui.game.stage.HazardType.ICE_PATCHES
             },
+            // Round 58 — visible PIERCING/PLASMA activation hint. Shows the
+            // effective stats from round 52 rarity scaling at the ship
+            // location for 500ms so player can verify tier-up at runtime.
+            onBulletTypeActivated = { type, rarity, x, y ->
+                val (text, colorHex) = when (type) {
+                    com.tranphuloi.neon.ui.game.ship.laser.BulletType.PIERCING -> {
+                        val n = com.tranphuloi.neon.ui.game.ship.laser.BulletType
+                            .pierceCountForRarity(rarity)
+                        "→ PIERCING ×$n" to com.tranphuloi.neon.ui.game.booster.BoosterToBoosterUIMapper.PIERCING_TINT_ARGB
+                    }
+                    com.tranphuloi.neon.ui.game.ship.laser.BulletType.PLASMA -> {
+                        val r = (com.tranphuloi.neon.ui.game.ship.laser.BulletType.PLASMA.aoeRadius *
+                            com.tranphuloi.neon.ui.game.ship.laser.BulletType
+                                .plasmaAoeMultiplierForRarity(rarity)).toInt()
+                        "◯ PLASMA ${r}px" to com.tranphuloi.neon.ui.game.booster.BoosterToBoosterUIMapper.PLASMA_TINT_ARGB
+                    }
+                    else -> return@ShipController
+                }
+                pickupPopupController.spawnBulletTypeActivation(
+                    text = text,
+                    colorHex = colorHex,
+                    xOffset = x,
+                    yOffset = y,
+                )
+            },
         )
     }
 
@@ -502,10 +536,6 @@ fun rememberGameState(): GameState {
 
     var mineralsEarnedTotal: Int by rememberSaveable { mutableIntStateOf(0) }
     var minerals: List<Mineral> by rememberSaveable { mutableStateOf(emptyList()) }
-    var pickupPopups: List<PickupPopup> by remember { mutableStateOf(emptyList()) }
-    val pickupPopupController = remember {
-        PickupPopupController(updateState = { pickupPopups = it })
-    }
     // 46x — achievementUnlocked / achievementShownAtMillis / unlockAchievement
     // hoisted to line ~188 so onShipRevived can call them. Kept removed here.
     var lastMineralPickupMillis by remember { mutableLongStateOf(0L) }

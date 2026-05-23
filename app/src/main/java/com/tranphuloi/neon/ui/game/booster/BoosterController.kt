@@ -43,7 +43,12 @@ class BoosterController(
             return
         }
         boosters += booster
-        Logger.v { "BoosterController.addBooster: type=${booster.type} at x=${booster.xOffset.toInt()} (active=${boosters.size}/$MAX_BOOSTERS)" }
+        // Round 56 — was Logger.v; promoted to Logger.d so booster distribution is
+        // observable in default-build logcat. Spawn ticks every 4s (≤0.25 lines/s
+        // sustained), well under the spam threshold. Use this log to verify weight
+        // distribution at runtime (e.g., PIERCING/PLASMA showing up at 9.7% each
+        // per round 55 bump from 8 → 12).
+        Logger.d("BoosterController.addBooster: type=${booster.type} rarity=${booster.rarity} at x=${booster.xOffset.toInt()} (active=${boosters.size}/$MAX_BOOSTERS)")
         updateBoosters()
     }
 

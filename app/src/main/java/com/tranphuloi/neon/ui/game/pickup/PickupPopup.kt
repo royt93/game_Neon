@@ -21,6 +21,16 @@ data class PickupPopup(
     val initialY: Float,
     val createdAtMillis: Long,
     val isComboBonus: Boolean,
+    /**
+     * Round 58 — ARGB color override for bullet-type activation hints
+     * (magenta for PIERCING, cyan for PLASMA). 0 = default NeonGold.
+     */
+    val colorHex: Long = 0L,
+    /**
+     * Round 58 — bigger 18sp font for bullet-type activation, vs 12-14sp
+     * for the mineral pickup popups. Makes the buff hint impossible to miss.
+     */
+    val isLargeFont: Boolean = false,
 ) : Serializable {
 
     fun progress(now: Long = System.currentTimeMillis()): Float =
@@ -45,6 +55,34 @@ class PickupPopupController(
 
     @Volatile
     private var popups: List<PickupPopup> = emptyList()
+
+    /**
+     * Round 58 — bullet-type activation hint. Caller supplies pre-formatted
+     * text (e.g. "→ PIERCING ×4" / "◯ PLASMA 110px") + the discriminator color.
+     * Renders at 18sp instead of the 12sp mineral popup so it's clearly a
+     * different signal class. 500ms lifetime same as mineral popups.
+     */
+    fun spawnBulletTypeActivation(
+        text: String,
+        colorHex: Long,
+        xOffset: Float,
+        yOffset: Float,
+    ) {
+        val popup = PickupPopup(
+            id = UUID.randomUUID().toString(),
+            text = text,
+            xOffset = xOffset,
+            yOffset = yOffset,
+            initialY = yOffset,
+            createdAtMillis = System.currentTimeMillis(),
+            isComboBonus = false,
+            colorHex = colorHex,
+            isLargeFont = true,
+        )
+        popups = popups + popup
+        Logger.d("PickupPopupController.spawnBulletTypeActivation '$text' at (${xOffset.toInt()},${yOffset.toInt()})")
+        updateState(popups)
+    }
 
     fun spawnMineralPickup(xOffset: Float, yOffset: Float, comboCount: Int, multiplier: Int) {
         val now = System.currentTimeMillis()

@@ -60,7 +60,8 @@
       "Bash(./gradlew :app:compileDevDebugKotlin :app:testDevDebugUnitTest :app:compileProductionReleaseKotlin :app:assembleDevDebug)",
       "Bash(awk -F'tests=\"' '{split\\($2,a,\"\\\\\"\"\\); sum+=a[1]} END {print \"TOTAL TESTS:\", sum}')",
       "Bash(awk -F'tests=\"' '{split\\($2,a,\"\\\\\"\"\\); sum+=a[1]; if\\(index\\($0,\"failures=\\\\\"0\\\\\"\"\\)==0\\) fail+=1} END {print \"TOTAL:\", sum, \"tests\"}')",
-      "Bash(awk -F'tests=\"' '{split\\($2,a,\"\\\\\"\"\\); sum+=a[1]} END {print \"TOTAL:\", sum, \"tests\"}')"
+      "Bash(awk -F'tests=\"' '{split\\($2,a,\"\\\\\"\"\\); sum+=a[1]} END {print \"TOTAL:\", sum, \"tests\"}')",
+      "Bash(awk -F'tests=\"' '{split\\($2,a,\"\\\\\"\"\\); sum+=a[1]; fails=0; if\\(match\\($0,/failures=\"\\([^\"]+\\)\"/, m\\)\\) fails=m[1]+0; failsum+=fails} END {print \"TOTAL:\", sum, \"tests, failures:\", failsum}')"
     ]
   }
 }

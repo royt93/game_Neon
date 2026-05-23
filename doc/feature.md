@@ -968,6 +968,136 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 58 — 4-task batch from runtime log audit
+
+User picked all 4 options via AskUserQuestion. Shipped in one round to consolidate test/build cycles.
+
+**Task 1: BoosterRarity audit + distribution tests**
+
+Runtime log showed EPIC drop rate 5/22 = 23% vs expected 5% (`P(≥5/22 at 5%)` ≈ 0.5%). Algorithm audit: weighted-pick in `Booster.kt:36-51` mirrors the type roll, traced through manually + grep confirmed no other code path forces `BoosterRarity.EPIC`. Conclusion: **algorithm correct, observed 23% was N=22 RNG variance**.
+
+Added `BoosterRarityDistributionTest.kt` (8 tests, N=1000-2000 rolls):
+- Every rarity reachable
+- Distribution within 30% tolerance band of 75/20/5 weights
+- EPIC rate in `[3.5%, 6.5%]` at N=1000 — hard floor proves the bug-trigger 23% can't be reproduced at honest sample sizes
+- COMMON rate in `[52.5%, 97.5%]`
+- RARE rate in `[14%, 26%]`
+- Weight ordering `COMMON > RARE > EPIC` stable at N=2000
+- Total tally = N (no dropped/double-counted)
+- REVIVE_TOKEN always COMMON (hard-coded bypass per `Booster.kt:36-37`)
+
+All 8 PASS. Round 58 closes the EPIC-over-rate concern; if a future log still shows >10% EPIC at N≥50, then investigate further.
+
+**Task 2: Compose render FPS instrumentation (`GameWorld.kt`)**
+
+Pre-existing PERF log measures IO-loop iteration rate (`while(loopRunning) { ... delay(8) }`), which the user mistook for render FPS. Added a separate render-frame counter using `withFrameNanos`:
+
+```kotlin
+LaunchedEffect(Unit) {
+    while (true) {
+        withFrameNanos {
+            renderFrameCount++
+            if (elapsed >= 1000L) {
+                Logger.d("PERF render FPS=$fps over ${elapsed}ms (frames=$renderFrameCount)")
+                // reset
+            }
+        }
+    }
+}
+```
+
+`withFrameNanos` fires once per Choreographer-paced render frame, giving the true on-screen FPS independent of the IO loop. Compare to IO loop's ~96 Hz to see if Compose recompose work is the bottleneck. Round 57 Enemy Canvas refactor should now be measurable — expect FPS at display refresh rate (60/90/120 Hz depending on device) once peak enemies isn't dropping frames.
+
+**Task 3: PIERCING/PLASMA pickup hint banner**
+
+Round 54 added the magenta `→` / cyan `◯` glyph on the booster sprite for visual disambiguation, but once picked up the player had no on-screen confirmation that the bullet-type was actually applied (Logger.d existed but doesn't reach the player). Round 58 adds a visible activation hint via the existing `PickupPopup` mechanism.
+
+- `PickupPopup` gains 2 optional fields: `colorHex: Long = 0L` (ARGB override) + `isLargeFont: Boolean = false` (18sp vs 12-14sp for mineral popups).
+- New method `PickupPopupController.spawnBulletTypeActivation(text, colorHex, x, y)` — 500ms lifetime same as mineral popup, larger font + tint color.
+- `PickupPopupOverlay` reads `colorHex` (fallback NeonGold) + tiered font size (`isLargeFont` 18sp / `isComboBonus` 14sp / default 12sp).
+- `ShipController` gains `onBulletTypeActivated(type, rarity, x, y)` callback. Triggered inside `setBulletType` only when `type != NORMAL` (so head-start NORMAL doesn't spawn noise).
+- `GameState` wires the callback to compute hint text:
+    - PIERCING: `"→ PIERCING ×${pierceCountForRarity(rarity)}"` (×3/×4/×5 for Common/Rare/Epic) — magenta.
+    - PLASMA: `"◯ PLASMA ${(80 × plasmaAoeMultiplierForRarity(rarity)).toInt()}px"` (80/110/140px) — cyan.
+
+Player picks up a Rare PIERCING_BOOSTER → 500ms floating "→ PIERCING ×4" appears at ship position in magenta. Round 52 rarity scaling is now self-evident at runtime.
+
+Side effect: `pickupPopupController` declaration moved above `shipController` (was at ~line 530, now ~line 340) to fix forward-ref unresolved at compile time. Comment block explains the move.
+
+**Task 4: Damage logs Logger.v → Logger.d (selective)**
+
+User wanted visible damage events for future audit work. Promoted 4 sites in `ShipController`:
+- `Collision: ship ↔ spaceObject` → Logger.d
+- `Collision: ship ↔ enemy` → Logger.d
+- `Collision: ship ↔ enemyLaser` → Logger.d
+- `Ship hp: X → Y (Δ=Z, raw=W, multiplier=M)` → Logger.d (the single most informative line)
+
+Left at Logger.v:
+- `Ship hp damage ABSORBED (iframes or spawn)` — fires 6-10× during a 600ms iframe window if continuously overlapping → too noisy.
+- `Ship i-frames: ON until ...` — paired with hp Δ log above, redundant.
+
+Spam risk assessed: at peak 30 enemies, max ~30 collision/sec worst case if everything overlapping. In practice ≤5/sec. Acceptable for diagnostic value.
+
+**Files modified:**
+- `ui/game/booster/Booster*.kt` — no code change; added test file.
+- `app/src/test/.../BoosterRarityDistributionTest.kt` (new, 8 tests).
+- `ui/game/world/GameWorld.kt` — `withFrameNanos` render-FPS counter + import.
+- `ui/game/pickup/PickupPopup.kt` — 2 optional fields + new `spawnBulletTypeActivation` method.
+- `ui/game/world/PickupPopupOverlay.kt` — render with colorHex + tiered font.
+- `ui/game/ship/ship/ShipController.kt` — new `onBulletTypeActivated` callback; invoke in `setBulletType`. 4 damage logs Logger.v → Logger.d.
+- `ui/game/state/GameState.kt` — wire `onBulletTypeActivated` to popup spawn; moved `pickupPopupController` declaration above `shipController` to fix forward-ref.
+
+**Build verify:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL. **187 tests pass** (179 → 187, +8 rarity).
+
+**What to look for in next runtime log:**
+- New `PERF render FPS=...` lines every 1000ms — compare to IO loop's ~96Hz. If FPS = display refresh rate consistently → round 57 closed lag. If FPS drops at peak enemies → bottleneck remains, audit further.
+- On PIERCING/PLASMA booster pickup: floating popup "→ PIERCING ×N" (magenta) or "◯ PLASMA Rpx" (cyan) at ship position. Visual confirmation of round 52 rarity scaling.
+- Damage events now visible: `Collision: ship ↔ {enemy/spaceObject/enemyLaser}` + `Ship hp: X → Y` — quantifies what was previously invisible.
+- BoosterRarity distribution stays roughly 75/20/5 over larger samples (N=22 EPIC over-rate should NOT recur at N=50+).
+
+### Round 57 — Enemy Canvas perf refactor (closes lag complaint chain)
+
+The 25% headroom gap (~95Hz vs 125Hz `delay(8)` cap) reported across rounds 44-56 was the last big perf piece. Enemies were rendered as a per-entity Compose subtree: `Column { EnemyHpBar; Box { sprite Image + optional hitFlash Image + boss thrust trail 4 Images + 0..3 status-effect tinted Images } }`. At peak 30 enemies × up to ~10 Image composables each = ~300 Image nodes through Compose's slot table + layout + draw, per recompose frame.
+
+**Refactor — single Canvas pass for the sprite layer:**
+
+Pattern mirrors round 49 `LaserCanvas` (`app/src/main/java/com/tranphuloi/neon/ui/game/world/LaserCanvas.kt`):
+
+- New `ui/game/world/EnemyCanvas.kt` (~170 LOC) — `@Composable EnemyCanvas(enemies, sprites, nowMillis, modifier)`. One `Canvas` + `DrawScope` loop draws each enemy as `drawCircle(radialGradient)` for the neonGlow + `drawImage` for the sprite + optional `drawImage(colorFilter=tint(white*flash))` for hit flash + optional N `drawImage(colorFilter=tint(argb))` for status tints + optional 4 `drawImage(alpha=fade)` upward stack for boss entry thrust trail.
+- `rememberEnemySprites()` pre-loads all 14 enemy drawables (3 RegularEnemy families × variants 1-5 + 2 boss variants) into `EnemySprites(byDrawableId: Map<Int, ImageBitmap>)`. Decoded once per Composition, like `rememberLaserSprites`.
+- `HP_BAR_VERTICAL_SPACE_DP = 5` constant — preserves pixel-perfect Y position. Pre-refactor the EnemyHpBar Composable (1dp container + 4dp bottom padding) sat above the sprite in the Column, pushing sprite Y down by ~5dp. Canvas draws sprite at `enemy.yOffset + 5dp` for non-bosses to keep the visible position identical. Bosses have no mini HP bar there → no Y offset.
+
+**GameWorld.kt rewire:**
+
+- One `EnemyCanvas(...)` call replaces the prior `enemies.forEach { Column { EnemyHpBar + Box { sprite + flash + tints + boss trail } } }` block.
+- HP bars remain a separate Composable overlay: small `enemies.forEach { if (!it.isBoss) key(id) { Column.offset { EnemyHpBar(...) } } }`. The 3-layer animated bar isn't a simple draw recipe — converting it would cost more code than it saves at typical enemy counts.
+- `BossEntryLightning` overlay (drawn after enemies) stays Composable. Lightning is a stochastic vector animation; Canvas doesn't help.
+
+**Expected impact:**
+
+- 30 enemies × ~10 Image composables each = ~300 → 1 Canvas + (0..30 HP bar Composables). Compose slot table churn drops by ~270 nodes per frame.
+- ImageBitmap cache hit per sprite: zero per-frame resource resolution (vs `painterResource(id)` being called inside the forEach previously, which goes through `LocalContext.current` + drawable load).
+- `nowMillis` computed once per Canvas pass instead of `System.currentTimeMillis()` in each forEach iteration.
+
+PERF measurement to confirm in next runtime log: expect frame Hz to climb from ~95 toward the 125Hz cap, especially at peak enemies=30.
+
+**Files modified:**
+- `ui/game/world/EnemyCanvas.kt` (new, ~170 LOC).
+- `ui/game/world/GameWorld.kt` — pre-load enemySprites at GameWorld level; replace forEach enemy rendering block with one EnemyCanvas + small HP bar overlay forEach.
+
+**Visual parity preserved:**
+- neonGlow recipe replicated: `Brush.radialGradient` with same color stops + intensity formula `0.45 + hitFlash * 0.4` + radius factor `1.4 + hitFlash * 0.4`.
+- Hit flash: white tint overlay, same 120ms fade curve.
+- Status-effect tints: same per-effect ARGB list with same pulse formula `0.65 + 0.35 * sin(nowMillis / 160)`.
+- Boss entry thrust trail: same 4 stacked sprites with `1 - i * 0.22` alpha, same -30dp vertical step.
+- Sprite Y position: pixel-perfect via HP_BAR_VERTICAL_SPACE_DP offset.
+
+**Tests:** none added — EnemyCanvas is a render-only Composable with no algorithm to test (visual output is verified by manual inspection). Existing 179 tests still pass.
+
+**Build verify:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL. **179 tests pass (unchanged)**.
+
+**Closes:** the multi-round lag complaint (rounds 44-56). With round 49 LaserCanvas + round 57 EnemyCanvas, both the high-churn entity lists (lasers + enemies) are now Canvas-rendered. Remaining Composable overlay loops are small per-frame (HP bars, glyphs, banners, particles) and shouldn't bottleneck.
+
 ### Round 56 — Booster spawn instrumentation + RNG distribution validation
 
 Three consecutive runtime logs (160s + 93s + 27s = 280s) showed **0 PIERCING/PLASMA drops** across ~70 spawn attempts despite round 55 bumping weights 8 → 12 (combined 13.8% → 19.4%). At new rate, P(0/70) = `0.806^70` ≈ 5×10⁻⁷ — effectively impossible under correct RNG. Three hypotheses:

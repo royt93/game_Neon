@@ -32,6 +32,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.font.FontWeight
@@ -107,6 +108,10 @@ fun GameWorld(
     // frame. Loaded once at GameWorld level + shared across the 3 LaserCanvas
     // calls below.
     val laserSprites = com.tranphuloi.neon.ui.game.world.rememberLaserSprites()
+    // Round 57 — pre-load all 14 enemy sprite drawables for EnemyCanvas. Same
+    // pattern as laserSprites: decoded once per Composition, shared by every
+    // Canvas pass.
+    val enemySprites = com.tranphuloi.neon.ui.game.world.rememberEnemySprites()
 
     // Round 38 — ship aura color from Settings. Defaults to AURA_CYAN's glow so
     // first-run / unset preference renders the original cyan look unchanged.
@@ -143,6 +148,31 @@ fun GameWorld(
     }
     LaunchedEffect(ship.shipSpriteHidden) {
         Logger.d("GameWorld: ship.shipSpriteHidden=${ship.shipSpriteHidden} (recompose triggered)")
+    }
+    // Round 58 — Compose render-frame counter. `withFrameNanos` fires once
+    // per actual Choreographer-paced render frame, so this gives the true
+    // on-screen FPS independent of the IO loop's tick rate (which currently
+    // logs as PERF frame=N every 1000 iterations). On a 60Hz display the
+    // expected ceiling is 60 FPS; if Compose recompose work is the bottleneck
+    // this number drops noticeably below 60 at peak enemies. Compare against
+    // the IO loop's ~96Hz to confirm whether round 57 enemy Canvas refactor
+    // moved the needle. Reports every 1000ms to keep logcat clean.
+    var renderFrameCount by remember { mutableLongStateOf(0L) }
+    var lastRenderReportMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            withFrameNanos {
+                renderFrameCount++
+                val now = System.currentTimeMillis()
+                val elapsed = now - lastRenderReportMillis
+                if (elapsed >= 1000L) {
+                    val fps = renderFrameCount * 1000.0 / elapsed
+                    Logger.d("PERF render FPS=${"%.1f".format(fps)} over ${elapsed}ms (frames=$renderFrameCount)")
+                    renderFrameCount = 0
+                    lastRenderReportMillis = now
+                }
+            }
+        }
     }
     Box(modifier = modifier.fillMaxSize()) {
         // Primary visibility gate: explicit state flag on Ship. Set to true via
@@ -341,93 +371,35 @@ fun GameWorld(
             )
         }
         val nowMillis = System.currentTimeMillis()
-        // Round 46 — `key(it.enemyId)` is the biggest single perf win here: at peak
-        // wave the enemies list churns 30-50 items per second. Without stable keys
-        // Compose treats every list shift as a node teardown + recreate (HP bar,
-        // sprite, status-effect overlay), which compounds with the per-frame
-        // recompose driven by refreshHandler. Stable id → reuse the node.
+        // Round 57 — single Canvas pass replaces the prior per-enemy Compose
+        // subtree (Column + 1..N Images for sprite + flash + status-effect tints
+        // + boss thrust trail). At peak 30 enemies × 4 sub-Images each, that's
+        // ~120 Image composables per frame; now it's one Canvas. HP bars stay
+        // as a separate Composable overlay (see below) because their 3-layer
+        // animation isn't a simple draw recipe.
+        EnemyCanvas(
+            enemies = enemies,
+            sprites = enemySprites,
+            nowMillis = nowMillis,
+            modifier = Modifier.fillMaxSize(),
+        )
+        // HP bars overlay — kept as Composables (EnemyHpBar is a 3-layer
+        // animated bar; conversion to DrawScope would cost more code than it
+        // saves at this volume). Boss HP bar is rendered separately via
+        // BossHpBar; skip the mini-bar for bosses to avoid duplicate viz.
         enemies.forEach {
-            key(it.enemyId) {
-                val sinceHit = nowMillis - it.lastImpactMillis
-            val hitFlash = if (it.lastImpactMillis > 0L && sinceHit in 0..120) {
-                (1f - sinceHit / 120f).coerceIn(0f, 1f)
-            } else 0f
-            Column(modifier = Modifier.offset(x = it.xOffset.dp, y = it.yOffset.dp)) {
-                // Skip mini-HP-bar over boss heads — boss has dedicated top-screen
-                // BossHpBar already (avoid duplicate visualization).
-                // 3-layer HP bar with damage trail — see EnemyHpBar for layer design.
-                if (!it.isBoss) {
-                    EnemyHpBar(
-                        enemyId = it.enemyId,
-                        currentHp = it.currentHp,
-                        initialHp = it.initialHp,
-                        enemyWidth = it.width,
-                    )
-                }
-                Box {
-                    // Boss thrust trail — render fading copies stacked upward when boss
-                    // is sliding down from off-screen. Looks like rocket motion blur.
-                    if (it.isBoss && it.isInEntryPhase) {
-                        for (i in 1..4) {
-                            val trailAlpha = (1f - i * 0.22f).coerceIn(0f, 1f) * 0.55f
-                            Image(
-                                painter = painterResource(id = it.drawableId),
-                                contentDescription = null,
-                                contentScale = ContentScale.FillBounds,
-                                modifier = Modifier
-                                    .size(width = it.width.dp, height = it.height.dp)
-                                    .offset(y = -(i * 30).dp)
-                                    .alpha(trailAlpha)
-                                    .neonGlow(
-                                        color = NeonMagenta,
-                                        intensity = 0.4f * trailAlpha,
-                                        radiusFactor = 1.4f,
-                                    )
-                            )
-                        }
-                    }
-                    Image(
-                        painterResource(id = it.drawableId),
-                        contentDescription = stringResource(id = R.string.enemy),
-                        contentScale = ContentScale.FillBounds,
-                        modifier = Modifier
-                            .size(width = it.width.dp, height = it.height.dp)
-                            .neonGlow(
-                                color = NeonMagenta,
-                                intensity = 0.45f + hitFlash * 0.4f,
-                                radiusFactor = 1.4f + hitFlash * 0.4f
-                            )
-                    )
-                    if (hitFlash > 0f) {
-                        Image(
-                            painterResource(id = it.drawableId),
-                            contentDescription = null,
-                            contentScale = ContentScale.FillBounds,
-                            colorFilter = ColorFilter.tint(
-                                Color.White.copy(alpha = hitFlash)
-                            ),
-                            modifier = Modifier.size(width = it.width.dp, height = it.height.dp)
+            if (!it.isBoss) {
+                key(it.enemyId) {
+                    Column(modifier = Modifier.offset(x = it.xOffset.dp, y = it.yOffset.dp)) {
+                        EnemyHpBar(
+                            enemyId = it.enemyId,
+                            currentHp = it.currentHp,
+                            initialHp = it.initialHp,
+                            enemyWidth = it.width,
                         )
-                    }
-                    // Round 35 (42x) — status effect tint overlay. One Image per active
-                    // effect; the ARGB tint encodes its identity (orange=BURN, cyan=SLOW,
-                    // yellow=STUN). Pulse alpha at ~3Hz so the overlay is visibly "alive".
-                    if (it.activeStatusEffectTints.isNotEmpty()) {
-                        val pulse = 0.65f + 0.35f * kotlin.math.sin(nowMillis / 160.0).toFloat()
-                        it.activeStatusEffectTints.forEach { argb ->
-                            Image(
-                                painterResource(id = it.drawableId),
-                                contentDescription = null,
-                                contentScale = ContentScale.FillBounds,
-                                colorFilter = ColorFilter.tint(Color(argb.toInt())),
-                                alpha = pulse,
-                                modifier = Modifier.size(width = it.width.dp, height = it.height.dp),
-                            )
-                        }
                     }
                 }
             }
-            }   // close key(it.enemyId)
         }
         // Boss entry lightning crackle — drawn after enemies so bolts overlay the
         // boss + thrust trail. Filter for entry-phase boss(es) only.
