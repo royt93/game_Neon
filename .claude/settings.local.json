@@ -61,7 +61,13 @@
       "Bash(awk -F'tests=\"' '{split\\($2,a,\"\\\\\"\"\\); sum+=a[1]} END {print \"TOTAL TESTS:\", sum}')",
       "Bash(awk -F'tests=\"' '{split\\($2,a,\"\\\\\"\"\\); sum+=a[1]; if\\(index\\($0,\"failures=\\\\\"0\\\\\"\"\\)==0\\) fail+=1} END {print \"TOTAL:\", sum, \"tests\"}')",
       "Bash(awk -F'tests=\"' '{split\\($2,a,\"\\\\\"\"\\); sum+=a[1]} END {print \"TOTAL:\", sum, \"tests\"}')",
-      "Bash(awk -F'tests=\"' '{split\\($2,a,\"\\\\\"\"\\); sum+=a[1]; fails=0; if\\(match\\($0,/failures=\"\\([^\"]+\\)\"/, m\\)\\) fails=m[1]+0; failsum+=fails} END {print \"TOTAL:\", sum, \"tests, failures:\", failsum}')"
+      "Bash(awk -F'tests=\"' '{split\\($2,a,\"\\\\\"\"\\); sum+=a[1]; fails=0; if\\(match\\($0,/failures=\"\\([^\"]+\\)\"/, m\\)\\) fails=m[1]+0; failsum+=fails} END {print \"TOTAL:\", sum, \"tests, failures:\", failsum}')",
+      "Bash(./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest)",
+      "Bash(./gradlew testDevDebugUnitTest --tests \"com.tranphuloi.neon.ui.game.mineral.mapper.MineralToMineralUIMapperTest\" --tests \"com.tranphuloi.neon.ui.game.spaceObject.SpaceObjectToSpaceObjectUIMapperTest\")",
+      "Bash(./gradlew testDevDebugUnitTest assembleDevDebug)",
+      "Bash(./gradlew testDevDebugUnitTest)",
+      "Bash(awk -F'\"' '{sum += $2} END {print \"TOTAL TESTS:\", sum}')",
+      "Bash(./gradlew compileDevDebugKotlin assembleDevDebug)"
     ]
   }
 }

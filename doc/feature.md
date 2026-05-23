@@ -968,6 +968,53 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 59 — SpaceObject + Booster + Mineral Canvas migration (closes Wave 6 perf chain)
+
+User picked Round 59 via AskUserQuestion after analysis showed `spaceObjects`, `boosters`, and `minerals` were the last three per-entity `forEach { Image() / Box { Icon } }` blocks in `GameWorld.kt`. This round mirrors the Round 49 (LaserCanvas) + Round 57 (EnemyCanvas) pattern: gom mỗi list thành 1 Canvas pass + DrawScope loop, sprites pre-loaded once tại GameWorld level.
+
+**Net effect on Compose slot table per frame** (typical peak):
+- spaceObjects (~5 active) → was 5 Image Composables w/ size+offset+neonGlow+rotate modifiers → now 1 Canvas
+- boosters (≤3 by MAX_BOOSTERS cap) → was 3 nested Box (Box + Image + Border + Text) Composables → now 1 Canvas + optional small overlay (ring + glyph) only when needed
+- minerals (~10-15 after explosions) → was 10-15 Box+Icon Composables → now 1 Canvas
+
+Combined ~18-23 Composable subtrees collapsed to 3 Canvas calls. Cumulative with rounds 49 + 57: every high-churn entity list trong GameWorld's main render tree đã Canvas hoá. Còn lại Composable forEach loops chỉ là per-frame small (HP bars on non-boss enemies, mines, sparks, popups, banners) — đều thấp volume.
+
+**Files mới:**
+- `ui/game/world/SpaceObjectCanvas.kt` (~115 LOC) — `SpaceObjectCanvas` + `rememberSpaceObjectSprites` (4 rock drawables) + private `drawSpaceObject` với neonGlow recipe NeonViolet 0.35/1.4 + DrawScope.rotate khi rotation ≠ 0.
+- `ui/game/world/BoosterCanvas.kt` (~130 LOC) — `BoosterCanvas` + `rememberBoosterSprites` (6 booster drawables) + `drawBooster` với glow color theo `tintColorHex` (default NeonGold, override cho PIERCING/PLASMA), + PIERCING/PLASMA tint overlay (drawImage thứ 2 với ColorFilter.tint alpha 0.55).
+- `ui/game/world/MineralCanvas.kt` (~75 LOC) — `MineralCanvas` + `rememberMineralSprite` (1 ic_mineral) + `drawMineral` với alpha preservation. 25dp fixed size như pre-refactor.
+- `app/src/test/.../SpaceObjectToSpaceObjectUIMapperTest.kt` (new, 8 tests) — xOffset/size/yOffset/rotation/id preservation + drawableId ∈ RockType set + multi-instance independence + non-null projection.
+- `app/src/test/.../MineralToMineralUIMapperTest.kt` (new, 8 tests) — field preservation including mutated alpha after process() tick (uses ctor y=100 → manual yOffset=40 to bypass private animationYOffset = ctor-y - 60) + position after upward drift + multi-instance independence.
+
+**Files modified:**
+- `ui/game/world/GameWorld.kt`:
+  - Pre-load 3 sprite maps tại GameWorld level (3 new `remember*Sprites()` calls).
+  - Replace spaceObjects forEach (lines 216-226 pre-refactor) với 1 SpaceObjectCanvas call.
+  - Replace boosters forEach (227-284 pre-refactor) với 1 BoosterCanvas call + small overlay forEach chỉ khi `rarityRingColorHex != 0L || glyph != null` (skip Common booster đầy đủ → reduce overhead khi rarity ring không xuất hiện).
+  - Replace minerals forEach (444-459 pre-refactor) với 1 MineralCanvas call.
+  - Remove unused imports: `androidx.compose.material.Icon`, `com.tranphuloi.neon.common.NeonViolet`.
+
+**Visual parity preserved:**
+- SpaceObject neonGlow NeonViolet 0.35/1.4 + rotation pivot at sprite center (matches `Modifier.neonGlow + .rotate(degrees)`).
+- Booster glow color flips theo `tintColorHex` (PIERCING magenta / PLASMA cyan / else NeonGold) — same as pre-refactor `glowColor` ternary.
+- Booster PIERCING/PLASMA tint overlay: drawImage 2 với ColorFilter.tint alpha 0.55 trên sprite gốc — match Round 54's intent (visible disambiguation without losing underlying sprite detail).
+- Booster rarity ring (Border + neonGlow + pulse khi Rare/Epic) + glyph Text giữ Composable overlay — same z-order, same animation behavior.
+- Mineral 25dp size + alpha preserved exactly.
+
+**Tests:** 16 new tests cho 2 mapper. **195 total pass** (179 → 195, +16). Note: round 58 doc claim "187 tests" was off by 8 — actual baseline was 179.
+
+**Build verify:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL.
+
+**Round 59 hotfix — VectorDrawable cast crash.** First runtime launch crashed in `rememberBoosterSprites` (line 61, `booster_revive`) với `ClassCastException: VectorDrawable cannot be cast to BitmapDrawable`. `booster_revive.xml` là VectorDrawable duy nhất trong booster set (5 sprite còn lại đều `.webp`). `ImageBitmap.imageResource` hard-cast tới `BitmapDrawable` → crash trên vector path. Fix: thêm private helper `drawableToImageBitmap(@DrawableRes id)` trong BoosterCanvas.kt — `ContextCompat.getDrawable` lấy Drawable, branch theo `BitmapDrawable` vs other (rasterize vector vào ARGB_8888 Bitmap ở intrinsic size qua `android.graphics.Canvas.draw`). Cached qua `remember(id)` → rasterization chỉ chạy 1 lần / Composition. 5 booster còn lại giữ cheap `imageResource` path. Pattern reusable cho entity tương lai trỏ vào vector drawable.
+
+**Closes:** Wave 6 perf chain "Round 50+ pending" trong section 2516-2523. With rounds 49 (lasers) + 57 (enemies) + 59 (spaceObjects + boosters + minerals), tất cả entity lists volume cao đã Canvas-rendered. Subjective lag complaint chain rounds 44-56 — round 58 đã instrumentation render FPS counter; next runtime log sẽ confirm liệu FPS đạt display refresh rate (60/90/120 Hz) consistently ở peak combat hay không.
+
+**What to watch trong runtime log tiếp theo:**
+- `PERF render FPS=...` lines mỗi giây — kỳ vọng FPS bám display refresh rate ổn định.
+- Booster sprite vẫn distinguishable: PIERCING magenta tint + "→" glyph, PLASMA cyan tint + "◯" glyph, các loại khác raw NeonGold.
+- Rarity ring vẫn pulse khi Rare/Epic, không xuất hiện khi Common — Common booster nay không tạo overlay Composable (skip entirely).
+- No visual regression at peak combat (multiple space rocks + 3 boosters + 15 minerals simultaneously).
+
 ### Round 58 — 4-task batch from runtime log audit
 
 User picked all 4 options via AskUserQuestion. Shipped in one round to consolidate test/build cycles.
@@ -2513,14 +2560,16 @@ Các architectural refactors quá lớn để gộp chung:
 - [x] 40x Item combos (round 52 — rarity scales PIERCING pierceCount 3/4/5 + PLASMA AoE 80/110/140px; Mine + BURST secondary damage now scales with effectiveStats.damageMul)
 - [x] 45x Ship customization (round 38 — 5-color aura glow wired into ship + ship-laser rendering)
 
-## Wave 6 perf chain ✅ DONE (rounds 44-49) — addresses Wave 7 AAc partially
+## Wave 6 perf chain ✅ DONE (rounds 44-49 + 57 + 59) — closes Wave 7 AAc subjective lag complaint
 Sequential lag-fix passes after gameplay features landed:
 - [x] Round 44 — Logger.v inline lambda + verbose gate, hot-path log demotion (audio/kill/spawn/status/collision) → -90% log spam at peak combat
 - [x] Round 46 — `key(it.id)` on entity forEach loops (enemies/shipLasers/ultimateLasers/enemyLasers/mines) → Compose slot table stability
 - [x] Round 47 — entity caps (MAX_REGULAR_ENEMIES=30 with boss bypass, MAX_SHIP_LASERS=25, MAX_ENEMY_LASERS=30) → drop allocation rate
 - [x] Round 48 — mapper memoization (EnemyToEnemyUI + LaserToLaserUI per-id LRU cache, field-compare fast-path, `==` for tints, empty-list singleton shortcut) + 19 new mapper unit tests
 - [x] Round 49 — Canvas drawing for lasers (LaserCanvas.kt, 1 Canvas + DrawScope pass replaces N forEach Image+Modifier subtrees; preserves z-order via 3 separate calls)
-- [ ] Round 50+ pending — enemy Canvas (hybrid Canvas sprite + Composable HpBar/tint overlay) — final perf piece if needed
+- [x] Round 57 — Canvas drawing for enemies (EnemyCanvas.kt, sprite + glow + hit flash + status tints + boss thrust trail trong 1 Canvas pass; HP bars + BossEntryLightning stay Composable)
+- [x] Round 58 — Compose render FPS instrumentation via `withFrameNanos` (PERF render FPS=... per 1000ms) — quantifies on-screen FPS independent of IO loop tick rate
+- [x] Round 59 — Canvas drawing for spaceObjects + boosters + minerals (SpaceObjectCanvas.kt + BoosterCanvas.kt + MineralCanvas.kt) — closes "Round 50+ pending"; booster rarity ring + glyph stay Composable overlay khi cần
 
 ## Wave 7 (Architecture deferred)
 - [ ] Vb Hilt
@@ -2536,11 +2585,11 @@ Sequential lag-fix passes after gameplay features landed:
 # Notes
 
 - **Memory leak guarding:** mọi entity transient (damage numbers, popups, sparkles) phải dùng immutable list snapshot pattern (xem bug fix sparkles)
-- **Performance:** mọi background/effect mới phải merge vào existing Canvas khi có thể; tránh tạo Canvas riêng cho từng entity. Sau rounds 44-49 → lasers dùng `ui/game/world/LaserCanvas.kt`; enemies vẫn `forEach { Image(...) }` (round 50 candidate).
+- **Performance:** mọi background/effect mới phải merge vào existing Canvas khi có thể; tránh tạo Canvas riêng cho từng entity. Sau rounds 44-49 + 57 + 59 → tất cả entity volume cao đã Canvas hoá: `LaserCanvas.kt` (ship/ultimate/enemy lasers), `EnemyCanvas.kt`, `SpaceObjectCanvas.kt`, `BoosterCanvas.kt`, `MineralCanvas.kt`. Composable forEach còn lại chỉ low-volume (HP bars on non-boss enemies, mines, sparks, popups, banners, booster rarity ring + glyph overlay).
 - **Logger:** 2 cấp — `Logger.d` cho sparse events (init/lifecycle/stage advance/boss kill/achievement), `Logger.v { ... }` cho hot-path (per-frame, per-collision, per-spawn, per-kill, audio micro-step). Toggle qua `Logger.VERBOSE = true` trong utils/Logger.kt khi cần debug stream đầy đủ.
 - **Mapper memoization (round 48):** `EnemyToEnemyUIMapper` + `LaserToLaserUIMapper` cache theo id với LRU LinkedHashMap (cap 64 + 128). Mappers là top-level `private val` → cache persist app-lifetime, bounded by LRU. Field-compare fast-path tránh allocation khi entity unchanged. Tints dùng `==` (structural) + caller dùng `emptyList()` singleton cho no-effect case.
 - **Entity caps (round 47):** `EnemyController.MAX_REGULAR_ENEMIES = 30` (bosses bypass), `LasersController.MAX_SHIP_LASERS = 25`, `EnemyLasersController.MAX_ENEMY_LASERS = 30`. `BoosterController.MAX_BOOSTERS = 3` (pre-existing). Skip-at-cap logs Logger.v.
-- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **146** (12 EnemyMapper + 11 ShipLaser + 11 MissileLaser + 11 StatusEffect + 21 EffectiveStats + 10 BulletType + 10 BoosterRarity + 9 ShipSkin + 9 BuffMultipliers + 8 ColorBlindMode + 8 SecondaryWeapon + 7 BoosterType + 7 Tinker + 7 LaserMapper + 5 Mine).
+- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **195** (+16 round 59 = 8 SpaceObjectMapper + 8 MineralMapper).
 - **i18n:** strings mới phải thêm vào cả `values-vi/strings.xml` và `values-en/strings.xml`
 - **Compose stability:** data class state mới nên dùng `@Immutable`/`@Stable` annotation. EnemyUI, LaserUI, BoosterUI, MineralUI, RunModifier, RunBuff, StatusEffect, SecondaryWeapon, BulletType, ShipSkin, ColorBlindMode, NeonPalette đều `@Immutable`.
 - **Known perf limitations (sau rounds 44-49):**

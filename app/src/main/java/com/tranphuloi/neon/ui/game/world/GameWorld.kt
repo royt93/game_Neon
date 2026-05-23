@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.Icon
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -58,7 +57,6 @@ import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.common.NeonMagenta
 import com.tranphuloi.neon.common.NeonRedAlert
-import com.tranphuloi.neon.common.NeonViolet
 import com.tranphuloi.neon.common.ShipShieldOne
 import com.tranphuloi.neon.common.ShipShieldTwo
 import com.tranphuloi.neon.common.neonGlow
@@ -112,6 +110,11 @@ fun GameWorld(
     // pattern as laserSprites: decoded once per Composition, shared by every
     // Canvas pass.
     val enemySprites = com.tranphuloi.neon.ui.game.world.rememberEnemySprites()
+    // Round 59 — pre-load space-object / booster / mineral sprites for their
+    // Canvas-based render passes (same pattern as laser + enemy).
+    val spaceObjectSprites = com.tranphuloi.neon.ui.game.world.rememberSpaceObjectSprites()
+    val boosterSprites = com.tranphuloi.neon.ui.game.world.rememberBoosterSprites()
+    val mineralSprite = com.tranphuloi.neon.ui.game.world.rememberMineralSprite()
 
     // Round 38 — ship aura color from Settings. Defaults to AURA_CYAN's glow so
     // first-run / unset preference renders the original cyan look unchanged.
@@ -213,72 +216,68 @@ fun GameWorld(
             radiusFactor = 2.0f,
             modifier = Modifier.fillMaxSize(),
         )
-        spaceObjects.forEach {
-            Image(
-                painterResource(id = it.drawableId),
-                contentDescription = stringResource(id = R.string.space_object),
-                modifier = Modifier
-                    .size(it.size.dp)
-                    .offset(x = it.xOffset.dp, y = it.yOffset.dp)
-                    .neonGlow(color = NeonViolet, intensity = 0.35f, radiusFactor = 1.4f)
-                    .rotate(degrees = it.rotation)
-            )
-        }
+        // Round 59 — was forEach { Image + Modifier.size+offset+neonGlow+rotate }
+        // → one Canvas pass replicating glow + rotate via DrawScope. Same recipe
+        // as round 49/57: visual parity, Compose subtree elimination.
+        com.tranphuloi.neon.ui.game.world.SpaceObjectCanvas(
+            spaceObjects = spaceObjects,
+            sprites = spaceObjectSprites,
+            modifier = Modifier.fillMaxSize(),
+        )
+        // Round 59 — booster sprite layer (sprite + glow + PIERCING/PLASMA tint
+        // overlay) moved into one Canvas pass via [BoosterCanvas]. Rarity ring
+        // (animated Border + neonGlow) + glyph Text stay as Composable overlay
+        // below because Border + Text aren't a simple DrawScope recipe (font
+        // metrics, RoundedCornerShape stroke) — same call as round 57 where
+        // EnemyHpBar remained Composable. At typical N≤3 boosters on-screen,
+        // the overlay cost is negligible.
+        com.tranphuloi.neon.ui.game.world.BoosterCanvas(
+            boosters = boosters,
+            sprites = boosterSprites,
+            modifier = Modifier.fillMaxSize(),
+        )
         boosters.forEach {
-            // Round 43 (39x) — rarity ring overlay drawn behind the sprite (Box order:
-            // ring first, sprite on top). Common is barely visible; Rare/Epic pulse.
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(it.size.dp)
-                    .offset(x = it.xOffset.dp, y = it.yOffset.dp),
-            ) {
-                if (it.rarityRingColorHex != 0L) {
-                    val ringColor = Color(it.rarityRingColorHex)
-                    val ringPulse = if (it.isEliteRarity) {
-                        0.6f + 0.4f * kotlin.math.abs(
-                            kotlin.math.sin(System.currentTimeMillis() / 240.0).toFloat()
-                        )
-                    } else {
-                        0.35f                                  // common: static dim ring
-                    }
-                    Box(
-                        modifier = Modifier
-                            .size(it.size.dp)
-                            .border(
-                                BorderStroke(2.dp, ringColor.copy(alpha = ringPulse)),
-                                RoundedCornerShape(50),
-                            )
-                            .neonGlow(
-                                color = ringColor,
-                                intensity = if (it.isEliteRarity) 0.55f * ringPulse else 0f,
-                                radiusFactor = 1.6f,
-                            ),
-                    )
-                }
-                // Round 54 — PIERCING/PLASMA boosters reuse existing drawables
-                // (booster_red_lasers / booster_ultimate_weapon) and were visually
-                // indistinguishable from LASER/ULTIMATE. Swap the glow color
-                // (NeonGold default → tint) and overlay a glyph badge so the
-                // booster type is identifiable without new art assets.
-                val glowColor = if (it.tintColorHex != 0L) Color(it.tintColorHex) else NeonGold
-                Image(
-                    painterResource(id = it.drawableId),
-                    contentDescription = stringResource(id = R.string.booster),
+            if (it.rarityRingColorHex != 0L || it.glyph != null) {
+                Box(
+                    contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(it.size.dp)
-                        .neonGlow(color = glowColor, intensity = 0.85f, radiusFactor = 1.8f)
-                )
-                if (it.glyph != null) {
-                    Text(
-                        text = it.glyph,
-                        color = Color(it.tintColorHex),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .offset(x = 4.dp, y = (-4).dp),
-                    )
+                        .offset(x = it.xOffset.dp, y = it.yOffset.dp),
+                ) {
+                    if (it.rarityRingColorHex != 0L) {
+                        val ringColor = Color(it.rarityRingColorHex)
+                        val ringPulse = if (it.isEliteRarity) {
+                            0.6f + 0.4f * kotlin.math.abs(
+                                kotlin.math.sin(System.currentTimeMillis() / 240.0).toFloat()
+                            )
+                        } else {
+                            0.35f                                  // common: static dim ring
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(it.size.dp)
+                                .border(
+                                    BorderStroke(2.dp, ringColor.copy(alpha = ringPulse)),
+                                    RoundedCornerShape(50),
+                                )
+                                .neonGlow(
+                                    color = ringColor,
+                                    intensity = if (it.isEliteRarity) 0.55f * ringPulse else 0f,
+                                    radiusFactor = 1.6f,
+                                ),
+                        )
+                    }
+                    if (it.glyph != null) {
+                        Text(
+                            text = it.glyph,
+                            color = Color(it.tintColorHex),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = 4.dp, y = (-4).dp),
+                        )
+                    }
                 }
             }
         }
@@ -441,22 +440,13 @@ fun GameWorld(
                 )
             }
         }
-        minerals.forEach {
-            Box(
-                modifier = Modifier
-                    .width(it.width.dp)
-                    .offset(x = it.xOffset.dp, y = it.yOffset.dp)
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_mineral),
-                    contentDescription = stringResource(id = R.string.mineral_content_description),
-                    tint = Color.Unspecified,
-                    modifier = Modifier
-                        .size(25.dp)
-                        .alpha(alpha = it.alpha)
-                )
-            }
-        }
+        // Round 59 — minerals to a single Canvas pass. Same 25dp sprite, alpha
+        // gradient + position preserved exactly.
+        com.tranphuloi.neon.ui.game.world.MineralCanvas(
+            minerals = minerals,
+            sprite = mineralSprite.bitmap,
+            modifier = Modifier.fillMaxSize(),
+        )
         explosions.forEach {
             Image(
                 painter = rememberAsyncImagePainter(
