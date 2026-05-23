@@ -968,6 +968,35 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 65 — HEALING_AURA log gating (micro-fix)
+
+Round 64 verify runtime: ✅ voice Darth Vader confirmed working (DRAMATIC pitch=0.55 rate=0.70 boss kill / HYPE pitch=0.80 rate=1.05 combo). ✅ Music overlay fixed (no pitch shift on BGM). ✅ All 10 Round 60 boosters runtime-verified across sessions (HEALING_AURA finally surfaced this session — heals +1 HP/200ms = 5HP/sec exactly per design).
+
+Side effect identified: HEALING_AURA tick spammed logcat with 50× `Ship hp: X→X+1 (Δ=1, raw=1, multiplier=0.7)` lines per pickup (5/sec × 10s). User feedback: gate this to Logger.v.
+
+**Fix:** `ShipController.updateHp` takes new `silent: Boolean = false` parameter. When true → log at `Logger.v` (gated by VERBOSE flag, default off) instead of `Logger.d`. HEALING_AURA tick calls `updateHp(heal, silent = true)`. All other paths (damage, pickup heal, REVIVE_TOKEN) unchanged — still log at Logger.d for runtime auditing.
+
+**Files modified:**
+- `ui/game/ship/ship/ShipController.kt` — `updateHp(hpChange, silent = false)` signature + branch inside effective != 0 block. HEALING_AURA tick passes silent=true.
+
+**Tests:** 214 unchanged.
+
+**Build verify:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL.
+
+**Runtime expectations:**
+- HEALING_AURA pickup → `Booster: healing-aura ON (+10000ms, +5HP/sec)` ONE line.
+- 10s aura window → ZERO per-tick log lines (instead of ~50).
+- HEALING_AURA expire → `Booster: healing-aura OFF` ONE line.
+- Other heal sources (HEALTH_BOOSTER +100, QUICK_HEAL +250, REVIVE_TOKEN +300) still log at Logger.d normally.
+
+**Wave 4 + Wave 6 audio polish chain now closed:**
+- Round 60 — +10 support items ✓
+- Round 61 — bullet-type compat + PHASE_SHIELD visual ✓
+- Round 62 — VoiceAnnouncer + pitch modulation ✓
+- Round 63 — Voice enhance + isNewBest race fix ✓
+- Round 64 — Pitch revert + Darth Vader voice ✓
+- Round 65 — HEALING_AURA log gating ✓
+
 ### Round 64 — Pitch modulation revert + Voice alien Darth Vader
 
 Runtime log Round 63 verify (43s play, stages 71→82, boss kill ×2, combo escalation):

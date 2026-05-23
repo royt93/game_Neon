@@ -714,7 +714,11 @@ class ShipController(
             if (sinceTick >= 200L) {                                 // heal in 200ms chunks
                 val heal = (sinceTick / 200L).toInt()                // 1 hp per 200ms = 5/sec
                 if (heal > 0 && ship.hp > 0) {
-                    updateHp(heal)
+                    // Round 65 — silent=true gates the per-tick log to Logger.v.
+                    // Without this, runtime log got 50 lines per HEALING_AURA
+                    // pickup (5 heals/sec × 10s). The ON/OFF events + damage
+                    // events still log at Logger.d.
+                    updateHp(heal, silent = true)
                     healingAuraLastTickMillis = currentTime
                 }
             }
@@ -809,7 +813,15 @@ class ShipController(
 
     private var iframesEndMillis: Long = 0L
 
-    private fun updateHp(hpChange: Int) {
+    /**
+     * @param silent Round 65 — suppress the per-call Logger.d "Ship hp: X→Y"
+     *               line for high-frequency passive heals (HEALING_AURA fires
+     *               this ~5×/sec for 10s = 50 lines per pickup). Demoted to
+     *               Logger.v which is gated by VERBOSE flag. Still mutates hp
+     *               + setShip normally. Default false (damage + pickup heals
+     *               still log at Logger.d for runtime auditing).
+     */
+    private fun updateHp(hpChange: Int, silent: Boolean = false) {
         if (ship.hp <= 0) return
         // Damage absorption: i-frames OR spawn animation. Healing (hpChange > 0) always applies.
         if (hpChange < 0 && (System.currentTimeMillis() < iframesEndMillis || isSpawning())) {
@@ -825,7 +837,11 @@ class ShipController(
         val newHp = (ship.hp + effective).coerceAtLeast(0)
         ship = ship.copy(hp = newHp)
         if (effective != 0) {
-            Logger.d("Ship hp: $before → ${ship.hp} (Δ=$effective, raw=$hpChange, multiplier=$multiplier)")
+            if (silent) {
+                Logger.v { "Ship hp: $before → ${ship.hp} (Δ=$effective, passive heal)" }
+            } else {
+                Logger.d("Ship hp: $before → ${ship.hp} (Δ=$effective, raw=$hpChange, multiplier=$multiplier)")
+            }
         }
         setShip(ship)
         if (effective < 0) {
