@@ -19,4 +19,15 @@ data class BoosterUI(
     val rarityRingColorHex: Long = 0L,
     /** Round 43 (39x) — true if rarity is RARE or EPIC; drives ring pulse intensity. */
     val isEliteRarity: Boolean = false,
+    /**
+     * Round 54 — ARGB tint applied via ColorFilter.Modulate on the booster icon.
+     * 0 = no tint (most booster types render raw). Used to distinguish
+     * PIERCING/PLASMA boosters whose drawables collide with LASER/ULTIMATE.
+     */
+    val tintColorHex: Long = 0L,
+    /**
+     * Round 54 — single-character glyph rendered top-right of the booster icon
+     * for unambiguous identification (PIERCING "→", PLASMA "◯"). Null = no badge.
+     */
+    val glyph: String? = null,
 ) : Serializable

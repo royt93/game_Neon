@@ -34,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
@@ -225,13 +226,30 @@ fun GameWorld(
                             ),
                     )
                 }
+                // Round 54 — PIERCING/PLASMA boosters reuse existing drawables
+                // (booster_red_lasers / booster_ultimate_weapon) and were visually
+                // indistinguishable from LASER/ULTIMATE. Swap the glow color
+                // (NeonGold default → tint) and overlay a glyph badge so the
+                // booster type is identifiable without new art assets.
+                val glowColor = if (it.tintColorHex != 0L) Color(it.tintColorHex) else NeonGold
                 Image(
                     painterResource(id = it.drawableId),
                     contentDescription = stringResource(id = R.string.booster),
                     modifier = Modifier
                         .size(it.size.dp)
-                        .neonGlow(color = NeonGold, intensity = 0.6f, radiusFactor = 1.8f)
+                        .neonGlow(color = glowColor, intensity = 0.85f, radiusFactor = 1.8f)
                 )
+                if (it.glyph != null) {
+                    Text(
+                        text = it.glyph,
+                        color = Color(it.tintColorHex),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 4.dp, y = (-4).dp),
+                    )
+                }
             }
         }
         // 3b: Ship engine flame trail — drawn before ship sprite so flame appears

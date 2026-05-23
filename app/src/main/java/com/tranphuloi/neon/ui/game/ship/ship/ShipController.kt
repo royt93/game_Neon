@@ -73,9 +73,30 @@ class ShipController(
         Logger.d("ChargeShot auto-fired (no-damage charge complete)")
         return true
     }
-    /** Called from updateHp on damage — resets charge timer to 0. */
-    private fun resetCharge() {
-        chargeStartMillis = System.currentTimeMillis()
+    /**
+     * Round 53 — soft decay (was: hard reset to 0%).
+     *
+     * Previously every damage hit wiped the full 20s charge buildup, which
+     * made [consumeChargeShot] effectively dead in endless combat (player
+     * gets hit every <20s → charge never fills). See audit in round 53.
+     *
+     * New behaviour: each damage tick pushes [chargeStartMillis] forward by
+     *   3000ms base + (damageAmount × 20ms, capped at +2000ms).
+     * Light hits (25 dmg ≈ 3.5s penalty), heavy hits (≥100 dmg → 5s penalty).
+     * Floor at "now" so charge can drop to 0% but not negative — repeated
+     * heavy hits still produce a full reset, just over multiple ticks.
+     *
+     * Shield-blocked damage already skips this path (updateHp early-returns
+     * when effective == 0), so shield still preserves charge buildup.
+     *
+     * [damageAmount] = absolute hp removed (positive integer).
+     */
+    private fun resetCharge(damageAmount: Int) {
+        chargeStartMillis = computeChargeStartAfterDamage(
+            chargeStartMillis = chargeStartMillis,
+            damageAmount = damageAmount,
+            nowMillis = System.currentTimeMillis(),
+        )
     }
 
     // Cinematic spawn animation: bottom → fly up to center → sway → fly down to play.
@@ -521,8 +542,8 @@ class ShipController(
         if (effective < 0) {
             iframesEndMillis = System.currentTimeMillis() + IFRAMES_DURATION_MILLIS
             Logger.v { "Ship i-frames: ON until $iframesEndMillis (+${IFRAMES_DURATION_MILLIS}ms)" }
-            // 19b Reset auto-charge on damage so player must survive 8s clean to fire mega.
-            resetCharge()
+            // Round 53 — soft decay (was: full reset). See [resetCharge] kdoc.
+            resetCharge(damageAmount = -effective)
             onShipDamaged()
         }
         if (before > 0 && newHp == 0) {
@@ -544,8 +565,38 @@ class ShipController(
     companion object {
         const val TRIPLE_LASER_SIDE_OFFSET: Float = 20f
         const val IFRAMES_DURATION_MILLIS: Long = 600L
-        const val CHARGE_FILL_MS: Long = 20000L         // 20s no-damage → auto charge fire (was 8s — too spammy combined with ULTIMATE_WEAPON_BOOSTER pickups)
+        // 20s no-damage → auto charge fire (was 8s — too spammy combined with
+        // ULTIMATE_WEAPON_BOOSTER pickups). Round 53 paired with soft decay
+        // below so the 20s window is achievable in moderate combat.
+        const val CHARGE_FILL_MS: Long = 20000L
+        // Round 53 — soft decay tuning. Each damage hit shaves this much off
+        // the charge buildup instead of resetting it to zero. Pulled out as
+        // constants so the gameplay knob is greppable + adjustable.
+        const val CHARGE_DAMAGE_BASE_PENALTY_MS: Long = 3000L          // every hit, regardless of size
+        const val CHARGE_DAMAGE_SCALE_MS_PER_HP: Long = 20L            // +20ms per hp damage (25 dmg → +500ms)
+        const val CHARGE_DAMAGE_SCALE_PENALTY_MAX_MS: Long = 2000L     // scaled penalty caps at +2s (100+ dmg)
         const val REVIVE_HP: Int = 300                  // 14c: hp restored when auto-revive token consumed
         const val REVIVE_IFRAMES_MILLIS: Long = 1500L   // 14c: longer than normal 600ms iframes — fair recovery
+
+        /**
+         * Round 53 — pure soft-decay math, exposed for unit tests.
+         *
+         * Returns the new [chargeStartMillis] after a damage hit:
+         *   newStart = min(now, currentStart + 3s + clamp(dmg × 20ms, 0, 2s))
+         *
+         * Floor at `now` ensures charge progress can drop to 0% but never
+         * go negative — repeated heavy hits drain the buildup over several
+         * ticks instead of one tick wiping it.
+         */
+        internal fun computeChargeStartAfterDamage(
+            chargeStartMillis: Long,
+            damageAmount: Int,
+            nowMillis: Long,
+        ): Long {
+            val scaledPenalty = (damageAmount.toLong() * CHARGE_DAMAGE_SCALE_MS_PER_HP)
+                .coerceIn(0L, CHARGE_DAMAGE_SCALE_PENALTY_MAX_MS)
+            val newStart = chargeStartMillis + CHARGE_DAMAGE_BASE_PENALTY_MS + scaledPenalty
+            return newStart.coerceAtMost(nowMillis)
+        }
     }
 }

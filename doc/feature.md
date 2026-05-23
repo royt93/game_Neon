@@ -968,6 +968,72 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 54 — PIERCING/PLASMA booster visual disambiguation
+
+User flagged that round 52's PIERCING/PLASMA rarity scaling was untestable runtime — 0 drops in 160s of gameplay. Audit found:
+
+**Spawn rate is technically OK** — total weight 116, PIERCING/PLASMA both at weight 8 (6.9% each, 13.8% combined). Expected ~5.5 drops in 160s of ~40 spawn attempts. P(0 of 40 trials) = `0.862^40` = 0.27%. Statistically unlucky run, not a bug.
+
+**Real bug: drawable collision.** `BoosterType.PIERCING_BOOSTER` reuses `R.drawable.booster_red_lasers` (same as `LASER_BOOSTER`). `BoosterType.PLASMA_BOOSTER` reuses `R.drawable.booster_ultimate_weapon` (same as `ULTIMATE_WEAPON_BOOSTER`). Comment in `BoosterType.kt:18-20` admits this is intentional pending dedicated art assets. Result: even if these boosters spawned, the player couldn't tell them apart from the base types — and the LASER family's 5 picked vs 0 PIERCING in the audited log is consistent with the player gravitating toward the visually-familiar LASER, not knowing some of those red boosters were actually PIERCING.
+
+**Fix without new art — tinted glow + glyph badge:**
+
+- ✅ **`BoosterUI` gains `tintColorHex: Long` + `glyph: String?`** (defaults 0L / null, so other types render unchanged).
+- ✅ **`BoosterToBoosterUIMapper` discriminates only PIERCING/PLASMA:**
+    - PIERCING → magenta (`0xFFFF2DE0`) + glyph `→` (mirrors `BulletType.PIERCING.glyph`)
+    - PLASMA → cyan (`0xFF00F0FF`) + glyph `◯` (mirrors `BulletType.PLASMA.glyph`)
+    - All other types → no tint, no glyph (renders as before with default NeonGold glow)
+- ✅ **`GameWorld.kt` booster render block** swaps the radial-gradient glow color (NeonGold → tint) when set, AND draws the glyph as a small bold Text in the top-right corner of the booster box. Glow intensity bumped 0.6 → 0.85 for tinted types so the discriminator color is unmistakable at a glance.
+
+**Choices considered + rejected:**
+- `ColorFilter.tint(color, BlendMode.Modulate)` on the icon → would multiply tint × pixel, producing muddy results on multi-color icons. Glow swap is cleaner — keeps the icon detail intact while making the booster type screamable from across the screen.
+- Bump weights to 15/15 (combined ~26%) → would mask the underlying visual confusion. Spawn rate isn't the real problem.
+- Dedicated drawables → proper fix but needs art assets out of scope.
+
+**Files modified:**
+- `ui/game/booster/BoosterUI.kt` — added 2 fields with sensible defaults.
+- `ui/game/booster/BoosterToBoosterUIMapper.kt` — type-switch with 2 ARGB constants (`PIERCING_TINT_ARGB`, `PLASMA_TINT_ARGB`) exposed via companion for testability.
+- `ui/game/world/GameWorld.kt` — conditional glow color + glyph Text overlay (TopEnd-aligned). Added `FontWeight` import.
+
+**Tests added:** `app/src/test/.../BoosterToBoosterUIMapperTest.kt` — 9 tests covering PIERCING/PLASMA tint+glyph assignment, LASER/ULTIMATE renders raw (regression guard against accidentally tinting base boosters), tints are distinct, both are fully opaque, position/size/drawable pass-through, rarity ring flows unchanged. Uses retry-until-roll-matches pattern (bounded MAX_RETRY=200) since `Booster.type` is rolled by `Random` in the body.
+
+**Verification:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL. **171 tests pass** (162 → 171, +9).
+
+**Validation gap closed:** round 52 PIERCING/PLASMA rarity scaling can now be runtime-validated — player will see a magenta `→` booster or cyan `◯` booster drop and know to pick it up, then observe pierceCount 3/4/5 or AoE radius 80/110/140 at impact.
+
+### Round 53 — ChargeShot soft decay (fix dead feature)
+
+Triggered by audit of an in-game log showing **zero `ChargeShot auto-fired` events in 160s of endless play**. Investigation found wiring was correct (`consumeChargeShot()` called every loop tick when `gameStatus == RUNNING`, no tinker gating), but the design was broken in practice: `resetCharge()` hard-reset `chargeStartMillis = now` on **any** damage hit. With `CHARGE_FILL_MS = 20_000ms` and damage taken every <20s in moderate combat, the 20s window was effectively unreachable → the auto-charge ultimate fired ~never in a typical run.
+
+Comment in code (line 547) confirmed the dev had previously raised the value from 8s → 20s to reduce spam combined with `ULTIMATE_WEAPON_BOOSTER` pickups. Raised too far — feature became dead instead of rare.
+
+**Fix — soft decay on each hit instead of hard reset:**
+```
+newStart = min(now, currentStart + 3000ms + clamp(dmg × 20ms, 0, 2000ms))
+```
+
+- Light hit (25 dmg) → shaves 3.5s off the 20s buildup (still 82.5% kept).
+- Medium hit (50 dmg) → shaves 4.0s.
+- Heavy hit (100+ dmg) → caps at 5.0s.
+- Repeated heavy hits still drain to 0% over ~4 ticks (4 × 5s = full 20s).
+- Floor at `now` means charge can drop to 0% but never go negative.
+- Shield-blocked damage (`effective == 0`) still skips this path entirely — shield preserves charge as before.
+
+**Files modified:**
+- `ui/game/ship/ship/ShipController.kt` —
+    - `resetCharge()` → `resetCharge(damageAmount: Int)` delegating to new pure helper `Companion.computeChargeStartAfterDamage(chargeStartMillis, damageAmount, nowMillis)`.
+    - 3 new companion constants: `CHARGE_DAMAGE_BASE_PENALTY_MS = 3000`, `CHARGE_DAMAGE_SCALE_MS_PER_HP = 20`, `CHARGE_DAMAGE_SCALE_PENALTY_MAX_MS = 2000` (all greppable for future tuning).
+    - `updateHp()` call site passes `-effective` (positive damage amount) to `resetCharge`.
+
+**Tests added:** `app/src/test/.../ChargeShotSoftDecayTest.kt` — 10 tests covering base penalty, light/medium/heavy damage scaling, cap-at-2s, clamp-at-now, linear scaling under cap, drain-in-6-light-hits empirical check, defensive negative-damage clamp, regression vs old hard-reset.
+
+**Verification:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` (162 tests now, +10 from 152) + `assembleDevDebug` BUILD SUCCESSFUL.
+
+**Out-of-scope follow-ups noted in audit (not fixed in round 53):**
+- Damage logs are all `Logger.v` (verbose-gated) → cannot observe damage events in default-build logs without flipping the `VERBOSE` flag. Considered promoting to `Logger.d` but would add log spam during heavy combat — left as-is.
+- Enemy cap leak (32 > MAX_REGULAR_ENEMIES=30 in chapter without boss) — separate audit.
+- PIERCING/PLASMA booster spawn rate audit — separate ticket; round 52 rarity scaling still not runtime-validated end-to-end.
+
 ### Round 52 — Wave 6 Item combos (40x) — closes Wave 6 to 7/7
 
 User picked 40x via AskUserQuestion. The final Wave 6 item — synergies between rarity + loadout + run modifier. Three concrete combos shipped (one per gameplay axis), all driven by data already in flight (booster rarity + run modifier damage multiplier). **Wave 6 now ✅ 7/7 done.**

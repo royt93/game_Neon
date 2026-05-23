@@ -57,7 +57,8 @@
       "Bash(./gradlew :app:testDevDebugUnitTest :app:compileProductionReleaseKotlin :app:assembleDevDebug)",
       "Bash(./gradlew :app:assembleDevDebug :app:compileProductionReleaseKotlin)",
       "Bash(./gradlew :app:compileDevDebugKotlin :app:testDevDebugUnitTest :app:assembleDevDebug)",
-      "Bash(./gradlew :app:compileDevDebugKotlin :app:testDevDebugUnitTest :app:compileProductionReleaseKotlin :app:assembleDevDebug)"
+      "Bash(./gradlew :app:compileDevDebugKotlin :app:testDevDebugUnitTest :app:compileProductionReleaseKotlin :app:assembleDevDebug)",
+      "Bash(awk -F'tests=\"' '{split\\($2,a,\"\\\\\"\"\\); sum+=a[1]} END {print \"TOTAL TESTS:\", sum}')"
     ]
   }
 }
