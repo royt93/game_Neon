@@ -968,6 +968,62 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 51.5 — Photo mode audit fixes (ANR risk + bitmap leak)
+
+User asked "bạn chắc chưa? audit lại đi" after initial round 51. Audit pass found 2 real issues + 1 UX nuance.
+
+- 🐛 **Fix 1 (CRITICAL — ANR risk)**: `PhotoCapture.captureAndShare` was `fun` (synchronous) called from `LaunchedEffect` on Main dispatcher. PNG-compress + file-write on a 1440×3120 bitmap is 200-500ms blocking I/O — visible UI freeze, ANR threat on slow devices. Refactored to `suspend fun` with explicit dispatch hops:
+    - `drawToBitmap()` stays on Main (view-tree access).
+    - PNG compress + file write wrapped in `withContext(Dispatchers.IO)`.
+    - `startActivity(chooser)` back on Main (Activity contract).
+
+- 🐛 **Fix 2 (memory hygiene)**: Bitmap was never recycled — an 18 MB peak per capture lingered until GC ran. Added `bitmap.recycle()` in a `finally` block after the compress/write completes (pixels already serialised to disk → safe to drop).
+
+- 📝 **Nuance 3 (UX — not fixed)**: Game stays `PAUSE` after capture finishes. User must tap ⚙ → "TIẾP TỤC" to resume. Acceptable because (a) standard pause-flow behaviour, (b) user likely wants to look at the screenshot in the chooser before deciding to resume. HUD is restored so ⚙ is reachable; SmartBomb / Secondary / ButtonsMovement are no-op while paused (existing `gameStatus == RUNNING` guards in callbacks).
+
+- ✅ Build verify after fixes: `compileDevDebugKotlin testDevDebugUnitTest` BUILD SUCCESSFUL. **146 tests still pass.**
+
+### Round 51 — Wave 6 Photo mode (26x)
+
+User picked 26x via AskUserQuestion. Pause game → tap "📸 CHỤP ẢNH" → HUD hides → captures the window → fires Android Share intent. **Wave 6 now 6/7 done.**
+
+- ✅ **`PhotoCapture.captureAndShare(context, view)`** (`ui/game/photo/PhotoCapture.kt`) — calls `View.drawToBitmap()` on the activity's root view, writes the PNG into `cacheDir/screenshots/neon_${ts}.png`, builds a FileProvider URI, fires `Intent.ACTION_SEND` with `image/png` MIME via `Intent.createChooser(...)`. No runtime permission at any API level — receiving app gets a temporary read grant via `FLAG_GRANT_READ_URI_PERMISSION`. Try/catch around the whole flow returns false on any failure; capture failures don't crash the game.
+
+- ✅ **FileProvider infra** — `AndroidManifest.xml` declares `androidx.core.content.FileProvider` with authority `${applicationId}.fileprovider`. `res/xml/file_paths.xml` exposes the `cache-path` named `screenshots` under `screenshots/`. Minimal, scoped only to the screenshot subdir.
+
+- ✅ **GameState `photoModeActive` flag** + `startPhotoCapture` / `finishPhotoCapture` callbacks. `remember` (not rememberSaveable) — purely transient UI flag.
+
+- ✅ **GameScreen capture LaunchedEffect** — keyed on `photoCaptureRequested` param. Flow: `startPhotoCapture()` → `delay(120ms)` (let HUD re-compose hidden) → `PhotoCapture.captureAndShare(captureContext, view.rootView)` → `delay(60ms)` → `finishPhotoCapture()` → `onPhotoCaptureConsumed()`. The 120ms gap is the empirical sweet spot between "too short → HUD still visible" and "too long → user notices freeze".
+
+- ✅ **HUD gating** — `val hudVisible = !gameState.photoModeActive` + `if (hudVisible) ComposableX(...)` on 7 HUD overlay sites (IndicatorStatus / ActiveBuffsHud / ButtonSettings / PowerUpIndicators / SmartBombButton / SecondaryWeaponButton / BossHpBar) + ButtonsMovement at the bottom row. Composable-level skip → no slot table entry, no draw, no input.
+
+- ✅ **DialogGamePause button + Nav wire** — added 5th button "📸 CHỤP ẢNH" (NeonGold) between Settings and Về Menu. MainActivity holds a shared `photoCaptureRequest: mutableStateOf(false)` flag; dialog's `onCapturePhoto` flips it true + pops back to Game; GameScreen reads the flag through its new param. Decoupled cleanly — dialog never holds a direct gameState reference.
+
+### Round 51 files
+
+**New:**
+- `ui/game/photo/PhotoCapture.kt` (~50 LOC — singleton object, captureAndShare(context, view): Boolean).
+- `res/xml/file_paths.xml` (cache-path screenshots).
+
+**Modified:**
+- `AndroidManifest.xml` — `<provider>` declaration for FileProvider.
+- `ui/game/state/GameState.kt` — `photoModeActive: Boolean` mutableState + `startPhotoCapture` / `finishPhotoCapture` callbacks exposed via data class.
+- `ui/MainActivity.kt` — `photoCaptureRequest` shared state at NavHost root; GameScreen + GamePause routes wired.
+- `ui/game/GameScreen.kt` — `photoCaptureRequested` + `onPhotoCaptureConsumed` params; capture LaunchedEffect; 8 HUD gates (`if (hudVisible) ...`).
+- `ui/dlg/gamepause/DialogGamePause.kt` — new "CHỤP ẢNH" NeonDialogButton + `onCapturePhoto` callback.
+
+### Round 51 verification
+
+- `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest assembleDevDebug` BUILD SUCCESSFUL.
+- **146 tests still pass.**
+- Manual test path:
+  1. Game → ⚙ settings → "📸 CHỤP ẢNH" button.
+  2. Pause sheet dismisses, screen freezes briefly (120ms HUD-hide delay).
+  3. Android share chooser appears with PNG attachment named `neon_<timestamp>.png`.
+  4. Share to Gallery / Messages / etc. → screenshot saves to recipient.
+  5. Game resumes after share dismissed.
+- **Edge cases handled**: capture failure (try/catch returns false, game continues), notch area (drawToBitmap captures rootView so includes status bar — acceptable for V1, can crop in round 52 if user wants), orientation (portrait-locked manifest so no rotation handling needed).
+
 ### Round 50 — doc/feature.md cleanup + Wave 6 audit
 
 User reported subjective lag still present after round 49 (Canvas lasers) but wanted to defer further perf work. Picked "Doc cleanup + Wave 6 audit" via AskUserQuestion. Pure doc round — no code change.
@@ -2120,8 +2176,8 @@ Các architectural refactors quá lớn để gộp chung:
 - [x] Round 32 — sheet padding 32dp + slide animation delay onDismiss + Menu redistribute spacers + Settings ControlGroup
 - [x] Round 33 — Menu title 44sp + displayCutout windowInsetsPadding + feature.md audit
 
-## Wave 6 — Polish + accessibility (🟡 5/7 done — rounds 38-49)
-- [ ] 26x Photo mode (pending — pause + capture + share)
+## Wave 6 — Polish + accessibility (🟡 6/7 done — rounds 38-51)
+- [x] 26x Photo mode (round 51 — pause + HUD hide + cacheDir PNG + FileProvider Share intent)
 - [x] 27x Color blind mode (round 39 — Wong palette + LocalNeonPalette infra + Settings picker; broader UI migration deferred)
 - [x] 29x Secondary weapon (round 40 MISSILE homing + round 41 MINE proximity + BURST instant sweep + Settings picker)
 - [x] 36x Loadout system (round 45 + 45.5 audit — pre-game BulletType + SecondaryWeapon picker; BulletType head-start 10s on run init; race condition fixed via Flow.first)

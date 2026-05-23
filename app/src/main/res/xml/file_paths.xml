@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Round 51 (26x Photo mode) — exposes app cache subdir `screenshots/` to the
+  FileProvider so captured PNGs can be shared via Intent.ACTION_SEND without
+  the receiving app needing storage permissions.
+-->
+<paths>
+    <cache-path
+        name="screenshots"
+        path="screenshots/" />
+</paths>

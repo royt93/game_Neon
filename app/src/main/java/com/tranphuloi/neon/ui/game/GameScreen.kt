@@ -98,6 +98,11 @@ fun GameScreen(
     onGamePause: () -> Unit,
     onGameOver: (score: String) -> Unit,
     onOpenBuffPicker: () -> Unit = {},
+    /** Round 51 (26x Photo mode) — flips true when GamePause "CHỤP ẢNH"
+     *  tapped (signal from MainActivity). LaunchedEffect runs the capture
+     *  flow + calls [onPhotoCaptureConsumed]. */
+    photoCaptureRequested: Boolean = false,
+    onPhotoCaptureConsumed: () -> Unit = {},
 ) {
     LaunchedEffect(Unit) { Logger.d("GameScreen entered") }
     val haptic = LocalHaptic.current
@@ -108,6 +113,35 @@ fun GameScreen(
     val tutorialShown by settings.tutorialShown.collectAsState(initial = true) // optimistic to avoid flash on first compose
 
     val gameState = rememberGameState()
+
+    // Round 51 (26x Photo mode) — capture flow (must be AFTER rememberGameState
+    // so gameState is in scope):
+    //  (1) GamePause sets photoCaptureRequested=true + pops back.
+    //  (2) This effect fires; toggles gameState.photoModeActive=true so HUD
+    //      gating below hides overlays on the next frame.
+    //  (3) delay(120ms) lets Compose re-render the HUD-hidden state.
+    //  (4) PhotoCapture.captureAndShare snapshots the activity window and
+    //      launches the share chooser.
+    //  (5) Clears photoModeActive + consumes the request signal.
+    val view = androidx.compose.ui.platform.LocalView.current
+    val captureContext = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(photoCaptureRequested) {
+        if (!photoCaptureRequested) return@LaunchedEffect
+        gameState.startPhotoCapture()
+        // Round 51 audit pass 2 — wrap in try/finally so that if the
+        // coroutine is cancelled mid-capture (user navigates Game → Menu,
+        // Activity destroyed mid-flow, etc.) the HUD-hidden state still
+        // gets reset. Without this, photoModeActive could stick at true and
+        // the HUD would stay invisible forever.
+        try {
+            kotlinx.coroutines.delay(120L)
+            com.tranphuloi.neon.ui.game.photo.PhotoCapture.captureAndShare(captureContext, view.rootView)
+            kotlinx.coroutines.delay(60L)
+        } finally {
+            gameState.finishPhotoCapture()
+            onPhotoCaptureConsumed()
+        }
+    }
 
     // Round 34 (42x) — post-boss roguelike buff picker. When bossKillBuffOfferMillis
     // changes (boss killed, non-final), wait for boss-rank overlay to finish
@@ -344,7 +378,13 @@ fun GameScreen(
             modifier = Modifier.zIndex(2f),
         )
 
-        IndicatorStatus(
+        // Round 51 (26x Photo mode) — `hudVisible = !photoModeActive`. While
+        // capturing, all HUD overlays (status, buffs row, settings cog,
+        // power-up indicators, smart bomb, secondary weapon, boss HP bar) are
+        // skipped at the Composable level so the captured frame is clean —
+        // no buttons / text / bars overlaying the ship + entities.
+        val hudVisible = !gameState.photoModeActive
+        if (hudVisible) IndicatorStatus(
             gameTime = gameState.gameTimeIndicator,
             hp = gameState.ship.hp,
             mineralsEarnedTotal = gameState.mineralsEarnedTotal,
@@ -360,13 +400,13 @@ fun GameScreen(
         )
         // Round 35 (42x) — show stacked roguelike buffs as small chip row
         // below IndicatorStatus.
-        com.tranphuloi.neon.ui.game.controls.ActiveBuffsHud(
+        if (hudVisible) com.tranphuloi.neon.ui.game.controls.ActiveBuffsHud(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(top = 90.dp)
                 .zIndex(300f),
         )
-        ButtonSettings(
+        if (hudVisible) ButtonSettings(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .zIndex(300f)
@@ -376,7 +416,7 @@ fun GameScreen(
             onGamePause()
         }
         // Power-up duration indicators (Ec).
-        PowerUpIndicators(
+        if (hudVisible) PowerUpIndicators(
             ship = gameState.ship,
             modifier = Modifier
                 .align(Alignment.TopCenter)
@@ -385,7 +425,7 @@ fun GameScreen(
         )
         // 20b Smart bomb button — 30% smaller (42dp wrapper) + 8dp from right edge.
         // Sits above right movement button (at 124dp from bottom).
-        SmartBombButton(
+        if (hudVisible) SmartBombButton(
             count = gameState.smartBombs,
             onDispatch = { gameState.dispatchSmartBomb() },
             modifier = Modifier
@@ -395,7 +435,7 @@ fun GameScreen(
         )
         // Round 40 (29x) → 41 — secondary weapon button. Glyph reflects active
         // weapon (MISSILE / MINE / BURST) picked in Settings.
-        com.tranphuloi.neon.ui.game.controls.SecondaryWeaponButton(
+        if (hudVisible) com.tranphuloi.neon.ui.game.controls.SecondaryWeaponButton(
             glyph = gameState.activeSecondaryWeapon.glyph,
             cooldownProgress = gameState.secondaryCooldownProgress,
             onFire = { gameState.fireSecondary() },
@@ -407,7 +447,7 @@ fun GameScreen(
         // 1c: Compact boss HP bar (200dp wide). Pinned 16dp BELOW the Settings icon
         // (top-right). Settings ends ~y=76dp (top padding 16 + size 60), so 16dp gap
         // gives top=92dp.
-        BossHpBar(
+        if (hudVisible) BossHpBar(
             enemies = gameState.enemies,
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -466,7 +506,10 @@ fun GameScreen(
                         }
                     }
             )
-            ButtonsMovement(
+            // Round 51 (26x) — hide movement buttons during photo capture
+            // so the bottom of the captured frame isn't dominated by control
+            // chrome.
+            if (!gameState.photoModeActive) ButtonsMovement(
                 onMoveLeft = { gameState.moveShipLeft(it) },
                 onMoveRight = { gameState.moveShipRight(it) },
                 modifier = Modifier.padding(bottom = 24.dp)

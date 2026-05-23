@@ -301,6 +301,16 @@ fun rememberGameState(): GameState {
     // 20b Smart bomb stack — start with 2, +1 per boss kill.
     var smartBombs by rememberSaveable { mutableIntStateOf(2) }
     /**
+     * Round 51 (26x Photo mode) — when true, GameScreen hides HUD overlays
+     * (movement buttons, smart bomb, secondary weapon, score, combo, banners)
+     * so the rendered GameWorld is "clean" for capture. The dialog +
+     * capture-effect handle toggle: set true → wait one frame for HUD to
+     * recompose hidden → capture → toggle false. `remember` (not
+     * rememberSaveable) — purely transient UI flag, never needs to survive
+     * config change.
+     */
+    var photoModeActive by remember { mutableStateOf(false) }
+    /**
      * Round 40 (29x) — wall-clock of the last secondary-weapon fire. Cooldown
      * progress = (now - last) / activeWeapon.cooldownMs, clamped to 1.0 (ready).
      * Saved across config changes so a paused-then-rotated run doesn't get a
@@ -1301,6 +1311,19 @@ fun rememberGameState(): GameState {
         mines = mines,
         lastBurstSweepMillis = lastBurstSweepMillis,
         chargeProgress = shipController.chargeProgress(),
+        photoModeActive = photoModeActive,
+        startPhotoCapture = {
+            if (!photoModeActive) {
+                Logger.d("startPhotoCapture: entering photo mode")
+                photoModeActive = true
+            }
+        },
+        finishPhotoCapture = {
+            if (photoModeActive) {
+                Logger.d("finishPhotoCapture: leaving photo mode")
+                photoModeActive = false
+            }
+        },
         dispatchSmartBomb = {
             if (smartBombs > 0 && gameStatus == GameStatus.RUNNING) {
                 smartBombs--
@@ -1466,6 +1489,20 @@ data class GameState(
     val stagesReached: Int,
     val smartBombs: Int,
     val dispatchSmartBomb: () -> Unit,
+    /**
+     * Round 51 (26x Photo mode) — true while a screenshot capture is in
+     * progress. GameScreen reads this to hide HUD overlays so the captured
+     * frame is clean. Toggled by `startPhotoCapture` then cleared by the
+     * capture LaunchedEffect.
+     */
+    val photoModeActive: Boolean,
+    /** Round 51 (26x) — flips [photoModeActive] true. The LaunchedEffect in
+     *  GameScreen drives the capture flow. Idempotent while a capture is in
+     *  progress (no-op if already active). */
+    val startPhotoCapture: () -> Unit,
+    /** Round 51 (26x) — called by the capture LaunchedEffect after the share
+     *  intent fires (or fails) to clear [photoModeActive] and restore HUD. */
+    val finishPhotoCapture: () -> Unit,
     /** Round 40-41 (29x) — active secondary weapon (MISSILE / MINE / BURST). */
     val activeSecondaryWeapon: com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon,
     /** Round 40 (29x) — secondary weapon cooldown. 0=just fired, 1=ready. */

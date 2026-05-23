@@ -10,6 +10,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -97,6 +98,14 @@ class MainActivity : ComponentActivity() {
         Logger.d("MainActivity.onCreate: App cast OK, entering setContent")
         setContent {
             Logger.d("MainActivity.setContent: composing NavHost root")
+            // Round 51 (26x Photo mode) — shared flag between GamePause dialog
+            // (sets true on "CHỤP ẢNH" tap + pops back) and GameScreen (reads
+            // via param + clears after the capture LaunchedEffect runs).
+            // mutableStateOf at the Activity-Compose root so it survives the
+            // pop-back-to-Game navigation.
+            var photoCaptureRequest by androidx.compose.runtime.remember {
+                androidx.compose.runtime.mutableStateOf(false)
+            }
             // Round 39 — resolve active palette from colorBlindMode setting once at root
             // so every consumer of LocalNeonPalette sees the same value.
             val colorBlindMode by app.settings.colorBlindMode.collectAsState(
@@ -204,6 +213,8 @@ class MainActivity : ComponentActivity() {
                                     Logger.d("Nav: Game → BuffPicker (post-boss reward)")
                                     navController.navigate(BuffPicker.route)
                                 },
+                                photoCaptureRequested = photoCaptureRequest,
+                                onPhotoCaptureConsumed = { photoCaptureRequest = false },
                             )
                         }
                         dialog(
@@ -236,6 +247,15 @@ class MainActivity : ComponentActivity() {
                                         popUpTo(Menu.route) { inclusive = true }
                                         launchSingleTop = true
                                     }
+                                },
+                                onCapturePhoto = {
+                                    // Round 51 — pop pause sheet first so it
+                                    // doesn't end up in the screenshot, then
+                                    // signal GameScreen to run the capture
+                                    // flow via the shared flag.
+                                    Logger.d("Nav: GamePause → Game (photo capture requested)")
+                                    photoCaptureRequest = true
+                                    navController.popBackStack()
                                 },
                             )
                         }

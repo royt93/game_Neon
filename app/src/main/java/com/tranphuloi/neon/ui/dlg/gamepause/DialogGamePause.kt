@@ -23,6 +23,7 @@ fun DialogGamePause(
     onRestartGame: () -> Unit,
     onSettings: () -> Unit = {},
     onBackToMenu: () -> Unit = {},
+    onCapturePhoto: () -> Unit = {},
 ) {
     LaunchedEffect(Unit) { Logger.d("DialogGamePause shown") }
     // Round 28 — migrated NeonDialog → NeonBottomSheet. dismissible = false so
@@ -67,6 +68,17 @@ fun DialogGamePause(
                 onClick = {
                     Logger.d("DialogGamePause: Settings pressed")
                     onSettings()
+                },
+            )
+            // Round 51 (26x Photo mode) — capture screenshot of frozen game
+            // world (HUD hidden via gameState.photoModeActive flag).
+            NeonDialogButton(
+                text = "CHỤP ẢNH",
+                color = NeonGold,
+                leadingGlyph = "📸",
+                onClick = {
+                    Logger.d("DialogGamePause: Capture photo pressed")
+                    onCapturePhoto()
                 },
             )
             // Round 27 — exit to menu. Checkpoint preserved so user can resume
