@@ -968,6 +968,42 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 49 — Canvas drawing for lasers (perf silver bullet V1)
+
+After rounds 46-48 (key + caps + memoization) the lag was reduced but not eliminated. User picked **Option B (Canvas drawing)** for round 49. This is the architectural fix: replace per-entity Composables with a single Canvas + DrawScope pass for the most numerous entity class (lasers).
+
+- ✅ **`ui/game/world/LaserCanvas.kt`** — new Composable wrapping `Canvas { ... }` + `DrawScope` block. Takes `List<LaserUI>` + `LaserSprites` (pre-loaded ImageBitmap cache) + glow params. Each laser becomes one `drawImage(bitmap, dstOffset, dstSize)` call + one `drawCircle(radialGradient)` for the glow halo — same recipe as `Modifier.neonGlow`. Rotation handled via `rotate(degrees, pivot) { drawImage(...) }` block. Early return when list is empty (no Canvas overhead).
+
+- ✅ **`rememberLaserSprites()` + `LaserSprites` data class** — pre-loads 5 distinct laser drawables (`ic_laser_blue_7 / blue_11 / red_8 / red_14 / red_16`) into ImageBitmaps once at GameWorld composition time. Shared across all 3 LaserCanvas call sites — no per-frame resource resolution.
+
+- ✅ **Replaced 3 forEach blocks in GameWorld** with 3 LaserCanvas calls:
+    - `shipLasers` (early — behind enemies layer): `Modifier.neonGlow(shipGlowColor, 0.7f, 2.4f)` → Canvas with same recipe.
+    - `ultimateLasers` (same early position): `NeonGold` halo, rotation supported.
+    - `enemyLasers` (later — in front of enemies, after explosions): `NeonRedAlert` halo.
+    - Z-order preserved by keeping 3 separate Canvas calls at the original positions; no layering regression.
+
+- ⚠️ **Enemies still rendered as forEach Image()** — moved to round 50 because the enemy subtree includes HpBar + hitFlash overlay + multi-tint status effect Images. Those overlay Composables would also need migration for a clean Canvas-only enemy pipeline. The win from migrating lasers first is independently measurable.
+
+### Round 49 files
+
+**New:**
+- `ui/game/world/LaserCanvas.kt` (~140 LOC — Composable + LaserSprites + DrawScope helper).
+
+**Modified:**
+- `ui/game/world/GameWorld.kt` — pre-load `laserSprites` once near function top; replace 3 forEach blocks (shipLasers, ultimateLasers, enemyLasers) with 3 `LaserCanvas(...)` calls at the same z-positions.
+
+### Round 49 verification
+
+- `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest` BUILD SUCCESSFUL.
+- **146 tests still pass.**
+- **Honest expected impact** (laser-only — enemies pending round 50):
+  - At peak: ~25 ship + ~9 ultimate + ~30 enemy = ~64 lasers on screen.
+  - Before: 64 Composable subtrees per frame (Image + Modifier chain + painterResource lookup + neonGlow drawBehind).
+  - After: 1 Canvas Composable + 64 drawImage/drawCircle calls inside DrawScope (no Compose subtree per laser).
+  - Estimated allocation reduction for laser rendering: ~70-80%. Combined with rounds 46-48 reductions for the rest of the entity pipeline, total allocation rate should be ~50-60% of pre-round-46 baseline.
+- **Manual visual parity check needed**: install dev build, enter combat, verify lasers look identical (glow halo, rotation, position) to round 48 baseline. Particularly check: ultimate laser sweep rotation, ship-skin color of laser glow, enemy-laser red halo intensity.
+- **Round 50 candidate**: same treatment for `enemies.forEach` (the remaining big forEach block). Trickier because of HpBar + statusEffectTint overlays — likely a hybrid (Canvas for sprite, Composable overlay for HpBar + tints).
+
 ### Round 48 — C-lite memoization (per-id cache + empty-list shortcut)
 
 After self-audit of round 47 (scored 7/10 — laser caps barely fired in user's repro, real win was only enemy cap), user picked **C-lite** when asked. C-full would have over-promised because game tick (5ms) is faster than Compose recompose (~8ms) so every mapper call sees fresh entity data → cache miss. C-lite acknowledges this honestly and ships 3 small concrete fixes.

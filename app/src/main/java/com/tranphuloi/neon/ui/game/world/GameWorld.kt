@@ -101,6 +101,11 @@ fun GameWorld(
 ) {
 
     val imageLoader = rememberImageLoader()
+    // Round 49 — pre-load all 5 laser sprite drawables as ImageBitmaps so the
+    // Canvas-based [LaserCanvas] doesn't go through resource resolution per
+    // frame. Loaded once at GameWorld level + shared across the 3 LaserCanvas
+    // calls below.
+    val laserSprites = com.tranphuloi.neon.ui.game.world.rememberLaserSprites()
 
     // Round 38 — ship aura color from Settings. Defaults to AURA_CYAN's glow so
     // first-run / unset preference renders the original cyan look unchanged.
@@ -153,42 +158,30 @@ fun GameWorld(
                 modifier = Modifier.fillMaxSize()
             )
         }
-        // BUG fix: lasers were `align(BottomStart) + absoluteOffset` while the ship
-        // uses `offset` (TopStart default). Switching lasers to the same TopStart
-        // `.offset` coord system as the ship means laser.yOffset / xOffset can be
-        // expressed in ship-coords directly — no parent-height arithmetic.
-        // Round 46 — `key(it.id)` stabilises Compose's slot table across recompositions.
-        // Without it, when laser[3] flies off-screen and laser[4] becomes laser[3], Compose
-        // treats slot 3 as "changed" and re-creates the Composable node. With stable keys
-        // Compose recognises the same laser identity at a different position → reuses the node.
-        shipLasers.forEach {
-            key(it.id) {
-                Image(
-                    painterResource(id = it.drawableId),
-                    contentDescription = stringResource(id = R.string.laser),
-                    contentScale = ContentScale.FillBounds,
-                    modifier = Modifier
-                        .size(width = it.width.dp, height = it.height.dp)
-                        .offset(x = it.xOffset.dp, y = it.yOffset.dp)
-                        // Round 38 — laser glow follows ship aura so the visual reads as
-                        // "ship's own bullets" rather than disconnected cyan tracers.
-                        .neonGlow(color = shipGlowColor, intensity = 0.7f, radiusFactor = 2.4f)
-                )
-            }
-        }
-        ultimateLasers.forEach {
-            key(it.id) {
-                Image(
-                    painterResource(id = it.drawableId),
-                    contentDescription = stringResource(id = R.string.laser),
-                    modifier = Modifier
-                        .size(width = it.width.dp, height = it.height.dp)
-                        .offset(x = it.xOffset.dp, y = it.yOffset.dp)
-                        .neonGlow(color = NeonGold, intensity = 0.85f, radiusFactor = 2.0f)
-                        .rotate(degrees = it.rotation)
-                )
-            }
-        }
+        // Round 49 — was 2 forEach blocks (shipLasers + ultimateLasers) of
+        // Image+Modifier.neonGlow Composables, one Composable subtree per
+        // laser. Replaced with 2 Canvas passes via [LaserCanvas]. Each laser
+        // becomes a `drawImage` + `drawCircle` call inside DrawScope instead
+        // of a Composable subtree → ~10-20× less recompose work + no Modifier
+        // allocation per entity. Sprites pre-loaded once into laserSprites.
+        // 3 separate calls preserve the original z-order (ship + ultimate go
+        // here, behind enemies; enemyLasers go later, in front).
+        com.tranphuloi.neon.ui.game.world.LaserCanvas(
+            lasers = shipLasers,
+            sprites = laserSprites,
+            glow = shipGlowColor,
+            intensity = 0.7f,
+            radiusFactor = 2.4f,
+            modifier = Modifier.fillMaxSize(),
+        )
+        com.tranphuloi.neon.ui.game.world.LaserCanvas(
+            lasers = ultimateLasers,
+            sprites = laserSprites,
+            glow = NeonGold,
+            intensity = 0.85f,
+            radiusFactor = 2.0f,
+            modifier = Modifier.fillMaxSize(),
+        )
         spaceObjects.forEach {
             Image(
                 painterResource(id = it.drawableId),
@@ -491,18 +484,17 @@ fun GameWorld(
             // 13c: 8-12 burst lines + ring shockwave overlay on top of GIF.
             ExplosionBurstOverlay(explosion = it)
         }
-        enemyLasers.forEach {
-            key(it.id) {
-                Image(
-                    painterResource(id = it.drawableId),
-                    contentDescription = stringResource(id = R.string.enemy_laser),
-                    modifier = Modifier
-                        .size(width = it.width.dp, height = it.height.dp)
-                        .offset(x = it.xOffset.dp, y = it.yOffset.dp)
-                        .neonGlow(color = NeonRedAlert, intensity = 0.55f, radiusFactor = 1.8f)
-                )
-            }
-        }
+        // Round 49 — enemy lasers also via LaserCanvas. Placed here (after
+        // enemies + explosions) so they render in front of enemies just like
+        // before; same z-order as the prior forEach block.
+        com.tranphuloi.neon.ui.game.world.LaserCanvas(
+            lasers = enemyLasers,
+            sprites = laserSprites,
+            glow = NeonRedAlert,
+            intensity = 0.55f,
+            radiusFactor = 1.8f,
+            modifier = Modifier.fillMaxSize(),
+        )
         // 2c+10b: Damage numbers overlay (top-most game-world layer).
         // Hidden during boss intro to avoid clutter with the boss name banner.
         DamageNumbersOverlay(
