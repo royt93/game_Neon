@@ -624,6 +624,13 @@ class ShipController(
                         val now = System.currentTimeMillis()
                         val ext = (phaseShieldTimeMillis * mul).toLong()
                         iframesEndMillis = maxOf(iframesEndMillis, now + ext)
+                        // Round 61 — surface phase-shield specifically on Ship state
+                        // so GameWorld can render a translucent ghost overlay. Without
+                        // this, Round 60 was visually identical to taking-damage
+                        // iframes (600ms flash) → player couldn't see the buff.
+                        val newEnd = maxOf(ship.phaseShieldEndMillis, now + ext)
+                        ship = ship.copy(phaseShieldEndMillis = newEnd)
+                        setShip(ship)
                         Logger.d("Booster: phase-shield ON (+${ext}ms iframes, mul=$mul)")
                     }
                     BoosterType.SCORE_X3 -> enableScoreX3(enable = true, multiplier = mul)
@@ -690,6 +697,15 @@ class ShipController(
         if (scoreX3EndDurationMillis in 1..currentTime) enableScoreX3(enable = false)
         if (doubleFireEndDurationMillis in 1..currentTime) enableDoubleFire(enable = false)
         if (healingAuraEndDurationMillis in 1..currentTime) enableHealingAura(enable = false)
+        // Round 61 — clear PHASE_SHIELD ghost flag at expiry. State lives on Ship
+        // (not in a controller-private timer) so GameWorld's ghost overlay reads
+        // it directly. Iframes already expire on their own; this just hides the
+        // visual.
+        if (ship.phaseShieldEndMillis in 1..currentTime) {
+            ship = ship.copy(phaseShieldEndMillis = 0L)
+            setShip(ship)
+            Logger.d("Booster: phase-shield OFF")
+        }
         // Round 60 — HEALING_AURA continuous regen: +5 HP/sec while active.
         // Use lastTick to compute elapsed since last heal call so it's framerate-
         // independent (works even if monitorShipCollisions skips a tick).

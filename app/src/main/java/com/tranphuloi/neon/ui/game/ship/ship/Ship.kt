@@ -63,6 +63,13 @@ data class Ship(
     val doubleFireEnabled: Boolean = false,
     val critSurgeEnabled: Boolean = false,
     val berserkEnabled: Boolean = false,
+    /**
+     * Round 61 — wall-clock millis when PHASE_SHIELD buff expires. 0 = inactive.
+     * Drives a translucent cyan ghost overlay in GameWorld so player can see
+     * the buff is active (Round 60 only extended `iframesEndMillis` silently —
+     * indistinguishable from the 600ms damage iframes that flash on every hit).
+     */
+    val phaseShieldEndMillis: Long = 0L,
     @DrawableRes val drawableId: Int = R.drawable.ship_regular_laser,
 ) : Serializable {
     val shieldRadius: Float get() = shieldSize / 2

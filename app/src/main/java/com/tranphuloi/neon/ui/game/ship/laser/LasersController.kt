@@ -45,139 +45,86 @@ class LasersController(
         // doesn't allow the in-flight list to grow unbounded during heavy waves.
         // 25 ≈ ~2.5s of fire at max rate; off-screen scroll keeps the list flowing.
         if (shipLasers.size >= MAX_SHIP_LASERS) return
-        // Round 35 (35x) — bullet-type override takes priority over normal lasers.
-        // Triple-laser fan still applies for spread shot.
-        if (ship.activeBulletType != BulletType.NORMAL) {
-            val newLasers = fireBulletTypeLasers(ship)
-            shipLasers = shipLasers + newLasers
-            updateShipLasersUI()
-            return
-        }
 
-        val baseLasers = if (ship.laserBoosterEnabled) {
-            // Laser bottom flush with ship top (`ship.yOffset`). Since laser height
-            // = 25, top y = ship.yOffset - 25 places laser edge-to-edge with ship.
-            val laser = ShipBoostedLaser(
-                id = uuidUtils.getUuid(),
-                xOffset = ship.xOffset + ship.width / 2 - SHIP_BOOSTED_LASER_WIDTH / 2,
-                yOffset = ship.yOffset - 25f,
-                yRange = screenHeight
-            )
-            if (ship.tripleLaserBoosterEnabled) {
-                listOf(
-                    laser.copy(xOffset = laser.xOffset - TRIPLE_LASER_SIDE_OFFSET),
-                    laser.copy(xOffset = laser.xOffset),
-                    laser.copy(xOffset = laser.xOffset + TRIPLE_LASER_SIDE_OFFSET)
-                )
-            } else {
-                listOf(laser)
+        // Round 61 — unified spread + double pipeline. Pre-round-61 the bullet-type
+        // path (PIERCING/PLASMA) early-returned so SPREAD_SHOT + DOUBLE_FIRE buffs
+        // had no effect while a bullet-type buff was active — picking up SPREAD_SHOT
+        // during PLASMA's 10s head-start would silently waste the buff. New flow:
+        //   1. Compute x-offset list (spread > triple > single)
+        //   2. Compute y-offset list (double = 2 stacked, else single)
+        //   3. Build one laser per (dx, dy) combo via [buildOneLaser], which
+        //      dispatches on activeBulletType (PIERCING/PLASMA/NORMAL).
+        // Every buff combination now layers correctly.
+        val xShifts: List<Float> = when {
+            ship.spreadShotEnabled -> {
+                // 5-way fan, ~(TRIPLE_LASER_SIDE_OFFSET + 4) spacing for visual clarity.
+                val step = TRIPLE_LASER_SIDE_OFFSET + 4f
+                listOf(-2f * step, -step, 0f, step, 2f * step)
             }
-        } else {
-            // Laser bottom flush with ship top — height = 20.
-            val laser = ShipLaser(
-                id = uuidUtils.getUuid(),
-                xOffset = ship.xOffset + ship.width / 2 - SHIP_LASER_WIDTH / 2,
-                yOffset = ship.yOffset - 20f,
-                yRange = screenHeight
-            )
-            if (ship.tripleLaserBoosterEnabled) {
-                listOf(
-                    laser.copy(xOffset = laser.xOffset - TRIPLE_LASER_SIDE_OFFSET),
-                    laser.copy(xOffset = laser.xOffset),
-                    laser.copy(xOffset = laser.xOffset + TRIPLE_LASER_SIDE_OFFSET)
-                )
-            } else {
-                listOf(laser)
+            ship.tripleLaserBoosterEnabled -> {
+                listOf(-TRIPLE_LASER_SIDE_OFFSET, 0f, TRIPLE_LASER_SIDE_OFFSET)
+            }
+            else -> listOf(0f)
+        }
+        val yShifts: List<Float> = if (ship.doubleFireEnabled) listOf(0f, 22f) else listOf(0f)
+
+        val newLasers = buildList {
+            for (dy in yShifts) for (dx in xShifts) {
+                add(buildOneLaser(ship, dx, dy))
             }
         }
 
-        // Round 60 (38x) — SPREAD_SHOT: widen the base laser list into a 5-way
-        // horizontal fan. Stacks on top of triple-laser (replaces it). Lasers
-        // travel straight up — fan just spreads xOffset so coverage > triple.
-        val spreaded = if (ship.spreadShotEnabled) {
-            val center = baseLasers.first()
-            val centerCopy = when (center) {
-                is com.tranphuloi.neon.ui.game.ship.laser.ShipBoostedLaser -> {
-                    val c = center
-                    listOf(-2, -1, 0, 1, 2).map { i ->
-                        c.copy(
-                            id = uuidUtils.getUuid(),
-                            xOffset = c.xOffset + i * (TRIPLE_LASER_SIDE_OFFSET + 4f),
-                        )
-                    }
-                }
-                is ShipLaser -> {
-                    val c = center
-                    listOf(-2, -1, 0, 1, 2).map { i ->
-                        c.copy(
-                            id = uuidUtils.getUuid(),
-                            xOffset = c.xOffset + i * (TRIPLE_LASER_SIDE_OFFSET + 4f),
-                        )
-                    }
-                }
-                else -> baseLasers
-            }
-            centerCopy
-        } else baseLasers
-
-        // Round 60 (38x) — DOUBLE_FIRE: stack a 2nd salvo 20px behind so each
-        // call produces 2 visual waves. Cheap approximation of "fire rate ×2"
-        // without requiring tinker repeatTime override (would need cross-class
-        // mutation). Visual reads as faster fire cadence.
-        val withDouble = if (ship.doubleFireEnabled) {
-            val trailing = spreaded.map { laser ->
-                when (laser) {
-                    is com.tranphuloi.neon.ui.game.ship.laser.ShipBoostedLaser ->
-                        laser.copy(id = uuidUtils.getUuid(), yOffset = laser.yOffset + 22f)
-                    is ShipLaser ->
-                        laser.copy(id = uuidUtils.getUuid(), yOffset = laser.yOffset + 22f)
-                    else -> laser
-                }
-            }
-            spreaded + trailing
-        } else spreaded
-
-        shipLasers = shipLasers + withDouble
+        shipLasers = shipLasers + newLasers
         updateShipLasersUI()
     }
 
     /**
-     * Round 35 (35x) — bullet-type variant fire. Centers on ship like NORMAL.
-     * Returns the new lasers spawned this tick (typically 1, triple-spread = 3).
+     * Round 61 — single point of laser construction. Picks the correct subclass
+     * based on `ship.activeBulletType` + `ship.laserBoosterEnabled`, applies
+     * spread (dx) + double (dy) offsets, and re-runs the per-bullet-type setup
+     * (pierce count / AoE radius) inside `.also { }`.
+     *
+     * Why a helper instead of inline branches: the spread × double × bullet-type
+     * × laser-booster matrix has 24 combos. Centralising removes risk of one
+     * branch drifting from another (e.g. PIERCING + DOUBLE_FIRE forgetting
+     * `pierceRemaining`).
      */
-    private fun fireBulletTypeLasers(ship: Ship): List<Laser> {
-        val centerX = ship.xOffset + ship.width / 2
-        val top = ship.yOffset - 22f
-        val templates: List<Laser> = when (ship.activeBulletType) {
-            BulletType.PIERCING -> listOf(
-                // Round 52 (40x Item combos) — pierceCount tiers up by booster
-                // rarity: Common 3, Rare 4, Epic 5. Read from ship state.
-                PiercingShipLaser(
+    private fun buildOneLaser(ship: Ship, dx: Float, dy: Float): Laser {
+        return when (ship.activeBulletType) {
+            BulletType.PIERCING -> PiercingShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - 3f + dx,
+                yOffset = ship.yOffset - 22f + dy,
+                yRange = screenHeight,
+            ).also {
+                it.pierceRemaining =
+                    BulletType.pierceCountForRarity(ship.activeBulletTypeRarity)
+            }
+            BulletType.PLASMA -> PlasmaShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - PlasmaShipLaser.PLASMA_WIDTH / 2 + dx,
+                yOffset = ship.yOffset - 34f + dy,                  // -22 - 12
+                yRange = screenHeight,
+            ).also {
+                it.aoeRadiusMultiplier =
+                    BulletType.plasmaAoeMultiplierForRarity(ship.activeBulletTypeRarity)
+            }
+            BulletType.NORMAL -> if (ship.laserBoosterEnabled) {
+                ShipBoostedLaser(
                     id = uuidUtils.getUuid(),
-                    xOffset = centerX - 3f,
-                    yOffset = top,
+                    xOffset = ship.xOffset + ship.width / 2 - SHIP_BOOSTED_LASER_WIDTH / 2 + dx,
+                    yOffset = ship.yOffset - 25f + dy,
                     yRange = screenHeight,
-                ).also {
-                    it.pierceRemaining =
-                        BulletType.pierceCountForRarity(ship.activeBulletTypeRarity)
-                },
-            )
-            BulletType.PLASMA -> listOf(
-                // Round 52 (40x Item combos) — PLASMA AoE radius tiers up by
-                // booster rarity: Common ×1.0, Rare ×1.375, Epic ×1.75.
-                PlasmaShipLaser(
+                )
+            } else {
+                ShipLaser(
                     id = uuidUtils.getUuid(),
-                    xOffset = centerX - PlasmaShipLaser.PLASMA_WIDTH / 2,
-                    yOffset = top - 12f,
+                    xOffset = ship.xOffset + ship.width / 2 - SHIP_LASER_WIDTH / 2 + dx,
+                    yOffset = ship.yOffset - 20f + dy,
                     yRange = screenHeight,
-                ).also {
-                    it.aoeRadiusMultiplier =
-                        BulletType.plasmaAoeMultiplierForRarity(ship.activeBulletTypeRarity)
-                },
-            )
-            BulletType.NORMAL -> emptyList()                // unreachable; gated at caller
+                )
+            }
         }
-        return templates
     }
 
     val processShipLasersId = uuidUtils.getUuid()

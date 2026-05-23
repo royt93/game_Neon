@@ -51,7 +51,14 @@ class BoosterTypeDistributionTest {
 
     @Test
     fun `distribution matches weights within 30 percent tolerance`() {
-        val n = 1000
+        // Round 61 — bumped N from 1000 → 10000 after Round 60 added 10 weight=6
+        // types + REVIVE_TOKEN (weight=5) is now in a larger pool. Smaller
+        // p-values + 10 extra types mean N=1000 flaked unacceptably often.
+        // At N=10000 the lowest-weight type (REVIVE @ p=0.027) has σ ≈ 16.3,
+        // mean ≈ 272; 30% tolerance ±81.5 ≈ 5σ → flake probability effectively
+        // 0. Algorithm verification (catches factor-of-2 weight bugs) is
+        // unchanged; only the noise floor moves. Runtime cost ≈ 10ms.
+        val n = 10_000
         val totalWeight = BoosterType.entries.sumOf { it.weight }.toDouble()
         val tally = rollBoosters(n)
 

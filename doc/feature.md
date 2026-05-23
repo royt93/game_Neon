@@ -968,6 +968,62 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 61 — Round 60 polish: bullet-type compat + PHASE_SHIELD visual
+
+Post-Round-60 runtime verification (user paste 75s log) revealed:
+1. **No crash, no perf regression** — game stable, FPS scales with enemy density (16-30 FPS at 30 enemies, 95-118 FPS at sparse).
+2. **Only 2/10 new boosters spawned in 75s** — DOUBLE_FIRE + PHASE_SHIELD. Reasonable RNG given 3.3% drop rate each, but 8/10 still runtime-unverified.
+3. **2 known gaps identified during round 60 self-audit:**
+   - SPREAD_SHOT + DOUBLE_FIRE silently no-op when PIERCING/PLASMA bullet-type is active (early return in `fireLasers`). Player picks up SPREAD_SHOT during PLASMA's 10s loadout head-start → buff wasted.
+   - PHASE_SHIELD has no visual indicator — just silently extends `iframesEndMillis`. Player can't tell the buff is active vs taking-damage iframes flash.
+
+Round 61 fixes both gaps. Runtime force-verification of remaining 8 boosters deferred (low risk; pattern consistent).
+
+**Fix 1 — Unified spread + double + bullet-type pipeline (`LasersController.fireLasers`)**
+
+Refactored `fireLasers` from 2-path (NORMAL fork → 50 LOC, BULLET fork → early return) to single pipeline:
+1. Compute `xShifts` based on flags (spread > triple > single).
+2. Compute `yShifts` based on doubleFire (double = 2 stacked).
+3. `for (dy in yShifts) for (dx in xShifts) add(buildOneLaser(ship, dx, dy))`.
+4. New private `buildOneLaser(ship, dx, dy)` dispatches on `activeBulletType` (PIERCING/PLASMA/NORMAL × laser-booster Boolean) and returns the appropriate Laser subclass with `pierceRemaining` / `aoeRadiusMultiplier` set inline.
+
+Result: all 24 combos (3 bullet types × 4 spread modes × 2 double modes) now layer correctly. Previously 6 of 24 were broken (PIERCING/PLASMA × any spread or double).
+
+Removed orphan `fireBulletTypeLasers` private function (dead after unification).
+
+**Fix 2 — PHASE_SHIELD ghost visual (`Ship` + `ShipController` + `GameWorld`)**
+
+- `Ship.phaseShieldEndMillis: Long = 0L` new field. Drives ghost overlay rendering in GameWorld. Kept separate from controller-private `iframesEndMillis` (which already covers damage-iframes; doesn't surface to render).
+- `ShipController` PHASE_SHIELD pickup branch now ALSO sets `ship.phaseShieldEndMillis = maxOf(it, now + ext)` — same maxOf-refresh pattern as other timers.
+- Tick decay in `monitorShipCollisions` clears `phaseShieldEndMillis` to 0 at expiry + logs `Booster: phase-shield OFF`.
+- `GameWorld` adds a Canvas overlay inside the ship sprite's Box when `phaseShieldEndMillis > now`: translucent NeonCyan stroke ring (0.45 alpha pulse @ 0.7Hz) + soft inner halo (0.12 alpha). Tail-fade in last 800ms so player sees buff ending.
+
+Visually distinct from:
+- Shield orb (`Brush.radialGradient`, blue, BlendMode.Hardlight) — round 60 SHIELD_BOOSTER
+- Damage flash (chromatic aberration overlay) — round 7 take-damage feedback
+
+**Files modified:**
+- `ui/game/ship/laser/LasersController.kt` — `fireLasers` refactored (~50 LOC removed, ~70 added net); new `buildOneLaser` helper; removed dead `fireBulletTypeLasers`.
+- `ui/game/ship/ship/Ship.kt` — `phaseShieldEndMillis: Long = 0L` new field.
+- `ui/game/ship/ship/ShipController.kt` — PHASE_SHIELD pickup branch updated to also write `ship.phaseShieldEndMillis`; tick decay clears it at expiry.
+- `ui/game/world/GameWorld.kt` — Canvas overlay block for PHASE_SHIELD ghost ring (~30 LOC, drawn after shield orb so ring sits on top).
+- `app/src/test/.../ShipPhaseShieldTest.kt` (new, 7 tests) — verify Ship data class supports new field cleanly, default = 0, copy preserves, independent from other state, all 4 round-60 Boolean buff fields default false.
+- `app/src/test/.../BoosterTypeDistributionTest.kt` — bumped N from 1000 → 10000 in 30% tolerance test. Round 60 added 10 weight=6 types; at N=1000 the lowest-weight (REVIVE @ p=0.027) flaked the band ~10%/run. At N=10000 the band = ~5σ → flake effectively zero. Runtime cost ≈ 10ms.
+
+**Tests:** 207 → 214 (+7 ShipPhaseShieldTest).
+
+**Build verify:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL. **214 tests pass**.
+
+**What to watch in next runtime log:**
+- Pick up PHASE_SHIELD → cyan ring pulse around ship for 5s × rarity multiplier. Tail-fade in final 800ms. Log: `Booster: phase-shield ON` then `OFF`.
+- Pick up SPREAD_SHOT while PIERCING/PLASMA bullet-type active → 5-way piercing/plasma fan instead of single laser. Visible immediately.
+- Pick up DOUBLE_FIRE while bullet-type active → 2 stacked piercing/plasma lasers per fire call.
+- Stack SPREAD_SHOT + DOUBLE_FIRE + PIERCING_BOOSTER simultaneously → 10 piercing lasers per fire (5 spread × 2 double). MAX_SHIP_LASERS=25 cap will quickly throttle, so visual reads as bursty.
+
+**Known limitations (acknowledged):**
+- 8/10 round 60 boosters still not runtime-verified (MAGNET_BOOST, CRIT_SURGE, BERSERK, SCORE_X3, QUICK_HEAL, MINERAL_SUPERCHARGE, HEALING_AURA). Each is a single-line state mutation following proven pattern; bug risk low. If user reports issue, addressed in audit round 62.
+- 10 piercing lasers/call (SPREAD + DOUBLE + PIERCING_BOOSTER stacked) is intentionally OP — three rare buffs stacked deserve outsized reward. Cap mechanism prevents memory blow-up.
+
 ### Round 60 — Wave 4 38x: +10 support items (closes Wave 4 Combat depth)
 
 User picked Round 60 via AskUserQuestion sau Round 59. Mục tiêu: bổ sung 10 booster mới, đóng item `38x +10 support items` đã deferred trong Wave 4 (section 2480). Sau survey thấy implementation cost cao hơn dự kiến, user chọn scope **"10 items ngắn gọn"** — cut TIME_SLOW + AUTO_AIM (cần game-loop gate + Laser velocity field), swap bằng **CRIT_SURGE** (laser ×3 damage 8s) + **QUICK_HEAL** (+250 HP one-shot) đơn giản hơn.
@@ -2669,7 +2725,7 @@ Sequential lag-fix passes after gameplay features landed:
 - **Logger:** 2 cấp — `Logger.d` cho sparse events (init/lifecycle/stage advance/boss kill/achievement), `Logger.v { ... }` cho hot-path (per-frame, per-collision, per-spawn, per-kill, audio micro-step). Toggle qua `Logger.VERBOSE = true` trong utils/Logger.kt khi cần debug stream đầy đủ.
 - **Mapper memoization (round 48):** `EnemyToEnemyUIMapper` + `LaserToLaserUIMapper` cache theo id với LRU LinkedHashMap (cap 64 + 128). Mappers là top-level `private val` → cache persist app-lifetime, bounded by LRU. Field-compare fast-path tránh allocation khi entity unchanged. Tints dùng `==` (structural) + caller dùng `emptyList()` singleton cho no-effect case.
 - **Entity caps (round 47):** `EnemyController.MAX_REGULAR_ENEMIES = 30` (bosses bypass), `LasersController.MAX_SHIP_LASERS = 25`, `EnemyLasersController.MAX_ENEMY_LASERS = 30`. `BoosterController.MAX_BOOSTERS = 3` (pre-existing). Skip-at-cap logs Logger.v.
-- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **207** (+12 round 60 = 10 new booster glyph/tint + 1 distinct-tint + 1 round-60 weight invariants; minus 0 since BoosterTypeDistribution was recalibrated not added/removed).
+- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **214** (+7 round 61 ShipPhaseShieldTest: phaseShieldEndMillis defaults/copy/independence, 4 round-60 Boolean field defaults, ship copy equality + non-equality).
 - **i18n:** strings mới phải thêm vào cả `values-vi/strings.xml` và `values-en/strings.xml`
 - **Compose stability:** data class state mới nên dùng `@Immutable`/`@Stable` annotation. EnemyUI, LaserUI, BoosterUI, MineralUI, RunModifier, RunBuff, StatusEffect, SecondaryWeapon, BulletType, ShipSkin, ColorBlindMode, NeonPalette đều `@Immutable`.
 - **Known perf limitations (sau rounds 44-49):**

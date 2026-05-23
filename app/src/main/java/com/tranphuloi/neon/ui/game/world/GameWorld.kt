@@ -337,6 +337,42 @@ fun GameWorld(
                     }
                 )
             }
+            // Round 61 — PHASE_SHIELD ghost overlay. When ship.phaseShieldEndMillis
+            // is in the future, render an expanding/contracting translucent cyan
+            // ring (~0.7Hz pulse) around the ship so player knows iframes are
+            // active from the buff, not just from taking damage (600ms iframes
+            // already show through their own logic).
+            val phaseNow = System.currentTimeMillis()
+            if (ship.phaseShieldEndMillis > phaseNow) {
+                val remaining = (ship.phaseShieldEndMillis - phaseNow).coerceAtLeast(0L)
+                val pulse = 0.55f + 0.35f * kotlin.math.abs(
+                    kotlin.math.sin(phaseNow / 240.0).toFloat()
+                )
+                // Fade out in the last 800ms so player sees buff ending.
+                val tailFade = if (remaining < 800L) remaining / 800f else 1f
+                val ringRadius = ship.shieldRadius * (0.85f + 0.10f * pulse)
+                Canvas(
+                    modifier = Modifier
+                        .size(ship.shieldSize.dp)
+                        .offset(
+                            x = (ship.width / 2 - ship.shieldRadius).dp,
+                            y = (ship.height / 2 - ship.shieldRadius).dp,
+                        ),
+                    onDraw = {
+                        // Translucent cyan ring — distinct from blue shield orb.
+                        drawCircle(
+                            color = NeonCyan.copy(alpha = 0.45f * pulse * tailFade),
+                            radius = ringRadius,
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 4f),
+                        )
+                        // Soft inner halo, even more translucent.
+                        drawCircle(
+                            color = NeonCyan.copy(alpha = 0.12f * pulse * tailFade),
+                            radius = ringRadius * 0.85f,
+                        )
+                    }
+                )
+            }
             // Ship glow boost on pickup — intensity bump 0.5→1.0 then fade back
             // over 220ms. Compute progress from latest of booster / mineral pickup.
             val nowForGlow = System.currentTimeMillis()
