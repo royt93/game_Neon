@@ -968,6 +968,38 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 50 — doc/feature.md cleanup + Wave 6 audit
+
+User reported subjective lag still present after round 49 (Canvas lasers) but wanted to defer further perf work. Picked "Doc cleanup + Wave 6 audit" via AskUserQuestion. Pure doc round — no code change.
+
+- ✅ **Wave 4 Combat depth** section unstaled — was still listing 35x/41x/42x/44x as `[ ]` despite rounds 34-35 having completed them. Marked `[x]` with round refs; remaining gaps (Homing bullet, support items 38x, status-effect chains, curse buffs, solar-flare hazard) labelled "deferred" with one-line reason each.
+
+- ✅ **Wave 6 progress** section now reads `🟡 5/7 done — rounds 38-49` instead of an unannotated bullet list. Clear at a glance how far the wave is.
+
+- ✅ **Wave 6 perf chain** subsection added (rounds 44-49 consolidated): Logger.v → key() → caps → memoization → Canvas lasers. Each row has the round it landed in + the specific mechanism. Round 50+ (enemy Canvas) listed as pending.
+
+- ✅ **Phần 4 deferred** — `AAc Recomposition audit` re-marked `[🟡]` partially addressed by the round 44-49 chain. `CCc Macrobenchmark` annotated with "subjective lag still reported → benchmark would quantify".
+
+- ✅ **Wave 7 wave plan** — same `AAc` annotation. `CCc Benchmark` annotated to run alongside round-50 enemy Canvas so the saving is measurable.
+
+- ✅ **Notes section** rewritten to reflect post-round-49 state:
+    - Logger 2-tier (`d` for sparse / `v` for hot-path) with `Logger.VERBOSE` toggle docs.
+    - Mapper memoization mechanic + cache lifetime nuance (top-level `private val` → app-lifetime, LRU-bounded).
+    - Entity caps (`MAX_REGULAR_ENEMIES=30` boss-bypass + laser caps).
+    - Current test count: **146** with breakdown by test class.
+    - All @Immutable data classes listed.
+    - **Known perf limitations** explicitly documented (subjective lag remains at peak, mapper persists app-lifetime, LocalNeonPalette migration scope partial).
+
+### Round 50 files
+
+**Modified:**
+- `doc/feature.md` — Wave 4 Combat depth status corrected, Wave 6 progress counter added, Wave 6 perf chain subsection inserted, Phần 4 + Wave 7 wave plan AAc/CCc annotations, Notes section rewritten with post-round-49 reality.
+
+### Round 50 verification
+
+- No code change → no build artifact. Pre-existing table-format diagnostics in feature.md continue (cosmetic, pre-round-44).
+- **Doc is now load-bearing** for round 51+ planning: anyone (including future-me) can read Wave 6 status + perf chain summary + known limitations without re-deriving from chat history.
+
 ### Round 49 — Canvas drawing for lasers (perf silver bullet V1)
 
 After rounds 46-48 (key + caps + memoization) the lag was reduced but not eliminated. User picked **Option B (Canvas drawing)** for round 49. This is the architectural fix: replace per-entity Composables with a single Canvas + DrawScope pass for the most numerous entity class (lasers).
@@ -1946,8 +1978,8 @@ Các architectural refactors quá lớn để gộp chung:
 - [ ] **Rb** Material 3 migration — touch every screen (~1-2h)
 - [ ] **Mc** Per-stage BGM crossfade — cần thêm 3-5 BGM tracks
 - [ ] **Zc** ProGuard + R8 baseline profile — cần test minified release
-- [ ] **AAc** Recomposition perf audit — Layout Inspector instrumentation
-- [ ] **CCc** Macrobenchmark / microbenchmark — cần benchmark module riêng
+- [🟡] **AAc** Recomposition perf audit — **partially addressed** by rounds 44-49 (key(), caps, memoization, Canvas lasers). Layout Inspector instrumentation still needed for round-50+ enemy refactor.
+- [ ] **CCc** Macrobenchmark / microbenchmark — cần benchmark module riêng. Subjective lag still reported after rounds 44-49 → benchmark would quantify gain.
 
 ---
 
@@ -2059,12 +2091,12 @@ Các architectural refactors quá lớn để gộp chung:
 - [x] 33c+d Mid-bosses 3 variants + phase transitions (Offensive/Defensive/Swarm @ HP<50%)
 - [x] 34d Final boss 3-phase (22500 HP, ring barrage phase 3, alt endings per difficulty)
 
-## Wave 4 Combat depth (deferred)
-- [ ] 35x +10 bullet types
-- [ ] 38x +10 support items
-- [ ] 41x Status effects + chains
-- [ ] 42x Roguelike buffs + curses
-- [ ] 44x Environmental hazards (extended — ice slip mechanic, solar flares)
+## Wave 4 Combat depth ✅ MOSTLY DONE (rounds 34-35)
+- [x] 35x bullet types (round 35 — BulletType enum + Piercing + Plasma; Homing deferred — needs target-tracking velocity refactor)
+- [ ] 38x +10 support items (deferred — current support set is shield/laser/triple/health/ultimate/revive/piercing/plasma — could add ~10 more like mine-drop, drone, beam)
+- [x] 41x Status effects (round 34 — BURN / SLOW / STUN + round 35 visual tint overlay; chains deferred)
+- [x] 42x Roguelike buffs (round 34 — 9 buffs + DialogBuffPicker post-boss; curses deferred)
+- [x] 44x Environmental hazards (round 34 — ice slip mechanic + ASTEROID_STORM + NEBULA_FOG + ICE_PATCHES; solar flares deferred)
 
 ## Wave 5 ✅ DONE (round 22 base + round 23 audit fixes)
 - [x] 23x Endless mode (procedural scaling + endless leaderboard)
@@ -2088,14 +2120,23 @@ Các architectural refactors quá lớn để gộp chung:
 - [x] Round 32 — sheet padding 32dp + slide animation delay onDismiss + Menu redistribute spacers + Settings ControlGroup
 - [x] Round 33 — Menu title 44sp + displayCutout windowInsetsPadding + feature.md audit
 
-## Wave 6 (Polish + accessibility)
-- [ ] 26x Photo mode
+## Wave 6 — Polish + accessibility (🟡 5/7 done — rounds 38-49)
+- [ ] 26x Photo mode (pending — pause + capture + share)
 - [x] 27x Color blind mode (round 39 — Wong palette + LocalNeonPalette infra + Settings picker; broader UI migration deferred)
 - [x] 29x Secondary weapon (round 40 MISSILE homing + round 41 MINE proximity + BURST instant sweep + Settings picker)
-- [x] 36x Loadout system (round 45 — pre-game BulletType + SecondaryWeapon picker; BulletType head-start 10s on run init)
+- [x] 36x Loadout system (round 45 + 45.5 audit — pre-game BulletType + SecondaryWeapon picker; BulletType head-start 10s on run init; race condition fixed via Flow.first)
 - [x] 39x Item rarity tiers (round 43 — Common 75% / Rare 20% / Epic 5% with ring overlay + multiplier scaling on duration/heal)
-- [ ] 40x Item combos
+- [ ] 40x Item combos (pending — synergies between rarity + loadout + booster + modifier)
 - [x] 45x Ship customization (round 38 — 5-color aura glow wired into ship + ship-laser rendering)
+
+## Wave 6 perf chain ✅ DONE (rounds 44-49) — addresses Wave 7 AAc partially
+Sequential lag-fix passes after gameplay features landed:
+- [x] Round 44 — Logger.v inline lambda + verbose gate, hot-path log demotion (audio/kill/spawn/status/collision) → -90% log spam at peak combat
+- [x] Round 46 — `key(it.id)` on entity forEach loops (enemies/shipLasers/ultimateLasers/enemyLasers/mines) → Compose slot table stability
+- [x] Round 47 — entity caps (MAX_REGULAR_ENEMIES=30 with boss bypass, MAX_SHIP_LASERS=25, MAX_ENEMY_LASERS=30) → drop allocation rate
+- [x] Round 48 — mapper memoization (EnemyToEnemyUI + LaserToLaserUI per-id LRU cache, field-compare fast-path, `==` for tints, empty-list singleton shortcut) + 19 new mapper unit tests
+- [x] Round 49 — Canvas drawing for lasers (LaserCanvas.kt, 1 Canvas + DrawScope pass replaces N forEach Image+Modifier subtrees; preserves z-order via 3 separate calls)
+- [ ] Round 50+ pending — enemy Canvas (hybrid Canvas sprite + Composable HpBar/tint overlay) — final perf piece if needed
 
 ## Wave 7 (Architecture deferred)
 - [ ] Vb Hilt
@@ -2103,16 +2144,23 @@ Các architectural refactors quá lớn để gộp chung:
 - [ ] Rb Material 3
 - [ ] Mc Per-stage BGM
 - [ ] Zc ProGuard + baseline
-- [ ] AAc Recomposition audit
-- [ ] CCc Benchmark
+- [🟡] AAc Recomposition audit — partially addressed by rounds 44-49 perf chain (`key()`, entity caps, mapper memoization, Canvas lasers). Layout Inspector instrumentation + enemy-Canvas refactor (round 50+) still needed.
+- [ ] CCc Benchmark — should run alongside enemy Canvas (round 50) so the saving is quantifiable instead of subjective.
 
 ---
 
 # Notes
 
 - **Memory leak guarding:** mọi entity transient (damage numbers, popups, sparkles) phải dùng immutable list snapshot pattern (xem bug fix sparkles)
-- **Performance:** mọi background/effect mới phải merge vào existing Canvas khi có thể; tránh tạo Canvas riêng cho từng entity
-- **Logger:** tiếp tục sprinkle theo style hiện tại (`Logger.d` với category prefix tự nhiên trong message)
-- **Build verify:** sau mỗi wave, chạy `./gradlew assembleDevDebug compileProductionReleaseKotlin`
+- **Performance:** mọi background/effect mới phải merge vào existing Canvas khi có thể; tránh tạo Canvas riêng cho từng entity. Sau rounds 44-49 → lasers dùng `ui/game/world/LaserCanvas.kt`; enemies vẫn `forEach { Image(...) }` (round 50 candidate).
+- **Logger:** 2 cấp — `Logger.d` cho sparse events (init/lifecycle/stage advance/boss kill/achievement), `Logger.v { ... }` cho hot-path (per-frame, per-collision, per-spawn, per-kill, audio micro-step). Toggle qua `Logger.VERBOSE = true` trong utils/Logger.kt khi cần debug stream đầy đủ.
+- **Mapper memoization (round 48):** `EnemyToEnemyUIMapper` + `LaserToLaserUIMapper` cache theo id với LRU LinkedHashMap (cap 64 + 128). Mappers là top-level `private val` → cache persist app-lifetime, bounded by LRU. Field-compare fast-path tránh allocation khi entity unchanged. Tints dùng `==` (structural) + caller dùng `emptyList()` singleton cho no-effect case.
+- **Entity caps (round 47):** `EnemyController.MAX_REGULAR_ENEMIES = 30` (bosses bypass), `LasersController.MAX_SHIP_LASERS = 25`, `EnemyLasersController.MAX_ENEMY_LASERS = 30`. `BoosterController.MAX_BOOSTERS = 3` (pre-existing). Skip-at-cap logs Logger.v.
+- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **146** (12 EnemyMapper + 11 ShipLaser + 11 MissileLaser + 11 StatusEffect + 21 EffectiveStats + 10 BulletType + 10 BoosterRarity + 9 ShipSkin + 9 BuffMultipliers + 8 ColorBlindMode + 8 SecondaryWeapon + 7 BoosterType + 7 Tinker + 7 LaserMapper + 5 Mine).
 - **i18n:** strings mới phải thêm vào cả `values-vi/strings.xml` và `values-en/strings.xml`
-- **Compose stability:** data class state mới nên dùng `@Immutable`/`@Stable` annotation
+- **Compose stability:** data class state mới nên dùng `@Immutable`/`@Stable` annotation. EnemyUI, LaserUI, BoosterUI, MineralUI, RunModifier, RunBuff, StatusEffect, SecondaryWeapon, BulletType, ShipSkin, ColorBlindMode, NeonPalette đều `@Immutable`.
+- **Known perf limitations (sau rounds 44-49):**
+  - Subjective lag vẫn còn ở peak combat (stage 38+ NEBULA_FOG, 50+ enemies on-screen). Round 50 enemy Canvas là next step.
+  - Mappers persist app-lifetime (top-level `private val`). LRU caps memory nhưng cache không reset per-run. Move into `remember { ... }` block trong `rememberGameState()` để reset per-run nếu cần.
+  - LocalNeonPalette migration mới wire vào 4 surfaces (Settings labels + LoadoutPicker accents + GameWorld BURST sweep + Pill labels). Banners (BossRank, WaveClear, Achievement) + HUD score + dialog accents khác vẫn dùng `NeonCyan/Magenta/Gold/Violet/RedAlert` hardcoded — Color Blind mode chưa ảnh hưởng các surface này.
+  - Empty stage skip / boss-bypass tested via gameplay only; no JUnit test for these gameplay rules.
