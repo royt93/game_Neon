@@ -11,6 +11,21 @@ class BoosterToBoosterUIMapper {
         val (tintHex, glyph) = when (booster.type) {
             BoosterType.PIERCING_BOOSTER -> PIERCING_TINT_ARGB to "→"
             BoosterType.PLASMA_BOOSTER -> PLASMA_TINT_ARGB to "◯"
+            // Round 60 (38x) — 10 new boosters reuse 6 base drawables. Each
+            // gets a distinct glyph + tint so player can identify the effect
+            // even though the sprite is recycled. Glyph is rendered top-right
+            // of the icon (12-14sp) via existing overlay; tint modulates the
+            // sprite + glow color.
+            BoosterType.MAGNET_BOOST -> MAGNET_BOOST_TINT_ARGB to "⊕"
+            BoosterType.CRIT_SURGE -> CRIT_SURGE_TINT_ARGB to "✱"
+            BoosterType.SPREAD_SHOT -> SPREAD_SHOT_TINT_ARGB to "☆"
+            BoosterType.BERSERK -> BERSERK_TINT_ARGB to "⚡"
+            BoosterType.PHASE_SHIELD -> PHASE_SHIELD_TINT_ARGB to "◇"
+            BoosterType.SCORE_X3 -> SCORE_X3_TINT_ARGB to "$"
+            BoosterType.QUICK_HEAL -> QUICK_HEAL_TINT_ARGB to "✚"
+            BoosterType.MINERAL_SUPERCHARGE -> MINERAL_SUPERCHARGE_TINT_ARGB to "✦"
+            BoosterType.HEALING_AURA -> HEALING_AURA_TINT_ARGB to "+"
+            BoosterType.DOUBLE_FIRE -> DOUBLE_FIRE_TINT_ARGB to "⚯"
             else -> 0L to null
         }
         return with(booster) {
@@ -35,5 +50,19 @@ class BoosterToBoosterUIMapper {
         //   NeonCyan    (0xFF00F0FF) over yellow booster_ultimate_weapon → cyan wins
         const val PIERCING_TINT_ARGB: Long = 0xFFFF2DE0L
         const val PLASMA_TINT_ARGB: Long = 0xFF00F0FFL
+
+        // Round 60 (38x) — distinct tints for 10 new boosters. Hue picked for
+        // contrast against the reused base drawable's hue (red/yellow/green/
+        // gold heart). All fully opaque (alpha=FF).
+        const val MAGNET_BOOST_TINT_ARGB: Long = 0xFF8A2BE2L            // violet (magnet field)
+        const val CRIT_SURGE_TINT_ARGB: Long = 0xFFFFC020L              // amber (critical strike)
+        const val SPREAD_SHOT_TINT_ARGB: Long = 0xFF00E5A0L             // teal-green (fan spread)
+        const val BERSERK_TINT_ARGB: Long = 0xFFFF3030L                 // blood red (rage)
+        const val PHASE_SHIELD_TINT_ARGB: Long = 0xFFB0E8FFL            // pale-cyan (phase ghost)
+        const val SCORE_X3_TINT_ARGB: Long = 0xFFFFD700L                // gold (score)
+        const val QUICK_HEAL_TINT_ARGB: Long = 0xFFA8FF60L              // bright green (instant heal)
+        const val MINERAL_SUPERCHARGE_TINT_ARGB: Long = 0xFFFF9050L     // orange (energy flash)
+        const val HEALING_AURA_TINT_ARGB: Long = 0xFF60FFAAL            // mint (continuous heal)
+        const val DOUBLE_FIRE_TINT_ARGB: Long = 0xFFFF80E0L             // pink (double rate)
     }
 }

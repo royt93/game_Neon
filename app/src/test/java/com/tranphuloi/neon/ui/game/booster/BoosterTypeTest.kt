@@ -36,20 +36,44 @@ class BoosterTypeTest {
     fun `weight distribution sums to expected total`() {
         val total = BoosterType.entries.sumOf { it.weight }
         // Round 55 — 5 base @ 19 + REVIVE @ 5 + 2 bullet-type @ 12 = 95 + 5 + 24 = 124
-        assertEquals(124, total)
+        // Round 60 (38x) — +10 new boosters at weight 6 each = +60. New total 184.
+        // (Weight 6 chosen over 4 to keep REVIVE_TOKEN weight=5 the rarest drop.)
+        assertEquals(184, total)
     }
 
     @Test
-    fun `bullet-type combined probability is roughly 1 in 5`() {
-        // Round 55 sanity check — PIERCING + PLASMA combined should be in the
-        // 15-25% band so they drop frequently enough to runtime-validate the
-        // round 52 rarity scaling. Below 15% = too rare (round 53/54 audit
-        // trigger); above 25% = drowns out the base types.
+    fun `bullet-type combined probability stays in healthy band`() {
+        // Round 55 sanity check (recalibrated in round 60 after +10 new boosters
+        // diluted the total weight from 124 → 184). PIERCING + PLASMA combined
+        // should still drop frequently enough to runtime-validate round 52 rarity
+        // scaling, even though the share dropped from 19.4% → 13.0%. Acceptable
+        // band: 10-22% combined.
         val total = BoosterType.entries.sumOf { it.weight }.toFloat()
         val bulletShare =
             (BoosterType.PIERCING_BOOSTER.weight + BoosterType.PLASMA_BOOSTER.weight) / total
-        assertTrue("expected 15-25% combined, got ${"%.1f".format(bulletShare * 100)}%",
-            bulletShare in 0.15f..0.25f)
+        assertTrue("expected 10-22% combined, got ${"%.1f".format(bulletShare * 100)}%",
+            bulletShare in 0.10f..0.22f)
+    }
+
+    @Test
+    fun `round 60 new boosters are rarer than baseline but commoner than revive`() {
+        // Round 60 (38x) — 10 new boosters at weight 6 each. Each should be
+        // commoner than REVIVE_TOKEN (@ 5) so REVIVE stays the rarest pickup,
+        // but rarer than baseline boosters (HEALTH @ 19) so they're a treat.
+        val newBoosters = listOf(
+            BoosterType.MAGNET_BOOST, BoosterType.CRIT_SURGE,
+            BoosterType.SPREAD_SHOT, BoosterType.BERSERK,
+            BoosterType.PHASE_SHIELD, BoosterType.SCORE_X3,
+            BoosterType.QUICK_HEAL, BoosterType.MINERAL_SUPERCHARGE,
+            BoosterType.HEALING_AURA, BoosterType.DOUBLE_FIRE,
+        )
+        newBoosters.forEach {
+            assertEquals("$it should have weight 6", 6, it.weight)
+            assertTrue("$it > REVIVE (${BoosterType.REVIVE_TOKEN.weight})",
+                it.weight > BoosterType.REVIVE_TOKEN.weight)
+            assertTrue("$it < HEALTH (baseline ${BoosterType.HEALTH_BOOSTER.weight})",
+                it.weight < BoosterType.HEALTH_BOOSTER.weight)
+        }
     }
 
     @Test

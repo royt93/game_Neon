@@ -54,7 +54,7 @@ class LasersController(
             return
         }
 
-        val lasers = if (ship.laserBoosterEnabled) {
+        val baseLasers = if (ship.laserBoosterEnabled) {
             // Laser bottom flush with ship top (`ship.yOffset`). Since laser height
             // = 25, top y = ship.yOffset - 25 places laser edge-to-edge with ship.
             val laser = ShipBoostedLaser(
@@ -91,7 +91,53 @@ class LasersController(
             }
         }
 
-        shipLasers = shipLasers + lasers
+        // Round 60 (38x) — SPREAD_SHOT: widen the base laser list into a 5-way
+        // horizontal fan. Stacks on top of triple-laser (replaces it). Lasers
+        // travel straight up — fan just spreads xOffset so coverage > triple.
+        val spreaded = if (ship.spreadShotEnabled) {
+            val center = baseLasers.first()
+            val centerCopy = when (center) {
+                is com.tranphuloi.neon.ui.game.ship.laser.ShipBoostedLaser -> {
+                    val c = center
+                    listOf(-2, -1, 0, 1, 2).map { i ->
+                        c.copy(
+                            id = uuidUtils.getUuid(),
+                            xOffset = c.xOffset + i * (TRIPLE_LASER_SIDE_OFFSET + 4f),
+                        )
+                    }
+                }
+                is ShipLaser -> {
+                    val c = center
+                    listOf(-2, -1, 0, 1, 2).map { i ->
+                        c.copy(
+                            id = uuidUtils.getUuid(),
+                            xOffset = c.xOffset + i * (TRIPLE_LASER_SIDE_OFFSET + 4f),
+                        )
+                    }
+                }
+                else -> baseLasers
+            }
+            centerCopy
+        } else baseLasers
+
+        // Round 60 (38x) — DOUBLE_FIRE: stack a 2nd salvo 20px behind so each
+        // call produces 2 visual waves. Cheap approximation of "fire rate ×2"
+        // without requiring tinker repeatTime override (would need cross-class
+        // mutation). Visual reads as faster fire cadence.
+        val withDouble = if (ship.doubleFireEnabled) {
+            val trailing = spreaded.map { laser ->
+                when (laser) {
+                    is com.tranphuloi.neon.ui.game.ship.laser.ShipBoostedLaser ->
+                        laser.copy(id = uuidUtils.getUuid(), yOffset = laser.yOffset + 22f)
+                    is ShipLaser ->
+                        laser.copy(id = uuidUtils.getUuid(), yOffset = laser.yOffset + 22f)
+                    else -> laser
+                }
+            }
+            spreaded + trailing
+        } else spreaded
+
+        shipLasers = shipLasers + withDouble
         updateShipLasersUI()
     }
 

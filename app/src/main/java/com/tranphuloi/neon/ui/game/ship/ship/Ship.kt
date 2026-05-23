@@ -55,6 +55,14 @@ data class Ship(
     // controller consumes the token: hp restored to 300 + 1.5s i-frames + banner.
     // Max one stored at a time; further pickups while held are wasted (rare anyway).
     val hasReviveToken: Boolean = false,
+    // Round 60 (38x) — 4 timed flags surfaced on Ship so render/laser code can
+    // observe them without reaching into ShipController's private state. End
+    // timestamps are kept private in ShipController; the booleans are flipped
+    // by enable/expire methods. All default false (no buff active).
+    val spreadShotEnabled: Boolean = false,
+    val doubleFireEnabled: Boolean = false,
+    val critSurgeEnabled: Boolean = false,
+    val berserkEnabled: Boolean = false,
     @DrawableRes val drawableId: Int = R.drawable.ship_regular_laser,
 ) : Serializable {
     val shieldRadius: Float get() = shieldSize / 2

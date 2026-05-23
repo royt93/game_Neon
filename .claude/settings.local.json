@@ -67,7 +67,9 @@
       "Bash(./gradlew testDevDebugUnitTest assembleDevDebug)",
       "Bash(./gradlew testDevDebugUnitTest)",
       "Bash(awk -F'\"' '{sum += $2} END {print \"TOTAL TESTS:\", sum}')",
-      "Bash(./gradlew compileDevDebugKotlin assembleDevDebug)"
+      "Bash(./gradlew compileDevDebugKotlin assembleDevDebug)",
+      "Bash(./gradlew compileProductionReleaseKotlin testDevDebugUnitTest assembleDevDebug)",
+      "Bash(awk -F'\"' '{sum += $2} END {print \"TOTAL:\", sum}')"
     ]
   }
 }

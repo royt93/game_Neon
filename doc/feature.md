@@ -968,6 +968,86 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 60 — Wave 4 38x: +10 support items (closes Wave 4 Combat depth)
+
+User picked Round 60 via AskUserQuestion sau Round 59. Mục tiêu: bổ sung 10 booster mới, đóng item `38x +10 support items` đã deferred trong Wave 4 (section 2480). Sau survey thấy implementation cost cao hơn dự kiến, user chọn scope **"10 items ngắn gọn"** — cut TIME_SLOW + AUTO_AIM (cần game-loop gate + Laser velocity field), swap bằng **CRIT_SURGE** (laser ×3 damage 8s) + **QUICK_HEAL** (+250 HP one-shot) đơn giản hơn.
+
+**10 boosters mới:**
+
+| # | Name | Mechanic | Duration | Tint + Glyph |
+|---|---|---|---|---|
+| 1 | MAGNET_BOOST | Magnet radius ×2 | 15s | violet ⊕ |
+| 2 | CRIT_SURGE | Laser damage ×3 | 8s | amber ✱ |
+| 3 | SPREAD_SHOT | 5-way horizontal fan | 10s | teal-green ☆ |
+| 4 | BERSERK | Damage ×2 + take ×1.5 dmg (risk-reward) | 12s | blood-red ⚡ |
+| 5 | PHASE_SHIELD | Extended i-frames | 5s | pale-cyan ◇ |
+| 6 | SCORE_X3 | Minerals earned ×3 | 15s | gold $ |
+| 7 | QUICK_HEAL | +250 HP × rarity multiplier | One-shot | bright-green ✚ |
+| 8 | MINERAL_SUPERCHARGE | Instant collect all on-screen minerals + bonus +5/each | One-shot | orange ✦ |
+| 9 | HEALING_AURA | +5 HP/sec regen | 10s | mint + |
+| 10 | DOUBLE_FIRE | Fire 2 lasers per shot (stacked 22px) | 10s | pink ⚯ |
+
+**Weight balancing:** mỗi item weight=6 → +60 thêm vào tổng 124 = **184 mới**. Mỗi item ~3.3% drop rate. Cao hơn REVIVE_TOKEN (5/184 = 2.7%, vẫn rarest), thấp hơn baseline (LASER/SHIELD/TRIPLE/HEALTH/ULTIMATE @ 19/184 = 10.3%). PIERCING/PLASMA dilute từ 9.7% → 6.5% mỗi loại — vẫn distinguishable.
+
+**Drawable strategy:** zero asset mới. Reuse 6 booster drawable hiện có + apply distinct tint via `ColorFilter.tint` + glyph badge top-right (pattern round 54). 4 boosters reuse `booster_health` drawable (SCORE_X3, QUICK_HEAL, MINERAL_SUPERCHARGE, HEALING_AURA — đều liên quan đến gain/heal), 2 reuse `booster_shield` (MAGNET_BOOST, PHASE_SHIELD — đều shield-like), v.v. Glyph + tint chính là discriminator.
+
+**Mechanic stacking:**
+- BERSERK + CRIT_SURGE damage cùng active: `effectiveStats.damageMul × 2 × 3 = ×6 base damage`. Stacking multiplicatively trong LasersController.damageMultiplier lambda.
+- SCORE_X3 stacks với effectiveStats.scoreMul: e.g. SURVIVAL mode scoreMul=1.2 × SCORE_X3 mul=3 = ×3.6 minerals earned.
+- MAGNET_BOOST stacks với effectiveStats.magnetMul: e.g. SUPER_MAGNET modifier ×2 × MAGNET_BOOST ×2 = ×4 magnet radius.
+- BERSERK take-damage ×1.5 stacks với difficulty multiplier: Hard 1.4 × BERSERK 1.5 = ×2.1 incoming damage. Risk vs reward.
+
+**Files modified:**
+- `ui/game/booster/BoosterType.kt` — 10 enum entries, weight=6 each, comment block explains weight choice.
+- `ui/game/booster/BoosterToBoosterUIMapper.kt` — 10 (tintHex, glyph) mapping branches + 10 new ARGB constants in companion.
+- `ui/game/ship/ship/Ship.kt` — 4 new Boolean flags (`spreadShotEnabled`, `doubleFireEnabled`, `critSurgeEnabled`, `berserkEnabled`) so render/laser code can observe state without reaching into ShipController privates.
+- `ui/game/ship/ship/ShipController.kt`:
+  - +1 constructor param `onMineralSupercharge: () -> Unit`.
+  - +8 timer state vars + 8 enable methods (enableMagnetBoost / enableCritSurge / enableSpreadShot / enableBerserk / enableScoreX3 / enableHealingAura / enableDoubleFire — PHASE_SHIELD piggybacks `iframesEndMillis`).
+  - +4 `updateXxxEnabled` helpers (spread/double/crit/berserk) — same pattern as existing `updateShieldEnabled`.
+  - +4 public getters (`magnetBoostMul`, `critSurgeMul`, `berserkDamageMul`, `scoreMul`) for cross-controller queries.
+  - +1 private getter `berserkTakeDamageMul` used inside `updateHp`.
+  - +10 new branches in `when (booster.type)` dispatch block.
+  - +8 tick decay checks at end of `monitorShipCollisions` (mirrors existing 3-line tick decay).
+  - +HEALING_AURA continuous regen (~5 HP/sec, framerate-independent via lastTickMillis).
+  - `updateHp` now applies `berserkTakeDamageMul()` multiplicatively on top of run-modifier damage multiplier.
+- `ui/game/ship/laser/LasersController.kt`:
+  - SPREAD_SHOT fork in `fireLasers`: 5-way fan with `(TRIPLE_LASER_SIDE_OFFSET + 4f)` spacing. Replaces triple-laser layout when active.
+  - DOUBLE_FIRE fork: append a trailing salvo at `yOffset + 22px` so each call produces 2 visual waves. Cheap "rate ×2" without tinker timing changes.
+- `ui/game/mineral/controller/MineralsController.kt` — new `flushAllToShip()` method for MINERAL_SUPERCHARGE one-shot. Awards +5 per mineral as bonus score + clears the on-screen list + surfaces count via `consumePickedThisTick`.
+- `ui/game/state/GameState.kt`:
+  - Deferred ref `mineralSuperchargeRef` (plain object holder) bridges shipController → mineralsController callback (forward-ref pattern since mineralsController declared after shipController).
+  - LasersController `damageMultiplier` lambda extended: `effectiveStats.damageMul × berserkDamageMul × critSurgeMul`.
+  - MineralsController `updateMineralsEarnedTotal` lambda extended: `× effectiveStats.scoreMul × shipController.scoreMul()`.
+  - MineralsController `getMagnetRadius` lambda extended: `× effectiveStats.magnetMul × shipController.magnetBoostMul()`.
+  - `mineralSuperchargeRef.run = { mineralsController.flushAllToShip() }` assignment after mineralsController construction.
+
+**Tests:** **+12 new** (195 → 207 total).
+- `BoosterTypeTest`:
+  - `weight distribution sums to expected total` — updated 124 → 184.
+  - `bullet-type combined probability stays in healthy band` — relaxed from 15-25% to 10-22% band (recalibrated for new total).
+  - +1 new test: `round 60 new boosters are rarer than baseline but commoner than revive` — verifies each new booster weight=6 and ordering.
+- `BoosterToBoosterUIMapperTest`:
+  - +10 per-type assertions: glyph + tint mapping for each new booster (MAGNET_BOOST → violet ⊕, CRIT_SURGE → amber ✱, etc).
+  - +1 sanity test: `all 10 round 60 booster tints are distinct + opaque`.
+- `BoosterTypeDistributionTest`:
+  - 3 tests recalibrated: PIERCING floor 50 → 30, PLASMA floor 50 → 30, combined floor 150 → 90. Comments explain dilution from new boosters.
+
+**Build verify:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL. **207 tests pass** (195 → 207, +12).
+
+**What's NOT in Round 60 (intentional cuts from original 10-item proposal):**
+- ❌ **TIME_SLOW** — would have required game-loop tick gate affecting enemy + enemy-laser + space-object move. Replaced with CRIT_SURGE (damage multiplier flag — much simpler).
+- ❌ **AUTO_AIM** — would have required new `homing` field on `Laser` data class + per-tick nudge in `LasersController.processShipLasers`. Replaced with QUICK_HEAL (one-shot HP gain — trivial).
+
+**What to watch trong runtime log tiếp theo:**
+- New booster pickup → log line `Booster: {magnet-boost|crit-surge|spread-shot|berserk|score-x3|healing-aura|double-fire} ON (+Nms)`.
+- BERSERK active → `Ship hp: X → Y (Δ=Z, multiplier=W)` where W = difficulty × 1.5.
+- HEALING_AURA active → periodic `Ship hp: X → X+1` log every ~200ms.
+- MINERAL_SUPERCHARGE pickup → `MineralsController.flushAllToShip: instant-collect N minerals → bonus +N×5`.
+- Booster pickup variety: should see most of 10 types within 10-15 spawns (~3.3% each, expected 1-2 per type over a long session).
+
+**Closes:** Wave 4 38x deferred item (section 2480 in feature.md). Wave 4 Combat depth nay 5/5 done.
+
 ### Round 59 — SpaceObject + Booster + Mineral Canvas migration (closes Wave 6 perf chain)
 
 User picked Round 59 via AskUserQuestion after analysis showed `spaceObjects`, `boosters`, and `minerals` were the last three per-entity `forEach { Image() / Box { Icon } }` blocks in `GameWorld.kt`. This round mirrors the Round 49 (LaserCanvas) + Round 57 (EnemyCanvas) pattern: gom mỗi list thành 1 Canvas pass + DrawScope loop, sprites pre-loaded once tại GameWorld level.
@@ -2522,9 +2602,9 @@ Các architectural refactors quá lớn để gộp chung:
 - [x] 33c+d Mid-bosses 3 variants + phase transitions (Offensive/Defensive/Swarm @ HP<50%)
 - [x] 34d Final boss 3-phase (22500 HP, ring barrage phase 3, alt endings per difficulty)
 
-## Wave 4 Combat depth ✅ MOSTLY DONE (rounds 34-35)
+## Wave 4 Combat depth ✅ DONE (rounds 34-35 + 60)
 - [x] 35x bullet types (round 35 — BulletType enum + Piercing + Plasma; Homing deferred — needs target-tracking velocity refactor)
-- [ ] 38x +10 support items (deferred — current support set is shield/laser/triple/health/ultimate/revive/piercing/plasma — could add ~10 more like mine-drop, drone, beam)
+- [x] 38x +10 support items (round 60 — MAGNET_BOOST + CRIT_SURGE + SPREAD_SHOT + BERSERK + PHASE_SHIELD + SCORE_X3 + QUICK_HEAL + MINERAL_SUPERCHARGE + HEALING_AURA + DOUBLE_FIRE. TIME_SLOW + AUTO_AIM cut/swapped during scope clarification)
 - [x] 41x Status effects (round 34 — BURN / SLOW / STUN + round 35 visual tint overlay; chains deferred)
 - [x] 42x Roguelike buffs (round 34 — 9 buffs + DialogBuffPicker post-boss; curses deferred)
 - [x] 44x Environmental hazards (round 34 — ice slip mechanic + ASTEROID_STORM + NEBULA_FOG + ICE_PATCHES; solar flares deferred)
@@ -2589,7 +2669,7 @@ Sequential lag-fix passes after gameplay features landed:
 - **Logger:** 2 cấp — `Logger.d` cho sparse events (init/lifecycle/stage advance/boss kill/achievement), `Logger.v { ... }` cho hot-path (per-frame, per-collision, per-spawn, per-kill, audio micro-step). Toggle qua `Logger.VERBOSE = true` trong utils/Logger.kt khi cần debug stream đầy đủ.
 - **Mapper memoization (round 48):** `EnemyToEnemyUIMapper` + `LaserToLaserUIMapper` cache theo id với LRU LinkedHashMap (cap 64 + 128). Mappers là top-level `private val` → cache persist app-lifetime, bounded by LRU. Field-compare fast-path tránh allocation khi entity unchanged. Tints dùng `==` (structural) + caller dùng `emptyList()` singleton cho no-effect case.
 - **Entity caps (round 47):** `EnemyController.MAX_REGULAR_ENEMIES = 30` (bosses bypass), `LasersController.MAX_SHIP_LASERS = 25`, `EnemyLasersController.MAX_ENEMY_LASERS = 30`. `BoosterController.MAX_BOOSTERS = 3` (pre-existing). Skip-at-cap logs Logger.v.
-- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **195** (+16 round 59 = 8 SpaceObjectMapper + 8 MineralMapper).
+- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **207** (+12 round 60 = 10 new booster glyph/tint + 1 distinct-tint + 1 round-60 weight invariants; minus 0 since BoosterTypeDistribution was recalibrated not added/removed).
 - **i18n:** strings mới phải thêm vào cả `values-vi/strings.xml` và `values-en/strings.xml`
 - **Compose stability:** data class state mới nên dùng `@Immutable`/`@Stable` annotation. EnemyUI, LaserUI, BoosterUI, MineralUI, RunModifier, RunBuff, StatusEffect, SecondaryWeapon, BulletType, ShipSkin, ColorBlindMode, NeonPalette đều `@Immutable`.
 - **Known perf limitations (sau rounds 44-49):**

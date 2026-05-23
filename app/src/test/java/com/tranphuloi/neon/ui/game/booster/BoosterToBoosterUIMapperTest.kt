@@ -107,9 +107,110 @@ class BoosterToBoosterUIMapperTest {
         assertEquals(b.rarity != BoosterRarity.COMMON, ui.isEliteRarity)
     }
 
+    // ──────────────────────────────────────────────────────────────────────
+    // Round 60 (38x) — verify each new booster's glyph + tint mapping. 10
+    // assertions, one per type. Glyph is the literal char rendered as overlay
+    // in GameWorld; tint is the ARGB applied to the recycled drawable so
+    // player can tell e.g. MAGNET_BOOST (shield drawable + violet tint + ⊕
+    // glyph) apart from SHIELD_BOOSTER (shield drawable, no tint, no glyph).
+    // ──────────────────────────────────────────────────────────────────────
+
+    @Test
+    fun `MAGNET_BOOST gets violet tint + plus-circled glyph`() {
+        val ui = mapper(boosterOfType(BoosterType.MAGNET_BOOST))
+        assertEquals(BoosterToBoosterUIMapper.MAGNET_BOOST_TINT_ARGB, ui.tintColorHex)
+        assertEquals("⊕", ui.glyph)
+    }
+
+    @Test
+    fun `CRIT_SURGE gets amber tint + asterisk glyph`() {
+        val ui = mapper(boosterOfType(BoosterType.CRIT_SURGE))
+        assertEquals(BoosterToBoosterUIMapper.CRIT_SURGE_TINT_ARGB, ui.tintColorHex)
+        assertEquals("✱", ui.glyph)
+    }
+
+    @Test
+    fun `SPREAD_SHOT gets teal-green tint + star glyph`() {
+        val ui = mapper(boosterOfType(BoosterType.SPREAD_SHOT))
+        assertEquals(BoosterToBoosterUIMapper.SPREAD_SHOT_TINT_ARGB, ui.tintColorHex)
+        assertEquals("☆", ui.glyph)
+    }
+
+    @Test
+    fun `BERSERK gets blood-red tint + lightning glyph`() {
+        val ui = mapper(boosterOfType(BoosterType.BERSERK))
+        assertEquals(BoosterToBoosterUIMapper.BERSERK_TINT_ARGB, ui.tintColorHex)
+        assertEquals("⚡", ui.glyph)
+    }
+
+    @Test
+    fun `PHASE_SHIELD gets pale-cyan tint + diamond glyph`() {
+        val ui = mapper(boosterOfType(BoosterType.PHASE_SHIELD))
+        assertEquals(BoosterToBoosterUIMapper.PHASE_SHIELD_TINT_ARGB, ui.tintColorHex)
+        assertEquals("◇", ui.glyph)
+    }
+
+    @Test
+    fun `SCORE_X3 gets gold tint + dollar glyph`() {
+        val ui = mapper(boosterOfType(BoosterType.SCORE_X3))
+        assertEquals(BoosterToBoosterUIMapper.SCORE_X3_TINT_ARGB, ui.tintColorHex)
+        assertEquals("$", ui.glyph)
+    }
+
+    @Test
+    fun `QUICK_HEAL gets bright-green tint + cross glyph`() {
+        val ui = mapper(boosterOfType(BoosterType.QUICK_HEAL))
+        assertEquals(BoosterToBoosterUIMapper.QUICK_HEAL_TINT_ARGB, ui.tintColorHex)
+        assertEquals("✚", ui.glyph)
+    }
+
+    @Test
+    fun `MINERAL_SUPERCHARGE gets orange tint + sparkle glyph`() {
+        val ui = mapper(boosterOfType(BoosterType.MINERAL_SUPERCHARGE))
+        assertEquals(BoosterToBoosterUIMapper.MINERAL_SUPERCHARGE_TINT_ARGB, ui.tintColorHex)
+        assertEquals("✦", ui.glyph)
+    }
+
+    @Test
+    fun `HEALING_AURA gets mint tint + plus glyph`() {
+        val ui = mapper(boosterOfType(BoosterType.HEALING_AURA))
+        assertEquals(BoosterToBoosterUIMapper.HEALING_AURA_TINT_ARGB, ui.tintColorHex)
+        assertEquals("+", ui.glyph)
+    }
+
+    @Test
+    fun `DOUBLE_FIRE gets pink tint + double-circle glyph`() {
+        val ui = mapper(boosterOfType(BoosterType.DOUBLE_FIRE))
+        assertEquals(BoosterToBoosterUIMapper.DOUBLE_FIRE_TINT_ARGB, ui.tintColorHex)
+        assertEquals("⚯", ui.glyph)
+    }
+
+    @Test
+    fun `all 10 round 60 booster tints are distinct + opaque`() {
+        val tints = listOf(
+            BoosterToBoosterUIMapper.MAGNET_BOOST_TINT_ARGB,
+            BoosterToBoosterUIMapper.CRIT_SURGE_TINT_ARGB,
+            BoosterToBoosterUIMapper.SPREAD_SHOT_TINT_ARGB,
+            BoosterToBoosterUIMapper.BERSERK_TINT_ARGB,
+            BoosterToBoosterUIMapper.PHASE_SHIELD_TINT_ARGB,
+            BoosterToBoosterUIMapper.SCORE_X3_TINT_ARGB,
+            BoosterToBoosterUIMapper.QUICK_HEAL_TINT_ARGB,
+            BoosterToBoosterUIMapper.MINERAL_SUPERCHARGE_TINT_ARGB,
+            BoosterToBoosterUIMapper.HEALING_AURA_TINT_ARGB,
+            BoosterToBoosterUIMapper.DOUBLE_FIRE_TINT_ARGB,
+        )
+        assertEquals("tints should be unique", tints.size, tints.toSet().size)
+        tints.forEach {
+            val alpha = (it ushr 24) and 0xFFL
+            assertEquals("tint should be opaque (alpha=FF)", 0xFFL, alpha)
+        }
+    }
+
     companion object {
         // Bounded retries: with 8/116 = 6.9% probability, expected E[X]=15 attempts
         // for PIERCING/PLASMA. 200 gives ~99.999...% confidence we hit at least once.
+        // Round 60 — 10 new boosters at weight 6/184 = 3.3% each; 200 retries gives
+        // ~99.87% (1 - 0.967^200) confidence per hit. Bump if flake observed.
         private const val MAX_RETRY = 200
     }
 }

@@ -50,6 +50,12 @@ class ShipController(
         xOffset: Float,
         yOffset: Float,
     ) -> Unit = { _, _, _, _ -> },
+    /**
+     * Round 60 (38x) — MINERAL_SUPERCHARGE one-shot effect. Fired on pickup;
+     * caller (GameState) drains MineralsController.flushAllToShip() so the
+     * player collects every on-screen mineral instantly.
+     */
+    private val onMineralSupercharge: () -> Unit = {},
 ) {
 
     init {
@@ -342,6 +348,129 @@ class ShipController(
         updateTripleLaserBoosterEnabled(enable)
     }
 
+    // ──────────────────────────────────────────────────────────────────────
+    // Round 60 (38x) — 8 timed buff state + enable methods for new boosters.
+    // Pattern mirrors enableShield/enableLaserBooster: private endDurationMillis
+    // refreshed with maxOf to prevent silent downgrade (Round 55 fix), public
+    // getter for other controllers to read multiplier each tick, tick decay
+    // hooked at the bottom of monitorShipCollisions.
+    //
+    // Naming convention:
+    //   - xxxEndDurationMillis: private Long timer
+    //   - xxxBoosterTimeMillis: private val base duration
+    //   - enableXxx(enable, multiplier): activation/expire entry point
+    //   - xxxMul()/isXxxActive(): public read API
+    // ──────────────────────────────────────────────────────────────────────
+
+    private val magnetBoostTimeMillis: Long = 15_000
+    private var magnetBoostEndDurationMillis: Long = 0
+    private fun enableMagnetBoost(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
+        val newEnd = if (enable) now + (magnetBoostTimeMillis * multiplier).toLong() else 0L
+        if (enable) magnetBoostEndDurationMillis = maxOf(magnetBoostEndDurationMillis, newEnd)
+        else magnetBoostEndDurationMillis = 0L
+        Logger.d("Booster: magnet-boost ${if (enable) "ON (+${newEnd - now}ms)" else "OFF"}")
+    }
+    /** 1.0 (off) or 2.0 (active). MineralsController multiplies magnetRadius by this. */
+    fun magnetBoostMul(): Float =
+        if (System.currentTimeMillis() < magnetBoostEndDurationMillis) 2f else 1f
+
+    private val critSurgeTimeMillis: Long = 8_000
+    private var critSurgeEndDurationMillis: Long = 0
+    private fun enableCritSurge(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
+        val newEnd = if (enable) now + (critSurgeTimeMillis * multiplier).toLong() else 0L
+        if (enable) critSurgeEndDurationMillis = maxOf(critSurgeEndDurationMillis, newEnd)
+        else critSurgeEndDurationMillis = 0L
+        updateCritSurgeEnabled(enable)
+        Logger.d("Booster: crit-surge ${if (enable) "ON (+${newEnd - now}ms)" else "OFF"}")
+    }
+    /** 1.0 (off) or 3.0 (active). LasersController multiplies laser.impactPower at fire time. */
+    fun critSurgeMul(): Float =
+        if (System.currentTimeMillis() < critSurgeEndDurationMillis) 3f else 1f
+
+    private val spreadShotTimeMillis: Long = 10_000
+    private var spreadShotEndDurationMillis: Long = 0
+    private fun enableSpreadShot(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
+        val newEnd = if (enable) now + (spreadShotTimeMillis * multiplier).toLong() else 0L
+        if (enable) spreadShotEndDurationMillis = maxOf(spreadShotEndDurationMillis, newEnd)
+        else spreadShotEndDurationMillis = 0L
+        updateSpreadShotEnabled(enable)
+        Logger.d("Booster: spread-shot ${if (enable) "ON (+${newEnd - now}ms)" else "OFF"}")
+    }
+
+    private val berserkTimeMillis: Long = 12_000
+    private var berserkEndDurationMillis: Long = 0
+    private fun enableBerserk(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
+        val newEnd = if (enable) now + (berserkTimeMillis * multiplier).toLong() else 0L
+        if (enable) berserkEndDurationMillis = maxOf(berserkEndDurationMillis, newEnd)
+        else berserkEndDurationMillis = 0L
+        updateBerserkEnabled(enable)
+        Logger.d("Booster: berserk ${if (enable) "ON (+${newEnd - now}ms, dmg×2 / take×1.5)" else "OFF"}")
+    }
+    /** 1.0 (off) or 2.0 (active). LasersController multiplies laser.impactPower. */
+    fun berserkDamageMul(): Float =
+        if (System.currentTimeMillis() < berserkEndDurationMillis) 2f else 1f
+    /** 1.0 (off) or 1.5 (active). Applied inside updateHp before iframe gate. */
+    private fun berserkTakeDamageMul(): Float =
+        if (System.currentTimeMillis() < berserkEndDurationMillis) 1.5f else 1f
+
+    // PHASE_SHIELD piggybacks on iframesEndMillis (no dedicated state field
+    // needed). Pickup: iframesEndMillis = max(it, now + 5000 × multiplier).
+    // Ghost visual: future polish — for now player just won't take damage.
+    private val phaseShieldTimeMillis: Long = 5_000
+
+    private val scoreX3TimeMillis: Long = 15_000
+    private var scoreX3EndDurationMillis: Long = 0
+    private fun enableScoreX3(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
+        val newEnd = if (enable) now + (scoreX3TimeMillis * multiplier).toLong() else 0L
+        if (enable) scoreX3EndDurationMillis = maxOf(scoreX3EndDurationMillis, newEnd)
+        else scoreX3EndDurationMillis = 0L
+        Logger.d("Booster: score-x3 ${if (enable) "ON (+${newEnd - now}ms)" else "OFF"}")
+    }
+    /** 1.0 (off) or 3.0 (active). MineralsController multiplies mineralsEarned. */
+    fun scoreMul(): Float =
+        if (System.currentTimeMillis() < scoreX3EndDurationMillis) 3f else 1f
+
+    private val healingAuraTimeMillis: Long = 10_000
+    private var healingAuraEndDurationMillis: Long = 0
+    private fun enableHealingAura(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
+        val newEnd = if (enable) now + (healingAuraTimeMillis * multiplier).toLong() else 0L
+        if (enable) healingAuraEndDurationMillis = maxOf(healingAuraEndDurationMillis, newEnd)
+        else healingAuraEndDurationMillis = 0L
+        Logger.d("Booster: healing-aura ${if (enable) "ON (+${newEnd - now}ms, +5HP/sec)" else "OFF"}")
+    }
+    private var healingAuraLastTickMillis: Long = 0L
+
+    private val doubleFireTimeMillis: Long = 10_000
+    private var doubleFireEndDurationMillis: Long = 0
+    private fun enableDoubleFire(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
+        val newEnd = if (enable) now + (doubleFireTimeMillis * multiplier).toLong() else 0L
+        if (enable) doubleFireEndDurationMillis = maxOf(doubleFireEndDurationMillis, newEnd)
+        else doubleFireEndDurationMillis = 0L
+        updateDoubleFireEnabled(enable)
+        Logger.d("Booster: double-fire ${if (enable) "ON (+${newEnd - now}ms)" else "OFF"}")
+    }
+
+    // Updaters for the 4 boosters that surface a Boolean on Ship.
+    private fun updateSpreadShotEnabled(enable: Boolean) {
+        ship = ship.copy(spreadShotEnabled = enable); setShip(ship)
+    }
+    private fun updateDoubleFireEnabled(enable: Boolean) {
+        ship = ship.copy(doubleFireEnabled = enable); setShip(ship)
+    }
+    private fun updateCritSurgeEnabled(enable: Boolean) {
+        ship = ship.copy(critSurgeEnabled = enable); setShip(ship)
+    }
+    private fun updateBerserkEnabled(enable: Boolean) {
+        ship = ship.copy(berserkEnabled = enable); setShip(ship)
+    }
+
     /**
      * Round 55 — single source-of-truth for booster activation/refresh logs.
      * Distinguishes 4 cases so the gameplay actually surfaces in logcat:
@@ -483,6 +612,31 @@ class ShipController(
                         multiplier = mul,
                         rarity = booster.rarity,
                     )
+                    // Round 60 (38x) — 10 new boosters dispatch. 8 are timed
+                    // buffs (enable + auto-expire), 2 are one-shot (QUICK_HEAL
+                    // applies HP directly, MINERAL_SUPERCHARGE delegates to
+                    // MineralsController via callback).
+                    BoosterType.MAGNET_BOOST -> enableMagnetBoost(enable = true, multiplier = mul)
+                    BoosterType.CRIT_SURGE -> enableCritSurge(enable = true, multiplier = mul)
+                    BoosterType.SPREAD_SHOT -> enableSpreadShot(enable = true, multiplier = mul)
+                    BoosterType.BERSERK -> enableBerserk(enable = true, multiplier = mul)
+                    BoosterType.PHASE_SHIELD -> {
+                        val now = System.currentTimeMillis()
+                        val ext = (phaseShieldTimeMillis * mul).toLong()
+                        iframesEndMillis = maxOf(iframesEndMillis, now + ext)
+                        Logger.d("Booster: phase-shield ON (+${ext}ms iframes, mul=$mul)")
+                    }
+                    BoosterType.SCORE_X3 -> enableScoreX3(enable = true, multiplier = mul)
+                    BoosterType.QUICK_HEAL -> updateHp((250 * mul).toInt())
+                    BoosterType.MINERAL_SUPERCHARGE -> {
+                        Logger.d("Booster: mineral-supercharge ONE-SHOT (mul=$mul)")
+                        onMineralSupercharge()
+                    }
+                    BoosterType.HEALING_AURA -> {
+                        enableHealingAura(enable = true, multiplier = mul)
+                        healingAuraLastTickMillis = System.currentTimeMillis()
+                    }
+                    BoosterType.DOUBLE_FIRE -> enableDoubleFire(enable = true, multiplier = mul)
                 }
             }
         }
@@ -527,6 +681,28 @@ class ShipController(
         if (shieldEndDurationMillis < currentTime) enableShield(enable = false)
         if (laserBoosterEndDurationMillis < currentTime) enableLaserBooster(enable = false)
         if (tripleLaserBoosterEndDurationMillis < currentTime) enableTripleLaserBooster(enable = false)
+        // Round 60 (38x) — tick decay for 8 timed buffs. monitorShipCollisions
+        // runs at 100ms cadence so expiry granularity is ±100ms — acceptable.
+        if (magnetBoostEndDurationMillis in 1..currentTime) enableMagnetBoost(enable = false)
+        if (critSurgeEndDurationMillis in 1..currentTime) enableCritSurge(enable = false)
+        if (spreadShotEndDurationMillis in 1..currentTime) enableSpreadShot(enable = false)
+        if (berserkEndDurationMillis in 1..currentTime) enableBerserk(enable = false)
+        if (scoreX3EndDurationMillis in 1..currentTime) enableScoreX3(enable = false)
+        if (doubleFireEndDurationMillis in 1..currentTime) enableDoubleFire(enable = false)
+        if (healingAuraEndDurationMillis in 1..currentTime) enableHealingAura(enable = false)
+        // Round 60 — HEALING_AURA continuous regen: +5 HP/sec while active.
+        // Use lastTick to compute elapsed since last heal call so it's framerate-
+        // independent (works even if monitorShipCollisions skips a tick).
+        if (currentTime < healingAuraEndDurationMillis) {
+            val sinceTick = currentTime - healingAuraLastTickMillis
+            if (sinceTick >= 200L) {                                 // heal in 200ms chunks
+                val heal = (sinceTick / 200L).toInt()                // 1 hp per 200ms = 5/sec
+                if (heal > 0 && ship.hp > 0) {
+                    updateHp(heal)
+                    healingAuraLastTickMillis = currentTime
+                }
+            }
+        }
         // Round 35 (35x) — expire active bullet type.
         if (ship.bulletTypeEndMillis > 0L && currentTime >= ship.bulletTypeEndMillis) {
             Logger.d("BulletType: ${ship.activeBulletType} expired → revert to NORMAL")
@@ -624,7 +800,10 @@ class ShipController(
             Logger.v { "Ship hp: damage Δ=$hpChange ABSORBED (iframes or spawn)" }
             return
         }
-        val multiplier = damageMultiplier()
+        // Round 60 (38x) — BERSERK take ×1.5 damage stacks multiplicatively on
+        // top of the run-modifier multiplier (Hard mode + BERSERK = 1.4 × 1.5 = ×2.1
+        // incoming damage). Healing (hpChange > 0) unaffected.
+        val multiplier = damageMultiplier() * if (hpChange < 0) berserkTakeDamageMul() else 1f
         val effective = if (hpChange < 0) -((-hpChange) * multiplier).toInt() else hpChange
         val before = ship.hp
         val newHp = (ship.hp + effective).coerceAtLeast(0)

@@ -28,4 +28,22 @@ enum class BoosterType(
     // BoosterTypeTest weight-sum assertion if you tune further.
     PIERCING_BOOSTER(R.drawable.booster_red_lasers, weight = 12),
     PLASMA_BOOSTER(R.drawable.booster_ultimate_weapon, weight = 12),
+
+    // Round 60 (38x) — +10 support items closing Wave 4 Combat depth. All reuse
+    // existing drawables + glyph badges + tints (Round 54 pattern) instead of
+    // new art assets. Weight=6 each → +60 total, new total = 184. Each new
+    // booster ≈ 3.3% drop rate; existing baseline (LASER/SHIELD/TRIPLE/HEALTH/
+    // ULTIMATE) dilute from 15.3% → 10.3%, PIERCING/PLASMA from 9.7% → 6.5%.
+    // Weight 6 keeps REVIVE_TOKEN (weight=5) the rarest drop — preserving the
+    // existing `REVIVE_TOKEN is the rarest drop` invariant in BoosterTypeTest.
+    MAGNET_BOOST(R.drawable.booster_shield, weight = 6),
+    CRIT_SURGE(R.drawable.booster_red_lasers, weight = 6),
+    SPREAD_SHOT(R.drawable.booster_triple_laser, weight = 6),
+    BERSERK(R.drawable.booster_ultimate_weapon, weight = 6),
+    PHASE_SHIELD(R.drawable.booster_shield, weight = 6),
+    SCORE_X3(R.drawable.booster_health, weight = 6),
+    QUICK_HEAL(R.drawable.booster_health, weight = 6),
+    MINERAL_SUPERCHARGE(R.drawable.booster_health, weight = 6),
+    HEALING_AURA(R.drawable.booster_health, weight = 6),
+    DOUBLE_FIRE(R.drawable.booster_red_lasers, weight = 6),
 }

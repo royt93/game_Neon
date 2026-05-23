@@ -346,6 +346,12 @@ fun rememberGameState(): GameState {
     val pickupPopupController = remember {
         PickupPopupController(updateState = { pickupPopups = it })
     }
+    // Round 60 (38x) — MINERAL_SUPERCHARGE callback holder. mineralsController
+    // is declared AFTER shipController, so this deferred ref lets shipController
+    // capture a stable lambda that we wire up below after mineralsController exists.
+    // Plain object holder (not mutableStateOf) so reassignment doesn't trigger
+    // recomposition — this is pure event dispatch.
+    val mineralSuperchargeRef = remember { object { var run: () -> Unit = {} } }
     val shipController = remember {
         Logger.d("rememberGameState: building ShipController (initial hp=${ship.hp})")
         ShipController(
@@ -464,6 +470,11 @@ fun rememberGameState(): GameState {
                     yOffset = y,
                 )
             },
+            // Round 60 (38x) — MINERAL_SUPERCHARGE pickup delegates to
+            // MineralsController via the deferred ref holder. Assignment of
+            // `mineralSuperchargeRef.run` happens below, after mineralsController
+            // is built, since the controller is declared later in this scope.
+            onMineralSupercharge = { mineralSuperchargeRef.run() },
         )
     }
 
@@ -507,7 +518,13 @@ fun rememberGameState(): GameState {
                 }
             },
             // 25x/48x — modifier + skill tree damage multiplier applied per hit.
-            damageMultiplier = { effectiveStats.damageMul },
+            // Round 60 (38x) — BERSERK + CRIT_SURGE stack multiplicatively on top.
+            // BERSERK ×2 (12s), CRIT_SURGE ×3 (8s); both active = ×6 vs baseline.
+            damageMultiplier = {
+                effectiveStats.damageMul *
+                    shipController.berserkDamageMul() *
+                    shipController.critSurgeMul()
+            },
         )
     }
 
@@ -565,7 +582,10 @@ fun rememberGameState(): GameState {
             updateMineralsEarnedTotal = { amount ->
                 // 25x apply RunModifier scoreMul. Round to int — small minerals (1-2)
                 // multiplied by 1.5× rounds to 2-3; large minerals (10) round to 15.
-                val scaled = (amount * effectiveStats.scoreMul).toInt().coerceAtLeast(amount)
+                // Round 60 (38x) — SCORE_X3 booster stacks multiplicatively on top
+                // (×3 for 15s). Both active = ×~4.5 score gain.
+                val scaled = (amount * effectiveStats.scoreMul * shipController.scoreMul())
+                    .toInt().coerceAtLeast(amount)
                 mineralsEarnedTotal += scaled
                 lastMineralPickupMillis = System.currentTimeMillis()
                 // 4c: spawn pickup popup at ship center.
@@ -586,9 +606,16 @@ fun rememberGameState(): GameState {
             },
             getShipCenter = { ship.xOffset + ship.width / 2 to ship.yOffset + ship.height / 2 },
             // 25x apply RunModifier magnetMul to magnet radius (e.g. SUPER_MAGNET ×2).
-            getMagnetRadius = { magnetRadiusState.floatValue * effectiveStats.magnetMul }
+            // Round 60 (38x) — MAGNET_BOOST stacks ×2 multiplicatively (15s window).
+            getMagnetRadius = {
+                magnetRadiusState.floatValue * effectiveStats.magnetMul * shipController.magnetBoostMul()
+            },
         )
     }
+    // Round 60 (38x) — wire MINERAL_SUPERCHARGE callback now that
+    // mineralsController exists. Captured by reference into the holder so the
+    // ShipController dispatch (defined above) fires the up-to-date lambda.
+    mineralSuperchargeRef.run = { mineralsController.flushAllToShip() }
 
     var enemies: List<Enemy> by rememberSaveable { mutableStateOf(emptyList()) }
     val enemyController = remember {

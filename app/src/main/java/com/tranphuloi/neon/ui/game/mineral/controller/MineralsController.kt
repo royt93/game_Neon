@@ -70,4 +70,24 @@ class MineralsController(
         pickedThisTick = 0
         return v
     }
+
+    /**
+     * Round 60 (38x) — MINERAL_SUPERCHARGE one-shot effect. Instant-collects
+     * every on-screen mineral and awards a bonus score (+5 per mineral) since
+     * the per-mineral spawn-time score was already booked at `addMinerals`.
+     * The bonus simulates "wow, free score" without changing the spawn flow.
+     */
+    fun flushAllToShip() {
+        val count = minerals.size
+        if (count == 0) {
+            Logger.d("MineralsController.flushAllToShip: no minerals on screen — no-op")
+            return
+        }
+        val bonus = count * 5
+        Logger.d("MineralsController.flushAllToShip: instant-collect $count minerals → bonus +$bonus")
+        minerals = emptyList()
+        updateMinerals(minerals)
+        updateMineralsEarnedTotal(bonus)
+        pickedThisTick += count                  // surface to consumePickedThisTick for SFX/haptic
+    }
 }

@@ -70,40 +70,41 @@ class BoosterTypeDistributionTest {
     }
 
     @Test
-    fun `PIERCING reaches at least 50 in N=1000 (round 55 weight=12)`() {
-        // Hard floor at 50/1000 = 5%. Expected 9.7% per round 55 bump.
-        // 50 is ~5σ below expected — P(below) ≈ 3e-7, effectively impossible
-        // if weights are honoured at runtime.
+    fun `PIERCING reaches at least 30 in N=1000 (round 60 recalibrated)`() {
+        // Round 55 floor was 50 (~5σ at 9.7% expected). Round 60 (38x) added 10
+        // new boosters at weight 6 each → total weight 124 → 184, diluting
+        // PIERCING share to 12/184 = 6.5%. New floor 30 = ~5σ below 65 expected.
         val tally = rollBoosters(1000)
         val piercing = tally.getValue(BoosterType.PIERCING_BOOSTER)
         assertTrue(
-            "PIERCING produced $piercing/1000 = ${piercing / 10.0}% — should be ~9.7%. " +
+            "PIERCING produced $piercing/1000 = ${piercing / 10.0}% — should be ~6.5%. " +
                 "If this fails, weight=12 isn't taking effect at runtime.",
-            piercing >= 50,
+            piercing >= 30,
         )
     }
 
     @Test
-    fun `PLASMA reaches at least 50 in N=1000 (round 55 weight=12)`() {
+    fun `PLASMA reaches at least 30 in N=1000 (round 60 recalibrated)`() {
         val tally = rollBoosters(1000)
         val plasma = tally.getValue(BoosterType.PLASMA_BOOSTER)
         assertTrue(
-            "PLASMA produced $plasma/1000 = ${plasma / 10.0}% — should be ~9.7%. " +
+            "PLASMA produced $plasma/1000 = ${plasma / 10.0}% — should be ~6.5%. " +
                 "If this fails, weight=12 isn't taking effect at runtime.",
-            plasma >= 50,
+            plasma >= 30,
         )
     }
 
     @Test
-    fun `combined PIERCING+PLASMA reaches at least 150 in N=1000`() {
+    fun `combined PIERCING+PLASMA reaches at least 90 in N=1000 (round 60)`() {
         val tally = rollBoosters(1000)
         val combined = tally.getValue(BoosterType.PIERCING_BOOSTER) +
             tally.getValue(BoosterType.PLASMA_BOOSTER)
-        // Expected 19.4% combined (24/124). Floor at 15% (150/1000) is ~5σ below.
+        // Round 55: expected 19.4% combined (24/124), floor 150.
+        // Round 60: expected 13.0% combined (24/184), floor 90 = ~5σ below 130.
         assertTrue(
-            "PIERCING+PLASMA combined $combined/1000 = ${combined / 10.0}% — should be ~19.4%. " +
+            "PIERCING+PLASMA combined $combined/1000 = ${combined / 10.0}% — should be ~13.0%. " +
                 "If this fails, round 55 weight bump (8 → 12) isn't active.",
-            combined >= 150,
+            combined >= 90,
         )
     }
 
