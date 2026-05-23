@@ -97,6 +97,45 @@ fun DialogGameOver(
         .indexOfFirst { it.score == currentScore }
         .let { if (it == -1) null else it + 1 }
 
+    // Round 62 → Round 63 (audit fix) — TTS callout when player breaks their record.
+    //
+    // Round 62 bug: at initial composition `entries` is emptyList() (collectAsState
+    // initial) so `highestSoFar = entries.max ?: score` evaluated to the score
+    // itself → `isNewBest = score >= score = TRUE` for ANY submission. LaunchedEffect
+    // fired immediately and announced "Kỷ lục mới!" even for score=47 << best=255.
+    //
+    // Round 63 fix: gate by (a) submitted=true (leaderboard.submit returned),
+    // (b) entries.isNotEmpty() (Flow has settled with real data), (c) one-shot
+    // guard via announcedNewBest so future entries updates don't re-fire.
+    val voiceAnnouncer = com.tranphuloi.neon.ui.game.audio.LocalVoiceAnnouncer.current
+    val voiceNewBest = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_new_best)
+    var announcedNewBest by remember { mutableStateOf(false) }
+    LaunchedEffect(submitted, entries) {
+        if (!submitted || currentScore <= 0 || announcedNewBest) {
+            return@LaunchedEffect
+        }
+        // Round 63 audit — require entries.size > 1 so the FIRST-EVER submission
+        // for a mode doesn't trigger "Kỷ lục mới!" (first = best is technically
+        // true but feels wrong — "new record" implies beating an OLD record).
+        // Post-submit entries always contains the just-submitted score; size>1
+        // means there's a prior entry to compare against.
+        if (entries.size <= 1) return@LaunchedEffect
+        // Exclude the just-submitted score from the comparison: the prior
+        // record is the max EXCLUDING this run's score. If multiple entries
+        // share currentScore (player tied an existing high), we still want to
+        // count it as new best.
+        val priorHighest = entries
+            .filter { it.score != currentScore }
+            .maxByOrNull { it.score }?.score ?: 0
+        if (currentScore > priorHighest) {
+            voiceAnnouncer.announce(
+                voiceNewBest,
+                personality = com.tranphuloi.neon.ui.game.audio.VoicePersonality.TRIUMPH,
+            )
+            announcedNewBest = true
+        }
+    }
+
     // Round 28 — migrated from NeonDialog to NeonBottomSheet.
     // dismissible = false: only ✕ / explicit button can dismiss (modal-final).
     // The ✕ acts like "VỀ MENU" since GameOver doesn't have a passive close.

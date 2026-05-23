@@ -49,7 +49,9 @@ import com.tranphuloi.neon.ui.game.GameScreen
 import com.tranphuloi.neon.ui.game.audio.AudioPlayerHolder
 import com.tranphuloi.neon.ui.game.audio.LocalAudioPlayer
 import com.tranphuloi.neon.ui.game.audio.LocalSfx
+import com.tranphuloi.neon.ui.game.audio.LocalVoiceAnnouncer
 import com.tranphuloi.neon.ui.game.audio.SfxController
+import com.tranphuloi.neon.ui.game.audio.VoiceAnnouncer
 import com.tranphuloi.neon.ui.game.audio.Song
 import com.tranphuloi.neon.ui.game.haptic.HapticController
 import com.tranphuloi.neon.ui.game.haptic.LocalHaptic
@@ -62,6 +64,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var audioHolder: AudioPlayerHolder
     private lateinit var haptic: HapticController
     private lateinit var sfx: SfxController
+    private lateinit var voiceAnnouncer: VoiceAnnouncer
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Logger.d("MainActivity.onCreate")
@@ -94,6 +97,9 @@ class MainActivity : ComponentActivity() {
         Logger.d("MainActivity.onCreate: building SfxController")
         sfx = SfxController(applicationContext)
 
+        Logger.d("MainActivity.onCreate: building VoiceAnnouncer")
+        voiceAnnouncer = VoiceAnnouncer(applicationContext)
+
         val app = application as App
         Logger.d("MainActivity.onCreate: App cast OK, entering setContent")
         setContent {
@@ -121,6 +127,7 @@ class MainActivity : ComponentActivity() {
                 LocalAudioPlayer provides audioHolder,
                 LocalHaptic provides haptic,
                 LocalSfx provides sfx,
+                LocalVoiceAnnouncer provides voiceAnnouncer,
                 LocalSettings provides app.settings,
                 LocalLeaderboard provides app.leaderboard,
                 LocalAchievements provides app.achievements,
@@ -148,10 +155,21 @@ class MainActivity : ComponentActivity() {
                     LaunchedEffect(sfxVolume) {
                         Logger.d("MainActivity: sfxVolume changed → $sfxVolume")
                         sfx.setVolume(sfxVolume)
+                        // Round 62 — TTS volume tracks SFX slider (same family of
+                        // gameplay-related sound). No separate user control.
+                        voiceAnnouncer.setVolume(sfxVolume)
                     }
                     LaunchedEffect(vibrationEnabled) {
                         Logger.d("MainActivity: vibrationEnabled changed → $vibrationEnabled")
                         haptic.setEnabled(vibrationEnabled)
+                    }
+                    // Round 62 — voice announcer toggle. Observed at Activity scope
+                    // so the setting applies across game/menu/dialog screens.
+                    val voiceAnnouncerEnabled by app.settings.voiceAnnouncerEnabled
+                        .collectAsState(initial = true)
+                    LaunchedEffect(voiceAnnouncerEnabled) {
+                        Logger.d("MainActivity: voiceAnnouncerEnabled changed → $voiceAnnouncerEnabled")
+                        voiceAnnouncer.setEnabled(voiceAnnouncerEnabled)
                     }
 
                     NavHost(
@@ -407,8 +425,14 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        Logger.d("MainActivity.onDestroy: releasing SfxController + watching for leaks")
+        Logger.d("MainActivity.onDestroy: releasing SfxController + VoiceAnnouncer + watching for leaks")
         sfx.release()
+        // Round 62 — TextToSpeech is a notorious leak source on some OEM TTS
+        // engines (holds Context refs internally). Always shutdown() in
+        // onDestroy + use LeakWatch to catch regressions. Use applicationContext
+        // inside VoiceAnnouncer (not Activity) so the engine can't pin the
+        // Activity even if shutdown is racy.
+        voiceAnnouncer.release()
         LeakWatch.watch(
             audioHolder,
             "MainActivity.onDestroy → AudioPlayerHolder must be GC'd"
@@ -420,6 +444,10 @@ class MainActivity : ComponentActivity() {
         LeakWatch.watch(
             haptic,
             "MainActivity.onDestroy → HapticController must be GC'd"
+        )
+        LeakWatch.watch(
+            voiceAnnouncer,
+            "MainActivity.onDestroy → VoiceAnnouncer must be GC'd"
         )
         super.onDestroy()
     }

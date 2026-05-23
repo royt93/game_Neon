@@ -22,4 +22,15 @@
     <string name="daily_challenge_label">Daily Challenge</string>
     <string name="daily_seed_label">Day %1$s</string>
     <string name="daily_best_today">Today\'s best: %1$s</string>
+
+    <!-- Round 62 — VoiceAnnouncer (TTS) phrases. -->
+    <string name="voice_combo_double">Double kill!</string>
+    <string name="voice_combo_triple">Triple kill!</string>
+    <string name="voice_combo_rampage">Rampage!</string>
+    <string name="voice_combo_unstoppable">Unstoppable!</string>
+    <string name="voice_combo_godlike">Godlike!</string>
+    <string name="voice_boss_down">Boss down!</string>
+    <string name="voice_achievement_unlocked">Achievement unlocked: %1$s</string>
+    <string name="voice_new_best">New record!</string>
+    <string name="settings_voice_announcer">Voice announcer</string>
 </resources>

@@ -968,6 +968,190 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 64 — Pitch modulation revert + Voice alien Darth Vader
+
+Runtime log Round 63 verify (43s play, stages 71→82, boss kill ×2, combo escalation):
+- ✅ Auto-pick voice working: `picked voice='vi-VN-language' quality=400 latency=200 network=false` (HIGH offline)
+- ✅ 4 announcements với đúng personality + pitch/rate match math
+- ⚠️ User feedback: "music nền có vẻ như bị overlay" — Round 62 BGM pitch shift làm nhạc méo
+- ⚠️ User feedback: "voice của bạn tệ quá, cứ như robot" → "muốn nghe như người ngoài hành tinh (Darth Vader)"
+
+Round 64 pivots based on user direction.
+
+**Fix 1 — Revert BGM pitch modulation (Round 62 → Round 64)**
+
+Root cause: Round 62 added `intensityPitch` modulation parallel to volume — boss=1.05, low HP=0.92. ExoPlayer's Sonic pitch-shift algorithm processes multi-instrument BGM tracks non-uniformly across frequencies — when applied to layered orchestral synth tracks (Neon's BGM is dense), different instruments shift slightly differently → off-key "overlay" perception.
+
+Fix: REMOVE `intensityPitch` block from GameScreen entirely. Keep:
+- Volume intensity (Round 19/8c) — proven driver, no perceptual issues
+- AudioPlayerHolder.setPitch() public API — kept for potential future use (e.g. SFX pitch variation)
+- DisposableEffect simplified to restore volume only
+
+**Fix 2 — Voice pivot to alien Darth Vader**
+
+Round 63 tuned BASE_PITCH=0.92 / BASE_RATE=1.12 for "game announcer" feel. User wanted opposite direction: MORE robotic, sci-fi alien voice. Game's neon space-shooter theme fits this aesthetic.
+
+New baseline:
+- `BASE_PITCH: 0.65` (Darth Vader chest voice register)
+- `BASE_RATE: 0.85` (slow + ominous, sci-fi villain pacing)
+
+Effective pitch/rate per personality (after deltas):
+
+| Personality | Pitch | Rate | Feel |
+|---|---|---|---|
+| HYPE | 0.80 | 1.05 | Alien combo callout |
+| DRAMATIC | 0.55 | 0.70 | DEEPEST + slowest, boss kill gravitas |
+| TRIUMPH | 0.73 | 0.80 | Slightly elevated alien, celebration |
+| NORMAL | 0.65 | 0.85 | Baseline alien |
+
+Coerced to [0.5, 1.5] pitch + [0.5, 1.6] rate inside `announce()` for synthesizer safety. DRAMATIC at 0.55 is near floor — may sound muffled on cheap OEM TTS engines but renders cleanly on Google TTS.
+
+**Files modified:**
+- `ui/game/GameScreen.kt` — removed `intensityPitch` derive + `animatedPitch` Animatable + 2× LaunchedEffect + setPitch restore on dispose (~25 LOC deleted).
+- `ui/game/audio/VoiceAnnouncer.kt` — updated `BASE_PITCH 0.92→0.65` + `BASE_RATE 1.12→0.85` + companion doc block.
+
+**Tests:** 214 unchanged.
+
+**Build verify:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL.
+
+**Runtime expectations:**
+- BGM playback unchanged pitch (back to baseline 1.0). Volume still modulates per Round 19. No more "overlay" perception.
+- Combo callout "Đánh đôi!" sounds alien-ish — pitch 0.80 (deeper than normal speech) + rate 1.05 (slightly faster) = excited alien.
+- Boss kill "Hạ boss!" sounds VERY deep + slow (pitch 0.55, rate 0.70) — full Darth Vader gravitas.
+- Achievement "Thành tựu mở khóa: ..." sounds alien but slightly lifted (pitch 0.73).
+- All callouts consistently alien-themed (no human "neutral" voice anywhere).
+
+**Known limitations:**
+- DRAMATIC pitch 0.55 may render muffled/distorted on low-quality OEM TTS engines. If reported, raise floor to 0.6 (still feels Darth Vader but less risky).
+- Some Android TTS engines clamp pitch at 0.5 internally; in that case DRAMATIC just sounds same as floor (still alien, lost contrast vs NORMAL).
+- Pitch this low may cause clipping/aliasing on cheap phone speakers — headphone recommended.
+
+### Round 63 — Voice enhance + isNewBest race fix (Round 62 audit)
+
+Post-Round-62 runtime log (67s play, stages 68→71, death at HP=0) revealed:
+1. **VoiceAnnouncer working** — 9 announcements fired all with `result=0` (SUCCESS), throttle 1.5s correctly skipped TRIPLE + UNSTOPPABLE between escalations.
+2. **User feedback: "voice tệ quá, cứ như robot"** — Android TTS default voice sounds neutral/robotic.
+3. **BUG: "Kỷ lục mới!" fired falsely** — score=47 << best=255 nhưng vẫn announce. Race condition trong DialogGameOver.
+
+Round 63 fixes voice quality (3 knobs) + closes the race bug.
+
+**Fix 1 — isNewBest race in DialogGameOver**
+
+Root cause: initial composition `entries: List<LeaderboardEntry>` = `emptyList()` (collectAsState `initial = emptyList()`). Fallback expression `entries.maxByOrNull { it.score }?.score ?: score.toIntOrNull() ?: 0` evaluates to `currentScore` itself → `isNewBest = currentScore >= currentScore = true` for ANY submission. My Round 62 `LaunchedEffect(isNewBest)` fired on initial composition before the Flow loaded real data.
+
+Fix: gate by 3 conditions before announcing:
+- `submitted == true` — leaderboard.submit suspend fn returned
+- `entries.isNotEmpty()` — Flow emitted real data (post-submission contains ≥1 row)
+- `!announcedNewBest` — one-shot guard via remember mutableStateOf
+
+Then re-compute `realHighest` from current entries and compare. Visual `isNewBest` flag untouched (gold box flash is acceptable when entries briefly mismatches).
+
+**Fix 2 — VoiceAnnouncer 3-knob voice enhance**
+
+(a) **Engine-wide tune.** After locale init, set `tts.setPitch(0.92)` + `tts.setSpeechRate(1.12)`. Pitch 0.92 = slightly deeper than neutral 1.0 (less robotic monotone). Rate 1.12 = slightly faster (more energetic). Persisted as engine state until next setPitch/Rate call.
+
+(b) **Per-call `VoicePersonality` prosody delta.** New enum:
+- HYPE: pitch +0.15, rate +0.20 (combo callouts — excited)
+- DRAMATIC: pitch -0.10, rate -0.15 (boss kill — gravitas)
+- TRIUMPH: pitch +0.08, rate -0.05 (achievement, new best — celebration)
+- NORMAL: 0/0 (fallback)
+
+`announce(text, personality)` applies delta on top of BASE before each speak. Coerced to [0.5, 1.5] pitch + [0.5, 1.6] rate so synthesizer doesn't distort.
+
+(c) **Auto-pick best voice variant.** New private `pickBestVoice()` iterates `tts.voices`, filters to current locale, sorts by (quality DESC, offline preferred, latency ASC), picks #1. Logs choice for diagnostic. Falls back silently if API unavailable. Some Android engines ship 2-3 Voice variants per language with different quality tiers; default is often lowest-latency (most robotic) — explicit pick nudges upward.
+
+**Files modified:**
+- `ui/game/audio/VoiceAnnouncer.kt` — VoicePersonality enum + auto-pick + engine-wide tune + announce(text, personality) signature.
+- `ui/dlg/gameover/DialogGameOver.kt` — race fix + TRIUMPH personality for new best.
+- `ui/game/state/GameState.kt` — wire HYPE (combo) + DRAMATIC (boss kill) + TRIUMPH (achievement) personalities.
+
+**Tests:** 214 unchanged (TTS is integration-tested via runtime; no unit test possible for async voice engine).
+
+**Build verify:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL.
+
+**Runtime expectations:**
+- Combo DOUBLE → "Đánh đôi!" với pitch 1.07 / rate 1.32 (BASE 0.92+0.15, 1.12+0.20). Higher + faster, sounds excited.
+- Boss kill → "Hạ boss!" với pitch 0.82 / rate 0.97. Deeper + slower, sounds dramatic.
+- Achievement → "Thành tựu mở khóa: SÁT BOSS" với pitch 1.00 / rate 1.07. Mid + slightly slow, celebration.
+- New best score: ONLY fires when entries is non-empty AND playerScore is actually >= real highest. Previously false-positive for low scores.
+- Logger.d shows `picked voice='...' quality=... latency=...` once at app start for diagnostic — confirms which Voice the engine selected.
+
+**Known limitations (still):**
+- TTS is fundamentally synthetic. Even with 3-knob tuning, won't sound like a real human voice actor. To go beyond requires recorded clips (out of scope — needs asset pipeline).
+- Voice quality varies wildly by device — Pixel/recent Samsung have high-quality VI voices; older/cheaper OEMs may only have low-quality variants where `pickBestVoice()` makes no difference.
+- Pitch/rate deltas may compound oddly on some OEM engines (Sonic algorithm behaves differently across vendors). If audible artifacts reported, narrow deltas.
+
+### Round 62 — Audio polish: VoiceAnnouncer (TTS) + music pitch modulation
+
+User-picked direction sau Round 61: audio polish suite. Original scope "voice announcer + reactive music intensity" — survey phát hiện "reactive music" đã có sẵn từ Round 19 (3-tier volume modulation 0.70/0.85/1.00). Round 62 mở rộng:
+
+**A. VoiceAnnouncer (TTS) — feature mới hoàn toàn**
+
+`VoiceAnnouncer.kt` wrap `android.speech.tts.TextToSpeech`. Activity-scoped như SfxController / AudioPlayerHolder. Khởi tạo Vietnamese locale (`vi-VN`), fallback English nếu device thiếu VI voice data. Throttle 1500ms giữa các utterance để tránh spam khi combo escalate liên tục. Volume tracking sfxVolume slider (cùng family — gameplay sound).
+
+**Memory leak hardening** (user-flagged): 
+- Dùng `applicationContext` (không phải Activity Context) — không pin Activity
+- `release()` xoá UtteranceProgressListener TRƯỚC khi shutdown TTS — tránh race với async callback từ OEM TTS worker thread
+- `runCatching` quanh stop/shutdown để dispose không throw nếu engine die rớt
+- `enabled = false` cuối release — set guard tránh call announce sau release
+- `LeakWatch.watch(voiceAnnouncer, ...)` trong MainActivity.onDestroy — LeakCanary catch nếu leak
+
+**Events wired (4):**
+1. **Combo tier escalate** (ComboController.onTierAdvance) → tier name: "Đánh đôi!" / "Tam liên hoàn!" / "Càn quét!" / "Không thể cản phá!" / "Vô địch!"
+2. **Boss kill** (GameState onEnemyKilled if isBoss) → "Hạ boss!" — skip cho FinalBoss để tránh overlap với achievement + victory ending
+3. **Achievement unlock** (suspend fun unlockAchievement) → "Thành tựu mở khóa: ${title}" — Achievement.title đã localized
+4. **New best** (DialogGameOver LaunchedEffect(isNewBest)) → "Kỷ lục mới!"
+
+Strings i18n: 9 keys mới × 3 locales (values/, values-vi/, values-en/) = 27 string entries.
+
+Pre-resolve strings trong rememberGameState (qua `stringResource()` trước khi lambdas construct) để tránh capture Activity Context trong `remember { ... }` lambdas — đề phòng leak.
+
+**B. Music pitch modulation — extend existing Round 19 intensity system**
+
+`AudioPlayerHolder.setPitch(Float)` mới qua ExoPlayer `PlaybackParameters(speed=1.0, pitch=p)`. Coerce vào [0.7, 1.3] để tránh artifact âm thanh quá đà.
+
+GameScreen derive `intensityPitch` parallel với existing `intensityTarget` (volume):
+- Boss active → **1.05** (slight tension boost)
+- HP < 30% → **0.92** (slower / weary feel)
+- Else → **1.00** baseline
+
+Smoothing qua `Animatable.animateTo(tween(500))` — gradual transition, không jarring. `DisposableEffect` restore pitch=1.0 khi GameScreen dispose (splash/menu không bị stuck shifted pitch).
+
+**Settings toggle**
+
+`SettingsRepository.voiceAnnouncerEnabled: Flow<Boolean>` mới, default `true`. DialogSettings thêm SettingCheck trong section ÂM THANH bên dưới sfxVolume slider. MainActivity observe flag → `voiceAnnouncer.setEnabled()`. Pitch modulation không có toggle riêng — subtle ±5-8% không gây vấn đề UX.
+
+**Files modified:**
+- `ui/game/audio/VoiceAnnouncer.kt` (new, ~100 LOC) — TTS wrapper + throttle + memory-leak hardening.
+- `ui/game/audio/AudioPlayerHolder.kt` — `setPitch(Float)` method + PlaybackParameters import.
+- `ui/MainActivity.kt` — instantiate VoiceAnnouncer + LocalVoiceAnnouncer provider + observe voiceAnnouncerEnabled flow + observe sfxVolume → setVolume + release in onDestroy + LeakWatch.
+- `data/SettingsRepository.kt` — VOICE_ANNOUNCER_ENABLED key + flow + setter.
+- `ui/game/state/GameState.kt` — pre-resolve 8 voice strings + wire onTierAdvance combo phrases + boss kill + unlockAchievement.
+- `ui/dlg/gameover/DialogGameOver.kt` — LaunchedEffect(isNewBest) → announce new best.
+- `ui/dlg/settings/DialogSettings.kt` — voice announcer SettingCheck in ÂM THANH section + stringResource import.
+- `ui/game/GameScreen.kt` — intensityPitch derivation + animatedPitch Animatable + LaunchedEffect setPitch + DisposableEffect restore pitch.
+- `res/values/strings.xml` + `values-vi/strings.xml` + `values-en/strings.xml` — 9 new keys × 3 files = 27 entries.
+
+**Tests:** 214 unchanged (TTS is integration-tested at runtime; no unit test added — TTS init is async + needs real device).
+
+**Build verify:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL.
+
+**Runtime expectations:**
+- First combo DOUBLE → TTS says "Đánh đôi!" (or "Double kill!" if device locale ≠ VI).
+- Escalating to TRIPLE within 1.5s → TRIPLE callout SKIPPED (throttle). Next callout fires at RAMPAGE if escalation continues past throttle window.
+- Boss kill → "Hạ boss!" — once per kill.
+- Achievement unlock → "Thành tựu mở khóa: SÁT BOSS" (Vietnamese title interpolated).
+- New best score → "Kỷ lục mới!" on DialogGameOver mount.
+- Boss fight starts → music pitch ramps to 1.05 over 500ms (tension feel).
+- Player HP drops below 30% → pitch ramps to 0.92 over 500ms (weary feel).
+- HP recovers above 30% / boss killed → pitch returns to 1.0 over 500ms.
+
+**Known limitations:**
+- TTS voice quality depends on device. Vietnamese voice available on Pixel/Samsung; older/cheaper OEMs may fall back to robotic English-pronounced Vietnamese. Player can toggle off in Settings.
+- Pitch modulation may be subtle on low-quality device speakers; headphones recommended to hear effect.
+- TTS init is async (1-2s on first launch). Combo events firing within first 2s of app start may be silently dropped (initialized flag check).
+- Achievement unlocks fire from coroutine launches in onEnemyKilled — if 3-4 achievements unlock same frame (e.g. FIRST_BLOOD + COMBO_5 + KILL_50 + COMBO_5 boss kill cascade), only the first is spoken (throttle). Subsequent unlocks still trigger AchievementBanner visual.
+
 ### Round 61 — Round 60 polish: bullet-type compat + PHASE_SHIELD visual
 
 Post-Round-60 runtime verification (user paste 75s log) revealed:

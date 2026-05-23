@@ -31,6 +31,8 @@ object SettingsKeys {
     val SECONDARY_WEAPON = stringPreferencesKey("secondary_weapon")
     /** Wave 6 (36x) round 45 — pre-game BulletType pick. Ship starts each run with this active for 10s. */
     val PREFERRED_BULLET_TYPE = stringPreferencesKey("preferred_bullet_type")
+    /** Round 62 — voice announcer (TTS) toggle. Default true. */
+    val VOICE_ANNOUNCER_ENABLED = booleanPreferencesKey("voice_announcer_enabled")
 }
 
 /**
@@ -153,6 +155,14 @@ class SettingsRepository(private val appContext: Context) {
             com.tranphuloi.neon.ui.game.ship.laser.BulletType
                 .fromName(it[SettingsKeys.PREFERRED_BULLET_TYPE])
         }
+    /**
+     * Round 62 — VoiceAnnouncer (TTS) toggle. Default `true`. When off, TTS
+     * still initializes but `announce()` is a no-op. Player can disable if
+     * device TTS engine quality is poor.
+     */
+    val voiceAnnouncerEnabled: Flow<Boolean> = appContext.dataStore.data.map {
+        it[SettingsKeys.VOICE_ANNOUNCER_ENABLED] ?: true
+    }
 
     suspend fun setReduceMotion(value: Boolean) {
         Logger.d("SettingsRepository.setReduceMotion=$value")
@@ -215,5 +225,10 @@ class SettingsRepository(private val appContext: Context) {
     suspend fun setPreferredBulletType(value: com.tranphuloi.neon.ui.game.ship.laser.BulletType) {
         Logger.d("SettingsRepository.setPreferredBulletType=${value.name}")
         appContext.dataStore.edit { it[SettingsKeys.PREFERRED_BULLET_TYPE] = value.name }
+    }
+
+    suspend fun setVoiceAnnouncerEnabled(value: Boolean) {
+        Logger.d("SettingsRepository.setVoiceAnnouncerEnabled=$value")
+        appContext.dataStore.edit { it[SettingsKeys.VOICE_ANNOUNCER_ENABLED] = value }
     }
 }

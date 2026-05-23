@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -86,6 +87,7 @@ fun DialogSettings(
     val sfxVolume by settings.sfxVolume.collectAsState(initial = 90)
     val vibrationEnabled by settings.vibrationEnabled.collectAsState(initial = true)
     val reduceMotion by settings.reduceMotion.collectAsState(initial = false)
+    val voiceAnnouncerEnabled by settings.voiceAnnouncerEnabled.collectAsState(initial = true)
     val difficulty by settings.difficulty.collectAsState(initial = Difficulty.NORMAL)
     val shipSkin by settings.shipSkin.collectAsState(initial = ShipSkin.AURA_CYAN)
     val colorBlindMode by settings.colorBlindMode.collectAsState(
@@ -127,6 +129,14 @@ fun DialogSettings(
                     value = sfxVolume,
                     color = NeonGold,
                     onChange = { scope.launch { settings.setSfxVolume(it) } },
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                // Round 62 — TTS announcer toggle in Audio section since it's
+                // gameplay sound. Uses sfxVolume slider (no separate TTS volume).
+                SettingCheck(
+                    label = stringResource(com.tranphuloi.neon.R.string.settings_voice_announcer),
+                    value = voiceAnnouncerEnabled,
+                    onChange = { scope.launch { settings.setVoiceAnnouncerEnabled(it) } },
                 )
             }
 

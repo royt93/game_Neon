@@ -77,6 +77,21 @@ fun rememberGameState(): GameState {
     }
     val coroutineScope = rememberCoroutineScope()
 
+    // Round 62 — VoiceAnnouncer (TTS) for hype callouts. Captured via
+    // CompositionLocal so wiring respects the toggle from MainActivity.
+    // Strings are pre-resolved here (not inside callbacks) to avoid retaining
+    // Activity Context in long-lived `remember { ... }` lambdas — pre-resolved
+    // String values are safe to capture.
+    val voiceAnnouncer = com.tranphuloi.neon.ui.game.audio.LocalVoiceAnnouncer.current
+    val voiceComboDouble = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_double)
+    val voiceComboTriple = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_triple)
+    val voiceComboRampage = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_rampage)
+    val voiceComboUnstoppable = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_unstoppable)
+    val voiceComboGodlike = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_godlike)
+    val voiceBossDown = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_boss_down)
+    val voiceAchievementUnlockedFmt = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_achievement_unlocked)
+    val voiceNewBest = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_new_best)
+
     var background by remember {
         mutableStateOf(
             BackgroundState(
@@ -249,6 +264,16 @@ fun rememberGameState(): GameState {
             achievementUnlocked = achievement
             achievementShownAtMillis = System.currentTimeMillis()
             Logger.d("Achievement unlocked: id=${achievement.id} tier=${achievement.tier} title=\"${achievement.title}\" desc=\"${achievement.description}\"")
+            // Round 62 — TTS callout interpolates the achievement title (already
+            // localized via Achievement.title). Throttle inside VoiceAnnouncer
+            // ensures back-to-back unlocks (e.g. KILL_50 + COMBO_5 in same frame)
+            // only speak the first one.
+            // Round 63 — TRIUMPH personality: slight pitch lift + relaxed rate
+            // for achievement reveal. Celebration feel.
+            voiceAnnouncer.announce(
+                voiceAchievementUnlockedFmt.format(achievement.title),
+                personality = com.tranphuloi.neon.ui.game.audio.VoicePersonality.TRIUMPH,
+            )
         }
     }
 
@@ -570,6 +595,25 @@ fun rememberGameState(): GameState {
             onTierAdvance = { tier ->
                 comboPopupTier = tier
                 comboPopupShownMillis = System.currentTimeMillis()
+                // Round 62 — TTS hype callout per combo tier. VoiceAnnouncer
+                // throttles to 1.5s so rapid tier escalation (DOUBLE→TRIPLE
+                // within 500ms) only speaks the LATEST event.
+                val phrase = when (tier) {
+                    com.tranphuloi.neon.ui.game.combo.ComboTier.DOUBLE -> voiceComboDouble
+                    com.tranphuloi.neon.ui.game.combo.ComboTier.TRIPLE -> voiceComboTriple
+                    com.tranphuloi.neon.ui.game.combo.ComboTier.RAMPAGE -> voiceComboRampage
+                    com.tranphuloi.neon.ui.game.combo.ComboTier.UNSTOPPABLE -> voiceComboUnstoppable
+                    com.tranphuloi.neon.ui.game.combo.ComboTier.GODLIKE -> voiceComboGodlike
+                    else -> null
+                }
+                if (phrase != null) {
+                    // Round 63 — HYPE personality: higher pitch + faster rate
+                    // for combo escalation. Conveys excitement.
+                    voiceAnnouncer.announce(
+                        phrase,
+                        personality = com.tranphuloi.neon.ui.game.audio.VoicePersonality.HYPE,
+                    )
+                }
             }
         )
     }
@@ -652,6 +696,17 @@ fun rememberGameState(): GameState {
                 if (enemy.isBoss) {
                     bossesDefeatedTotal++
                     smartBombs++       // reward: +1 smart bomb per boss kill
+                    // Round 62 — TTS callout. Skip for FinalBoss because the
+                    // achievement unlock + victory ending will speak afterward
+                    // and we don't want a 3-way overlap of utterances.
+                    if (enemy !is com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBoss) {
+                        // Round 63 — DRAMATIC personality: lower pitch + slower
+                        // rate for boss kill. Conveys gravitas.
+                        voiceAnnouncer.announce(
+                            voiceBossDown,
+                            personality = com.tranphuloi.neon.ui.game.audio.VoicePersonality.DRAMATIC,
+                        )
+                    }
                     // Round 34 (42x) — trigger roguelike buff picker after every
                     // boss kill (except FinalBoss → that's victory branch).
                     if (enemy !is com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBoss) {

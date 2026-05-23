@@ -301,9 +301,17 @@ fun GameScreen(
     LaunchedEffect(effectiveMusicVolume) {
         audioHolder.setVolume(effectiveMusicVolume)
     }
+
+    // Round 64 — pitch modulation REVERTED. Round 62 introduced boss=1.05 +
+    // low-HP=0.92 pitch shift on BGM ExoPlayer.PlaybackParameters. User feedback
+    // (runtime log Round 63 verify): "music nền có vẻ như bị overlay" — the
+    // pitch shift made the multi-instrument BGM tracks sound off-key (different
+    // instruments shifting non-uniformly through Sonic algorithm). Volume
+    // intensity (Round 19/8c) preserved — it's the proven driver. setPitch
+    // method on AudioPlayerHolder kept as public API in case future need.
     DisposableEffect(audioHolder) {
         onDispose {
-            // Restore baseline so splash/menus aren't stuck at attenuated volume.
+            // Restore baseline volume so splash/menus aren't stuck attenuated.
             audioHolder.setVolume(musicVolumePref)
             Logger.d("GameScreen disposed → music volume restored to $musicVolumePref")
         }

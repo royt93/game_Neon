@@ -69,7 +69,12 @@
       "Bash(awk -F'\"' '{sum += $2} END {print \"TOTAL TESTS:\", sum}')",
       "Bash(./gradlew compileDevDebugKotlin assembleDevDebug)",
       "Bash(./gradlew compileProductionReleaseKotlin testDevDebugUnitTest assembleDevDebug)",
-      "Bash(awk -F'\"' '{sum += $2} END {print \"TOTAL:\", sum}')"
+      "Bash(awk -F'\"' '{sum += $2} END {print \"TOTAL:\", sum}')",
+      "Bash(awk '/^# Phần 4/,/^# Phần 5/' /Users/loitran/AndroidStudioProjects/@mckimquyen/@gameKotlin/5_Neon/doc/feature.md)",
+      "Bash(awk '/^# Phần 6/,/^# Phần 7/' /Users/loitran/AndroidStudioProjects/@mckimquyen/@gameKotlin/5_Neon/doc/feature.md)",
+      "Bash(awk '/^# Phần 7/,/^# Notes/' /Users/loitran/AndroidStudioProjects/@mckimquyen/@gameKotlin/5_Neon/doc/feature.md)",
+      "Bash(./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest assembleDevDebug)",
+      "Bash(./gradlew compileDevDebugKotlin testDevDebugUnitTest)"
     ]
   }
 }

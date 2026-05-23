@@ -22,4 +22,15 @@
     <string name="daily_challenge_label">Thử Thách Hàng Ngày</string>
     <string name="daily_seed_label">Ngày %1$s</string>
     <string name="daily_best_today">Kỷ lục hôm nay: %1$s</string>
+
+    <!-- Round 62 — VoiceAnnouncer (TTS) phrases. -->
+    <string name="voice_combo_double">Đánh đôi!</string>
+    <string name="voice_combo_triple">Tam liên hoàn!</string>
+    <string name="voice_combo_rampage">Càn quét!</string>
+    <string name="voice_combo_unstoppable">Không thể cản phá!</string>
+    <string name="voice_combo_godlike">Vô địch!</string>
+    <string name="voice_boss_down">Hạ boss!</string>
+    <string name="voice_achievement_unlocked">Thành tựu mở khóa: %1$s</string>
+    <string name="voice_new_best">Kỷ lục mới!</string>
+    <string name="settings_voice_announcer">Lời thoại trận đấu</string>
 </resources>

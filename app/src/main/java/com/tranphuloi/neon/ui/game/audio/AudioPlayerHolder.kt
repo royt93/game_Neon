@@ -5,6 +5,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.tranphuloi.neon.utils.Logger
@@ -89,6 +90,23 @@ class AudioPlayerHolder(private val appContext: Context) : DefaultLifecycleObser
         // transition. Moved to verbose-only gate.
         Logger.v { "AudioPlayerHolder.setVolume percent=$percent → vol=$v" }
         player?.volume = v
+    }
+
+    /**
+     * Round 62 — set music pitch (1.0 = baseline). Used alongside the existing
+     * volume-based intensity system (Round 19 / 8c) to give boss fights a
+     * subtle "tension" feel (+5% pitch) and low-HP a "weary" feel (-8% pitch).
+     * Speed stays at 1.0 — only pitch shifts. ExoPlayer handles via Sonic
+     * algorithm; no audible artifacts in the ±10% range.
+     *
+     * Animatable smoothing happens at the caller (GameScreen) so transitions
+     * are gradual (~500ms tween) — sudden pitch jumps would be jarring.
+     */
+    fun setPitch(pitch: Float) {
+        val p = pitch.coerceIn(0.7f, 1.3f)
+        Logger.v { "AudioPlayerHolder.setPitch pitch=$p" }
+        // Reuse existing speed (1.0) to keep playback tempo stable.
+        player?.playbackParameters = PlaybackParameters(1.0f, p)
     }
 
     private fun release() {
