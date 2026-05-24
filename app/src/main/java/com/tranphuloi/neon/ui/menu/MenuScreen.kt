@@ -112,6 +112,13 @@ fun MenuScreen(
         Logger.d("MenuScreen entered (mode=$mode, modifier=$runModifier, checkpoint=$checkpoint, balance=$balance)")
     }
 
+    // Round 76 (R76f user audit issue 6) — Menu nhạc nền. Trước fix MenuScreen
+    // không wire AudioPlayer → bkg.mp3 không play khi vào menu.
+    // AudioPlayer(GameStatus.RUNNING) → holder.play() activates background music.
+    com.tranphuloi.neon.ui.game.audio.AudioPlayer(
+        gameStatus = com.tranphuloi.neon.ui.game.settings.GameStatus.RUNNING,
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()

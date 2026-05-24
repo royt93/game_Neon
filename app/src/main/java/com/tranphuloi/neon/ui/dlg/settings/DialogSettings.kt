@@ -267,9 +267,10 @@ fun DialogSettings(
                         modifier = Modifier.weight(1f),
                     ) {
                         Logger.d("Settings: Privacy clicked")
+                        // Round 76 (R76a) — Use LegalLinks constant thay placeholder.
                         val intent = Intent(
                             Intent.ACTION_VIEW,
-                            Uri.parse("https://example.com/privacy")
+                            Uri.parse(com.tranphuloi.neon.common.LegalLinks.PRIVACY_POLICY_URL)
                         ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         runCatching { context.startActivity(intent) }.onFailure {
                             Logger.w("Settings: Privacy URL open failed", it)

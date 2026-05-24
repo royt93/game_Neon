@@ -1562,6 +1562,7 @@ fun rememberGameState(): GameState {
         bossesDefeatedTotal = bossesDefeatedTotal,
         maxComboReached = maxComboReached,
         stagesReached = stageController.currentIndex(),
+        shipShape = runContext.shipShape,
         smartBombs = smartBombs,
         mines = mines,
         lastBurstSweepMillis = lastBurstSweepMillis,
@@ -1748,6 +1749,9 @@ data class GameState(
     val bossesDefeatedTotal: Int,
     val maxComboReached: Int,
     val stagesReached: Int,
+    /** Round 76 (R76d) — selected ship shape, exposed for HUD badge. */
+    val shipShape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape =
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.FIGHTER,
     val smartBombs: Int,
     val dispatchSmartBomb: () -> Unit,
     /**

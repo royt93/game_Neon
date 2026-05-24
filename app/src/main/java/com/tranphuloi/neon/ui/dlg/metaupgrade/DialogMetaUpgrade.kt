@@ -1,5 +1,7 @@
 package com.tranphuloi.neon.ui.dlg.metaupgrade
 
+import androidx.compose.ui.text.font.FontStyle
+import com.tranphuloi.neon.common.NeonRedAlert
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -74,24 +76,38 @@ fun DialogMetaUpgrade(onDismiss: () -> Unit) {
         },
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Balance row (under header, right-aligned)
+            // Round 76 (R76e) — Balance row clearer "Khoáng có: XXX" thay ♦XXX.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.End,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    text = "♦ $balance",
-                    color = NeonCyan,
+                    text = "Khoáng có: ",
+                    color = Color.White.copy(alpha = 0.75f),
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "♦ $balance",
+                    color = NeonGold,
+                    fontWeight = FontWeight.Black,
                     fontSize = 22.sp,
                 )
             }
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Dùng khoáng vật tích lũy mua nâng cấp vĩnh viễn.",
+                text = "Mua nâng cấp vĩnh viễn — áp dụng cho mọi lần chơi sau.",
                 color = Color.White.copy(alpha = 0.75f),
-                fontSize = 14.sp,
+                fontSize = 13.sp,
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            // Round 76 (R76e) — Tier legend giải thích NỀN TẢNG / NHÁNH / TỐI THƯỢNG.
+            Text(
+                text = "NỀN TẢNG = mở khóa sẵn · NHÁNH = cần cấp ≥2 nốt cha · TỐI THƯỢNG = endgame",
+                color = Color.White.copy(alpha = 0.55f),
+                fontSize = 10.sp,
+                fontStyle = FontStyle.Italic,
             )
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -138,10 +154,11 @@ private fun NodeRow(
     val rowAlpha = if (!prereqMet) 0.4f else 1f
 
     val glyph = nodeGlyph(node.key)
+    // Round 76 (R76e) — friendly tier label thay TIER I/II/III jargon.
     val tierLabel = when (node.tierIndex) {
-        0 -> "TIER I"
-        1 -> "TIER II"
-        else -> "TIER III"
+        0 -> "NỀN TẢNG"
+        1 -> "NHÁNH"
+        else -> "TỐI THƯỢNG"
     }
 
     // Round 30 revamp — icon + tier badge + progress bar + buy button
@@ -196,23 +213,40 @@ private fun NodeRow(
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
-            // Progress bar
-            ProgressBarSegments(
-                currentRank = currentRank,
-                maxRank = node.maxRank,
-                color = color.copy(alpha = rowAlpha),
-            )
+            // Round 76 (R76e) — Rank explicit "Cấp X/Y" + segmented bar.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Cấp $currentRank/${node.maxRank}",
+                    color = color.copy(alpha = 0.85f * rowAlpha),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                ProgressBarSegments(
+                    currentRank = currentRank,
+                    maxRank = node.maxRank,
+                    color = color.copy(alpha = rowAlpha),
+                )
+            }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = node.description,
-                color = Color.White.copy(alpha = 0.80f * rowAlpha),
+                color = Color.White.copy(alpha = 0.85f * rowAlpha),
                 fontSize = 12.sp,
             )
+            // Round 76 (R76e) — "Mua → cấp X" preview rõ ràng hơn ♦XXX cost.
             if (!prereqMet) {
                 Text(
-                    text = "Khóa — cần cấp ${node.minRequiredParentRank} của nốt cha",
+                    text = "🔒 Khoá — cần cấp ${node.minRequiredParentRank} của nốt nền",
                     color = NeonViolet.copy(alpha = 0.85f),
                     fontSize = 11.sp,
+                )
+            } else if (!atMax) {
+                Text(
+                    text = "Mua tiếp → cấp ${currentRank + 1} · giá $nextCost khoáng",
+                    color = if (canAfford) color.copy(alpha = 0.85f) else Color.White.copy(alpha = 0.5f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
                 )
             }
         }
@@ -230,33 +264,45 @@ private fun NodeRow(
             }
             !prereqMet -> Text("🔒", color = NeonViolet, fontSize = 18.sp)
             else -> {
+                // Round 76 (R76e) — Buy button clearer "MUA / Khoáng" + diamond
+                // icon thay vì plain ♦XXX. Disabled state visible label "Cần XXX".
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .clip(RoundedCornerShape(10.dp))
                         .background(
-                            if (canAfford) color.copy(alpha = 0.30f) else Color.Transparent
+                            if (canAfford) color.copy(alpha = 0.30f) else Color.White.copy(alpha = 0.05f)
                         )
                         .border(
-                            BorderStroke(1.dp, color.copy(alpha = if (canAfford) 0.9f else 0.35f)),
+                            BorderStroke(1.5.dp, color.copy(alpha = if (canAfford) 0.95f else 0.30f)),
                             RoundedCornerShape(10.dp),
                         )
                         .clickable(enabled = canAfford) { onBuy() }
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                        .padding(horizontal = 14.dp, vertical = 10.dp),
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "♦",
-                            color = if (canAfford) NeonGold else Color.White.copy(alpha = 0.4f),
+                            text = if (canAfford) "MUA" else "Thiếu",
+                            color = if (canAfford) color else NeonRedAlert.copy(alpha = 0.7f),
                             fontWeight = FontWeight.Black,
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                         )
-                        Text(
-                            text = "$nextCost",
-                            color = if (canAfford) color else Color.White.copy(alpha = 0.4f),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp,
-                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "♦",
+                                color = if (canAfford) NeonGold else Color.White.copy(alpha = 0.4f),
+                                fontWeight = FontWeight.Black,
+                                fontSize = 11.sp,
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                text = "$nextCost",
+                                color = if (canAfford) NeonGold else Color.White.copy(alpha = 0.4f),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                            )
+                        }
                     }
                 }
             }

@@ -44,6 +44,15 @@ fun IndicatorStatus(
     lastMineralPickupMillis: Long,
     lastBoosterPickupMillis: Long,
     hasReviveToken: Boolean = false,
+    // Round 76 (R76d) — user audit: HUD xấu + ít info. Add chapter / stage /
+    // enemies killed / bosses defeated / ship shape badge.
+    currentChapterId: Int = 0,
+    currentChapterName: String = "",
+    stagesReached: Int = 0,
+    enemiesKilledTotal: Int = 0,
+    bossesDefeatedTotal: Int = 0,
+    shipShape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape =
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.FIGHTER,
     modifier: Modifier = Modifier,
 ) {
     // Per-stat flash timer ticks at 50ms only while a flash is in flight (350ms each).
@@ -84,6 +93,37 @@ fun IndicatorStatus(
     }
 
     Column(modifier = modifier.padding(start = buttonPaddingEnd, top = buttonPaddingTop)) {
+        // Round 76 (R76d) — Chapter + Stage badge (top row, compact).
+        if (currentChapterId > 0) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.padding(start = 2.dp, bottom = 4.dp),
+            ) {
+                Text(
+                    text = "Ch.$currentChapterId",
+                    color = NeonGold,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    modifier = Modifier.neonGlow(NeonGold, intensity = 0.4f, radiusFactor = 1.2f),
+                )
+                if (currentChapterName.isNotEmpty()) {
+                    Text(
+                        text = "· $currentChapterName",
+                        color = Color.White.copy(alpha = 0.75f),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                if (stagesReached > 0) {
+                    Text(
+                        text = " · Stage $stagesReached",
+                        color = Color.White.copy(alpha = 0.6f),
+                        fontSize = 10.sp,
+                    )
+                }
+            }
+        }
         Box(modifier = modifier.height(height = height)) {
             // Round 67.6 — Vector HP frame replacing button_hp_indicator.webp.
             // Stadium (capsule) outline + neon glow, color tracks HP tier.
@@ -207,6 +247,45 @@ fun IndicatorStatus(
                     scaleX = mineralPulse
                     scaleY = mineralPulse
                 },
+            )
+        }
+        // Round 76 (R76d) — Combat counter row (enemies + bosses killed).
+        if (enemiesKilledTotal > 0 || bossesDefeatedTotal > 0) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(start = 2.dp),
+            ) {
+                Text(
+                    text = "⚔ $enemiesKilledTotal",
+                    color = NeonCyan.copy(alpha = 0.85f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                if (bossesDefeatedTotal > 0) {
+                    Text(
+                        text = "☠ $bossesDefeatedTotal",
+                        color = NeonRedAlert.copy(alpha = 0.85f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+            }
+        }
+        // Round 76 (R76d) — Ship shape badge.
+        if (shipShape != com.tranphuloi.neon.ui.game.ship.shape.ShipShape.FIGHTER) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "◈ ${shipShape.displayName}",
+                color = Color(0xFFB14CFF),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .padding(start = 2.dp)
+                    .clip(MaterialTheme.shapes.small)
+                    .background(Color(0xFFB14CFF).copy(alpha = 0.18f))
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
             )
         }
         // 14c: Auto-revive token indicator — small heart pill, only when held.

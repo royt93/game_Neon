@@ -968,6 +968,66 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 76 — User audit 6 issues: assets/UI clarity batch
+
+User feedback 5 issues + issue 6 inline:
+1. Enemy tab quá ít — chỉ 5 family card, không phản ánh 20 variant
+2. Boss tab quá ít — 5 BossKind summary, không per-chapter encounter
+3. HUD top-left UI xấu + ít info
+4. MetaUpgrade khó hiểu
+5. Privacy URL hardcode "example.com" → use Notion link
+6. (inline) Menu thiếu nhạc nền
+
+**R76a — Privacy URL constants:**
+- New `common/LegalLinks.kt` object với PRIVACY_POLICY_URL = "https://loitp.notion.site/Term-Privacy-Policy-Disclaimer-319b1cd8783942fa8923d2a3c9bce60f". Terms + Disclaimer cùng URL (single Notion page).
+- `DialogSettings.kt` privacy link dùng constant thay placeholder.
+
+**R76b — Enemies tab 20 individual variants:**
+- Replace Column 5 family summary cards → LazyColumn 20 individual variant cards + 1 status effects card. `EnemyVariantSpec` data class hold title/subtitle/description/color/draw signature `(DrawScope, Size) -> Unit`. Helper `enemyVariantSpecs()` defines 20: 5 SCOUT + 4 FIGHTER + 3 HEAVY + 4 ELITE + 4 BERSERKER. New preview helpers `drawOrbVariantPreview`, `drawChevronPreview`, `drawSpikePreviewV`.
+
+**R76c — Boss tab per-chapter breakdown:**
+- Replace 5 BossKind summary → 10 PER-CHAPTER ENCOUNTER cards. Ch1 Mid Orb + Ch1 End Crimson Star; Ch2 Mid Fractal + Ch2 End Emerald Cross; Ch3 Mid Swarm + Ch3 End Frozen Star (palette-shifted); Ch4 Mid Veteran Orb + Ch4 End Hostile Cross (red-shift); Ch5 Final Galaxy Overlord SPIDER. Per-chapter HP + pattern + audio cue documented.
+
+**R76d — HUD top-left enrich:**
+- `IndicatorStatus.kt` extended với 6 new fields: currentChapterId, currentChapterName, stagesReached, enemiesKilledTotal, bossesDefeatedTotal, shipShape.
+- Chapter badge row "Ch.X · ChapterName · Stage Y" at top (gold).
+- Combat counter row "⚔ X ☠ Y" (cyan/red) — only show > 0.
+- Ship shape badge "◈ TANK" violet — only show non-FIGHTER.
+- `GameState.shipShape` exposed in data class.
+- `chapterDisplayNameFor()` helper trong GameScreen.
+
+**R76e — MetaUpgrade UI clarity:**
+- Tier label "TIER I/II/III" → "NỀN TẢNG/NHÁNH/TỐI THƯỢNG" (friendly).
+- Add explicit "Cấp X/Y" text trước segmented bar.
+- Add "Mua tiếp → cấp X · giá Y khoáng" preview line — clearer than ♦XXX alone.
+- Buy button label "MUA" / "Thiếu" thay only ♦XXX icon.
+- Balance row: "Khoáng có: ♦XXX" label rõ hơn.
+- Add tier legend italic dưới header giải thích NỀN TẢNG / NHÁNH / TỐI THƯỢNG meaning.
+
+**R76f — Menu music wiring:**
+- `MenuScreen.kt` add `AudioPlayer(GameStatus.RUNNING)` invocation. Triggers `AudioPlayerHolder.play()` → background music bkg.mp3 plays on menu enter. Pause on screen transition handled by holder's lifecycle (existing).
+
+### Round 76 files
+
+**New:**
+- `common/LegalLinks.kt` (~25 LOC)
+
+**Modified:**
+- `ui/dlg/settings/DialogSettings.kt` — privacy URL constant
+- `ui/info/InfoScreen.kt` — 20 enemy variants + 10 boss encounters + new preview helpers
+- `ui/game/controls/IndicatorStatus.kt` — 6 new fields + 3 new UI sections
+- `ui/game/GameScreen.kt` — pass enriched HUD fields + chapterDisplayNameFor helper
+- `ui/game/state/GameState.kt` — shipShape field exposed
+- `ui/menu/MenuScreen.kt` — AudioPlayer wiring
+- `ui/dlg/metaupgrade/DialogMetaUpgrade.kt` — tier label rename + cost preview + buy button label + balance header + legend
+
+### Round 76 verification
+
+- `compileDevDebugKotlin` ✅
+- `compileProductionReleaseKotlin` ✅
+- `testDevDebugUnitTest` ✅ 223 tests pass
+- `assembleDevDebug` ✅ BUILD SUCCESSFUL
+
 ### Round 75 — Wire 11 orphan SkillNodes + constants refactor
 
 User: "tiếp tục". Wire all 11 SkillNodes orphan từ R74 audit finding. + user catch hardcoded keys: "meta_bullet_duration và meta_shield là gì? tại sao hardcode?" → refactor toàn bộ string keys sang `EffectiveStats.META_KEY_*` constants.

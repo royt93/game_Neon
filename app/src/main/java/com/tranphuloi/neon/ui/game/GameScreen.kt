@@ -93,6 +93,20 @@ private fun stageTintColor(chapterId: Int): Color {
     }
 }
 
+/**
+ * Round 76 (R76d) → audit fix — short chapter display name for HUD badge.
+ * Reads từ Chapter enum (single source of truth) thay vì duplicate string
+ * hardcode. Lowercase first letter của each word để badge gọn hơn ALL CAPS.
+ */
+private fun chapterDisplayNameFor(chapterId: Int): String {
+    val chapter = com.tranphuloi.neon.ui.game.stage.Chapter.entries.firstOrNull { it.id == chapterId }
+        ?: return ""
+    // Title Case từ "VÀNH ĐAI TIỂU HÀNH TINH" → "Vành Đai Tiểu Hành Tinh".
+    return chapter.displayName.split(" ").joinToString(" ") { word ->
+        word.lowercase().replaceFirstChar { it.uppercase() }
+    }
+}
+
 @Composable
 fun GameScreen(
     onGamePause: () -> Unit,
@@ -416,6 +430,13 @@ fun GameScreen(
             lastMineralPickupMillis = gameState.lastMineralPickupMillis,
             lastBoosterPickupMillis = gameState.lastBoosterPickupMillis,
             hasReviveToken = gameState.hasReviveToken,
+            // Round 76 (R76d) — pass enriched stats.
+            currentChapterId = gameState.currentChapterId,
+            currentChapterName = chapterDisplayNameFor(gameState.currentChapterId),
+            stagesReached = gameState.stagesReached,
+            enemiesKilledTotal = gameState.enemiesKilledTotal,
+            bossesDefeatedTotal = gameState.bossesDefeatedTotal,
+            shipShape = gameState.shipShape,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .zIndex(300f)

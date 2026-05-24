@@ -677,77 +677,163 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawShipPreview(
 
 @Composable
 private fun EnemiesTab() {
-    Column(modifier = Modifier.padding(horizontal = 12.dp).verticalScroll(rememberScrollState())) {
-        InfoCard(
-            color = Color(0xFF4FD4FF),
-            title = "Light Blue — SCOUT family (5 variants)",
-            subtitle = "Dart triangles · trinh sát nhanh",
-            description = "Triangles pointing DOWN (Chapter 3 — Hành Tinh Băng). " +
-                "5 variants với notch khác nhau. HP ×0.7, tốc độ ×1.3, sát thương ×0.8.",
-            iconDraw = { c -> drawEnemyDart(c, Color(0xFF4FD4FF), Color(0xFF1799CC)) },
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        InfoCard(
-            color = Color(0xFF6EFFAA),
-            title = "Green — FIGHTER family (4 variants)",
-            subtitle = "Hexagons · cân bằng baseline",
-            description = "Hexagons rotated theo variant (Chapter 2 — Mây Tinh Vân). " +
-                "HP ×1.0, tốc độ ×1.0, sát thương ×1.0 — baseline cho mọi family.",
-            iconDraw = { c -> drawEnemyHexagon(c, Color(0xFF6EFFAA), Color(0xFF24B86E)) },
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        InfoCard(
-            color = Color(0xFFFF5555),
-            title = "Red — HEAVY family (3 variants)",
-            subtitle = "Diamonds · heavy hitters",
-            description = "Diamonds với extra pip mỗi variant (Chapter 1 — Vành Đai Tiểu Hành Tinh). " +
-                "HP ×1.6, tốc độ ×0.7, sát thương ×1.3.",
-            iconDraw = { c -> drawEnemyDiamond(c, Color(0xFFFF5555), Color(0xFFCC1144)) },
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        InfoCard(
-            color = Color(0xFFB14CFF),
-            title = "Violet — ELITE family (4 variants)",
-            subtitle = "Cross + Orb · cân bằng cao",
-            description = "Cross (4 cánh + tip glow) + Orb (lõi + ring orbit). " +
-                "Xuất hiện ở Chapter 4 — Trạm Thù Địch. HP ×1.25, tốc độ ×1.1, sát thương ×1.1.",
-            iconDraw = { c -> drawCrossPreview(c, Color(0xFFB14CFF), Color(0xFF7020CC)) },
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        InfoCard(
-            color = Color(0xFFFF9020),
-            title = "Orange — BERSERKER family (4 variants)",
-            subtitle = "Chevron + Spike · sát thương cao",
-            description = "Chevron (mũi tên kép) + Spike (sao gai 8 cánh). " +
-                "Xuất hiện ở Chapter 5 — Lõi Thiên Hà. HP ×0.9, tốc độ ×1.2, sát thương ×1.4.",
-            iconDraw = { c -> drawSpikePreview(c, Color(0xFFFF9020), Color(0xFFCC5000)) },
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        InfoCard(
-            color = NeonMagenta,
-            title = "Status Effects (3)",
-            subtitle = "BURN / SLOW / STUN",
-            description = "BURN — 5HP/sec DoT (cam). SLOW — movement ×0.5 (cyan). " +
-                "STUN — stop firing 2s (vàng). 10% per hit (5% on boss). FIRE bullet luôn apply BURN 100%.",
-            iconDraw = { c ->
-                val cy = c.height / 2
-                val r = c.height * 0.13f
-                drawCircle(Color(0xFFFF6020), r, androidx.compose.ui.geometry.Offset(c.width * 0.25f, cy))
-                drawCircle(Color(0xFF00F0FF), r, androidx.compose.ui.geometry.Offset(c.width * 0.50f, cy))
-                drawCircle(Color(0xFFFFD040), r, androidx.compose.ui.geometry.Offset(c.width * 0.75f, cy))
-            },
-        )
+    // Round 76 (R76b) — Show all 20 individual enemy variants thay 5 family
+    // summary cards. Mỗi variant 1 card với preview thật, stats từ
+    // EnemyFamily.fromDrawableId() + chapter pool. + status effects ở cuối.
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        items(enemyVariantSpecs()) { spec ->
+            InfoCard(
+                color = spec.color,
+                title = spec.title,
+                subtitle = spec.subtitle,
+                description = spec.description,
+                iconDraw = { c -> spec.draw(this, c) },
+            )
+        }
+        item {
+            Spacer(modifier = Modifier.height(8.dp))
+            InfoCard(
+                color = NeonMagenta,
+                title = "Trạng thái đặc biệt (3)",
+                subtitle = "BURN / SLOW / STUN",
+                description = "BURN — 5HP/giây trong 3s (cam). SLOW — di chuyển ×0.5 (cyan). " +
+                    "STUN — ngưng bắn 2s (vàng). 10% mỗi hit (5% trên boss). " +
+                    "Đạn FIRE luôn apply BURN 100%.",
+                iconDraw = { c ->
+                    val cy = c.height / 2
+                    val r = c.height * 0.13f
+                    drawCircle(Color(0xFFFF6020), r, androidx.compose.ui.geometry.Offset(c.width * 0.25f, cy))
+                    drawCircle(Color(0xFF00F0FF), r, androidx.compose.ui.geometry.Offset(c.width * 0.50f, cy))
+                    drawCircle(Color(0xFFFFD040), r, androidx.compose.ui.geometry.Offset(c.width * 0.75f, cy))
+                },
+            )
+        }
     }
 }
 
+/** Round 76 (R76b) — spec data for 20 enemy variants.
+ *  draw signature: (DrawScope, Size) → Unit (non-extension để dễ store trong data class). */
+private data class EnemyVariantSpec(
+    val title: String,
+    val subtitle: String,
+    val description: String,
+    val color: Color,
+    val draw: (androidx.compose.ui.graphics.drawscope.DrawScope, androidx.compose.ui.geometry.Size) -> Unit,
+)
+
+private fun enemyVariantSpecs(): List<EnemyVariantSpec> {
+    // SCOUT (5 light blue darts)
+    val scoutColor = Color(0xFF4FD4FF); val scoutAccent = Color(0xFF1799CC)
+    // FIGHTER (4 green hexagons)
+    val fighterColor = Color(0xFF6EFFAA); val fighterAccent = Color(0xFF24B86E)
+    // HEAVY (3 red diamonds)
+    val heavyColor = Color(0xFFFF5555); val heavyAccent = Color(0xFFCC1144)
+    // ELITE (4 violet cross/orb)
+    val eliteColor = Color(0xFFB14CFF); val eliteAccent = Color(0xFF7020CC)
+    // BERSERKER (4 orange chevron/spike)
+    val berserkerColor = Color(0xFFFF9020); val berserkerAccent = Color(0xFFCC5000)
+    return listOf(
+        // SCOUT family — Chapter 3 (Hành Tinh Băng)
+        EnemyVariantSpec(
+            title = "1. SCOUT Mark-I", subtitle = "Chapter 3 · HP 126 · Tốc độ nhanh",
+            description = "Dart variant 0 — notch nhẹ. Thấy đầu tiên ở Hành Tinh Băng.",
+            color = scoutColor, draw = { sc, c -> sc.drawEnemyDart(c, scoutColor, scoutAccent, variant = 0) }),
+        EnemyVariantSpec(
+            title = "2. SCOUT Mark-II", subtitle = "Chapter 3 · HP 126",
+            description = "Dart variant 1 — notch sâu hơn. Spawn cùng formation Row.",
+            color = scoutColor, draw = { sc, c -> sc.drawEnemyDart(c, scoutColor, scoutAccent, variant = 1) }),
+        EnemyVariantSpec(
+            title = "3. SCOUT Mark-III", subtitle = "Chapter 3 · HP 126",
+            description = "Dart variant 2 — wing rộng hơn. Spawn formation ZigZag.",
+            color = scoutColor, draw = { sc, c -> sc.drawEnemyDart(c, scoutColor, scoutAccent, variant = 2) }),
+        EnemyVariantSpec(
+            title = "4. SCOUT Mark-IV", subtitle = "Chapter 3 · HP 126",
+            description = "Dart variant 3 — body thon dài. Spawn formation V.",
+            color = scoutColor, draw = { sc, c -> sc.drawEnemyDart(c, scoutColor, scoutAccent, variant = 3) }),
+        EnemyVariantSpec(
+            title = "5. SCOUT Mark-V", subtitle = "Chapter 3 + Chapter 4 + 5",
+            description = "Dart variant 4 — bigger, fast. Outro variant.",
+            color = scoutColor, draw = { sc, c -> sc.drawEnemyDart(c, scoutColor, scoutAccent, variant = 4) }),
+        // FIGHTER family — Chapter 2 (Mây Tinh Vân)
+        EnemyVariantSpec(
+            title = "6. FIGHTER Alpha", subtitle = "Chapter 2 · HP 180",
+            description = "Hexagon variant 0 — baseline cân bằng. Stats tham chiếu cho mọi family.",
+            color = fighterColor, draw = { sc, c -> sc.drawEnemyHexagon(c, fighterColor, fighterAccent, variant = 0) }),
+        EnemyVariantSpec(
+            title = "7. FIGHTER Bravo", subtitle = "Chapter 2 · HP 180",
+            description = "Hexagon variant 1 — rotated 30° để biến tấu visual.",
+            color = fighterColor, draw = { sc, c -> sc.drawEnemyHexagon(c, fighterColor, fighterAccent, variant = 1) }),
+        EnemyVariantSpec(
+            title = "8. FIGHTER Charlie", subtitle = "Chapter 2 · HP 180",
+            description = "Hexagon variant 2 — center pip lớn hơn.",
+            color = fighterColor, draw = { sc, c -> sc.drawEnemyHexagon(c, fighterColor, fighterAccent, variant = 2) }),
+        EnemyVariantSpec(
+            title = "9. FIGHTER Delta", subtitle = "Chapter 2 + 4 + 5 · HP 180",
+            description = "Hexagon variant 3 — outro variant lặp ở Chapter 4, 5.",
+            color = fighterColor, draw = { sc, c -> sc.drawEnemyHexagon(c, fighterColor, fighterAccent, variant = 3) }),
+        // HEAVY family — Chapter 1 (Vành Đai Tiểu Hành Tinh)
+        EnemyVariantSpec(
+            title = "10. HEAVY Tonk-A", subtitle = "Chapter 1 · HP 288 · Tốc độ chậm",
+            description = "Diamond variant 0 — heavy hitter, ×1.3 damage. Bắt đầu Vành Đai.",
+            color = heavyColor, draw = { sc, c -> sc.drawEnemyDiamond(c, heavyColor, heavyAccent, variant = 0) }),
+        EnemyVariantSpec(
+            title = "11. HEAVY Tonk-B", subtitle = "Chapter 1 + 4 · HP 288",
+            description = "Diamond variant 1 — pip giữa, double-layer. Lặp ở Trạm Thù Địch.",
+            color = heavyColor, draw = { sc, c -> sc.drawEnemyDiamond(c, heavyColor, heavyAccent, variant = 1) }),
+        EnemyVariantSpec(
+            title = "12. HEAVY Tonk-C", subtitle = "Chapter 1 + 4 + 5 · HP 288",
+            description = "Diamond variant 2 — outro variant. Endgame anchor enemy.",
+            color = heavyColor, draw = { sc, c -> sc.drawEnemyDiamond(c, heavyColor, heavyAccent, variant = 2) }),
+        // ELITE family — Chapter 4 (Trạm Thù Địch)
+        EnemyVariantSpec(
+            title = "13. ELITE Cross-α", subtitle = "Chapter 4 · HP 225 · ×1.1 dmg",
+            description = "Cross variant 0 — 4 cánh + tip glow nhỏ. Arm spinner spread.",
+            color = eliteColor, draw = { sc, c -> sc.drawCrossPreview(c, eliteColor, eliteAccent, variant = 0) }),
+        EnemyVariantSpec(
+            title = "14. ELITE Cross-β", subtitle = "Chapter 4 · HP 225",
+            description = "Cross variant 1 — arm dài hơn + tip glow lớn.",
+            color = eliteColor, draw = { sc, c -> sc.drawCrossPreview(c, eliteColor, eliteAccent, variant = 1) }),
+        EnemyVariantSpec(
+            title = "15. ELITE Orb-α", subtitle = "Chapter 4 · HP 225",
+            description = "Orb variant 0 — single orbit ring. Floating attacker.",
+            color = eliteColor, draw = { sc, c -> sc.drawOrbVariantPreview(c, eliteColor, eliteAccent, variant = 0) }),
+        EnemyVariantSpec(
+            title = "16. ELITE Orb-β", subtitle = "Chapter 4 · HP 225",
+            description = "Orb variant 1 — double orbit ring. More complex visual.",
+            color = eliteColor, draw = { sc, c -> sc.drawOrbVariantPreview(c, eliteColor, eliteAccent, variant = 1) }),
+        // BERSERKER family — Chapter 5 (Lõi Thiên Hà)
+        EnemyVariantSpec(
+            title = "17. BERSERKER Chevron-α", subtitle = "Chapter 5 · HP 162 · ×1.4 dmg",
+            description = "Chevron variant 0 — mũi tên đơn. Damage cao nhất game.",
+            color = berserkerColor, draw = { sc, c -> sc.drawChevronPreview(c, berserkerColor, berserkerAccent, variant = 0) }),
+        EnemyVariantSpec(
+            title = "18. BERSERKER Chevron-β", subtitle = "Chapter 5 · HP 162",
+            description = "Chevron variant 1 — mũi tên kép xếp chồng.",
+            color = berserkerColor, draw = { sc, c -> sc.drawChevronPreview(c, berserkerColor, berserkerAccent, variant = 1) }),
+        EnemyVariantSpec(
+            title = "19. BERSERKER Spike-α", subtitle = "Chapter 5 · HP 162",
+            description = "Spike variant 0 — sao gai 8 cánh, spike ngắn.",
+            color = berserkerColor, draw = { sc, c -> sc.drawSpikePreviewV(c, berserkerColor, berserkerAccent, variant = 0) }),
+        EnemyVariantSpec(
+            title = "20. BERSERKER Spike-β", subtitle = "Chapter 5 · HP 162",
+            description = "Spike variant 1 — sao gai 8 cánh, spike dài hơn. Endgame menace.",
+            color = berserkerColor, draw = { sc, c -> sc.drawSpikePreviewV(c, berserkerColor, berserkerAccent, variant = 1) }),
+    )
+}
+
 // Round 74 (R73d) — Wave 9a previews cho ELITE (cross) + BERSERKER (spike).
+// Round 76 audit fix — variant param matches in-game drawCross (armW + armLen
+// scale theo variant 0..1).
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCrossPreview(
-    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color, variant: Int = 0,
 ) {
     val w = canvasSize.width; val h = canvasSize.height
     val cx = w / 2; val cy = h / 2
-    val armW = minOf(w, h) * 0.18f
-    val armLen = minOf(w, h) * 0.40f
+    val armW = minOf(w, h) * (0.18f + variant * 0.05f)
+    val armLen = minOf(w, h) * (0.40f + variant * 0.05f)
     drawRect(body,
         topLeft = androidx.compose.ui.geometry.Offset(cx - armW / 2, cy - armLen),
         size = androidx.compose.ui.geometry.Size(armW, armLen * 2))
@@ -756,6 +842,76 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCrossPreview(
         size = androidx.compose.ui.geometry.Size(armLen * 2, armW))
     drawCircle(body, armW * 0.95f, androidx.compose.ui.geometry.Offset(cx, cy))
     drawCircle(accent, armW * 0.5f, androidx.compose.ui.geometry.Offset(cx, cy))
+}
+
+// Round 76 (R76b) — additional previews cho variant indexing in 20-enemy list.
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawOrbVariantPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color, variant: Int,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val r = minOf(w, h) * 0.36f
+    drawCircle(body, r, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, r * 0.55f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(Color.White.copy(alpha = 0.9f), r * 0.22f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(
+        color = accent, radius = r * 1.20f,
+        center = androidx.compose.ui.geometry.Offset(cx, cy),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.05f),
+    )
+    if (variant == 1) {
+        drawCircle(
+            color = accent.copy(alpha = 0.6f), radius = r * 1.45f,
+            center = androidx.compose.ui.geometry.Offset(cx, cy),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.035f),
+        )
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawChevronPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color, variant: Int,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val halfW = w * 0.40f
+    val drawOne: (Float) -> Unit = { yShift ->
+        val path = androidx.compose.ui.graphics.Path().apply {
+            moveTo(cx - halfW, cy - h * 0.20f + yShift)
+            lineTo(cx, cy + h * 0.18f + yShift)
+            lineTo(cx + halfW, cy - h * 0.20f + yShift)
+            lineTo(cx + halfW * 0.7f, cy - h * 0.27f + yShift)
+            lineTo(cx, cy + h * 0.08f + yShift)
+            lineTo(cx - halfW * 0.7f, cy - h * 0.27f + yShift)
+            close()
+        }
+        drawPath(path, body)
+    }
+    drawOne(0f)
+    if (variant == 1) drawOne(h * 0.28f)
+    drawCircle(accent, w * 0.06f, androidx.compose.ui.geometry.Offset(cx, cy))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSpikePreviewV(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color, variant: Int,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val outerR = minOf(w, h) * (0.40f + variant * 0.05f)
+    val innerR = outerR * 0.40f
+    val path = androidx.compose.ui.graphics.Path().apply {
+        for (i in 0 until 16) {
+            val angle = -Math.PI / 2 + i * Math.PI / 8
+            val r = if (i % 2 == 0) outerR else innerR
+            val x = cx + (r * kotlin.math.cos(angle)).toFloat()
+            val y = cy + (r * kotlin.math.sin(angle)).toFloat()
+            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
+    drawPath(path, body)
+    drawPath(path, accent,
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
+    drawCircle(accent, innerR * 0.55f, androidx.compose.ui.geometry.Offset(cx, cy))
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSpikePreview(
@@ -781,34 +937,40 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSpikePreview(
     drawCircle(accent, innerR * 0.55f, androidx.compose.ui.geometry.Offset(cx, cy))
 }
 
+// Round 76 audit fix — variant param thêm vào để 20 cards InfoScreen render
+// đúng theo in-game (drawDart/Hexagon/Diamond đã có variant trong EnemyCanvas).
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyDart(
-    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color, variant: Int = 0,
 ) {
     val w = canvasSize.width; val h = canvasSize.height
     val cx = w / 2; val cy = h / 2
-    val halfW = w * 0.35f; val halfH = h * 0.40f
+    val halfW = w * 0.42f; val halfH = h * 0.45f
+    // variant 0..4 — back notch depth tăng dần (matches in-game drawDart).
+    val notch = h * (0.10f + variant * 0.04f)
     val path = androidx.compose.ui.graphics.Path().apply {
-        moveTo(cx, cy + halfH)
-        lineTo(cx + halfW, cy - halfH)
-        lineTo(cx, cy - halfH + h * 0.10f)
-        lineTo(cx - halfW, cy - halfH)
+        moveTo(cx, cy + halfH)                              // tip down
+        lineTo(cx + halfW, cy - halfH)                      // top-right
+        lineTo(cx, cy - halfH + notch)                      // back notch (chevron)
+        lineTo(cx - halfW, cy - halfH)                      // top-left
         close()
     }
     drawPath(path, body)
     drawPath(path, accent,
-        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.05f))
-    drawCircle(accent, w * 0.07f, androidx.compose.ui.geometry.Offset(cx, cy + h * 0.07f))
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.06f))
+    drawCircle(accent, w * 0.10f, androidx.compose.ui.geometry.Offset(cx, cy + h * 0.10f))
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyHexagon(
-    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color, variant: Int = 0,
 ) {
     val w = canvasSize.width; val h = canvasSize.height
     val cx = w / 2; val cy = h / 2
-    val rx = w * 0.36f; val ry = h * 0.42f
+    val rx = w * 0.45f; val ry = h * 0.50f
+    // variant 0..3 — rotation 10° per step (matches in-game drawHexagon).
+    val baseAngle = Math.toRadians((variant * 10).toDouble())
     val path = androidx.compose.ui.graphics.Path().apply {
         for (i in 0 until 6) {
-            val a = 2.0 * Math.PI * i / 6.0
+            val a = baseAngle + 2.0 * Math.PI * i / 6.0
             val x = cx + (rx * kotlin.math.cos(a)).toFloat()
             val y = cy + (ry * kotlin.math.sin(a)).toFloat()
             if (i == 0) moveTo(x, y) else lineTo(x, y)
@@ -817,16 +979,16 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyHexagon(
     }
     drawPath(path, body)
     drawPath(path, accent,
-        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.05f))
-    drawCircle(accent, w * 0.09f, androidx.compose.ui.geometry.Offset(cx, cy))
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.06f))
+    drawCircle(accent, w * 0.12f, androidx.compose.ui.geometry.Offset(cx, cy))
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyDiamond(
-    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color, variant: Int = 0,
 ) {
     val w = canvasSize.width; val h = canvasSize.height
     val cx = w / 2; val cy = h / 2
-    val halfW = w * 0.38f; val halfH = h * 0.42f
+    val halfW = w * 0.45f; val halfH = h * 0.50f
     val path = androidx.compose.ui.graphics.Path().apply {
         moveTo(cx, cy - halfH)
         lineTo(cx + halfW, cy)
@@ -836,8 +998,16 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyDiamond(
     }
     drawPath(path, body)
     drawPath(path, accent,
-        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.06f))
-    drawCircle(accent, w * 0.08f, androidx.compose.ui.geometry.Offset(cx, cy))
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.07f))
+    val spikeR = w * 0.10f
+    drawCircle(accent, spikeR, androidx.compose.ui.geometry.Offset(cx, cy))
+    // variant 0..2 — extra spike pips on top/bottom (matches in-game drawDiamond).
+    if (variant >= 1) {
+        drawCircle(accent, spikeR * 0.6f, androidx.compose.ui.geometry.Offset(cx, cy - halfH * 0.6f))
+    }
+    if (variant >= 2) {
+        drawCircle(accent, spikeR * 0.6f, androidx.compose.ui.geometry.Offset(cx, cy + halfH * 0.6f))
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -846,55 +1016,103 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyDiamond(
 
 @Composable
 private fun BossesTab() {
-    // Round 72 (Issue 3 user audit) — 5 distinct boss silhouettes (BossKind từ
-    // Round 71). Match đúng what's in game now. Attack patterns + audio cue
-    // defer R73 (user pick).
+    // Round 76 (R76c) — Per-CHAPTER ENCOUNTER breakdown thay summary. User
+    // wants more entries. 5 chapter × (1 mid + 1 final) = 10 boss encounters,
+    // mapped to 5 BossKind silhouettes. Mỗi chapter có 1-2 encounter card.
+    val red = Color(0xFFFF5555); val redAcc = Color(0xFFCC1144)
+    val green = Color(0xFF6EFFAA); val greenAcc = Color(0xFF24B86E)
+    val gold = NeonGold; val goldAcc = Color(0xFFCC9900)
+    val violet = NeonViolet; val violetAcc = Color(0xFF8855CC)
+    val magenta = NeonMagenta
     Column(modifier = Modifier.padding(horizontal = 12.dp).verticalScroll(rememberScrollState())) {
+        // Ch 1 — Vành Đai Tiểu Hành Tinh
         InfoCard(
-            color = Color(0xFFFF5555),
-            title = "1. LevelOneBoss — Star",
-            subtitle = "End Chapter 1 + Chapter 3 · HP 3000 · BossKind.STAR",
-            description = "Ngôi sao 8 cánh + lõi lục giác. Mở khoá ở cuối Vành Đai Tiểu HT (Ch1) " +
-                "và lặp lại tại Hành Tinh Băng (Ch3) với palette đổi. Pattern: bắn từng đợt + " +
-                "đợt cuối ring barrage. Có HP bar full-width + intro cinematic + buff picker.",
-            iconDraw = { c -> drawBossStar(c, Color(0xFFFF5555), Color(0xFFCC1144)) },
+            color = gold,
+            title = "Ch1 Mid — Orb Sentinel (OFFENSIVE)",
+            subtitle = "Giữa Vành Đai Tiểu Hành Tinh · HP 1200 · ORB",
+            description = "Quả cầu lớn + 3 vệ tinh quay quanh. Spray 360° spread + radial barrage. " +
+                "Phase 2 (HP<50%) tăng fire rate. Defeat reward: buff picker post-kill.",
+            iconDraw = { c -> drawBossOrbPreview(c, gold, goldAcc) },
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         InfoCard(
-            color = Color(0xFF6EFFAA),
-            title = "2. LevelTwoBoss — Cross",
-            subtitle = "End Chapter 2 + Chapter 4 · HP 4000 · BossKind.CROSS",
-            description = "Cross spinner 4 cánh + center disc + 4 tip glow. Mid-game boss. " +
-                "Quay liên tục, bắn theo trục dọc/ngang xen kẽ. Pattern phức tạp hơn LevelOne.",
-            iconDraw = { c -> drawBossCrossPreview(c, Color(0xFF6EFFAA), Color(0xFF24B86E)) },
+            color = red,
+            title = "Ch1 End — Crimson Star",
+            subtitle = "End Vành Đai · HP 3000 · STAR (8-laser ring barrage)",
+            description = "Ngôi sao 8 cánh + lõi lục giác đỏ. Pattern Round 74 wired: 8-laser " +
+                "ring radial mỗi tick. Audio cue 1.4× pitch (sting cao chói tai). HP bar full-width.",
+            iconDraw = { c -> drawBossStar(c, red, redAcc) },
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
+        // Ch 2 — Mây Tinh Vân
         InfoCard(
-            color = NeonGold,
-            title = "3. MidBoss OFFENSIVE — Orb",
-            subtitle = "Giữa Chapter 1+4 · HP 1200 · BossKind.ORB",
-            description = "Quả cầu lớn + 3 vệ tinh quay quanh. 360° spread spray. " +
-                "Phase 2 (HP<50%) — tăng fire rate.",
-            iconDraw = { c -> drawBossOrbPreview(c, NeonGold, Color(0xFFCC9900)) },
+            color = violet,
+            title = "Ch2 Mid — Fractal Sentinel (DEFENSIVE)",
+            subtitle = "Giữa Mây Tinh Vân · HP 1200 · FRACTAL",
+            description = "Tam giác lồng Sierpinski. Orbit + counter pattern. " +
+                "Phase 2 phá tam giác thành 3 sub-pattern.",
+            iconDraw = { c -> drawBossFractalPreview(c, violet, violetAcc) },
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
         InfoCard(
-            color = NeonViolet,
-            title = "4. MidBoss DEFENSIVE/SWARM — Fractal",
-            subtitle = "Giữa Chapter 2+3 · HP 1200 · BossKind.FRACTAL",
-            description = "Tam giác lồng nhau (Sierpinski). DEFENSIVE = orbit + counter (Ch2). " +
-                "SWARM = spawn 4 drones (Ch3). Phase 2 (HP<50%) — pattern chia 3.",
-            iconDraw = { c -> drawBossFractalPreview(c, NeonViolet, Color(0xFF8855CC)) },
+            color = green,
+            title = "Ch2 End — Emerald Cross",
+            subtitle = "End Mây Tinh Vân · HP 4000 · CROSS",
+            description = "Cross spinner 4 cánh xanh + 4 tip glow. Quay liên tục. " +
+                "Pattern Round 74 wired: alternating axis sweep (vertical wall ↔ 4-diagonal). Audio 1.15× pitch.",
+            iconDraw = { c -> drawBossCrossPreview(c, green, greenAcc) },
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
+        // Ch 3 — Hành Tinh Băng
         InfoCard(
-            color = NeonMagenta,
-            title = "5. FinalBoss — Spider",
-            subtitle = "End Chapter 5 (Lõi Thiên Hà) · HP 22500 · BossKind.SPIDER · 3-phase",
-            description = "8 chân + thân + 2 mắt sáng. Phase 1: fire pattern thông thường. " +
-                "Phase 2 (HP≤15000): tăng tốc độ. Phase 3 (HP≤7500): ring barrage 360°. " +
-                "Victory ending khác theo difficulty.",
-            iconDraw = { c -> drawBossSpiderPreview(c, NeonMagenta, Color(0xFFCC1144)) },
+            color = violet,
+            title = "Ch3 Mid — Fractal Swarm (SWARM)",
+            subtitle = "Giữa Hành Tinh Băng · HP 1200 · FRACTAL",
+            description = "Fractal variant SWARM — spawn 4 drone con khi Phase 2. " +
+                "Phải clear drone trước khi đánh boss chính.",
+            iconDraw = { c -> drawBossFractalPreview(c, violet, violetAcc) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = red,
+            title = "Ch3 End — Crimson Star (reuse)",
+            subtitle = "End Hành Tinh Băng · HP 3000 · STAR · cùng visual với Ch1",
+            description = "LevelOneBoss reuse từ Ch1 với cùng red palette in-game. Khác biệt nằm ở arena " +
+                "ICE_PATCHES — tàu trượt sau khi release movement → dodge ring barrage khó hơn. " +
+                "Audio cue cùng STAR pitch 1.4×.",
+            iconDraw = { c -> drawBossStar(c, red, redAcc) },
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        // Ch 4 — Trạm Thù Địch
+        InfoCard(
+            color = gold,
+            title = "Ch4 Mid — Orb Veteran (OFFENSIVE-2)",
+            subtitle = "Giữa Trạm Thù Địch · HP 1200 · ORB",
+            description = "Orb sentinel pattern. ELITE enemies (cross/orb từ Wave 9a R74) bay xung quanh hỗ trợ. " +
+                "Damage tổng hợp cao hơn các chapter trước.",
+            iconDraw = { c -> drawBossOrbPreview(c, gold, goldAcc) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = green,
+            title = "Ch4 End — Emerald Cross (reuse)",
+            subtitle = "End Trạm Thù Địch · HP 4000 · CROSS · cùng visual với Ch2",
+            description = "LevelTwoBoss reuse từ Ch2 cùng green palette. Khác biệt nằm ở ELITE enemy wave " +
+                "đồng hành (cross/orb violet) bay xung quanh boss → tổng pressure cao hơn.",
+            iconDraw = { c -> drawBossCrossPreview(c, green, greenAcc) },
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        // Ch 5 — Lõi Thiên Hà
+        InfoCard(
+            color = magenta,
+            title = "Ch5 Final — Galaxy Overlord (SPIDER)",
+            subtitle = "End Lõi Thiên Hà · HP 22500 · 3-phase · SPIDER",
+            description = "Boss cuối game. 8 chân + thân + 2 mắt sáng. " +
+                "Phase 1 (HP>15000): fire pattern thông thường. " +
+                "Phase 2 (HP≤15000): tăng tốc độ + spawn BERSERKER wave. " +
+                "Phase 3 (HP≤7500): ring barrage 360° + tracking lasers. " +
+                "Audio cue 0.65× pitch (sting trầm sâu). Victory ending khác theo difficulty.",
+            iconDraw = { c -> drawBossSpiderPreview(c, magenta, redAcc) },
         )
     }
 }
