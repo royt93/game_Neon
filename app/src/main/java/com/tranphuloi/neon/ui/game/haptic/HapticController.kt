@@ -19,9 +19,14 @@ import com.tranphuloi.neon.utils.Logger
  * the vibrator service binder.
  */
 enum class HapticPattern(val durationMs: Long, val amplitude: Int, val minIntervalMs: Long) {
-    LIGHT_TICK(durationMs = 25, amplitude = 60, minIntervalMs = 0L),     // pickup
-    MEDIUM(durationMs = 90, amplitude = 140, minIntervalMs = 60L),       // ship damage
-    HEAVY(durationMs = 220, amplitude = 220, minIntervalMs = 200L),      // boss / GODLIKE kill
+    // Round 70 (Issue 9) — user feedback "vibrate nhiều quá".
+    //   - HEAVY amplitude 220→180 (vẫn rõ nhưng less harsh on wrist)
+    //   - HEAVY minIntervalMs 200→500 (throttle dài gấp 2.5× → không liên tục
+    //     trong combo dài).
+    //   - LIGHT_TICK amplitude 60→45 (subtle hơn, fire mỗi pickup nhiều).
+    LIGHT_TICK(durationMs = 25, amplitude = 45, minIntervalMs = 40L),    // pickup
+    MEDIUM(durationMs = 90, amplitude = 140, minIntervalMs = 80L),       // ship damage
+    HEAVY(durationMs = 180, amplitude = 180, minIntervalMs = 500L),      // boss / GODLIKE kill
     LONG(durationMs = 450, amplitude = 255, minIntervalMs = 0L),         // game over
 }
 

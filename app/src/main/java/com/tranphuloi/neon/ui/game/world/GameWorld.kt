@@ -411,18 +411,19 @@ fun GameWorld(
             nowMillis = nowMillis,
             modifier = Modifier.fillMaxSize(),
         )
-        // HP bars overlay — kept as Composables (EnemyHpBar is a 3-layer
-        // animated bar; conversion to DrawScope would cost more code than it
-        // saves at this volume). Boss HP bar is rendered separately via
-        // BossHpBar; skip the mini-bar for bosses to avoid duplicate viz.
+        // Round 70 (Issue 8) — Thay EnemyHpBar (3-layer bar nằm trên enemy)
+        // bằng EnemyHpNumber (số HP ở center enemy, chỉ show khi damaged +
+        // hide tier-1). Boss vẫn dùng BossHpBar full-width.
+        // Offset áp dụng để Box(enemyWidth × enemyWidth) đặt tâm tại enemy center.
         enemies.forEach {
             if (!it.isBoss) {
                 key(it.enemyId) {
-                    Column(modifier = Modifier.offset(x = it.xOffset.dp, y = it.yOffset.dp)) {
-                        EnemyHpBar(
+                    Box(modifier = Modifier.offset(x = it.xOffset.dp, y = it.yOffset.dp)) {
+                        EnemyHpNumber(
                             enemyId = it.enemyId,
                             currentHp = it.currentHp,
                             initialHp = it.initialHp,
+                            lastImpactMillis = it.lastImpactMillis,
                             enemyWidth = it.width,
                         )
                     }

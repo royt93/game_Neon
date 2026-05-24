@@ -94,9 +94,8 @@ fun DialogSettings(
     val colorBlindMode by settings.colorBlindMode.collectAsState(
         initial = com.tranphuloi.neon.data.ColorBlindMode.NORMAL,
     )
-    val secondaryWeapon by settings.secondaryWeapon.collectAsState(
-        initial = com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.MISSILE,
-    )
+    // Round 70 (Issue 2) — SecondaryWeapon picker đã chuyển sang LoadoutPicker
+    // duy nhất. Settings không còn read/write SECONDARY_WEAPON key.
     // Round 27 — lastMode / lastModifier reads removed; that info now lives in MenuScreen.
 
     LaunchedEffect(Unit) { Logger.d("DialogSettings shown") }
@@ -204,21 +203,9 @@ fun DialogSettings(
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(10.dp))
-                ControlGroup {
-                    // Round 41 (29x.2) — Secondary weapon picker. Reads + writes
-                    // settings.secondaryWeapon flow. Pill labels show glyph + name.
-                    LabelledPillRow(label = "Vũ khí phụ", color = palette.redAlert) {
-                        com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.entries.forEach { w ->
-                            Pill(
-                                label = "${w.glyph} ${w.displayName}",
-                                selected = w == secondaryWeapon,
-                                color = palette.redAlert,
-                                onClick = { scope.launch { settings.setSecondaryWeapon(w) } }
-                            )
-                        }
-                    }
-                }
+                // Round 70 (Issue 2) — SecondaryWeapon picker removed. Loadout
+                // bottom sheet (TRANG BỊ button trong menu) là duy nhất quản lý
+                // bullet + secondary weapon per-run.
                 Spacer(modifier = Modifier.height(10.dp))
                 ControlGroup {
                     // Round 39 — Color blind mode picker. Wong-derived palette swap

@@ -181,10 +181,11 @@ fun MenuScreen(
                 )
             }
 
-            // Round 32 — primary spacer between Play button and bottom grid.
-            // Total free space distributes 30/70 between top (after title) and
-            // bottom (before grid) on tall screens — visually balanced.
-            if (tallEnough) Spacer(modifier = Modifier.weight(0.7f))
+            // Round 70 fix (Issue 1) — KHÔNG thêm Spacer riêng. Column outer
+            // đã có `verticalArrangement = Arrangement.spacedBy(12.dp)` → gap
+            // 12dp tự động giữa PLAY và grid. Trước fix tôi sai khi thêm
+            // Spacer(height=12) → gap thực tế = 12+12 = 24dp, vẫn không uniform
+            // với grid inter-row 12dp.
 
             // ─── 5-button grid (stagger 480ms) ───
             // Round 67.7 — fix "buttons không cách đều":
@@ -506,12 +507,15 @@ private fun PlayButton(
         label = "borderAlpha",
     )
     val label = if (hasCheckpoint) "TIẾP TỤC" else "BẮT ĐẦU"
+    // Round 70 (Issue 1) — Same height + corner radius as MenuButton để đồng nhất.
+    // Pulse animation + gradient bg retained để PLAY vẫn nổi bật là hero action.
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)               // clickable FIRST → covers padding
-            .clip(RoundedCornerShape(18.dp))
+            .height(UNIFIED_BUTTON_HEIGHT)
+            .clickable(onClick = onClick)
+            .clip(RoundedCornerShape(14.dp))
             .background(
                 brush = Brush.horizontalGradient(
                     colors = listOf(
@@ -522,32 +526,42 @@ private fun PlayButton(
                 ),
             )
             .border(
-                BorderStroke(2.5.dp, NeonCyan.copy(alpha = borderAlpha)),
-                RoundedCornerShape(18.dp),
+                BorderStroke(2.dp, NeonCyan.copy(alpha = borderAlpha)),
+                RoundedCornerShape(14.dp),
             )
-            .neonGlow(NeonCyan, intensity = 0.7f * borderAlpha, radiusFactor = 1.8f)
-            .padding(vertical = 22.dp, horizontal = 24.dp),
+            .neonGlow(NeonCyan, intensity = 0.7f * borderAlpha, radiusFactor = 1.6f)
+            .padding(horizontal = 16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = "▶",
                 color = NeonCyan,
-                fontSize = 30.sp,
+                fontSize = 22.sp,
                 fontWeight = FontWeight.Black,
             )
-            Spacer(modifier = Modifier.size(14.dp))
+            Spacer(modifier = Modifier.size(10.dp))
             Text(
                 text = label,
                 color = Color.White,
-                fontSize = 26.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Black,
-                style = TextStyle(letterSpacing = 4.sp),
+                style = TextStyle(letterSpacing = 3.sp),
                 modifier = Modifier.neonGlow(Color.White, intensity = 0.35f, radiusFactor = 1.3f),
             )
         }
     }
 }
 
+/**
+ * Round 70 (Issue 1) — Unified button style:
+ *  - Tất cả button có cùng height (UNIFIED_BUTTON_HEIGHT) + cùng style (corner
+ *    14dp + border 1.5dp + glow + bg alpha 0.12). Khác biệt duy nhất là MÀU
+ *    accent per-button + glyph/label.
+ *  - Layout: Row(glyph + label) centered — replaces Column(glyph/label stack)
+ *    để khớp layout PlayButton (Row arrow + label).
+ *  - Trước Round 70, MenuButton là Column → cao hơn PLAY ~10dp. Sau Round 70,
+ *    height đồng nhất → grid 2×3 cảm giác như 1 hệ thống.
+ */
 @Composable
 private fun MenuButton(
     label: String,
@@ -556,34 +570,38 @@ private fun MenuButton(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .clickable(onClick = onClick)               // clickable FIRST → covers padding
+            .height(UNIFIED_BUTTON_HEIGHT)
+            .clickable(onClick = onClick)
             .clip(RoundedCornerShape(14.dp))
             .background(color.copy(alpha = 0.12f))
             .border(BorderStroke(1.5.dp, color), RoundedCornerShape(14.dp))
             .neonGlow(color, intensity = 0.25f, radiusFactor = 1.2f)
-            .padding(vertical = 14.dp, horizontal = 8.dp),
+            .padding(horizontal = 10.dp),
     ) {
         Text(
             text = glyph,
             color = color,
-            fontSize = 32.sp,
+            fontSize = 22.sp,
             fontWeight = FontWeight.Black,
             modifier = Modifier.neonGlow(color, intensity = 0.5f, radiusFactor = 1.2f),
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.size(8.dp))
         Text(
             text = label,
             color = color,
-            fontSize = 14.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Black,
-            style = TextStyle(letterSpacing = 2.sp),
+            style = TextStyle(letterSpacing = 1.5.sp),
         )
     }
 }
+
+/** Round 70 (Issue 1) — single source of truth cho button height. */
+private val UNIFIED_BUTTON_HEIGHT = 64.dp
 
 // ─────────────────────────── starfield background ───────────────────────────
 

@@ -232,11 +232,15 @@ fun GameScreen(
     LaunchedEffect(gameState.lastEnemyKillMillis) {
         if (gameState.lastEnemyKillMillis > 0L) {
             sfx.play(SfxEvent.EXPLOSION)
-            // Per-tier haptic on combo escalations.
+            // Round 70 (Issue 9) — Per-tier haptic downgrade:
+            //   - RAMPAGE/UNSTOPPABLE: LIGHT_TICK thay MEDIUM (mỗi kill → subtle).
+            //   - GODLIKE: MEDIUM thay HEAVY (vẫn nhấn mạnh nhưng không "always
+            //     on" trong combo dài 10+ kills).
+            //   HapticPattern's minIntervalMs throttle xử lý hết chain vibration.
             if (vibrationEnabled) {
                 when (gameState.comboTier) {
-                    ComboTier.RAMPAGE, ComboTier.UNSTOPPABLE -> haptic.vibrate(HapticPattern.MEDIUM)
-                    ComboTier.GODLIKE -> haptic.vibrate(HapticPattern.HEAVY)
+                    ComboTier.RAMPAGE, ComboTier.UNSTOPPABLE -> haptic.vibrate(HapticPattern.LIGHT_TICK)
+                    ComboTier.GODLIKE -> haptic.vibrate(HapticPattern.MEDIUM)
                     else -> Unit
                 }
             }
