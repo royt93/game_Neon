@@ -1042,6 +1042,109 @@ Apply both `EnemyCanvas.drawDiamond` (in-game) + `InfoScreen.drawEnemyDiamond` (
 - `compileDevDebugKotlin` ✅
 - `compileProductionReleaseKotlin` ✅
 - `testDevDebugUnitTest` ✅ 223 tests pass
+
+### Round 78 — User feedback 7 issues (in progress)
+
+**Issue 7 (background/foreground music) — FIXED first**
+
+User: "âm thanh nhạc nền không play/pause đúng khi tôi background/foreground app, hãy audit lại đi".
+
+**Root cause**: `AudioPlayerHolder` chỉ override `onPause(LifecycleOwner)` để pause music khi app vào background, **không có** `onResume(LifecycleOwner)`. MenuScreen dùng `AudioPlayer(GameStatus.RUNNING)` (hardcoded RUNNING) → `LaunchedEffect(gameStatus)` chỉ fire 1 lần lúc enter Menu. Khi app background → music pause ✓. Khi foreground trở lại → key gameStatus không đổi → LaunchedEffect không re-fire → music ở trạng thái paused vĩnh viễn cho tới khi navigate route khác.
+
+GameScreen "may mắn" hoạt động đúng vì `GameState` có lifecycle observer riêng flip gameStatus `RUNNING↔PAUSE` trên ON_PAUSE/ON_RESUME → LaunchedEffect re-key → holder.play() được gọi lại. Nhưng Menu không có cơ chế đó.
+
+**Fix**: `AudioPlayerHolder` thêm field `wasPlayingBeforeLifecyclePause` và override `onResume(LifecycleOwner)`. `onPause` ghi nhận `playWhenReady` trước khi pause. `onResume` restore lại nếu đúng. ExoPlayer giữ nguyên position khi chỉ toggle playWhenReady nên không cần seekTo.
+
+**File**: `ui/game/audio/AudioPlayerHolder.kt`
+
+**Build**: `compileDevDebugKotlin` ✅
+
+**Issue 6 (FPS drops 30-50 dense scenes) — FIXED**
+
+Root cause: `Brush.radialGradient` allocated per-entity per-frame in 4 hot Canvas
+(EnemyCanvas, LaserCanvas, SpaceObjectCanvas, BoosterCanvas). With 30 enemies +
+80 lasers + asteroids + boosters, ~100+ brush + List + Color list allocations
+per frame → GC pressure → FPS drops. Plus `enemies.forEach { Box + EnemyHpNumber }`
+created 30 Composables/frame even when ship hadn't damaged them.
+
+Fix:
+- New `common/SoftHalo.kt` — `DrawScope.drawSoftHalo(color, alpha, radius, center)`
+  = 3 stacked `drawCircle` with decreasing alpha. Same visual feel, no Brush/Shader.
+- Replaced `Brush.radialGradient` in 4 hot Canvas with `drawSoftHalo`.
+- `EnemyHpNumber forEach` gated by filter (only damaged non-tier-1 non-boss):
+  typically 0-3 Composables/frame instead of 30.
+
+**Issue 4 (edge drag fail at FAR zoom) — partial fix (ship drag OK; enemy
+spawn margin defer)**
+
+`graphicsLayer.scale=0.7` shrinks visual world to inner 70% of screen with
+15% margins. Touch input space stays full screen → `mapTouchToGame` correctly
+computes the GAME-coord but ship can't physically reach the margin (clamped to
+[0..screenWidth]).
+
+Fix `ShipController`: `dragBoundsExtensionX/Y` field, `setDragTarget()` extends
+clamp to `[-extension..(screenWidth - ship.width + extension)]`. `GameState`
+recomputes extension from `liveCameraZoom.pixelScale` in `LaunchedEffect`.
+graphicsLayer default `clip=false` lets ship render correctly outside Box bounds.
+
+Enemy spawn margin extension defer: touches EnemyFactory + every formation
+(zigzag/rows/bosses) — too invasive for this round. Player gets extended ship
+maneuverability at FAR zoom; some visual margin still empty when enemies haven't
+spawned at extreme X. Acceptable trade.
+
+**Issue 5 (GameOver bottom sheet animation lag) — FIXED**
+
+Stagger delay 120ms × 8 = 960ms with each section AnimatedVisibility 280ms
+tween → 8 transitions overlapping over ~1.2s. Reduced delay 120→50ms (total
+stagger 400ms) and tween 280→180ms with smaller slide offset (it/4 vs it/3).
+Total dialog reveal now ~580ms — dialog feels snappy.
+
+**Issue 1 (enemy shape diversity) — FIXED**
+
+User complaint: enemies in same family looked identical (5 darts, 4 hexagons,
+3 diamonds). Added 4 new distinct shape recipes in `EnemyCanvas`:
+- `drawHeart` (2 lobes + downward tip)
+- `drawTriangle` (simple downward triangle + alien glyph dots)
+- `drawEye` (oval body + iris + pupil + glint)
+- `drawVirus` (8 spines + RNA dots)
+
+Dispatcher remapped:
+- `enemy_light_blue_1` → HEART, `enemy_light_blue_2` → TRIANGLE
+- `enemy_green_2` → VIRUS, `enemy_green_3` → EYE
+- `enemy_red_2` → HEART (red)
+
+InfoScreen previews synced with `drawEnemyHeart/Triangle/Eye/Virus` mirror functions.
+
+**Issue 2 (boss shape diversity) — partial fix**
+
+Added `drawBossEye` recipe (sclera + iris + pupil + 6 eldritch lashes). Replaces
+`drawBossOrb` for `BossKind.ORB`. Both Ch1 Mid and Ch4 Mid bosses (was "Orb
+Sentinel/Veteran") now render as "Killer Eye Sentinel/Veteran" — much more
+memorable silhouette. STAR, CROSS, FRACTAL, SPIDER kept (already distinct).
+
+**Issue 3 (item duplicate shapes) — FIXED**
+
+26 BoosterTypes share only 6 base drawables — `booster_red_lasers` covers 8
+types (LASER, PIERCING, CRIT_SURGE, DOUBLE_FIRE, FIRE, BOUNCE, ZIGZAG, SPLIT,
+CRIT, ...). Glyph + tint disambiguation (R54/R60) not enough at gameplay speed.
+
+Fix: `BoosterUI` adds `shapeKey: String?`. `BoosterToBoosterUIMapper` assigns
+9 distinct keys based on `BoosterType` for the most overloaded entries:
+ATOMIC→atom, FIRE→flame, MAGNET→magnet, BERSERK+ZIGZAG→lightning,
+HOMING→crosshair, KAMEHAMEHA→beam, SPLIT→split, PIERCING→arrow_right,
+PLASMA→ring_pulse. `BoosterCanvas` dispatches by shapeKey when non-null else
+falls back to drawableId.
+
+9 new shape recipes added: drawAtomShape, drawFlameShape, drawMagnetShape,
+drawLightningShape, drawCrosshairShape, drawBeamShape, drawSplitShape,
+drawArrowRightShape, drawRingPulseShape.
+
+### Round 78 verification
+
+- `compileDevDebugKotlin` ✅
+- `compileProductionReleaseKotlin` ✅
+- `testDevDebugUnitTest` ✅ all pass
+- Bundle: 7 fixes in 1 round (1 audit, 4 full fixes, 2 partial fixes).
 - `assembleDevDebug` ✅ BUILD SUCCESSFUL (clean rebuild verified)
 
 ### Round 76 — User audit 6 issues: assets/UI clarity batch

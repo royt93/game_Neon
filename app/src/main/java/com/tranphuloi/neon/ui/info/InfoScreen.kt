@@ -2,6 +2,7 @@ package com.tranphuloi.neon.ui.info
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.TextStyle
 import com.tranphuloi.neon.ui.game.world.drawShipVector
@@ -760,27 +761,28 @@ private fun enemyVariantSpecs(): List<EnemyVariantSpec> {
     // BERSERKER (4 orange chevron/spike)
     val berserkerColor = Color(0xFFFF9020); val berserkerAccent = Color(0xFFCC5000)
     return listOf(
-        // SCOUT family — Chapter 3 (Hành Tinh Băng)
+        // SCOUT family — Chapter 3 (Hành Tinh Băng). Round 78: variant 0 + 1
+        // đổi sang HEART + TRIANGLE để mỗi enemy trong family trông khác nhau.
         EnemyVariantSpec(
             title = "1. SCOUT Mark-I", subtitle = "Chapter 3 · HP 126 · Tốc độ nhanh",
-            description = "Dart variant 0 — notch nhẹ. Thấy đầu tiên ở Hành Tinh Băng.",
-            color = scoutColor, draw = { sc, c -> sc.drawEnemyDart(c, scoutColor, scoutAccent, variant = 0) }),
+            description = "Hình trái tim cyan — variant chuyên trị melee. Thấy đầu tiên ở Hành Tinh Băng.",
+            color = scoutColor, draw = { sc, c -> sc.drawEnemyHeart(c, scoutColor, scoutAccent) }),
         EnemyVariantSpec(
             title = "2. SCOUT Mark-II", subtitle = "Chapter 3 · HP 126",
-            description = "Dart variant 1 — notch sâu hơn. Spawn cùng formation Row.",
-            color = scoutColor, draw = { sc, c -> sc.drawEnemyDart(c, scoutColor, scoutAccent, variant = 1) }),
+            description = "Tam giác đơn giản — alien glyph với center pip + side dots. Spawn formation Row.",
+            color = scoutColor, draw = { sc, c -> sc.drawEnemyTriangle(c, scoutColor, scoutAccent) }),
         EnemyVariantSpec(
-            title = "3. SCOUT Mark-III", subtitle = "Chapter 3 · HP 126",
-            description = "Dart variant 2 — wing rộng hơn. Spawn formation ZigZag.",
-            color = scoutColor, draw = { sc, c -> sc.drawEnemyDart(c, scoutColor, scoutAccent, variant = 2) }),
+            title = "3. SCOUT Mark-III ♣", subtitle = "Chapter 3 · HP 126",
+            description = "Bài chuồn — cluster 3 hình tròn + thân. Spawn formation ZigZag.",
+            color = scoutColor, draw = { sc, c -> sc.drawEnemyClub(c, scoutColor, scoutAccent) }),
         EnemyVariantSpec(
-            title = "4. SCOUT Mark-IV", subtitle = "Chapter 3 · HP 126",
-            description = "Dart variant 3 — body thon dài. Spawn formation V.",
-            color = scoutColor, draw = { sc, c -> sc.drawEnemyDart(c, scoutColor, scoutAccent, variant = 3) }),
+            title = "4. SCOUT Mark-IV ●", subtitle = "Chapter 3 · HP 126",
+            description = "Hình tròn — đĩa cyan với ring viền + center pip. Spawn formation V.",
+            color = scoutColor, draw = { sc, c -> sc.drawEnemyCircle(c, scoutColor, scoutAccent) }),
         EnemyVariantSpec(
-            title = "5. SCOUT Mark-V", subtitle = "Chapter 3 + Chapter 4 + 5",
-            description = "Dart variant 4 — bigger, fast. Outro variant.",
-            color = scoutColor, draw = { sc, c -> sc.drawEnemyDart(c, scoutColor, scoutAccent, variant = 4) }),
+            title = "5. SCOUT Mark-V ♠", subtitle = "Chapter 3 + Chapter 4 + 5",
+            description = "Bài bích — heart ngược + thân stem. Outro variant.",
+            color = scoutColor, draw = { sc, c -> sc.drawEnemySpade(c, scoutColor, scoutAccent) }),
         // FIGHTER family — Chapter 2 (Mây Tinh Vân)
         EnemyVariantSpec(
             title = "6. FIGHTER Alpha", subtitle = "Chapter 2 · HP 180",
@@ -788,16 +790,16 @@ private fun enemyVariantSpecs(): List<EnemyVariantSpec> {
             color = fighterColor, draw = { sc, c -> sc.drawEnemyHexagon(c, fighterColor, fighterAccent, variant = 0) }),
         EnemyVariantSpec(
             title = "7. FIGHTER Bravo", subtitle = "Chapter 2 · HP 180",
-            description = "Hexagon variant 1 — rotated 30° để biến tấu visual.",
-            color = fighterColor, draw = { sc, c -> sc.drawEnemyHexagon(c, fighterColor, fighterAccent, variant = 1) }),
+            description = "Virus xanh — 8 gai radiating + nhân RNA. Biological/alien aesthetic.",
+            color = fighterColor, draw = { sc, c -> sc.drawEnemyVirus(c, fighterColor, fighterAccent) }),
         EnemyVariantSpec(
             title = "8. FIGHTER Charlie", subtitle = "Chapter 2 · HP 180",
-            description = "Hexagon variant 2 — center pip lớn hơn.",
-            color = fighterColor, draw = { sc, c -> sc.drawEnemyHexagon(c, fighterColor, fighterAccent, variant = 2) }),
+            description = "Mắt nhìn — oval body + iris + pupil. Cảm giác bị quan sát.",
+            color = fighterColor, draw = { sc, c -> sc.drawEnemyEye(c, fighterColor, fighterAccent) }),
         EnemyVariantSpec(
-            title = "9. FIGHTER Delta", subtitle = "Chapter 2 + 4 + 5 · HP 180",
-            description = "Hexagon variant 3 — outro variant lặp ở Chapter 4, 5.",
-            color = fighterColor, draw = { sc, c -> sc.drawEnemyHexagon(c, fighterColor, fighterAccent, variant = 3) }),
+            title = "9. FIGHTER Delta ♦", subtitle = "Chapter 2 + 4 + 5 · HP 180",
+            description = "Bài rô — kim cương dọc (vertical rhombus) xanh. Outro variant lặp Ch4+5.",
+            color = fighterColor, draw = { sc, c -> sc.drawEnemyCardDiamond(c, fighterColor, fighterAccent) }),
         // HEAVY family — Chapter 1 (Vành Đai Tiểu Hành Tinh)
         EnemyVariantSpec(
             title = "10. HEAVY Tonk-A", subtitle = "Chapter 1 · HP 288 · Tốc độ chậm",
@@ -805,12 +807,12 @@ private fun enemyVariantSpecs(): List<EnemyVariantSpec> {
             color = heavyColor, draw = { sc, c -> sc.drawEnemyDiamond(c, heavyColor, heavyAccent, variant = 0) }),
         EnemyVariantSpec(
             title = "11. HEAVY Tonk-B", subtitle = "Chapter 1 + 4 · HP 288",
-            description = "Diamond variant 1 — pip giữa, double-layer. Lặp ở Trạm Thù Địch.",
-            color = heavyColor, draw = { sc, c -> sc.drawEnemyDiamond(c, heavyColor, heavyAccent, variant = 1) }),
+            description = "Trái tim đỏ — heart shape đỏ chính danh. Round 78: thay diamond v1.",
+            color = heavyColor, draw = { sc, c -> sc.drawEnemyHeart(c, heavyColor, heavyAccent) }),
         EnemyVariantSpec(
-            title = "12. HEAVY Tonk-C", subtitle = "Chapter 1 + 4 + 5 · HP 288",
-            description = "Diamond variant 2 — outro variant. Endgame anchor enemy.",
-            color = heavyColor, draw = { sc, c -> sc.drawEnemyDiamond(c, heavyColor, heavyAccent, variant = 2) }),
+            title = "12. HEAVY Tonk-C ●", subtitle = "Chapter 1 + 4 + 5 · HP 288",
+            description = "Hình tròn đỏ — đĩa đỏ với ring viền dày. Endgame anchor.",
+            color = heavyColor, draw = { sc, c -> sc.drawEnemyCircle(c, heavyColor, heavyAccent) }),
         // ELITE family — Chapter 4 (Trạm Thù Địch)
         EnemyVariantSpec(
             title = "13. ELITE Cross-α", subtitle = "Chapter 4 · HP 225 · ×1.1 dmg",
@@ -1069,29 +1071,29 @@ private fun BossesTab() {
         // Ch 1 — Vành Đai Tiểu Hành Tinh
         InfoCard(
             color = gold,
-            title = "Ch1 Mid — Orb Sentinel (OFFENSIVE)",
-            subtitle = "Giữa Vành Đai Tiểu Hành Tinh · HP 1200 · ORB",
-            description = "Quả cầu lớn + 3 vệ tinh quay quanh. Spray 360° spread + radial barrage. " +
+            title = "Ch1 Mid — Killer Eye Sentinel (OFFENSIVE)",
+            subtitle = "Giữa Vành Đai Tiểu Hành Tinh · HP 1200 · EYE",
+            description = "Mắt sát thủ khổng lồ — sclera + iris + pupil + 6 mi mắt eldritch. Spray 360° spread + radial barrage. " +
                 "Phase 2 (HP<50%) tăng fire rate. Defeat reward: buff picker post-kill.",
-            iconDraw = { c -> drawBossOrbPreview(c, gold, goldAcc) },
+            iconDraw = { c -> drawBossEyePreview(c, gold, goldAcc) },
         )
         Spacer(modifier = Modifier.height(6.dp))
         InfoCard(
             color = red,
-            title = "Ch1 End — Crimson Star",
-            subtitle = "End Vành Đai · HP 3000 · STAR (8-laser ring barrage)",
-            description = "Ngôi sao 8 cánh + lõi lục giác đỏ. Pattern Round 74 wired: 8-laser " +
-                "ring radial mỗi tick. Audio cue 1.4× pitch (sting cao chói tai). HP bar full-width.",
+            title = "Ch1 End — Crimson Sun",
+            subtitle = "End Vành Đai · HP 3000 · SUN (8-laser ring barrage)",
+            description = "Mặt trời đỏ rực — corona ring + 12 radial flares + hot disc center. Pattern Round 74 wired: " +
+                "8-laser ring radial mỗi tick. Audio cue 1.4× pitch (sting cao chói tai). HP bar full-width.",
             iconDraw = { c -> drawBossStar(c, red, redAcc) },
         )
         Spacer(modifier = Modifier.height(10.dp))
         // Ch 2 — Mây Tinh Vân
         InfoCard(
             color = violet,
-            title = "Ch2 Mid — Fractal Sentinel (DEFENSIVE)",
-            subtitle = "Giữa Mây Tinh Vân · HP 1200 · FRACTAL",
-            description = "Tam giác lồng Sierpinski. Orbit + counter pattern. " +
-                "Phase 2 phá tam giác thành 3 sub-pattern.",
+            title = "Ch2 Mid — Atom Sentinel (DEFENSIVE)",
+            subtitle = "Giữa Mây Tinh Vân · HP 1200 · ATOM",
+            description = "Mô hình nguyên tử — 3 quỹ đạo điện tử quay quanh hạt nhân tím. " +
+                "Orbit + counter pattern. Phase 2 phá quỹ đạo thành 3 sub-pattern.",
             iconDraw = { c -> drawBossFractalPreview(c, violet, violetAcc) },
         )
         Spacer(modifier = Modifier.height(6.dp))
@@ -1107,17 +1109,17 @@ private fun BossesTab() {
         // Ch 3 — Hành Tinh Băng
         InfoCard(
             color = violet,
-            title = "Ch3 Mid — Fractal Swarm (SWARM)",
-            subtitle = "Giữa Hành Tinh Băng · HP 1200 · FRACTAL",
-            description = "Fractal variant SWARM — spawn 4 drone con khi Phase 2. " +
+            title = "Ch3 Mid — Atom Swarm (SWARM)",
+            subtitle = "Giữa Hành Tinh Băng · HP 1200 · ATOM",
+            description = "Atom variant SWARM — spawn 4 drone con khi Phase 2. " +
                 "Phải clear drone trước khi đánh boss chính.",
             iconDraw = { c -> drawBossFractalPreview(c, violet, violetAcc) },
         )
         Spacer(modifier = Modifier.height(6.dp))
         InfoCard(
             color = red,
-            title = "Ch3 End — Crimson Star (reuse)",
-            subtitle = "End Hành Tinh Băng · HP 3000 · STAR · cùng visual với Ch1",
+            title = "Ch3 End — Crimson Sun (reuse)",
+            subtitle = "End Hành Tinh Băng · HP 3000 · SUN · cùng visual với Ch1",
             description = "LevelOneBoss reuse từ Ch1 với cùng red palette in-game. Khác biệt nằm ở arena " +
                 "ICE_PATCHES — tàu trượt sau khi release movement → dodge ring barrage khó hơn. " +
                 "Audio cue cùng STAR pitch 1.4×.",
@@ -1127,11 +1129,11 @@ private fun BossesTab() {
         // Ch 4 — Trạm Thù Địch
         InfoCard(
             color = gold,
-            title = "Ch4 Mid — Orb Veteran (OFFENSIVE-2)",
-            subtitle = "Giữa Trạm Thù Địch · HP 1200 · ORB",
-            description = "Orb sentinel pattern. ELITE enemies (cross/orb từ Wave 9a R74) bay xung quanh hỗ trợ. " +
+            title = "Ch4 Mid — Killer Eye Veteran (OFFENSIVE-2)",
+            subtitle = "Giữa Trạm Thù Địch · HP 1200 · EYE",
+            description = "Killer Eye pattern. ELITE enemies (cross/orb từ Wave 9a R74) bay xung quanh hỗ trợ. " +
                 "Damage tổng hợp cao hơn các chapter trước.",
-            iconDraw = { c -> drawBossOrbPreview(c, gold, goldAcc) },
+            iconDraw = { c -> drawBossEyePreview(c, gold, goldAcc) },
         )
         Spacer(modifier = Modifier.height(6.dp))
         InfoCard(
@@ -1155,6 +1157,224 @@ private fun BossesTab() {
                 "Audio cue 0.65× pitch (sting trầm sâu). Victory ending khác theo difficulty.",
             iconDraw = { c -> drawBossSpiderPreview(c, magenta, redAcc) },
         )
+    }
+}
+
+// Round 78 (#1 shape diversity) — preview helpers mirror các shape recipes
+// mới trong EnemyCanvas. Bao gồm: heart/triangle/eye/virus + 4 card suits
+// (cardClub/cardDiamond/cardSpade) + circle + bossEye/bossSun/bossAtom.
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyCircle(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val r = minOf(w, h) * 0.42f
+    drawCircle(body, r, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, r, androidx.compose.ui.geometry.Offset(cx, cy),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.06f))
+    drawCircle(accent, r * 0.40f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(Color.White.copy(alpha = 0.6f), r * 0.18f,
+        androidx.compose.ui.geometry.Offset(cx - r * 0.15f, cy - r * 0.15f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyClub(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val lobeR = minOf(w, h) * 0.20f
+    val offsetD = lobeR * 0.85f
+    drawCircle(body, lobeR, androidx.compose.ui.geometry.Offset(cx, cy - offsetD))
+    drawCircle(body, lobeR, androidx.compose.ui.geometry.Offset(cx - offsetD, cy + offsetD * 0.55f))
+    drawCircle(body, lobeR, androidx.compose.ui.geometry.Offset(cx + offsetD, cy + offsetD * 0.55f))
+    drawRect(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.05f, cy + offsetD * 0.30f),
+        size = androidx.compose.ui.geometry.Size(w * 0.10f, h * 0.25f))
+    val baseTri = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - w * 0.15f, cy + h * 0.45f)
+        lineTo(cx + w * 0.15f, cy + h * 0.45f)
+        lineTo(cx, cy + offsetD * 0.30f)
+        close()
+    }
+    drawPath(baseTri, body)
+    drawCircle(accent, lobeR * 0.40f, androidx.compose.ui.geometry.Offset(cx, cy - offsetD))
+    drawCircle(accent, lobeR * 0.40f, androidx.compose.ui.geometry.Offset(cx - offsetD, cy + offsetD * 0.55f))
+    drawCircle(accent, lobeR * 0.40f, androidx.compose.ui.geometry.Offset(cx + offsetD, cy + offsetD * 0.55f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemySpade(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val halfW = w * 0.40f; val halfH = h * 0.40f
+    val lobeR = halfW * 0.55f
+    drawCircle(body, lobeR, androidx.compose.ui.geometry.Offset(cx - halfW * 0.45f, cy + halfH * 0.20f))
+    drawCircle(body, lobeR, androidx.compose.ui.geometry.Offset(cx + halfW * 0.45f, cy + halfH * 0.20f))
+    val triPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - halfW, cy + halfH * 0.30f)
+        lineTo(cx + halfW, cy + halfH * 0.30f)
+        lineTo(cx, cy - halfH)
+        close()
+    }
+    drawPath(triPath, body)
+    drawRect(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.05f, cy + halfH * 0.30f),
+        size = androidx.compose.ui.geometry.Size(w * 0.10f, h * 0.20f))
+    val baseTri = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - w * 0.15f, cy + halfH * 0.50f)
+        lineTo(cx + w * 0.15f, cy + halfH * 0.50f)
+        lineTo(cx, cy + halfH * 0.30f)
+        close()
+    }
+    drawPath(baseTri, body)
+    drawCircle(accent, w * 0.06f, androidx.compose.ui.geometry.Offset(cx, cy + halfH * 0.05f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyCardDiamond(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val halfW = w * 0.32f; val halfH = h * 0.48f
+    val path = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx, cy - halfH)
+        lineTo(cx + halfW, cy)
+        lineTo(cx, cy + halfH)
+        lineTo(cx - halfW, cy)
+        close()
+    }
+    drawPath(path, body)
+    drawPath(path, accent,
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.07f))
+    drawCircle(Color.White.copy(alpha = 0.85f), w * 0.08f, androidx.compose.ui.geometry.Offset(cx, cy))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyHeart(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val halfW = w * 0.45f; val halfH = h * 0.45f
+    val lobeR = halfW * 0.55f
+    drawCircle(body, lobeR, androidx.compose.ui.geometry.Offset(cx - halfW * 0.45f, cy - halfH * 0.30f))
+    drawCircle(body, lobeR, androidx.compose.ui.geometry.Offset(cx + halfW * 0.45f, cy - halfH * 0.30f))
+    val triPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - halfW, cy - halfH * 0.18f)
+        lineTo(cx + halfW, cy - halfH * 0.18f)
+        lineTo(cx, cy + halfH)
+        close()
+    }
+    drawPath(triPath, body)
+    drawCircle(accent, lobeR * 0.35f, androidx.compose.ui.geometry.Offset(cx - halfW * 0.45f, cy - halfH * 0.30f))
+    drawCircle(accent, lobeR * 0.35f, androidx.compose.ui.geometry.Offset(cx + halfW * 0.45f, cy - halfH * 0.30f))
+    drawCircle(accent, w * 0.07f, androidx.compose.ui.geometry.Offset(cx, cy + halfH * 0.5f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyTriangle(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val halfW = w * 0.45f; val halfH = h * 0.48f
+    val path = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - halfW, cy - halfH)
+        lineTo(cx + halfW, cy - halfH)
+        lineTo(cx, cy + halfH)
+        close()
+    }
+    drawPath(path, body)
+    drawPath(path, accent,
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.06f))
+    drawCircle(accent, w * 0.08f, androidx.compose.ui.geometry.Offset(cx, cy - halfH * 0.30f))
+    drawCircle(accent, w * 0.05f, androidx.compose.ui.geometry.Offset(cx - halfW * 0.30f, cy + halfH * 0.20f))
+    drawCircle(accent, w * 0.05f, androidx.compose.ui.geometry.Offset(cx + halfW * 0.30f, cy + halfH * 0.20f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyEye(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val rx = w * 0.48f; val ry = h * 0.30f
+    drawOval(
+        color = body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - rx, cy - ry),
+        size = androidx.compose.ui.geometry.Size(rx * 2, ry * 2),
+    )
+    drawOval(
+        color = accent,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - rx, cy - ry),
+        size = androidx.compose.ui.geometry.Size(rx * 2, ry * 2),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.05f),
+    )
+    drawCircle(Color.White.copy(alpha = 0.85f), ry * 0.85f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, ry * 0.50f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(Color.White, ry * 0.18f, androidx.compose.ui.geometry.Offset(cx + ry * 0.25f, cy - ry * 0.25f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyVirus(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val coreR = minOf(w, h) * 0.30f
+    val spineLen = minOf(w, h) * 0.22f
+    val tipR = minOf(w, h) * 0.07f
+    val spines = 8
+    for (i in 0 until spines) {
+        val a = i * 2.0 * Math.PI / spines
+        val ex = cx + ((coreR + spineLen) * kotlin.math.cos(a)).toFloat()
+        val ey = cy + ((coreR + spineLen) * kotlin.math.sin(a)).toFloat()
+        drawLine(
+            color = body,
+            start = androidx.compose.ui.geometry.Offset(cx, cy),
+            end = androidx.compose.ui.geometry.Offset(ex, ey),
+            strokeWidth = w * 0.07f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+        )
+        drawCircle(accent, tipR, androidx.compose.ui.geometry.Offset(ex, ey))
+    }
+    drawCircle(body, coreR, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, coreR * 0.50f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(Color.White.copy(alpha = 0.8f), coreR * 0.18f,
+        androidx.compose.ui.geometry.Offset(cx - coreR * 0.30f, cy - coreR * 0.15f))
+    drawCircle(Color.White.copy(alpha = 0.8f), coreR * 0.15f,
+        androidx.compose.ui.geometry.Offset(cx + coreR * 0.25f, cy + coreR * 0.20f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossEyePreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val outerR = minOf(w, h) * 0.45f
+    val midR = outerR * 0.75f
+    val innerR = outerR * 0.45f
+    val pupilR = outerR * 0.22f
+    drawCircle(body, outerR, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, outerR, androidx.compose.ui.geometry.Offset(cx, cy),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
+    drawCircle(Color.White.copy(alpha = 0.92f), midR, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(body, innerR, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, innerR, androidx.compose.ui.geometry.Offset(cx, cy),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.03f))
+    drawCircle(accent, pupilR, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(Color.Black.copy(alpha = 0.85f), pupilR * 0.85f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(Color.White, pupilR * 0.35f,
+        androidx.compose.ui.geometry.Offset(cx + pupilR * 0.40f, cy - pupilR * 0.45f))
+    for (i in 0 until 6) {
+        val a = i * 60.0 * Math.PI / 180.0
+        val sx = cx + ((outerR + outerR * 0.08f) * kotlin.math.cos(a)).toFloat()
+        val sy = cy + ((outerR + outerR * 0.08f) * kotlin.math.sin(a)).toFloat()
+        val ex = cx + ((outerR + outerR * 0.20f) * kotlin.math.cos(a)).toFloat()
+        val ey = cy + ((outerR + outerR * 0.20f) * kotlin.math.sin(a)).toFloat()
+        drawLine(accent,
+            androidx.compose.ui.geometry.Offset(sx, sy),
+            androidx.compose.ui.geometry.Offset(ex, ey),
+            strokeWidth = w * 0.04f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round)
     }
 }
 
@@ -1199,30 +1419,35 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossOrbPreview(
     }
 }
 
+// Round 78 (#2 spec follow-up) — drawBossFractalPreview now renders as ATOM
+// (electron orbits + nucleus) to match in-game BossKind.FRACTAL → drawBossAtom
+// dispatch in EnemyCanvas. Function name kept stable so existing call-sites work.
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossFractalPreview(
     canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
 ) {
     val w = canvasSize.width; val h = canvasSize.height
     val cx = w / 2; val cy = h / 2
-    val r = minOf(w, h) * 0.42f
-    val outer = androidx.compose.ui.graphics.Path().apply {
-        moveTo(cx, cy + r)
-        lineTo(cx - r * 0.866f, cy - r * 0.5f)
-        lineTo(cx + r * 0.866f, cy - r * 0.5f)
-        close()
+    val nucR = minOf(w, h) * 0.16f
+    val orbitRx = minOf(w, h) * 0.42f
+    val orbitRy = minOf(w, h) * 0.16f
+    for (i in 0 until 3) {
+        val deg = (i * 60).toFloat()
+        withTransform(
+            transformBlock = { rotate(degrees = deg, pivot = androidx.compose.ui.geometry.Offset(cx, cy)) },
+            drawBlock = {
+                drawOval(
+                    color = accent,
+                    topLeft = androidx.compose.ui.geometry.Offset(cx - orbitRx, cy - orbitRy),
+                    size = androidx.compose.ui.geometry.Size(orbitRx * 2, orbitRy * 2),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f),
+                )
+                drawCircle(body, w * 0.05f, androidx.compose.ui.geometry.Offset(cx + orbitRx, cy))
+            },
+        )
     }
-    drawPath(outer, body)
-    drawPath(outer, accent,
-        style = androidx.compose.ui.graphics.drawscope.Stroke(width = r * 0.08f))
-    val innerR = r * 0.5f
-    val inner = androidx.compose.ui.graphics.Path().apply {
-        moveTo(cx, cy - innerR)
-        lineTo(cx - innerR * 0.866f, cy + innerR * 0.5f)
-        lineTo(cx + innerR * 0.866f, cy + innerR * 0.5f)
-        close()
-    }
-    drawPath(inner, accent)
-    drawCircle(body, r * 0.15f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(body, nucR, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, nucR * 0.55f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(Color.White.copy(alpha = 0.8f), nucR * 0.30f, androidx.compose.ui.geometry.Offset(cx, cy))
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossSpiderPreview(
@@ -1274,39 +1499,37 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMidBoss(
         style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
 }
 
+// Round 78 (#2 spec follow-up) — drawBossStar now renders as SUN to match in-game
+// (BossKind.STAR dispatches to drawBossSun in EnemyCanvas). Preview keeps the
+// same function name so existing entries don't need to change.
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossStar(
     canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
 ) {
     val w = canvasSize.width; val h = canvasSize.height
     val cx = w / 2; val cy = h / 2
-    val outerR = minOf(w, h) * 0.42f
-    val innerR = outerR * 0.55f
-    val path = androidx.compose.ui.graphics.Path().apply {
-        val step = Math.PI / 8.0
-        for (i in 0 until 16) {
-            val a = -Math.PI / 2 + i * step
-            val r = if (i % 2 == 0) outerR else innerR
-            val x = cx + (r * kotlin.math.cos(a)).toFloat()
-            val y = cy + (r * kotlin.math.sin(a)).toFloat()
-            if (i == 0) moveTo(x, y) else lineTo(x, y)
-        }
-        close()
+    val coreR = minOf(w, h) * 0.28f
+    val coronaR = minOf(w, h) * 0.40f
+    val flareInner = coronaR * 1.05f
+    val flareOuter = coronaR * 1.35f
+    for (i in 0 until 12) {
+        val a = i * 30.0 * Math.PI / 180.0
+        val outerR = if (i % 2 == 0) flareOuter else flareInner * 1.10f
+        val sx = cx + (flareInner * kotlin.math.cos(a)).toFloat()
+        val sy = cy + (flareInner * kotlin.math.sin(a)).toFloat()
+        val ex = cx + (outerR * kotlin.math.cos(a)).toFloat()
+        val ey = cy + (outerR * kotlin.math.sin(a)).toFloat()
+        drawLine(
+            color = accent,
+            start = androidx.compose.ui.geometry.Offset(sx, sy),
+            end = androidx.compose.ui.geometry.Offset(ex, ey),
+            strokeWidth = w * (if (i % 2 == 0) 0.06f else 0.04f),
+            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+        )
     }
-    drawPath(path, body)
-    drawPath(path, accent,
-        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
-    // Inner hex
-    val coreR = outerR * 0.35f
-    val core = androidx.compose.ui.graphics.Path().apply {
-        for (i in 0 until 6) {
-            val a = 2.0 * Math.PI * i / 6.0
-            val x = cx + (coreR * kotlin.math.cos(a)).toFloat()
-            val y = cy + (coreR * kotlin.math.sin(a)).toFloat()
-            if (i == 0) moveTo(x, y) else lineTo(x, y)
-        }
-        close()
-    }
-    drawPath(core, accent)
+    drawCircle(accent.copy(alpha = 0.55f), coronaR, androidx.compose.ui.geometry.Offset(cx, cy),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.05f))
+    drawCircle(body, coreR, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(Color.White.copy(alpha = 0.85f), coreR * 0.55f, androidx.compose.ui.geometry.Offset(cx, cy))
 }
 
 // ─────────────────────────────────────────────────────────────────────────

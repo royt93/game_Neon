@@ -25,6 +25,18 @@ class EnemyController(
         Logger.d("EnemyController init: initialEnemies=${initialEnemies.size}, screen=${screenWidth}x${screenHeight}")
     }
 
+    /**
+     * Round 78 (#4 spec fix follow-up) — propagate FAR-zoom spawn margin to
+     * the factory + formation helper. GameState sets this when user changes
+     * camera zoom; subsequent spawns extend X bounds into the visual margins.
+     */
+    fun setSpawnXMargin(margin: Float) {
+        enemyFactory.spawnXMargin = margin
+        // FormationXOffset is owned by EnemyFactory — pipe through.
+        enemyFactory.formationXOffsetMutable.spawnXMargin = margin
+        Logger.d("EnemyController.setSpawnXMargin: $margin")
+    }
+
     private var enemies: List<Enemy> = initialEnemies
 
     val addEnemyId = uuidUtils.getUuid()

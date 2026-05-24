@@ -6,13 +6,13 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.tranphuloi.neon.common.drawSoftHalo
 import com.tranphuloi.neon.ui.game.ship.laser.BulletType
 import com.tranphuloi.neon.ui.game.ship.laser.LaserUI
 
@@ -83,21 +83,10 @@ private fun DrawScope.drawLaser(
         val cy = yPx + hPx / 2f
         val glowR = (minOf(wPx, hPx) / 2f) * radiusFactor
 
-        // 1. Glow halo (radial gradient, opaque center → transparent edge).
-        //    Same recipe as round 49 to preserve the neon ambient.
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    glow.copy(alpha = intensity),
-                    glow.copy(alpha = intensity * 0.4f),
-                    Color.Transparent,
-                ),
-                center = Offset(cx, cy),
-                radius = glowR,
-            ),
-            radius = glowR,
-            center = Offset(cx, cy),
-        )
+        // Round 78 (#6 perf) — was Brush.radialGradient per-laser per-frame.
+        // Up to 30 ship + 30 enemy + ultimate lasers = ~80 brush allocs/frame.
+        // Replaced with drawSoftHalo (3 drawCircles, no Brush/Shader allocation).
+        drawSoftHalo(glow, intensity, glowR, Offset(cx, cy))
 
         // Round 71 (Issue 4a) — dispatch per BulletType. Each laser has unique
         // vector silhouette in-game matching InfoScreen Bullets tab.

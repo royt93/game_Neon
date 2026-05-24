@@ -92,12 +92,29 @@ class ShipController(
     var dragTargetX: Float? = null
     var dragTargetY: Float? = null
 
-    /** Round 77 (R77h) — clamp target into screen. */
+    /**
+     * Round 78 (#4 edge drag fix) — playfield extension applied at FAR/MEDIUM
+     * camera zoom. `graphicsLayer.scale` shrinks the visual world to inner X%
+     * of the screen leaving margins; to let the ship reach the actual screen
+     * edges (which the user expects), drag bounds expand by inverse-zoom factor.
+     *
+     * GameState recomputes these whenever the user picks a different zoom in
+     * Settings, so we don't need to query CameraZoom from inside the controller.
+     * Default 0 = no extension (NEAR zoom).
+     */
+    var dragBoundsExtensionX: Float = 0f
+    var dragBoundsExtensionY: Float = 0f
+
+    /** Round 77 (R77h) — clamp target into screen. Round 78 — extension at FAR zoom. */
     fun setDragTarget(x: Float, y: Float) {
         // Ship draws from top-left. Adjust để finger ở center-bottom of ship +
         // offset 50dp up để finger không che ship.
-        dragTargetX = (x - ship.width / 2f).coerceIn(0f, screenWidth - ship.width)
-        dragTargetY = (y - ship.height / 2f - 80f).coerceIn(0f, maxYOffset)
+        val xMin = -dragBoundsExtensionX
+        val xMax = screenWidth - ship.width + dragBoundsExtensionX
+        val yMin = -dragBoundsExtensionY
+        val yMax = maxYOffset + dragBoundsExtensionY
+        dragTargetX = (x - ship.width / 2f).coerceIn(xMin, xMax)
+        dragTargetY = (y - ship.height / 2f - 80f).coerceIn(yMin, yMax)
     }
 
     fun clearDragTarget() {

@@ -5,7 +5,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -17,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.common.NeonViolet
+import com.tranphuloi.neon.common.drawSoftHalo
 import com.tranphuloi.neon.ui.game.spaceObject.SpaceObjectUI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -68,20 +68,9 @@ private fun DrawScope.drawSpaceObject(obj: SpaceObjectUI, density: Density) {
         val seed = obj.id.hashCode()
         val family = AsteroidFamily.entries[Math.floorMod(seed, AsteroidFamily.entries.size)]
 
-        // 1. Halo (family color)
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    family.glow.copy(alpha = 0.35f),
-                    family.glow.copy(alpha = 0.14f),
-                    Color.Transparent,
-                ),
-                center = Offset(cx, cy),
-                radius = glowR,
-            ),
-            radius = glowR,
-            center = Offset(cx, cy),
-        )
+        // Round 78 (#6 perf) — drawSoftHalo replaces Brush.radialGradient
+        // (avoid per-asteroid Shader allocation each frame).
+        drawSoftHalo(family.glow, 0.35f, glowR, Offset(cx, cy))
 
         // 2. Family-aware asteroid: variable vertex 8-14 + family-specific
         //    body color / stroke / crater style.

@@ -23,6 +23,15 @@ class AudioPlayerHolder(private val appContext: Context) : DefaultLifecycleObser
     private var savedPositionMillis: Long = -1L
     private var built: Boolean = false
 
+    // Round 78 issue #7 — track playWhenReady at the moment lifecycle ON_PAUSE
+    // fires so ON_RESUME can restore it. Previously onPause() forced
+    // playWhenReady=false and no onResume() callback existed → music stayed
+    // silent after foregrounding from MenuScreen (where the AudioPlayer
+    // composable's LaunchedEffect(RUNNING) does NOT re-fire on lifecycle alone).
+    // GameScreen worked by coincidence because GameState's own lifecycle
+    // observer flipped gameStatus PAUSE↔RUNNING, re-keying LaunchedEffect.
+    private var wasPlayingBeforeLifecyclePause: Boolean = false
+
     fun build(playlist: List<Song>) {
         if (built) {
             Logger.d("AudioPlayerHolder.build: already built — skip")
@@ -122,8 +131,32 @@ class AudioPlayerHolder(private val appContext: Context) : DefaultLifecycleObser
     }
 
     override fun onPause(owner: LifecycleOwner) {
-        Logger.d("AudioPlayerHolder.onPause(lifecycle)")
-        pause()
+        val p = player
+        if (p == null) {
+            Logger.d("AudioPlayerHolder.onPause(lifecycle): player not built")
+            return
+        }
+        wasPlayingBeforeLifecyclePause = p.playWhenReady
+        Logger.d("AudioPlayerHolder.onPause(lifecycle) wasPlaying=$wasPlayingBeforeLifecyclePause")
+        if (p.playWhenReady) {
+            savedPositionMillis = p.currentPosition
+            p.playWhenReady = false
+        }
+    }
+
+    override fun onResume(owner: LifecycleOwner) {
+        val p = player
+        if (p == null) {
+            Logger.d("AudioPlayerHolder.onResume(lifecycle): player not built")
+            return
+        }
+        Logger.d("AudioPlayerHolder.onResume(lifecycle) wasPlaying=$wasPlayingBeforeLifecyclePause")
+        if (wasPlayingBeforeLifecyclePause) {
+            // ExoPlayer preserves position when only playWhenReady was toggled,
+            // so no explicit seekTo is needed here.
+            p.playWhenReady = true
+        }
+        wasPlayingBeforeLifecyclePause = false
     }
 
     override fun onDestroy(owner: LifecycleOwner) {

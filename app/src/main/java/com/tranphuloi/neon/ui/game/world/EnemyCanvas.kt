@@ -6,16 +6,17 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.tranphuloi.neon.R
 import com.tranphuloi.neon.common.NeonMagenta
+import com.tranphuloi.neon.common.drawSoftHalo
 import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyUI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -97,19 +98,11 @@ private fun DrawScope.drawEnemy(
             else 1.4f + hitFlash * 0.4f                    // Boss aura BIGGER halo
         val glowR = (minOf(wPx, hPx) / 2f) * glowRadiusFactor
         val haloColor = if (enemy.isBoss) Color(0xFFFF2D55) else NeonMagenta
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    haloColor.copy(alpha = glowIntensity),
-                    haloColor.copy(alpha = glowIntensity * 0.4f),
-                    Color.Transparent,
-                ),
-                center = Offset(cx, cy),
-                radius = glowR,
-            ),
-            radius = glowR,
-            center = Offset(cx, cy),
-        )
+        // Round 78 (#6 perf) — was Brush.radialGradient per-enemy per-frame.
+        // 30 enemies × ~5 allocs each → 150 allocs/frame just for halo. Replaced
+        // with drawSoftHalo (3 drawCircles, no Brush/Shader). Visually equivalent
+        // at typical halo sizes.
+        drawSoftHalo(haloColor, glowIntensity, glowR, Offset(cx, cy))
         // Round 77 (R77d) — Boss inner secondary aura ring (rotating effect via animation deferred).
         if (enemy.isBoss) {
             drawCircle(
@@ -268,35 +261,43 @@ private fun DrawScope.drawEnemyShape(
     if (isBoss && bossKind != null) {
         when (bossKind) {
             com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.STAR ->
-                drawBossStar(cx, cy, wPx, hPx, body, accent)
+                // Round 78 (#2 spec follow-up) — STAR now renders as SUN (corona +
+                // disc + radial flares). "A star is a sun" — fitting reinterpretation.
+                drawBossSun(cx, cy, wPx, hPx, body, accent)
             com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.CROSS ->
                 drawBossCross(cx, cy, wPx, hPx, body, accent)
             com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.ORB ->
-                drawBossOrb(cx, cy, wPx, hPx, body, accent)
+                // Round 78 (#2) — was drawBossOrb (orb + satellites). User asked
+                // for "killer eye" — much more menacing/memorable silhouette.
+                drawBossEye(cx, cy, wPx, hPx, body, accent)
             com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.FRACTAL ->
-                drawBossFractal(cx, cy, wPx, hPx, body, accent)
+                // Round 78 (#2 spec follow-up) — FRACTAL renders as ATOM (electron
+                // orbits + nucleus). User listed "atom" as menacing boss shape.
+                drawBossAtom(cx, cy, wPx, hPx, body, accent)
             com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SPIDER ->
                 drawBossSpider(cx, cy, wPx, hPx, body, accent)
         }
         return
     }
     when (drawableId) {
-        // Light blue family — dart/triangle attackers (pointing DOWN since
-        // they're enemies coming at the player).
-        R.drawable.enemy_light_blue_1 -> drawDart(cx, cy, wPx, hPx, body, accent, variant = 0)
-        R.drawable.enemy_light_blue_2 -> drawDart(cx, cy, wPx, hPx, body, accent, variant = 1)
-        R.drawable.enemy_light_blue_3 -> drawDart(cx, cy, wPx, hPx, body, accent, variant = 2)
-        R.drawable.enemy_light_blue_4 -> drawDart(cx, cy, wPx, hPx, body, accent, variant = 3)
-        R.drawable.enemy_light_blue_5 -> drawDart(cx, cy, wPx, hPx, body, accent, variant = 4)
-        // Green family — hexagons (balanced medium).
+        // Light blue family — Round 78 spec-follow-up: 5 fully distinct silhouettes
+        // (HEART/TRIANGLE/CLUB/CIRCLE/SPADE). User: "cơ, chuồn, bích" = card suits.
+        R.drawable.enemy_light_blue_1 -> drawHeart(cx, cy, wPx, hPx, body, accent)
+        R.drawable.enemy_light_blue_2 -> drawTriangle(cx, cy, wPx, hPx, body, accent)
+        R.drawable.enemy_light_blue_3 -> drawCardClub(cx, cy, wPx, hPx, body, accent)
+        R.drawable.enemy_light_blue_4 -> drawCircleEnemy(cx, cy, wPx, hPx, body, accent)
+        R.drawable.enemy_light_blue_5 -> drawCardSpade(cx, cy, wPx, hPx, body, accent)
+        // Green family — Round 78: HEXAGON + VIRUS + EYE + CARD_DIAMOND.
+        // User: "rô" = card diamond suit (vertical rhombus).
         R.drawable.enemy_green_1 -> drawHexagon(cx, cy, wPx, hPx, body, accent, variant = 0)
-        R.drawable.enemy_green_2 -> drawHexagon(cx, cy, wPx, hPx, body, accent, variant = 1)
-        R.drawable.enemy_green_3 -> drawHexagon(cx, cy, wPx, hPx, body, accent, variant = 2)
-        R.drawable.enemy_green_4 -> drawHexagon(cx, cy, wPx, hPx, body, accent, variant = 3)
-        // Red family — diamonds (heavy hitters).
+        R.drawable.enemy_green_2 -> drawVirus(cx, cy, wPx, hPx, body, accent)
+        R.drawable.enemy_green_3 -> drawEye(cx, cy, wPx, hPx, body, accent)
+        R.drawable.enemy_green_4 -> drawCardDiamond(cx, cy, wPx, hPx, body, accent)
+        // Red family — Round 78: DIAMOND + HEART (red) + CIRCLE.
+        // Heart in red = playing-card "cơ" tribute. Circle covers user's "circle" spec.
         R.drawable.enemy_red_1 -> drawDiamond(cx, cy, wPx, hPx, body, accent, variant = 0)
-        R.drawable.enemy_red_2 -> drawDiamond(cx, cy, wPx, hPx, body, accent, variant = 1)
-        R.drawable.enemy_red_3 -> drawDiamond(cx, cy, wPx, hPx, body, accent, variant = 2)
+        R.drawable.enemy_red_2 -> drawHeart(cx, cy, wPx, hPx, body, accent)
+        R.drawable.enemy_red_3 -> drawCircleEnemy(cx, cy, wPx, hPx, body, accent)
         // Round 74 (R73d) — Wave 9a: 8 new shape recipes cho ELITE + BERSERKER family.
         // ELITE: cross + orb (violet).
         R.drawable.enemy_cross_1 -> drawCross(cx, cy, wPx, hPx, body, accent, variant = 0)
@@ -737,4 +738,300 @@ private fun DrawScope.drawBossStar(
     }
     drawPath(path = core, color = accent)
     drawCircle(color = Color.White.copy(alpha = 0.75f), radius = coreR * 0.30f, center = Offset(cx, cy))
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Round 78 (#1+#2 shape diversity) — new visually distinct enemy shapes
+// to break up family monotony. Each replaces one drawable in the dispatcher
+// so within a family (cyan/green/red) different individuals look different.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Heart shape — symmetric lobes top, point at bottom. */
+private fun DrawScope.drawHeart(
+    cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color,
+) {
+    val halfW = w * 0.45f
+    val halfH = h * 0.45f
+    // Build heart via 2 circles + downward triangle merge.
+    val lobeR = halfW * 0.55f
+    drawCircle(body, lobeR, Offset(cx - halfW * 0.45f, cy - halfH * 0.30f))
+    drawCircle(body, lobeR, Offset(cx + halfW * 0.45f, cy - halfH * 0.30f))
+    val triPath = Path().apply {
+        moveTo(cx - halfW, cy - halfH * 0.18f)
+        lineTo(cx + halfW, cy - halfH * 0.18f)
+        lineTo(cx, cy + halfH)
+        close()
+    }
+    drawPath(triPath, body)
+    // Accent outline (stroke approximation: redraw rim accents)
+    drawCircle(accent, lobeR * 0.35f, Offset(cx - halfW * 0.45f, cy - halfH * 0.30f))
+    drawCircle(accent, lobeR * 0.35f, Offset(cx + halfW * 0.45f, cy - halfH * 0.30f))
+    drawCircle(accent, w * 0.07f, Offset(cx, cy + halfH * 0.5f))
+}
+
+/** Simple downward triangle (distinct from drawDart which has notch). */
+private fun DrawScope.drawTriangle(
+    cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color,
+) {
+    val halfW = w * 0.45f
+    val halfH = h * 0.48f
+    val path = Path().apply {
+        moveTo(cx - halfW, cy - halfH)
+        lineTo(cx + halfW, cy - halfH)
+        lineTo(cx, cy + halfH)
+        close()
+    }
+    drawPath(path, body)
+    drawPath(path, accent, style = Stroke(width = w * 0.06f))
+    // Center pip + 2 side dots for "alien glyph" feel.
+    drawCircle(accent, w * 0.08f, Offset(cx, cy - halfH * 0.30f))
+    drawCircle(accent, w * 0.05f, Offset(cx - halfW * 0.30f, cy + halfH * 0.20f))
+    drawCircle(accent, w * 0.05f, Offset(cx + halfW * 0.30f, cy + halfH * 0.20f))
+}
+
+/** Eye shape — oval body, iris circle, pupil dot. Creepy "watching you" vibe. */
+private fun DrawScope.drawEye(
+    cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color,
+) {
+    val rx = w * 0.48f
+    val ry = h * 0.30f
+    // Outer eye outline (lens shape via 2 overlapping arcs approximated as ellipse).
+    drawOval(
+        color = body,
+        topLeft = Offset(cx - rx, cy - ry),
+        size = androidx.compose.ui.geometry.Size(rx * 2, ry * 2),
+    )
+    drawOval(
+        color = accent,
+        topLeft = Offset(cx - rx, cy - ry),
+        size = androidx.compose.ui.geometry.Size(rx * 2, ry * 2),
+        style = Stroke(width = w * 0.05f),
+    )
+    // Iris — white ring
+    drawCircle(Color.White.copy(alpha = 0.85f), ry * 0.85f, Offset(cx, cy))
+    // Pupil — dark accent core
+    drawCircle(accent, ry * 0.50f, Offset(cx, cy))
+    // Highlight glint
+    drawCircle(Color.White, ry * 0.18f, Offset(cx + ry * 0.25f, cy - ry * 0.25f))
+}
+
+/** Virus shape — central blob with 8 protrusions radiating outward (biological). */
+private fun DrawScope.drawVirus(
+    cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color,
+) {
+    val coreR = minOf(w, h) * 0.30f
+    val spineLen = minOf(w, h) * 0.22f
+    val tipR = minOf(w, h) * 0.07f
+    val spines = 8
+    for (i in 0 until spines) {
+        val a = i * 2.0 * Math.PI / spines
+        val ex = cx + ((coreR + spineLen) * cos(a)).toFloat()
+        val ey = cy + ((coreR + spineLen) * sin(a)).toFloat()
+        drawLine(
+            color = body,
+            start = Offset(cx, cy),
+            end = Offset(ex, ey),
+            strokeWidth = w * 0.07f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+        )
+        // Knob at tip
+        drawCircle(accent, tipR, Offset(ex, ey))
+    }
+    // Central blob with darker core
+    drawCircle(body, coreR, Offset(cx, cy))
+    drawCircle(accent, coreR * 0.50f, Offset(cx, cy))
+    // Inner dots — virus "RNA"
+    drawCircle(Color.White.copy(alpha = 0.8f), coreR * 0.18f,
+        Offset(cx - coreR * 0.30f, cy - coreR * 0.15f))
+    drawCircle(Color.White.copy(alpha = 0.8f), coreR * 0.15f,
+        Offset(cx + coreR * 0.25f, cy + coreR * 0.20f))
+}
+
+/** Simple Circle enemy — disc with concentric ring + center pip. */
+private fun DrawScope.drawCircleEnemy(
+    cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color,
+) {
+    val r = minOf(w, h) * 0.42f
+    drawCircle(body, r, Offset(cx, cy))
+    drawCircle(accent, r, Offset(cx, cy), style = Stroke(width = w * 0.06f))
+    drawCircle(accent, r * 0.40f, Offset(cx, cy))
+    drawCircle(Color.White.copy(alpha = 0.6f), r * 0.18f, Offset(cx - r * 0.15f, cy - r * 0.15f))
+}
+
+/** Spade ♠ — heart shape inverted with stem at bottom (cards suit "bích"). */
+private fun DrawScope.drawCardSpade(
+    cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color,
+) {
+    val halfW = w * 0.40f
+    val halfH = h * 0.40f
+    val lobeR = halfW * 0.55f
+    // Inverted heart (point up, lobes down) + stem
+    drawCircle(body, lobeR, Offset(cx - halfW * 0.45f, cy + halfH * 0.20f))
+    drawCircle(body, lobeR, Offset(cx + halfW * 0.45f, cy + halfH * 0.20f))
+    val triPath = Path().apply {
+        moveTo(cx - halfW, cy + halfH * 0.30f)
+        lineTo(cx + halfW, cy + halfH * 0.30f)
+        lineTo(cx, cy - halfH)
+        close()
+    }
+    drawPath(triPath, body)
+    // Stem at bottom
+    drawRect(body,
+        topLeft = Offset(cx - w * 0.05f, cy + halfH * 0.30f),
+        size = Size(w * 0.10f, h * 0.20f))
+    // Triangle stem base
+    val baseTri = Path().apply {
+        moveTo(cx - w * 0.15f, cy + halfH * 0.50f)
+        lineTo(cx + w * 0.15f, cy + halfH * 0.50f)
+        lineTo(cx, cy + halfH * 0.30f)
+        close()
+    }
+    drawPath(baseTri, body)
+    drawCircle(accent, w * 0.06f, Offset(cx, cy + halfH * 0.05f))
+}
+
+/** Club ♣ — 3 circles cluster + stem (cards suit "chuồn"). */
+private fun DrawScope.drawCardClub(
+    cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color,
+) {
+    val lobeR = minOf(w, h) * 0.20f
+    val offsetD = lobeR * 0.85f
+    // 3 lobes: top + bottom-left + bottom-right
+    drawCircle(body, lobeR, Offset(cx, cy - offsetD))
+    drawCircle(body, lobeR, Offset(cx - offsetD, cy + offsetD * 0.55f))
+    drawCircle(body, lobeR, Offset(cx + offsetD, cy + offsetD * 0.55f))
+    // Stem connecting to bottom (small rect)
+    drawRect(body,
+        topLeft = Offset(cx - w * 0.05f, cy + offsetD * 0.30f),
+        size = Size(w * 0.10f, h * 0.25f))
+    val baseTri = Path().apply {
+        moveTo(cx - w * 0.15f, cy + h * 0.45f)
+        lineTo(cx + w * 0.15f, cy + h * 0.45f)
+        lineTo(cx, cy + offsetD * 0.30f)
+        close()
+    }
+    drawPath(baseTri, body)
+    // Accent in center
+    drawCircle(accent, lobeR * 0.40f, Offset(cx, cy - offsetD))
+    drawCircle(accent, lobeR * 0.40f, Offset(cx - offsetD, cy + offsetD * 0.55f))
+    drawCircle(accent, lobeR * 0.40f, Offset(cx + offsetD, cy + offsetD * 0.55f))
+}
+
+/** Card Diamond ♦ — vertical rhombus (cards suit "rô"). Same as drawDiamond v0 but
+ * with thinner aspect to read as the playing-card glyph. */
+private fun DrawScope.drawCardDiamond(
+    cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color,
+) {
+    val halfW = w * 0.32f
+    val halfH = h * 0.48f
+    val path = Path().apply {
+        moveTo(cx, cy - halfH)
+        lineTo(cx + halfW, cy)
+        lineTo(cx, cy + halfH)
+        lineTo(cx - halfW, cy)
+        close()
+    }
+    drawPath(path, body)
+    drawPath(path, accent, style = Stroke(width = w * 0.07f))
+    drawCircle(Color.White.copy(alpha = 0.85f), w * 0.08f, Offset(cx, cy))
+}
+
+/** Boss SUN — central disc + outer corona ring + 12 radial flares (R78 #2). */
+private fun DrawScope.drawBossSun(
+    cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color,
+) {
+    val coreR = minOf(w, h) * 0.30f
+    val coronaR = minOf(w, h) * 0.42f
+    val flareInner = coronaR * 1.05f
+    val flareOuter = coronaR * 1.35f
+    // 12 radial flares (alternating long/short for dynamic sun-look).
+    for (i in 0 until 12) {
+        val a = i * 30.0 * Math.PI / 180.0
+        val outerR = if (i % 2 == 0) flareOuter else flareInner * 1.10f
+        val sx = cx + (flareInner * kotlin.math.cos(a)).toFloat()
+        val sy = cy + (flareInner * kotlin.math.sin(a)).toFloat()
+        val ex = cx + (outerR * kotlin.math.cos(a)).toFloat()
+        val ey = cy + (outerR * kotlin.math.sin(a)).toFloat()
+        drawLine(
+            color = accent,
+            start = Offset(sx, sy),
+            end = Offset(ex, ey),
+            strokeWidth = w * (if (i % 2 == 0) 0.06f else 0.04f),
+            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+        )
+    }
+    // Corona ring (slightly translucent, gives the "atmosphere" look).
+    drawCircle(accent.copy(alpha = 0.55f), coronaR, Offset(cx, cy),
+        style = Stroke(width = w * 0.05f))
+    // Main disc body
+    drawCircle(body, coreR, Offset(cx, cy))
+    // Inner brightness (white-ish center hot spot)
+    drawCircle(Color.White.copy(alpha = 0.85f), coreR * 0.55f, Offset(cx, cy))
+    drawCircle(Color.White, coreR * 0.18f, Offset(cx - coreR * 0.20f, cy - coreR * 0.20f))
+}
+
+/** Boss ATOM — nucleus + 3 elliptical electron orbits at 60° rotation (R78 #2). */
+private fun DrawScope.drawBossAtom(
+    cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color,
+) {
+    val nucR = minOf(w, h) * 0.18f
+    val orbitRx = minOf(w, h) * 0.48f
+    val orbitRy = minOf(w, h) * 0.18f
+    // 3 elliptical orbits — at 0°, 60°, 120°. Manual rotation per orbit by
+    // computing the bounding box after rotation. Compose Canvas doesn't have a
+    // rotate-around-pivot for DrawScope (only top-level), so we use the
+    // canvas-saved rotate via `withTransform`.
+    for (i in 0 until 3) {
+        val deg = i * 60f
+        withTransform(
+            transformBlock = { rotate(degrees = deg, pivot = Offset(cx, cy)) },
+            drawBlock = {
+                drawOval(
+                    color = accent,
+                    topLeft = Offset(cx - orbitRx, cy - orbitRy),
+                    size = Size(orbitRx * 2, orbitRy * 2),
+                    style = Stroke(width = w * 0.04f),
+                )
+                drawCircle(body, w * 0.05f, Offset(cx + orbitRx, cy))
+            },
+        )
+    }
+    // Central nucleus — 2-layer disc
+    drawCircle(body, nucR, Offset(cx, cy))
+    drawCircle(accent, nucR * 0.55f, Offset(cx, cy))
+    drawCircle(Color.White.copy(alpha = 0.8f), nucR * 0.30f, Offset(cx, cy))
+}
+
+/** Boss EYE — large menacing eye with iris + pupil + outer eyelid. Replaces drawBossOrb. */
+private fun DrawScope.drawBossEye(
+    cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color,
+) {
+    val outerR = minOf(w, h) * 0.48f
+    val midR = outerR * 0.75f
+    val innerR = outerR * 0.45f
+    val pupilR = outerR * 0.22f
+    // Outer "eyelid" body
+    drawCircle(body, outerR, Offset(cx, cy))
+    drawCircle(accent, outerR, Offset(cx, cy), style = Stroke(width = w * 0.04f))
+    // White sclera
+    drawCircle(Color.White.copy(alpha = 0.92f), midR, Offset(cx, cy))
+    // Iris (body color)
+    drawCircle(body, innerR, Offset(cx, cy))
+    drawCircle(accent, innerR, Offset(cx, cy), style = Stroke(width = w * 0.03f))
+    // Pupil — black/dark accent
+    drawCircle(accent, pupilR, Offset(cx, cy))
+    drawCircle(Color.Black.copy(alpha = 0.85f), pupilR * 0.85f, Offset(cx, cy))
+    // Highlight
+    drawCircle(Color.White, pupilR * 0.35f, Offset(cx + pupilR * 0.40f, cy - pupilR * 0.45f))
+    // 6 radial "lashes" around outer rim — eldritch detail
+    for (i in 0 until 6) {
+        val a = i * 60.0 * Math.PI / 180.0
+        val sx = cx + ((outerR + outerR * 0.08f) * kotlin.math.cos(a)).toFloat()
+        val sy = cy + ((outerR + outerR * 0.08f) * kotlin.math.sin(a)).toFloat()
+        val ex = cx + ((outerR + outerR * 0.30f) * kotlin.math.cos(a)).toFloat()
+        val ey = cy + ((outerR + outerR * 0.30f) * kotlin.math.sin(a)).toFloat()
+        drawLine(accent, Offset(sx, sy), Offset(ex, ey),
+            strokeWidth = w * 0.04f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
 }

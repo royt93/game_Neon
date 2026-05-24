@@ -1159,6 +1159,23 @@ fun rememberGameState(): GameState {
         }
     }
 
+    // Round 78 (#4 edge drag fix) — graphicsLayer.scale shrinks the visible
+    // world to inner X% of the screen leaving margins. To let the ship reach
+    // the actual screen edges, extend ShipController drag bounds by the
+    // inverse-zoom margin. graphicsLayer.clip = false (Compose default) so
+    // entities at negative game coords render correctly into the screen margin.
+    LaunchedEffect(liveCameraZoom) {
+        val scale = liveCameraZoom.pixelScale.coerceAtLeast(0.01f)
+        val extensionX = screenWidth * (1f / scale - 1f) / 2f
+        val extensionY = screenHeight * (1f / scale - 1f) / 2f
+        shipController.dragBoundsExtensionX = extensionX
+        shipController.dragBoundsExtensionY = extensionY
+        // Round 78 (#4 spec fix follow-up) — also extend enemy spawn X bounds
+        // so enemies appear at visual screen edges (not only inner 70% area).
+        enemyController.setSpawnXMargin(extensionX)
+        Logger.d("Camera zoom=${liveCameraZoom.key} scale=$scale → drag/spawn extension X=$extensionX Y=$extensionY")
+    }
+
     var refreshHandler by remember { mutableLongStateOf(0L) }
     DisposableEffect(Unit) {
         Logger.d("Game loop DisposableEffect setup, screen=${screenWidth}x${screenHeight}")

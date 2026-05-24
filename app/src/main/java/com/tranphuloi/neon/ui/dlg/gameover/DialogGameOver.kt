@@ -71,11 +71,16 @@ fun DialogGameOver(
     val runStatsState = LocalRunStats.current.value
     val isEndless = runStatsState?.gameModeKey == "endless"
 
-    // Round 77 (R77f) — staggered reveal animation. Mỗi step = 120ms delay.
+    // Round 77 (R77f) — staggered reveal animation. Mỗi step = delay.
+    // Round 78 (#5 fix) — was 120ms × 8 = 960ms tổng stagger + 280ms tween cho
+    // mỗi section. User feedback: animation laggy. Giảm xuống 50ms × 8 = 400ms
+    // stagger + tween 180ms để dialog feel snappier. Cũng giảm số AnimatedVisibility
+    // transition đang chạy đồng thời (8 transitions over 960ms → over 400ms +
+    // shorter individual duration → ít overlap, less Compose transition overhead).
     var revealStep by remember { mutableStateOf(0) }
     LaunchedEffect(Unit) {
         for (i in 1..8) {
-            kotlinx.coroutines.delay(120L)
+            kotlinx.coroutines.delay(50L)
             revealStep = i
         }
     }
@@ -494,14 +499,17 @@ private fun StatLine(label: String, value: String) {
  */
 @Composable
 private fun RevealWrap(visible: Boolean, content: @Composable () -> Unit) {
+    // Round 78 (#5 fix) — Tween 280 → 180. Smaller slide offset (it/4 vs it/3)
+    // less overdraw. Combined with shorter stagger (50ms vs 120ms) GameOver
+    // dialog feels snappier without losing the "cascading reveal" effect.
     androidx.compose.animation.AnimatedVisibility(
         visible = visible,
         enter = androidx.compose.animation.fadeIn(
-            animationSpec = androidx.compose.animation.core.tween(280),
+            animationSpec = androidx.compose.animation.core.tween(180),
         ) + androidx.compose.animation.slideInVertically(
-            animationSpec = androidx.compose.animation.core.tween(280,
+            animationSpec = androidx.compose.animation.core.tween(180,
                 easing = androidx.compose.animation.core.FastOutSlowInEasing),
-            initialOffsetY = { it / 3 },
+            initialOffsetY = { it / 4 },
         ),
         exit = androidx.compose.animation.fadeOut(),
     ) {

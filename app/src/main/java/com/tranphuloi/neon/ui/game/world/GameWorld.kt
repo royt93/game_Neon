@@ -432,9 +432,15 @@ fun GameWorld(
         // Round 70 (Issue 8) — Thay EnemyHpBar (3-layer bar nằm trên enemy)
         // bằng EnemyHpNumber (số HP ở center enemy, chỉ show khi damaged +
         // hide tier-1). Boss vẫn dùng BossHpBar full-width.
-        // Offset áp dụng để Box(enemyWidth × enemyWidth) đặt tâm tại enemy center.
+        // Round 78 (#6 perf) — Filter ở caller để chỉ recompose Box+Text cho
+        // enemies damaged thật sự. Trước fix: 30 Composable + 30 neonGlow Brush
+        // allocs/frame chỉ để return early. Sau fix: typically 0-3 Composables.
         enemies.forEach {
-            if (!it.isBoss) {
+            val needsHpNumber = !it.isBoss &&
+                it.initialHp >= 50f &&
+                it.currentHp < it.initialHp &&
+                it.currentHp > 0f
+            if (needsHpNumber) {
                 key(it.enemyId) {
                     Box(modifier = Modifier.offset(x = it.xOffset.dp, y = it.yOffset.dp)) {
                         EnemyHpNumber(

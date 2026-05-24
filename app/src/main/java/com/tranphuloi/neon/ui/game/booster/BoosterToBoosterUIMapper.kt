@@ -49,8 +49,48 @@ class BoosterToBoosterUIMapper {
                 isEliteRarity = rarity != BoosterRarity.COMMON,
                 tintColorHex = tintHex,
                 glyph = glyph,
+                shape = shapeFor(type),
             )
         }
+    }
+
+    /**
+     * Single source of truth — `BoosterType` → [BoosterShape] mapping.
+     * Exhaustive `when` so the compiler flags any new BoosterType that doesn't
+     * pick a shape. Round 78 #3 spec follow-up: every BoosterType gets a
+     * distinct shape; no more shared silhouettes.
+     */
+    private fun shapeFor(type: BoosterType): BoosterShape = when (type) {
+        // Base 6 (legacy drawableId dispatch equivalents)
+        BoosterType.HEALTH_BOOSTER -> BoosterShape.CROSS
+        BoosterType.SHIELD_BOOSTER -> BoosterShape.OCTAGON
+        BoosterType.LASER_BOOSTER -> BoosterShape.TRIANGLE_UP
+        BoosterType.TRIPLE_LASER_BOOSTER -> BoosterShape.TRIPLE_BARS
+        BoosterType.ULTIMATE_WEAPON_BOOSTER -> BoosterShape.STAR
+        BoosterType.REVIVE_TOKEN -> BoosterShape.HEART
+        // Bullet-type boosters (distinct silhouettes)
+        BoosterType.PIERCING_BOOSTER -> BoosterShape.ARROW_RIGHT
+        BoosterType.PLASMA_BOOSTER -> BoosterShape.RING_PULSE
+        BoosterType.FIRE_BOOSTER -> BoosterShape.FLAME
+        BoosterType.HOMING_BOOSTER -> BoosterShape.CROSSHAIR
+        BoosterType.BOUNCE_BOOSTER -> BoosterShape.ARROW_CYCLE
+        BoosterType.GIANT_BOOSTER -> BoosterShape.BIG_DOT
+        BoosterType.SMOKE_BOOSTER -> BoosterShape.CLOUD_PUFF
+        BoosterType.ZIGZAG_BOOSTER -> BoosterShape.LIGHTNING
+        BoosterType.KAMEHAMEHA_BOOSTER -> BoosterShape.BEAM
+        BoosterType.ATOMIC_BOOSTER -> BoosterShape.ATOM
+        BoosterType.SPLIT_BOOSTER -> BoosterShape.SPLIT_FORK
+        // Support boosters
+        BoosterType.MAGNET_BOOST -> BoosterShape.MAGNET
+        BoosterType.CRIT_SURGE -> BoosterShape.CRYSTAL_SPARK
+        BoosterType.SPREAD_SHOT -> BoosterShape.SPREAD_FAN
+        BoosterType.BERSERK -> BoosterShape.LIGHTNING
+        BoosterType.PHASE_SHIELD -> BoosterShape.PHASE_DIAMOND
+        BoosterType.SCORE_X3 -> BoosterShape.DOLLAR
+        BoosterType.QUICK_HEAL -> BoosterShape.PLUS_DOUBLE
+        BoosterType.MINERAL_SUPERCHARGE -> BoosterShape.SHARD
+        BoosterType.HEALING_AURA -> BoosterShape.AURA_RING
+        BoosterType.DOUBLE_FIRE -> BoosterShape.DOUBLE_ARROW
     }
 
     companion object {

@@ -30,4 +30,14 @@ data class BoosterUI(
      * for unambiguous identification (PIERCING "→", PLASMA "◯"). Null = no badge.
      */
     val glyph: String? = null,
+    /**
+     * Round 78 (#3 fix) — explicit visual shape. Single source of truth for
+     * BoosterCanvas dispatch — no more drawableId-string switch. Type-safe enum
+     * means typos caught by compiler + exhaustive `when` warns on new values.
+     *
+     * Defaults to [BoosterShape.OCTAGON] (the fallback used by the old
+     * drawableId switch). [BoosterToBoosterUIMapper] picks the right shape from
+     * the BoosterType.
+     */
+    val shape: BoosterShape = BoosterShape.OCTAGON,
 ) : Serializable

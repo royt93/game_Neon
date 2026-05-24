@@ -85,7 +85,8 @@
       "Bash(sed -i '' 's|draw = { c -> drawEnemyDiamond\\(c|draw = { sc, c -> sc.drawEnemyDiamond\\(c|g' InfoScreen.kt)",
       "Bash(sed -i '' 's|draw = { c -> drawCrossPreview\\(c|draw = { sc, c -> sc.drawCrossPreview\\(c|g' InfoScreen.kt)",
       "Bash(sed -i '' 's|draw = { c -> drawOrbVariantPreview\\(c|draw = { sc, c -> sc.drawOrbVariantPreview\\(c|g' InfoScreen.kt)",
-      "Bash(python3)"
+      "Bash(python3)",
+      "Bash(./gradlew :app:compileDevDebugKotlin :app:compileProductionReleaseKotlin :app:testDevDebugUnitTest)"
     ]
   }
 }

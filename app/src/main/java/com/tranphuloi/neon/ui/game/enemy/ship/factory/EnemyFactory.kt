@@ -22,7 +22,21 @@ import com.tranphuloi.neon.utils.Logger
 class EnemyFactory(
     private val screenWidth: Float,
     private val screenHeight: Float,
-    private val formationXOffset: FormationXOffset = FormationXOffset(screenWidth),
+    // Round 78 (#4 follow-up) — exposed (internal) so EnemyController.setSpawnXMargin
+    // can pipe the same margin into the formation helper.
+    internal val formationXOffsetMutable: FormationXOffset = FormationXOffset(screenWidth),
+    /**
+     * Round 78 (#4 spec fix follow-up) — extend X spawn range into the negative
+     * margins and beyond screenWidth so enemies appear at the visual screen
+     * edges at FAR/MEDIUM camera zoom. graphicsLayer.scale shrinks the visible
+     * world to inner X% of screen — without this extension the outer margin
+     * bands at FAR zoom would always be empty of enemies.
+     *
+     * Only applied to the V/SineWave/Triangle "anchored to centerX" formations
+     * + the random fallback. Row/ZigZag formations preserve their original
+     * spawn pattern so the formation reads correctly at all zoom levels.
+     */
+    var spawnXMargin: Float = 0f,
 ) {
 
     operator fun invoke(type: EnemyType, getShip: () -> Ship): List<Enemy> {
@@ -33,7 +47,7 @@ class EnemyFactory(
                     val enemy = RegularEnemy(
                         screenWidth = screenWidth,
                         screenHeight = screenHeight,
-                        xOffset = formationXOffset.zigZagXOffset(type.formation),
+                        xOffset = formationXOffsetMutable.zigZagXOffset(type.formation),
                         type = type
                     )
                     enemies += enemy
@@ -45,7 +59,7 @@ class EnemyFactory(
                         val enemy = RegularEnemy(
                             screenWidth = screenWidth,
                             screenHeight = screenHeight,
-                            xOffset = formationXOffset.rowXOffset(
+                            xOffset = formationXOffsetMutable.rowXOffset(
                                 formation = type.formation,
                                 previousEnemy = enemies.lastOrNull(),
                                 enemyWidth = type.width
@@ -72,10 +86,12 @@ class EnemyFactory(
                         val sign = if (slot >= 0) 1 else -1
                         val xs = centerX + sign * yLayer * xStep
                         val ys = -yLayer * yStep                    // negative = above screen top, descend in
+                        // Round 78 (#4 fix) — clamp extends to negative margin at FAR zoom
+                        // so V-formation wing tips reach the visual screen edge.
                         enemies += RegularEnemy(
                             screenWidth = screenWidth,
                             screenHeight = screenHeight,
-                            xOffset = xs.coerceIn(0f, screenWidth - type.width),
+                            xOffset = xs.coerceIn(-spawnXMargin, screenWidth - type.width + spawnXMargin),
                             type = type,
                             initialYOffset = ys,
                         )
