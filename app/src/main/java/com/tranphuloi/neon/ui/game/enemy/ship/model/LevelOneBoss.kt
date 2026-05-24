@@ -97,24 +97,31 @@ data class LevelOneBoss(
     }
 
     override fun generateLasers(): List<Laser> {
-        val width = 30f
-        val ship: Ship = getShip()
-        val xOffsetDiff = ship.xOffset - xOffset
-        val yOffsetDiff = ship.yOffset - yOffset
-        val xOffsetMovementSpeed = xOffsetDiff / (yOffsetDiff - 2)
-        val yOffMovementSpeed = yOffsetDiff / (yOffsetDiff - 2)
-        return listOf(
+        // Round 74 (R73e) — STAR boss attack pattern: 8-laser RING BARRAGE
+        // radial từ center. Mỗi laser bay theo hướng riêng 45° spacing. Player
+        // phải né như giữa "starburst" của một quả pháo hoa.
+        val width = 24f
+        val centerX = xOffset + this.width / 2 - width / 2
+        val centerY = yOffset + height / 2
+        val speed = 4f
+        return (0 until 8).map { i ->
+            val angle = i * 45.0 * Math.PI / 180.0
+            // Negative Y because lasers move "down" in game = positive y is down,
+            // but enemy laser yOffsetMovementSpeed sign convention varies. Match
+            // existing yOffMovementSpeed > 0 = downward by using sin(angle) magnitude.
+            val dx = kotlin.math.cos(angle).toFloat() * speed
+            val dy = kotlin.math.sin(angle).toFloat() * speed
             EnemyLaser(
-                xOffset = xOffset + this.width / 2 - width / 2,
-                yOffset = yOffset + height,
+                xOffset = centerX,
+                yOffset = centerY,
                 yRange = screenHeight,
                 width = width,
                 height = width,
-                xOffsetMovementSpeed = xOffsetMovementSpeed,
-                yOffsetMovementSpeed = yOffMovementSpeed,
-                drawableId = R.drawable.ic_laser_red_8
+                xOffsetMovementSpeed = dx,
+                yOffsetMovementSpeed = dy,
+                drawableId = R.drawable.ic_laser_red_8,
             )
-        )
+        }
     }
 
     override fun onObjectImpact(impactPower: Float) {

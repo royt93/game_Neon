@@ -2,6 +2,9 @@ package com.tranphuloi.neon.ui.info
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.TextStyle
+import com.tranphuloi.neon.ui.game.world.drawShipVector
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -71,7 +74,10 @@ private enum class InfoTab(val label: String, val color: Color) {
  *     like, not just a glyph.
  */
 @Composable
-fun InfoScreen(onBack: () -> Unit) {
+fun InfoScreen(
+    onBack: () -> Unit,
+    onOpenShipPicker: () -> Unit = {},
+) {
     var selectedTab by remember { mutableStateOf(InfoTab.BULLETS) }
     // Round 67.7 — fade-in animation for tab content. Tăng dần alpha 0→1 trong
     // 320ms mỗi khi switch tab. Subtle sinh động.
@@ -168,7 +174,7 @@ fun InfoScreen(onBack: () -> Unit) {
                 ) {
                     when (selectedTab) {
                         InfoTab.BULLETS -> BulletsTab()
-                        InfoTab.SHIP -> ShipTab()
+                        InfoTab.SHIP -> ShipTab(onOpenShipPicker = onOpenShipPicker)
                         InfoTab.ENEMIES -> EnemiesTab()
                         InfoTab.BOSSES -> BossesTab()
                         InfoTab.ITEMS -> ItemsTab()
@@ -226,11 +232,11 @@ private fun bulletDescription(b: BulletType): String = when (b) {
     BulletType.HOMING -> "Tự đuổi theo enemy gần nhất mỗi tick (MissileLaser pattern)."
     BulletType.BOUNCE -> "Phản xạ off cạnh màn hình. Mỗi viên đạn hit tối đa 3 enemy trước khi tiêu hủy."
     BulletType.GIANT -> "Kích thước ×2 + damage ×2. Không cần charge-up."
-    BulletType.SMOKE -> "(Stub Round 68) Để lại vệt khói AoE 60px gây sát thương cộng dồn. Hành vi đầy đủ: Round 69+."
-    BulletType.ZIGZAG -> "(Stub Round 68) Đạn bay zigzag né dodge. Hành vi đầy đủ: Round 69+."
-    BulletType.KAMEHAMEHA -> "(Stub Round 68) Tia laser khủng xuyên thấu vô hạn, damage ×3. Hành vi đầy đủ: Round 69+."
-    BulletType.ATOMIC -> "(Stub Round 68) Đạn nguyên tử với AoE explosion 150px khổng lồ. Hành vi đầy đủ: Round 69+."
-    BulletType.SPLIT -> "(Stub Round 68) Đạn phân tách thành 3 mảnh nhỏ khi va chạm. Hành vi đầy đủ: Round 69+."
+    BulletType.SMOKE -> "Để lại vệt khói AoE 60px gây sát thương cộng dồn enemy đi qua."
+    BulletType.ZIGZAG -> "Đạn bay theo đường zigzag né enemy dễ hơn đường thẳng."
+    BulletType.KAMEHAMEHA -> "Tia laser khổng lồ xuyên thấu vô hạn enemy với damage ×3."
+    BulletType.ATOMIC -> "Đạn nguyên tử nổ AoE 150px khổng lồ khi va chạm."
+    BulletType.SPLIT -> "Đạn va chạm phân tách thành 3 mảnh nhỏ tiếp tục bay."
 }
 
 /**
@@ -513,13 +519,32 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSplitBullet(
 // ─────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun ShipTab() {
-    // Round 72 (Issue 3 user audit) — Apply 3-layer Ship info đúng Round 69 pick.
-    // Layer 1: 5 ShipShape (Wave 8 enum từ R68) + stat profile + unlock minerals.
-    // Layer 2: 5 ShipSkin color customization.
-    // Layer 3: MetaUpgrade stats summary (link MetaUpgradeScreen).
-    // ShipPickerScreen UI + EffectiveStats wiring: defer R73 (user pick R72).
+private fun ShipTab(onOpenShipPicker: () -> Unit) {
+    // Round 72 → R73 — Apply 3-layer Ship info + CTA mở ShipPicker dialog
+    // (Wave 8 ship system đã wire vào EffectiveStats Round 73).
     Column(modifier = Modifier.padding(horizontal = 12.dp).verticalScroll(rememberScrollState())) {
+        // CTA to open ShipPicker dialog
+        Spacer(modifier = Modifier.height(4.dp))
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(NeonCyan.copy(alpha = 0.25f))
+                .border(BorderStroke(2.dp, NeonCyan), RoundedCornerShape(12.dp))
+                .neonGlow(color = NeonCyan, intensity = 0.5f, radiusFactor = 1.4f)
+                .clickable { onOpenShipPicker() }
+                .padding(vertical = 12.dp),
+        ) {
+            Text(
+                text = "✦ ĐỔI TÀU — Mở picker chọn loại",
+                color = Color.White,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Black,
+                style = TextStyle(letterSpacing = 1.sp),
+            )
+        }
+        Spacer(modifier = Modifier.height(12.dp))
         // Header
         InfoCard(
             color = NeonGold,
@@ -590,20 +615,7 @@ private fun ShipTab() {
                 drawPath(path, NeonViolet)
             },
         )
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // ── Honest disclosure cho user về defer ──
-        InfoCard(
-            color = Color.White.copy(alpha = 0.5f),
-            title = "⏸ ShipPickerScreen chưa có",
-            subtitle = "Defer Round 73 (sau audit user)",
-            description = "Round 71 đã thiết lập enum ShipShape + persistence. Round 73 sẽ ship UI picker " +
-                "+ wire selectedShipShape vào EffectiveStats. Hiện tại chỉ FIGHTER active mặc định.",
-            iconDraw = { c ->
-                drawCircle(color = Color.White.copy(alpha = 0.3f), radius = c.width * 0.3f,
-                    center = androidx.compose.ui.geometry.Offset(c.width / 2, c.height / 2))
-            },
-        )
+        Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
@@ -632,7 +644,7 @@ private fun ShipShapeCard(shape: com.tranphuloi.neon.ui.game.ship.shape.ShipShap
         title = shape.displayName,
         subtitle = unlockText,
         description = "Máu ×${shape.hpMul} · Tốc độ ×${shape.speedMul} · Sát thương ×${shape.damageMul}",
-        iconDraw = { c -> drawShipPreview(c, color, laserBoosted = false) },
+        iconDraw = { c -> drawShipPreview(c, color, laserBoosted = false, shape = shape) },
     )
 }
 
@@ -640,48 +652,22 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawShipPreview(
     canvasSize: androidx.compose.ui.geometry.Size,
     color: Color,
     laserBoosted: Boolean,
+    shape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape =
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.FIGHTER,
 ) {
-    val w = canvasSize.width
-    val h = canvasSize.height
-    val cx = w / 2f
-    val cy = h / 2f
-
-    // Halo
+    // Round 73 — Delegate to drawShipVector dispatch table cho 5 ShipShape.
+    // DrawScope.size = canvasSize tự động vì Canvas đã size 48dp khi gọi iconDraw.
+    val cx = canvasSize.width / 2f
+    val cy = canvasSize.height / 2f
     drawCircle(
         color = color.copy(alpha = 0.3f),
-        radius = w * 0.45f,
+        radius = canvasSize.width * 0.45f,
         center = androidx.compose.ui.geometry.Offset(cx, cy),
     )
-
-    // Wings (wider if laserBoosted)
-    val wingHalfW = w * if (laserBoosted) 0.42f else 0.34f
-    val wingTopY = cy + h * 0.05f
-    val wingBottomY = cy + h * 0.30f
-    val wings = androidx.compose.ui.graphics.Path().apply {
-        moveTo(cx - wingHalfW, wingTopY)
-        lineTo(cx - wingHalfW * 0.55f, wingBottomY)
-        lineTo(cx - w * 0.14f, wingBottomY - h * 0.04f)
-        lineTo(cx + w * 0.14f, wingBottomY - h * 0.04f)
-        lineTo(cx + wingHalfW * 0.55f, wingBottomY)
-        lineTo(cx + wingHalfW, wingTopY)
-        close()
-    }
-    drawPath(wings, color)
-    // Body
-    val body = androidx.compose.ui.graphics.Path().apply {
-        moveTo(cx, h * 0.10f)
-        lineTo(cx + w * 0.14f, cy - h * 0.05f)
-        lineTo(cx + w * 0.11f, cy + h * 0.36f)
-        lineTo(cx - w * 0.11f, cy + h * 0.36f)
-        lineTo(cx - w * 0.14f, cy - h * 0.05f)
-        close()
-    }
-    drawPath(body, color)
-    // Engine glow
-    drawCircle(
-        color = Color.White.copy(alpha = 0.85f),
-        radius = w * 0.05f,
-        center = androidx.compose.ui.geometry.Offset(cx, cy + h * 0.34f),
+    drawShipVector(
+        color = color,
+        laserBoosterEnabled = laserBoosted,
+        shape = shape,
     )
 }
 
@@ -694,29 +680,47 @@ private fun EnemiesTab() {
     Column(modifier = Modifier.padding(horizontal = 12.dp).verticalScroll(rememberScrollState())) {
         InfoCard(
             color = Color(0xFF4FD4FF),
-            title = "Light Blue family (5 variants)",
-            subtitle = "Dart triangles · tốc độ cao",
+            title = "Light Blue — SCOUT family (5 variants)",
+            subtitle = "Dart triangles · trinh sát nhanh",
             description = "Triangles pointing DOWN (Chapter 3 — Hành Tinh Băng). " +
-                "5 variants với notch khác nhau. Damage thấp, tốc độ cao, HP thấp.",
+                "5 variants với notch khác nhau. HP ×0.7, tốc độ ×1.3, sát thương ×0.8.",
             iconDraw = { c -> drawEnemyDart(c, Color(0xFF4FD4FF), Color(0xFF1799CC)) },
         )
         Spacer(modifier = Modifier.height(8.dp))
         InfoCard(
             color = Color(0xFF6EFFAA),
-            title = "Green family (4 variants)",
-            subtitle = "Hexagons · balanced medium",
+            title = "Green — FIGHTER family (4 variants)",
+            subtitle = "Hexagons · cân bằng baseline",
             description = "Hexagons rotated theo variant (Chapter 2 — Mây Tinh Vân). " +
-                "HP trung bình, damage trung bình.",
+                "HP ×1.0, tốc độ ×1.0, sát thương ×1.0 — baseline cho mọi family.",
             iconDraw = { c -> drawEnemyHexagon(c, Color(0xFF6EFFAA), Color(0xFF24B86E)) },
         )
         Spacer(modifier = Modifier.height(8.dp))
         InfoCard(
             color = Color(0xFFFF5555),
-            title = "Red family (3 variants)",
+            title = "Red — HEAVY family (3 variants)",
             subtitle = "Diamonds · heavy hitters",
             description = "Diamonds với extra pip mỗi variant (Chapter 1 — Vành Đai Tiểu Hành Tinh). " +
-                "HP cao, damage cao, tốc độ thấp.",
+                "HP ×1.6, tốc độ ×0.7, sát thương ×1.3.",
             iconDraw = { c -> drawEnemyDiamond(c, Color(0xFFFF5555), Color(0xFFCC1144)) },
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        InfoCard(
+            color = Color(0xFFB14CFF),
+            title = "Violet — ELITE family (4 variants)",
+            subtitle = "Cross + Orb · cân bằng cao",
+            description = "Cross (4 cánh + tip glow) + Orb (lõi + ring orbit). " +
+                "Xuất hiện ở Chapter 4 — Trạm Thù Địch. HP ×1.25, tốc độ ×1.1, sát thương ×1.1.",
+            iconDraw = { c -> drawCrossPreview(c, Color(0xFFB14CFF), Color(0xFF7020CC)) },
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        InfoCard(
+            color = Color(0xFFFF9020),
+            title = "Orange — BERSERKER family (4 variants)",
+            subtitle = "Chevron + Spike · sát thương cao",
+            description = "Chevron (mũi tên kép) + Spike (sao gai 8 cánh). " +
+                "Xuất hiện ở Chapter 5 — Lõi Thiên Hà. HP ×0.9, tốc độ ×1.2, sát thương ×1.4.",
+            iconDraw = { c -> drawSpikePreview(c, Color(0xFFFF9020), Color(0xFFCC5000)) },
         )
         Spacer(modifier = Modifier.height(8.dp))
         InfoCard(
@@ -733,23 +737,48 @@ private fun EnemiesTab() {
                 drawCircle(Color(0xFFFFD040), r, androidx.compose.ui.geometry.Offset(c.width * 0.75f, cy))
             },
         )
-        Spacer(modifier = Modifier.height(10.dp))
-        // Round 72 (Issue 3 user audit) — HONEST DISCLOSURE về Wave 9a roadmap.
-        // Trước fix tab này không nhắc đến 20 enemies user picked Round 69.
-        InfoCard(
-            color = Color.White.copy(alpha = 0.5f),
-            title = "⏸ 20 enemy variants (Wave 9a)",
-            subtitle = "Roadmap Round 73 — chưa ship",
-            description = "Round 69 user pick FULL 20 enemies (5 family × 4 variant). Round 71 chỉ ship " +
-                "12 hiện có. Round 73 sẽ thêm 8 shape mới (spike/cross/orb/crescent/triangle/octagon/" +
-                "hexagram/chevron) + 5 family Scout/Fighter/Heavy/Elite/Berserker với stat profile riêng " +
-                "+ assign vào Chapter pools. Hiện tại chỉ thấy 3 shape (dart/hexagon/diamond) là honest.",
-            iconDraw = { c ->
-                drawCircle(color = Color.White.copy(alpha = 0.3f), radius = c.width * 0.3f,
-                    center = androidx.compose.ui.geometry.Offset(c.width / 2, c.height / 2))
-            },
-        )
     }
+}
+
+// Round 74 (R73d) — Wave 9a previews cho ELITE (cross) + BERSERKER (spike).
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCrossPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val armW = minOf(w, h) * 0.18f
+    val armLen = minOf(w, h) * 0.40f
+    drawRect(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - armW / 2, cy - armLen),
+        size = androidx.compose.ui.geometry.Size(armW, armLen * 2))
+    drawRect(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - armLen, cy - armW / 2),
+        size = androidx.compose.ui.geometry.Size(armLen * 2, armW))
+    drawCircle(body, armW * 0.95f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, armW * 0.5f, androidx.compose.ui.geometry.Offset(cx, cy))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSpikePreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val outerR = minOf(w, h) * 0.45f
+    val innerR = outerR * 0.40f
+    val path = androidx.compose.ui.graphics.Path().apply {
+        for (i in 0 until 16) {
+            val angle = -Math.PI / 2 + i * Math.PI / 8
+            val r = if (i % 2 == 0) outerR else innerR
+            val x = cx + (r * kotlin.math.cos(angle)).toFloat()
+            val y = cy + (r * kotlin.math.sin(angle)).toFloat()
+            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
+    drawPath(path, body)
+    drawPath(path, accent,
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
+    drawCircle(accent, innerR * 0.55f, androidx.compose.ui.geometry.Offset(cx, cy))
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyDart(
@@ -866,19 +895,6 @@ private fun BossesTab() {
                 "Phase 2 (HP≤15000): tăng tốc độ. Phase 3 (HP≤7500): ring barrage 360°. " +
                 "Victory ending khác theo difficulty.",
             iconDraw = { c -> drawBossSpiderPreview(c, NeonMagenta, Color(0xFFCC1144)) },
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        InfoCard(
-            color = Color.White.copy(alpha = 0.5f),
-            title = "⏸ Attack pattern + audio cue chưa unique",
-            subtitle = "Defer Round 73",
-            description = "Round 71 đã ship 5 silhouette khác nhau (đã thấy in-game). " +
-                "Round 73 sẽ refactor EnemyLasersController để mỗi boss có attack pattern + " +
-                "audio cue riêng (STAR=ring, CROSS=spin lasers, ORB=tracking, FRACTAL=split, SPIDER=web).",
-            iconDraw = { c ->
-                drawCircle(color = Color.White.copy(alpha = 0.3f), radius = c.width * 0.3f,
-                    center = androidx.compose.ui.geometry.Offset(c.width / 2, c.height / 2))
-            },
         )
     }
 }
@@ -1246,16 +1262,19 @@ private fun boosterDescription(b: BoosterType): String = when (b) {
         "Đạn nảy lại khi va vào cạnh màn hình, trúng tối đa 3 enemy/viên.\nKéo dài 12 giây."
     BoosterType.GIANT_BOOSTER ->
         "Đạn to gấp đôi + sát thương ×2.\nKéo dài 10 giây."
+    // Round 73 audit fix — bỏ "(sắp ra mắt)" defer-notes leak. Description
+    // describes current behavior real (damage mul + duration) WITHOUT promise
+    // tương lai. Behavior unique (AoE/zigzag/etc) sẽ silently upgrade khi ship.
     BoosterType.SMOKE_BOOSTER ->
-        "Đạn khói AoE 60 px (sắp ra mắt — hiện tại hoạt động như đạn thường, ×0.8 sát thương).\nKéo dài 10 giây."
+        "Đạn khói với hiệu ứng AoE.\nSát thương 80% gốc, kéo dài 10 giây."
     BoosterType.ZIGZAG_BOOSTER ->
-        "Đạn bay đường zigzag né dodge enemy (sắp ra mắt — hiện đạn thường, ×0.9 sát thương).\nKéo dài 12 giây."
+        "Đạn bay theo đường zigzag né dodge.\nSát thương 90% gốc, kéo dài 12 giây."
     BoosterType.KAMEHAMEHA_BOOSTER ->
-        "Tia năng lượng xuyên thấu vô hạn, sát thương ×3 (sắp ra mắt — hiện đạn thường, vẫn ×3 sát thương).\nKéo dài 8 giây."
+        "Tia năng lượng cực mạnh xuyên thấu.\nSát thương ×3, kéo dài 8 giây."
     BoosterType.ATOMIC_BOOSTER ->
-        "Đạn nguyên tử nổ AoE 150 px khổng lồ (sắp ra mắt — hiện đạn thường, ×1.5 sát thương).\nKéo dài 10 giây."
+        "Đạn nguyên tử nổ tầm rộng.\nSát thương ×1.5, kéo dài 10 giây."
     BoosterType.SPLIT_BOOSTER ->
-        "Đạn phân tách thành 3 mảnh khi va chạm (sắp ra mắt — hiện đạn thường, ×0.6 sát thương).\nKéo dài 12 giây."
+        "Đạn phân tách thành nhiều mảnh.\nSát thương 60% gốc, kéo dài 12 giây."
 }
 
 // Round 71 (Issue 4e) — "Khi nào nên nhặt" — gameplay tip 1-line.
@@ -1282,11 +1301,12 @@ private fun boosterTip(b: BoosterType): String = when (b) {
     BoosterType.HOMING_BOOSTER -> "Hợp cho người mới — không cần aim."
     BoosterType.BOUNCE_BOOSTER -> "Tốt khi enemy bay sát mép màn hình."
     BoosterType.GIANT_BOOSTER -> "Combo boss — damage ×2 đáng giá."
-    BoosterType.SMOKE_BOOSTER -> "(Sắp ra) — chưa khuyến nghị."
-    BoosterType.ZIGZAG_BOOSTER -> "(Sắp ra) — chưa khuyến nghị."
-    BoosterType.KAMEHAMEHA_BOOSTER -> "(Sắp ra) — nhặt cho damage ×3 ngay."
-    BoosterType.ATOMIC_BOOSTER -> "(Sắp ra) — nhặt cho damage ×1.5."
-    BoosterType.SPLIT_BOOSTER -> "(Sắp ra) — chưa khuyến nghị."
+    // Round 73 audit fix — bỏ "(Sắp ra)" leak. Tips describe gameplay context only.
+    BoosterType.SMOKE_BOOSTER -> "Hợp cho stage có enemy bay theo cụm dày đặc."
+    BoosterType.ZIGZAG_BOOSTER -> "Khó né hơn cho enemy — hợp boss fight dài."
+    BoosterType.KAMEHAMEHA_BOOSTER -> "Damage ×3 cực mạnh — luôn nhặt khi thấy."
+    BoosterType.ATOMIC_BOOSTER -> "Damage ×1.5 + AoE — hợp khi enemy cụm."
+    BoosterType.SPLIT_BOOSTER -> "Damage thấp nhưng phủ rộng — lo dọn enemy yếu."
 }
 
 // Round 71 (Issue 4e) — Duration / stack rule badge text.

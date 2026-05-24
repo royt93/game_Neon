@@ -70,11 +70,16 @@ enum class Chapter(
         id = 4,
         displayName = "TRẠM THÙ ĐỊCH",
         tintArgb = 0xFFFF2D55,                        // red alert
+        // Round 74 (R73d) — Chapter 4 introduces ELITE family (cross/orb).
         regularEnemyDrawables = listOf(
             R.drawable.enemy_red_2,
             R.drawable.enemy_red_3,
             R.drawable.enemy_green_3,
             R.drawable.enemy_light_blue_4,
+            R.drawable.enemy_cross_1,
+            R.drawable.enemy_cross_2,
+            R.drawable.enemy_orb_1,
+            R.drawable.enemy_orb_2,
         ),
         hazard = null,                                // station = open zone
         midBossType = MidBossType.OFFENSIVE,
@@ -84,10 +89,15 @@ enum class Chapter(
         id = 5,
         displayName = "LÕI THIÊN HÀ",
         tintArgb = 0xFFFF2DE0,                        // deep magenta
+        // Round 74 (R73d) — Chapter 5 introduces BERSERKER family (chevron/spike).
         regularEnemyDrawables = listOf(
             R.drawable.enemy_red_3,
             R.drawable.enemy_green_4,
             R.drawable.enemy_light_blue_5,
+            R.drawable.enemy_chevron_1,
+            R.drawable.enemy_chevron_2,
+            R.drawable.enemy_spike_1,
+            R.drawable.enemy_spike_2,
         ),
         hazard = null,
         midBossType = null,                           // no mid-boss before final

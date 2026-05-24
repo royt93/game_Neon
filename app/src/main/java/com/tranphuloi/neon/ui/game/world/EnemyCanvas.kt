@@ -161,6 +161,11 @@ private fun bodyColorFor(drawableId: Int): Color = when (drawableId) {
     R.drawable.enemy_green_boss -> GREEN_BODY
     R.drawable.enemy_red_1, R.drawable.enemy_red_2,
     R.drawable.enemy_red_3, R.drawable.enemy_red_boss -> RED_BODY
+    // Round 74 (R73d) — ELITE family = violet, BERSERKER = orange.
+    R.drawable.enemy_cross_1, R.drawable.enemy_cross_2,
+    R.drawable.enemy_orb_1, R.drawable.enemy_orb_2 -> Color(0xFFB14CFF)        // violet ELITE
+    R.drawable.enemy_chevron_1, R.drawable.enemy_chevron_2,
+    R.drawable.enemy_spike_1, R.drawable.enemy_spike_2 -> Color(0xFFFF9020)    // orange BERSERKER
     else -> Color(0xFFCCCCCC)
 }
 
@@ -173,6 +178,10 @@ private fun accentColorFor(drawableId: Int): Color = when (drawableId) {
     R.drawable.enemy_green_boss -> GREEN_ACCENT
     R.drawable.enemy_red_1, R.drawable.enemy_red_2,
     R.drawable.enemy_red_3, R.drawable.enemy_red_boss -> RED_ACCENT
+    R.drawable.enemy_cross_1, R.drawable.enemy_cross_2,
+    R.drawable.enemy_orb_1, R.drawable.enemy_orb_2 -> Color(0xFF7020CC)
+    R.drawable.enemy_chevron_1, R.drawable.enemy_chevron_2,
+    R.drawable.enemy_spike_1, R.drawable.enemy_spike_2 -> Color(0xFFCC5000)
     else -> Color(0xFF666666)
 }
 
@@ -261,11 +270,120 @@ private fun DrawScope.drawEnemyShape(
         R.drawable.enemy_red_1 -> drawDiamond(cx, cy, wPx, hPx, body, accent, variant = 0)
         R.drawable.enemy_red_2 -> drawDiamond(cx, cy, wPx, hPx, body, accent, variant = 1)
         R.drawable.enemy_red_3 -> drawDiamond(cx, cy, wPx, hPx, body, accent, variant = 2)
+        // Round 74 (R73d) — Wave 9a: 8 new shape recipes cho ELITE + BERSERKER family.
+        // ELITE: cross + orb (violet).
+        R.drawable.enemy_cross_1 -> drawCross(cx, cy, wPx, hPx, body, accent, variant = 0)
+        R.drawable.enemy_cross_2 -> drawCross(cx, cy, wPx, hPx, body, accent, variant = 1)
+        R.drawable.enemy_orb_1 -> drawOrb(cx, cy, wPx, hPx, body, accent, variant = 0)
+        R.drawable.enemy_orb_2 -> drawOrb(cx, cy, wPx, hPx, body, accent, variant = 1)
+        // BERSERKER: chevron + spike (orange).
+        R.drawable.enemy_chevron_1 -> drawChevron(cx, cy, wPx, hPx, body, accent, variant = 0)
+        R.drawable.enemy_chevron_2 -> drawChevron(cx, cy, wPx, hPx, body, accent, variant = 1)
+        R.drawable.enemy_spike_1 -> drawSpike(cx, cy, wPx, hPx, body, accent, variant = 0)
+        R.drawable.enemy_spike_2 -> drawSpike(cx, cy, wPx, hPx, body, accent, variant = 1)
         // Boss drawables fallback (bossKind null — defensive).
         R.drawable.enemy_green_boss, R.drawable.enemy_red_boss ->
             drawBossStar(cx, cy, wPx, hPx, body, accent)
         else -> drawHexagon(cx, cy, wPx, hPx, body, accent, variant = 0)
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Round 74 (R73d) — Wave 9a: 4 new shape recipes (2 variant mỗi).
+// ─────────────────────────────────────────────────────────────────────────
+
+/** ELITE: 4-arm cross with center disc + tip glow. variant changes arm length. */
+private fun DrawScope.drawCross(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color, variant: Int,
+) {
+    val armWFactor = 0.20f + variant * 0.05f
+    val armW = minOf(wPx, hPx) * armWFactor
+    val armLen = minOf(wPx, hPx) * (0.40f + variant * 0.05f)
+    val centerR = minOf(wPx, hPx) * 0.20f
+    drawRect(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - armW / 2, cy - armLen),
+        size = androidx.compose.ui.geometry.Size(armW, armLen * 2))
+    drawRect(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - armLen, cy - armW / 2),
+        size = androidx.compose.ui.geometry.Size(armLen * 2, armW))
+    drawCircle(body, centerR, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, centerR * 0.55f, androidx.compose.ui.geometry.Offset(cx, cy))
+    // Tip dots
+    drawCircle(accent, armW * 0.55f, androidx.compose.ui.geometry.Offset(cx, cy - armLen))
+    drawCircle(accent, armW * 0.55f, androidx.compose.ui.geometry.Offset(cx, cy + armLen))
+    drawCircle(accent, armW * 0.55f, androidx.compose.ui.geometry.Offset(cx - armLen, cy))
+    drawCircle(accent, armW * 0.55f, androidx.compose.ui.geometry.Offset(cx + armLen, cy))
+}
+
+/** ELITE: Floating orb with 1 or 2 orbital rings. variant=0 single, variant=1 double. */
+private fun DrawScope.drawOrb(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color, variant: Int,
+) {
+    val r = minOf(wPx, hPx) * 0.40f
+    drawCircle(body, r, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, r * 0.55f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(Color.White.copy(alpha = 0.9f), r * 0.22f, androidx.compose.ui.geometry.Offset(cx, cy))
+    // Orbital ring(s)
+    drawCircle(
+        color = accent,
+        radius = r * 1.20f,
+        center = androidx.compose.ui.geometry.Offset(cx, cy),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = wPx * 0.05f),
+    )
+    if (variant == 1) {
+        drawCircle(
+            color = accent.copy(alpha = 0.6f),
+            radius = r * 1.45f,
+            center = androidx.compose.ui.geometry.Offset(cx, cy),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(width = wPx * 0.035f),
+        )
+    }
+}
+
+/** BERSERKER: Chevron arrow pointing DOWN (toward player). variant=0 single, variant=1 double-stack. */
+private fun DrawScope.drawChevron(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color, variant: Int,
+) {
+    val halfW = wPx * 0.42f
+    val drawOne: (Float) -> Unit = { yShift ->
+        val path = androidx.compose.ui.graphics.Path().apply {
+            moveTo(cx - halfW, cy - hPx * 0.25f + yShift)
+            lineTo(cx, cy + hPx * 0.20f + yShift)
+            lineTo(cx + halfW, cy - hPx * 0.25f + yShift)
+            lineTo(cx + halfW * 0.7f, cy - hPx * 0.30f + yShift)
+            lineTo(cx, cy + hPx * 0.10f + yShift)
+            lineTo(cx - halfW * 0.7f, cy - hPx * 0.30f + yShift)
+            close()
+        }
+        drawPath(path, body)
+    }
+    drawOne(0f)
+    if (variant == 1) drawOne(hPx * 0.35f)
+    // Pip center
+    drawCircle(accent, wPx * 0.07f, androidx.compose.ui.geometry.Offset(cx, cy))
+}
+
+/** BERSERKER: Spiked star — 8 pointy spikes radiating. variant changes spike length. */
+private fun DrawScope.drawSpike(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color, variant: Int,
+) {
+    val outerR = minOf(wPx, hPx) * (0.42f + variant * 0.05f)
+    val innerR = outerR * 0.40f
+    val spikes = 8
+    val path = androidx.compose.ui.graphics.Path().apply {
+        for (i in 0 until spikes * 2) {
+            val angle = -Math.PI / 2 + i * Math.PI / spikes
+            val r = if (i % 2 == 0) outerR else innerR
+            val x = cx + (r * kotlin.math.cos(angle)).toFloat()
+            val y = cy + (r * kotlin.math.sin(angle)).toFloat()
+            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
+    drawPath(path, body)
+    drawPath(path, accent,
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = wPx * 0.04f))
+    drawCircle(accent, innerR * 0.55f, androidx.compose.ui.geometry.Offset(cx, cy))
 }
 
 // ─────────────────────────────────────────────────────────────────────────

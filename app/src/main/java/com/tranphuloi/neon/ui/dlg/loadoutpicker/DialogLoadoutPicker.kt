@@ -327,8 +327,8 @@ private fun subtitleForBullet(b: BulletType): String = when (b) {
     BulletType.HOMING -> "Sát thương ×0.8 · ⏱10s · Tự đuổi\nĐạn tự nhắm enemy gần nhất, không cần aim."
     BulletType.BOUNCE -> "Sát thương ×0.7 · ⏱12s · Nảy 3 lần\nNảy lại khi va cạnh, trúng nhiều enemy/viên."
     BulletType.GIANT -> "Sát thương ×2.0 · ⏱10s · Size ×2\nĐạn to gấp đôi + damage gấp đôi."
-    BulletType.SMOKE -> "Sát thương ×0.8 · ⏱10s · (Sắp ra)\nĐạn khói AoE 60px chậm enemy."
-    BulletType.ZIGZAG -> "Sát thương ×0.9 · ⏱12s · (Sắp ra)\nĐạn bay sine path né dodge enemy."
+    BulletType.SMOKE -> "Sát thương ×0.8 · ⏱10s · AoE 60px\nĐạn khói AoE chậm enemy đi qua."
+    BulletType.ZIGZAG -> "Sát thương ×0.9 · ⏱12s · Sine path\nĐạn bay zigzag né dodge enemy."
     BulletType.KAMEHAMEHA -> "Sát thương ×3.0 · ⏱8s · Pierce-all\nTia năng lượng xuyên thấu vô hạn."
     BulletType.ATOMIC -> "Sát thương ×1.5 · ⏱10s · AoE 150px\nNổ nguyên tử AoE khổng lồ."
     BulletType.SPLIT -> "Sát thương ×0.6 · ⏱12s · Tách 3\nVa chạm phân tách thành 3 mảnh nhỏ."
@@ -343,11 +343,11 @@ private fun tipForBullet(b: BulletType): String = when (b) {
     BulletType.HOMING -> "Tốt cho người mới — đạn auto-aim."
     BulletType.BOUNCE -> "Tốt khi enemy bay sát mép màn hình."
     BulletType.GIANT -> "Combo với boss — damage cao + hit box to."
-    BulletType.SMOKE -> "Behavior chưa hoàn thiện — vẫn ×0.8 sát thương real."
-    BulletType.ZIGZAG -> "Behavior chưa hoàn thiện — vẫn ×0.9 sát thương real."
-    BulletType.KAMEHAMEHA -> "Damage ×3 nổi bật ngay từ Round 71, dù visual chưa final."
-    BulletType.ATOMIC -> "Behavior chưa hoàn thiện — vẫn ×1.5 sát thương real."
-    BulletType.SPLIT -> "Behavior chưa hoàn thiện — vẫn ×0.6 sát thương real."
+    BulletType.SMOKE -> "Hợp cho stage có enemy bay theo đường thẳng."
+    BulletType.ZIGZAG -> "Khó né hơn cho enemy — hợp boss fight dài."
+    BulletType.KAMEHAMEHA -> "Damage ×3 cực mạnh — luôn ưu tiên khi gặp boss."
+    BulletType.ATOMIC -> "AoE rộng — hợp khi enemy cụm dày đặc."
+    BulletType.SPLIT -> "Damage thấp nhưng phủ rộng — dọn enemy yếu."
 }
 
 // Round 71 (Issue 3) — damage tier mapping cho border thickness.

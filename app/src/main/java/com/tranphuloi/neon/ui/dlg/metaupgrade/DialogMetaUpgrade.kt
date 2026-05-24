@@ -281,6 +281,9 @@ private fun nodeGlyph(key: String): String = when (key) {
     "meta_revive_drop" -> "♡"
     "meta_legendary_hp" -> "☆"
     "meta_legendary_dmg" -> "✪"
+    // Round 74 (R73f) — Wave 8 / Wave 10 nodes.
+    com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_SHIP_UNLOCK_DISCOUNT -> "◈"
+    com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_BULLET_DURATION -> "⏲"
     else -> "?"
 }
 

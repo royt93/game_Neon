@@ -136,15 +136,18 @@ private fun buildGameStage(chapter: Chapter, gameStage: Int, tier: Int): StageGa
         }
     }
 
+    // Round 74 (R73d) — Wave 9a: apply EnemyFamily stat profile.
+    // Family derived từ drawable (Scout/Fighter/Heavy/Elite/Berserker).
+    val family = com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyFamily.fromDrawableId(drawable)
     val enemyType = RegularEnemyType(
         drawableId = drawable,
         width = 40f + tier * 3f,
         height = 40f + tier * 3f,
-        hp = baseHp * hpScale,
-        impactPower = baseImpact + tier * 5f,
+        hp = baseHp * hpScale * family.hpMul,
+        impactPower = (baseImpact + tier * 5f) * family.impactMul,
         formation = formation,
-        xOffsetSpeed = 0.5f + tier * 0.1f,
-        yOffsetSpeed = 0.5f + tier * 0.1f,
+        xOffsetSpeed = (0.5f + tier * 0.1f) * family.speedMul,
+        yOffsetSpeed = (0.5f + tier * 0.1f) * family.speedMul,
         enemySpawnRate = Millis(1000 - tier * 100),                  // 1000/900/800ms
     )
 

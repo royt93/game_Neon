@@ -3,6 +3,7 @@ package com.tranphuloi.neon.ui.game.state
 import com.tranphuloi.neon.data.Difficulty
 import com.tranphuloi.neon.ui.game.buff.RunBuff
 import com.tranphuloi.neon.ui.game.modifier.RunModifier
+import com.tranphuloi.neon.ui.game.ship.shape.ShipShape
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -214,5 +215,48 @@ class EffectiveStatsTest {
         val merged = base.withBuffs(listOf(RunBuff.BERSERKER))
         assertTrue(merged.bossesOnly)
         assertFalse(merged.noShieldDrops)
+    }
+
+    // ─── Round 73 (Wave 8) — ShipShape stat mul propagation ───
+
+    @Test
+    fun `FIGHTER shipShape is identity (no stat change)`() {
+        val s = EffectiveStats.compute(RunContext(shipShape = ShipShape.FIGHTER))
+        // FIGHTER multipliers all = 1.0 → matches default-no-shape baseline.
+        assertEquals(1f, s.hpMul, EPS)
+        assertEquals(1f, s.speedMul, EPS)
+        assertEquals(1f, s.damageMul, EPS)
+    }
+
+    @Test
+    fun `TANK shipShape boosts hp and reduces speed per Wave 8 spec`() {
+        val s = EffectiveStats.compute(RunContext(shipShape = ShipShape.TANK))
+        // TANK: hpMul=1.5, speedMul=0.75, damageMul=0.95
+        assertEquals(1.5f, s.hpMul, EPS)
+        assertEquals(0.75f, s.speedMul, EPS)
+        assertEquals(0.95f, s.damageMul, EPS)
+    }
+
+    @Test
+    fun `INTERCEPTOR shipShape boosts speed and damage per Wave 8 spec`() {
+        val s = EffectiveStats.compute(RunContext(shipShape = ShipShape.INTERCEPTOR))
+        // INTERCEPTOR: hpMul=0.80, speedMul=1.30, damageMul=1.10
+        assertEquals(0.80f, s.hpMul, EPS)
+        assertEquals(1.30f, s.speedMul, EPS)
+        assertEquals(1.10f, s.damageMul, EPS)
+    }
+
+    @Test
+    fun `ShipShape stat mul respects caps when combined với modifier and meta`() {
+        // TANK hpMul 1.5 × EASY (1/0.7=1.43) × meta +30% (1.3) = 2.79 — within cap 3.0.
+        val ctx = RunContext(
+            shipShape = ShipShape.TANK,
+            difficulty = Difficulty.EASY,
+            metaUpgrades = mapOf(EffectiveStats.META_KEY_HP to 3),
+        )
+        val s = EffectiveStats.compute(ctx)
+        // 1.5 × 1.4286 × 1.30 ≈ 2.7857 — should match within EPS.
+        assertEquals(2.7857f, s.hpMul, 0.01f)
+        assertTrue("Combined hp must be within cap [0.3, 3.0]", s.hpMul in 0.3f..3.0f)
     }
 }

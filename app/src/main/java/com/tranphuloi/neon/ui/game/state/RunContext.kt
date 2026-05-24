@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.tranphuloi.neon.data.Difficulty
 import com.tranphuloi.neon.ui.game.mode.GameMode
 import com.tranphuloi.neon.ui.game.modifier.RunModifier
+import com.tranphuloi.neon.ui.game.ship.shape.ShipShape
 
 /**
  * Wave 5 foundation — immutable per-run snapshot. Created once at run start
@@ -26,6 +27,8 @@ data class RunContext(
     val dailySeed: Long? = null,
     /** 48x — meta upgrade ranks snapshot. Empty map = no upgrades. */
     val metaUpgrades: Map<String, Int> = emptyMap(),
+    /** Round 73 (Wave 8) — selected ship shape. FIGHTER mặc định. */
+    val shipShape: ShipShape = ShipShape.FIGHTER,
 ) {
     companion object {
         /** Default context for plain campaign run (back-compat for code paths

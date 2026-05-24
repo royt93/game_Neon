@@ -21,3 +21,5 @@ object BuffPicker : Navigation(route = "buff-picker")
 object LoadoutPicker : Navigation(route = "loadout-picker")
 /** Round 67.5 — Bách Khoa (info guide) screen accessed from MenuScreen. */
 object Info : Navigation(route = "info")
+/** Round 73 (Wave 8) — Ship picker: chọn loại tàu (5 ShipShape) ảnh hưởng stat. */
+object ShipPicker : Navigation(route = "ship-picker")

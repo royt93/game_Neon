@@ -115,6 +115,11 @@ fun GameWorld(
     val settings = com.tranphuloi.neon.data.LocalSettings.current
     val shipSkin by settings.shipSkin.collectAsState(initial = com.tranphuloi.neon.data.ShipSkin.AURA_CYAN)
     val shipGlowColor = Color(shipSkin.glowColorHex)
+    // Round 73 (Issue 2 user audit) — read selectedShipShape để drawShipVector
+    // render đúng silhouette theo loại tàu user pick.
+    val selectedShipShape by settings.selectedShipShape.collectAsState(
+        initial = com.tranphuloi.neon.ui.game.ship.shape.ShipShape.FIGHTER,
+    )
     // Round 41 — BURST sweep uses palette.cyan so it follows Color Blind mode.
     val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
 
@@ -395,6 +400,7 @@ fun GameWorld(
                 drawShipVector(
                     color = shipGlowColor,
                     laserBoosterEnabled = ship.laserBoosterEnabled,
+                    shape = selectedShipShape,
                 )
             }
         }

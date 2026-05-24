@@ -147,6 +147,8 @@ fun rememberGameState(): GameState {
             modifier = runModifier,
             difficulty = kotlinx.coroutines.runBlocking { settingsRepo.difficulty.first() },
             metaUpgrades = kotlinx.coroutines.runBlocking { metaRepo.allRanks.first() },
+            // Round 73 (Wave 8) — wire selectedShipShape vào EffectiveStats.
+            shipShape = kotlinx.coroutines.runBlocking { settingsRepo.selectedShipShape.first() },
         )
     }
     // Round 34 (42x) — activeBuffs is a reactive MutableState. Reads here so
@@ -826,6 +828,10 @@ fun rememberGameState(): GameState {
     var waveClearBannerShownMillis by remember { mutableLongStateOf(0L) }
     var bossIntroShownAtMillis by remember { mutableLongStateOf(0L) }
     var bossIntroName by remember { mutableStateOf("") }
+    // Round 74 (R73e) — boss kind cho per-boss audio cue (pitch shift).
+    var bossIntroBossKind by remember {
+        mutableStateOf<com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind?>(null)
+    }
     // 47x Wave 5 — story dialogue state. storyLine is what StoryOverlay shows;
     // storyShownMillis drives the slide-in / fade-out. chapterIntroShown gates
     // per-chapter intro firing so we only narrate first entry to each chapter.
@@ -908,6 +914,22 @@ fun rememberGameState(): GameState {
                         else -> "BOSS"
                     }
                     bossIntroName = bossName
+                    // Round 74 (R73e) — surface bossKind for per-boss audio cue
+                    // (SfxController.play pitched). Used in GameScreen LaunchedEffect.
+                    bossIntroBossKind = when (val t = newStage.enemyType) {
+                        com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBossType ->
+                            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.STAR
+                        com.tranphuloi.neon.ui.game.enemy.ship.model.LevelTwoBossType ->
+                            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.CROSS
+                        com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBossType ->
+                            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SPIDER
+                        is com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType -> when (t) {
+                            com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType.OFFENSIVE ->
+                                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.ORB
+                            else -> com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.FRACTAL
+                        }
+                        else -> null
+                    }
                     bossIntroShownAtMillis = System.currentTimeMillis()
                     // Snapshot for rank computation — boss spawn time + player hp.
                     bossSpawnedAtMillis = bossIntroShownAtMillis
@@ -1452,6 +1474,7 @@ fun rememberGameState(): GameState {
         waveClearBannerShownMillis = waveClearBannerShownMillis,
         bossIntroShownAtMillis = bossIntroShownAtMillis,
         bossIntroName = bossIntroName,
+        bossIntroBossKind = bossIntroBossKind,
         bossKillRank = bossKillRank,
         bossKillRankShownMillis = bossKillRankShownMillis,
         gameTimeSec = gameTimeSec,
@@ -1636,6 +1659,8 @@ data class GameState(
     val waveClearBannerShownMillis: Long,
     val bossIntroShownAtMillis: Long,
     val bossIntroName: String,
+    /** Round 74 (R73e) — boss kind for per-boss audio cue. Null = non-boss intro. */
+    val bossIntroBossKind: com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind? = null,
     val bossKillRank: com.tranphuloi.neon.ui.game.controls.BossRank?,
     val bossKillRankShownMillis: Long,
     val gameTimeSec: Long,

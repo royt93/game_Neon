@@ -166,6 +166,30 @@ enum class SkillNode(
         minRequiredParentRank = 2,
         tierIndex = 2,
     ),
+
+    // Round 74 (R73f) — Wave 8 / Wave 10 expansion. Wire vào EffectiveStats
+    // via metaUpgrades map. Hai node tier-1 mới, parentKey = BASE_DAMAGE/HP
+    // tương ứng nature (ship unlock = HP investment, bullet = damage investment).
+    SHIP_UNLOCK_DISCOUNT(
+        key = EffectiveStats.META_KEY_SHIP_UNLOCK_DISCOUNT,
+        displayName = "TỔ HỢP HÀNG KHÔNG",
+        description = "-10% chi phí mở khoá loại tàu mỗi cấp",
+        baseCost = 200,
+        maxRank = 5,                                       // 50% off max
+        parentKey = EffectiveStats.META_KEY_HP,
+        minRequiredParentRank = 2,
+        tierIndex = 1,
+    ),
+    BULLET_DURATION(
+        key = EffectiveStats.META_KEY_BULLET_DURATION,
+        displayName = "TIA SAO BỀN BỈ",
+        description = "+10% thời lượng buff đạn mỗi cấp",
+        baseCost = 240,
+        maxRank = 5,                                       // 50% longer max
+        parentKey = EffectiveStats.META_KEY_DAMAGE,
+        minRequiredParentRank = 2,
+        tierIndex = 1,
+    ),
     ;
 
     /** Cost for the next rank purchase. */

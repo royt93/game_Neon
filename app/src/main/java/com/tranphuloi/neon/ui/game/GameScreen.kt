@@ -251,11 +251,21 @@ fun GameScreen(
             haptic.vibrate(HapticPattern.LIGHT_TICK)
         }
     }
-    // 21c: Boss intro alarm — heavy haptic + explosion SFX as alarm sting.
+    // 21c → Round 74 (R73e): Boss intro alarm với PER-BOSS audio cue (pitch shift
+    // sfx_explosion). STAR=1.4 cao, CROSS=1.15 cao vừa, ORB=1.0 baseline,
+    // FRACTAL=0.85 trầm vừa, SPIDER=0.65 trầm sâu.
     LaunchedEffect(gameState.bossIntroShownAtMillis) {
         if (gameState.bossIntroShownAtMillis > 0L) {
             if (vibrationEnabled) haptic.vibrate(HapticPattern.HEAVY)
-            sfx.play(SfxEvent.EXPLOSION)
+            val rate = when (gameState.bossIntroBossKind) {
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.STAR -> 1.4f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.CROSS -> 1.15f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.ORB -> 1.0f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.FRACTAL -> 0.85f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SPIDER -> 0.65f
+                null -> 1.0f
+            }
+            sfx.play(SfxEvent.EXPLOSION, rate)
         }
     }
     // 14c: Auto-revive feedback — heavy haptic + pickup sting on resurrection.

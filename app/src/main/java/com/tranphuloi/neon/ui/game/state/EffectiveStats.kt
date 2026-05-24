@@ -56,6 +56,23 @@ data class EffectiveStats(
         const val META_KEY_DAMAGE = "meta_damage"
         const val META_KEY_SPEED = "meta_speed"
         const val META_KEY_MAGNET = "meta_magnet"
+        /** Round 74 (R73f) — wire `meta_lifetime` (LIFETIME_BONUS) cho score. */
+        const val META_KEY_LIFETIME = "meta_lifetime"
+        /** Round 74 (R73f) — wire `meta_shield` (BASE_SHIELD) cho shield duration. */
+        const val META_KEY_SHIELD = "meta_shield"
+        /** Round 74 (R73f) — Wave 8 ship-shape unlock discount node key. */
+        const val META_KEY_SHIP_UNLOCK_DISCOUNT = "meta_ship_unlock"
+        /** Round 74 (R73f) — Wave 10 bullet-buff duration extender. */
+        const val META_KEY_BULLET_DURATION = "meta_bullet_duration"
+
+        /** Round 74 — per-rank score % bonus from LIFETIME_BONUS. */
+        const val META_LIFETIME_PER_RANK = 0.05f
+        /** Round 74 — per-rank seconds added to base shield duration. */
+        const val META_SHIELD_SEC_PER_RANK = 1.5f
+        /** Round 74 — per-rank ship unlock discount %. */
+        const val META_SHIP_UNLOCK_DISCOUNT_PER_RANK = 0.10f
+        /** Round 74 — per-rank bullet active duration % bonus. */
+        const val META_BULLET_DURATION_PER_RANK = 0.10f
 
         fun compute(ctx: RunContext): EffectiveStats {
             // 1) Difficulty (incoming dmg multiplier) → inverse hp scale
@@ -69,18 +86,28 @@ data class EffectiveStats(
             val metaDmgRank = ctx.metaUpgrades[META_KEY_DAMAGE] ?: 0
             val metaSpdRank = ctx.metaUpgrades[META_KEY_SPEED] ?: 0
             val metaMagRank = ctx.metaUpgrades[META_KEY_MAGNET] ?: 0
+            // Round 74 (R73f) — wire LIFETIME_BONUS → scoreMul.
+            val metaLifeRank = ctx.metaUpgrades[META_KEY_LIFETIME] ?: 0
 
             val metaHp = 1f + metaHpRank * META_HP_PER_RANK
             val metaDmg = 1f + metaDmgRank * META_DAMAGE_PER_RANK
             val metaSpd = 1f + metaSpdRank * META_SPEED_PER_RANK
             val metaMag = 1f + metaMagRank * META_MAGNET_PER_RANK
+            val metaLife = 1f + metaLifeRank * META_LIFETIME_PER_RANK
+
+            // Round 73 (Wave 8 — ShipShape wiring) — ship shape stat mul
+            // applied AFTER mod + meta + before caps.
+            val shipHpMul = ctx.shipShape.hpMul
+            val shipSpeedMul = ctx.shipShape.speedMul
+            val shipDamageMul = ctx.shipShape.damageMul
 
             return EffectiveStats(
-                hpMul = (diffHp * mod.hpMul * metaHp).coerceIn(0.3f, 3.0f),
-                damageMul = (mod.damageMul * metaDmg).coerceIn(0.5f, 4.0f),
-                speedMul = (mod.speedMul * metaSpd).coerceIn(0.5f, 3.5f),
+                hpMul = (diffHp * mod.hpMul * metaHp * shipHpMul).coerceIn(0.3f, 3.0f),
+                damageMul = (mod.damageMul * metaDmg * shipDamageMul).coerceIn(0.5f, 4.0f),
+                speedMul = (mod.speedMul * metaSpd * shipSpeedMul).coerceIn(0.5f, 3.5f),
                 magnetMul = (mod.magnetMul * metaMag).coerceIn(0.5f, 3.0f),
-                scoreMul = mod.scoreMul.coerceIn(0.5f, 4.0f),
+                // Round 74 (R73f) — apply metaLife multiplier vào scoreMul.
+                scoreMul = (mod.scoreMul * metaLife).coerceIn(0.5f, 4.0f),
                 noShieldDrops = mod.noShieldDrops,
                 bossesOnly = mod.bossesOnly,
             )

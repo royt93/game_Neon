@@ -56,12 +56,21 @@ class SfxController(private val appContext: Context) {
     }
 
     fun play(event: SfxEvent) {
+        play(event, rate = 1f)
+    }
+
+    /**
+     * Round 74 (R73e) — pitch-shifted variant. Cùng asset file nhưng playback
+     * rate khác → tạo cảm giác sound khác. Per-boss audio cue dùng cùng
+     * sfx_explosion với rate khác nhau (0.7=trầm SPIDER, 1.3=cao STAR, etc).
+     */
+    fun play(event: SfxEvent, rate: Float) {
         val id = soundIds[event] ?: run {
             Logger.w("SfxController.play: no soundId for $event")
             return
         }
-        // streamId returns 0 if SoundPool dropped the request.
-        val streamId = pool.play(id, volume, volume, /* priority */ 1, /* loop */ 0, /* rate */ 1f)
+        val safeRate = rate.coerceIn(0.5f, 2.0f)
+        val streamId = pool.play(id, volume, volume, /* priority */ 1, /* loop */ 0, safeRate)
         if (streamId == 0) {
             Logger.w("SfxController.play: SoundPool returned 0 (busy/not loaded yet) for $event")
         }

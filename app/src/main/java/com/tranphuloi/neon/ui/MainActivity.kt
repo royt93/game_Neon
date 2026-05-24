@@ -234,10 +234,16 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(route = com.tranphuloi.neon.navigation.Info.route) {
-                            com.tranphuloi.neon.ui.info.InfoScreen(onBack = {
-                                Logger.d("Nav: Info → back")
-                                navController.popBackStack()
-                            })
+                            com.tranphuloi.neon.ui.info.InfoScreen(
+                                onBack = {
+                                    Logger.d("Nav: Info → back")
+                                    navController.popBackStack()
+                                },
+                                onOpenShipPicker = {
+                                    Logger.d("Nav: Info → ShipPicker")
+                                    navController.navigate(com.tranphuloi.neon.navigation.ShipPicker.route)
+                                },
+                            )
                         }
                         composable(route = Game.route) {
                             GameScreen(
@@ -389,6 +395,18 @@ class MainActivity : ComponentActivity() {
                                 // Menu, KHÔNG navigate Game.
                                 onDismiss = {
                                     Logger.d("Nav: LoadoutPicker dismissed → back to Menu")
+                                    navController.popBackStack()
+                                },
+                            )
+                        }
+                        // Round 73 (Wave 8) — ShipPicker route. Open từ Bách Khoa → Tàu tab.
+                        dialog(
+                            route = com.tranphuloi.neon.navigation.ShipPicker.route,
+                            dialogProperties = com.tranphuloi.neon.common.bottomSheetDialogProperties(),
+                        ) {
+                            com.tranphuloi.neon.ui.dlg.shippicker.DialogShipPicker(
+                                onDismiss = {
+                                    Logger.d("Nav: ShipPicker dismissed → back")
                                     navController.popBackStack()
                                 },
                             )

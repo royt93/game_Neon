@@ -86,28 +86,53 @@ data class LevelTwoBoss(
     }
 
     override fun generateLasers(): List<Laser> {
+        // Round 74 (R73e) — CROSS boss attack pattern: alternating axis sweeps.
+        // Each fire toggles VERTICAL ROW (top→bottom) hoặc HORIZONTAL CROSS
+        // (4 lasers diagonal từ trung tâm). Đặc trưng "spinner" của boss.
+        val pickAxis = (System.currentTimeMillis() / 1000L) % 2L              // ~1s toggle
         val laserWidth = 30f
-        val yOffMovementSpeed = 0.8f
-        return buildList {
-            val laserCount = (screenWidth / laserWidth).toInt()
-            val gapSize = 5
-            val randomLaserGap = Random.nextInt(1, laserCount - gapSize)
-            val gapRange = randomLaserGap..randomLaserGap + gapSize
-            for (i in 1 until laserCount) {
-                if (!gapRange.contains(i)) {
-                    val xOffset = laserWidth * i - laserWidth / 2
-                    val laser = EnemyLaser(
-                        xOffset = xOffset,
-                        yOffset = yOffset + height,
-                        yRange = screenHeight,
-                        width = laserWidth,
-                        height = laserWidth,
-                        xOffsetMovementSpeed = 0f,
-                        yOffsetMovementSpeed = yOffMovementSpeed,
-                        drawableId = R.drawable.ic_laser_red_8
-                    )
-                    add(laser)
+        val centerX = xOffset + this.width / 2 - laserWidth / 2
+        val centerY = yOffset + height / 2
+        return if (pickAxis == 0L) {
+            // Vertical row pattern (legacy — full-width wall với gap)
+            buildList {
+                val laserCount = (screenWidth / laserWidth).toInt()
+                val gapSize = 5
+                val randomLaserGap = Random.nextInt(1, laserCount - gapSize)
+                val gapRange = randomLaserGap..randomLaserGap + gapSize
+                for (i in 1 until laserCount) {
+                    if (!gapRange.contains(i)) {
+                        val x = laserWidth * i - laserWidth / 2
+                        add(
+                            EnemyLaser(
+                                xOffset = x,
+                                yOffset = yOffset + height,
+                                yRange = screenHeight,
+                                width = laserWidth,
+                                height = laserWidth,
+                                xOffsetMovementSpeed = 0f,
+                                yOffsetMovementSpeed = 0.8f,
+                                drawableId = R.drawable.ic_laser_red_8,
+                            )
+                        )
+                    }
                 }
+            }
+        } else {
+            // 4-direction diagonal cross — spinner-style
+            val speed = 3.5f
+            (0 until 4).map { i ->
+                val angle = (45.0 + i * 90.0) * Math.PI / 180.0
+                EnemyLaser(
+                    xOffset = centerX,
+                    yOffset = centerY,
+                    yRange = screenHeight,
+                    width = laserWidth,
+                    height = laserWidth,
+                    xOffsetMovementSpeed = kotlin.math.cos(angle).toFloat() * speed,
+                    yOffsetMovementSpeed = kotlin.math.sin(angle).toFloat() * speed,
+                    drawableId = R.drawable.ic_laser_red_8,
+                )
             }
         }
     }
