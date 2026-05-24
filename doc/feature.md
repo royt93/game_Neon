@@ -968,6 +968,71 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 75 — Wire 11 orphan SkillNodes + constants refactor
+
+User: "tiếp tục". Wire all 11 SkillNodes orphan từ R74 audit finding. + user catch hardcoded keys: "meta_bullet_duration và meta_shield là gì? tại sao hardcode?" → refactor toàn bộ string keys sang `EffectiveStats.META_KEY_*` constants.
+
+**Constants refactor (audit fix):**
+- Added 9 new constants trong `EffectiveStats.kt`: REGEN/CRIT/SHIELD_BURST/DASH/EXTRA_BOMB/COMBO_KEEP/REVIVE_DROP/LEGENDARY_HP/LEGENDARY_DMG.
+- All `SkillNode.kt` entries refactored từ inline strings → `EffectiveStats.META_KEY_*`.
+- All GameState/ShipController/DialogShipPicker/DialogMetaUpgrade callsites refactored.
+- Single source of truth — `EffectiveStats` defines all 13 META_KEY constants.
+
+**R75a — 5 easy nodes:**
+- EXTRA_BOMB: `smartBombs` init = 2 + rank.
+- LEGENDARY_HP: `initialShipHp` += rank × 50 + LEGENDARY_HP rank → +1 smart bomb (combined với EXTRA_BOMB sum).
+- BULLET_DURATION: ShipController.setBulletType multiply `(1 + rank × 0.10)`.
+- BASE_SHIELD: enableShield extends base duration `+rank × 1.5s` trước multiplier.
+- COMBO_KEEP: ComboController resetWindowMillis = 2000 + rank × 500ms.
+
+**R75b — 4 medium nodes:**
+- LEGENDARY_DAMAGE: `damageMultiplier` lambda apply ×1.25 nếu rank>0 + ship.hp / initialHp > 0.75.
+- REGEN: ShipController.regenTick(rank, initialHp) — game loop tick @1s. +5HP/rank nếu 3s không bị đánh + không stack với HEALING_AURA. New tinker `regenTickId`.
+- CRIT: `damageMultiplier` lambda random roll per hit, `Random.nextFloat() < rank × 0.10` → ×2 damage.
+- DASH: ShipController.updateHp khi damaged extend iframes thêm `rank × 200ms`. Track `lastDamagedMillis`.
+
+**R75c — 2 hard nodes:**
+- REVIVE_DROP: Booster constructor thêm `forceType: BoosterType?` skip random pick. BoosterController.addBooster rolls `rank × 0.02` extra chance trước generateBooster, hit → force REVIVE_TOKEN.
+- SHIELD_BURST: ShipController detects shield expire edge (wasShielded → !shieldEnabled), fires `onShieldExpireBurst(x, y, rank)`. GameState `shieldBurstRef.run` (deferred ref pattern) — AoE damage `80 × rank` trong 120dp radius + spawn explosion VFX.
+
+**Files modified R75:**
+- `EffectiveStats.kt` — 9 new META_KEY constants.
+- `SkillNode.kt` — all entries refactored hardcoded strings → constants.
+- `DialogMetaUpgrade.kt` — glyph map dùng constants.
+- `GameState.kt` — wire EXTRA_BOMB + LEGENDARY_HP + COMBO_KEEP + LEGENDARY_DAMAGE + CRIT trong dispatcher lambdas; pass bulletDuration/shield/dash/shieldBurst ranks to ShipController; pass reviveDrop to BoosterController; regenTickId + tinker; shieldBurstRef deferred AoE logic.
+- `ShipController.kt` — 5 new constructor params (bulletDurationRank/shieldDurationRank/dashRank/shieldBurstRank + onShieldExpireBurst); new methods regenTick + applyDashIframes; setBulletType + enableShield apply meta mul; updateHp tracks lastDamagedMillis + dash bonus iframes; monitorShipCollisions edge-detect shield expire.
+- `Booster.kt` — `forceType: BoosterType?` param skips random pick.
+- `BoosterController.kt` — reviveDropRank lambda + extra dice roll override.
+
+### Round 75 audit follow-up — Loadout head-start gap fix
+
+User "bạn chắc chưa?" — audit phát hiện:
+- **Gap**: GameState loadout head-start LaunchedEffect hardcode `10_000L` cho preload bullet duration, KHÔNG qua ShipController.setBulletType → BULLET_DURATION meta upgrade bypass cho head-start. Player mua BULLET_DURATION rank 5 (+50%) sẽ KHÔNG nhận head-start 15s, vẫn 10s.
+- **Fix**: Loadout head-start LaunchedEffect đọc trực tiếp `runContext.metaUpgrades[META_KEY_BULLET_DURATION]` + apply `× (1 + rank × 0.10)`. Sync với ShipController.setBulletType formula.
+
+### Round 75 verification
+
+- `compileDevDebugKotlin` ✅
+- `compileProductionReleaseKotlin` ✅
+- `testDevDebugUnitTest` ✅ 223 tests pass
+- `assembleDevDebug` ✅ BUILD SUCCESSFUL (clean rebuild verified)
+
+### Round 75 runtime expectations
+
+- All 17 SkillNodes (15 originals + 2 new R74) **fully wired** vào gameplay.
+- Buy EXTRA_BOMB rank 3 → start với 5 smart bombs (2 + 3).
+- Buy LEGENDARY_HP → +50 base HP + 1 extra smart bomb.
+- Buy CRIT rank 3 → 30% chance ×2 damage mỗi laser hit.
+- Buy LEGENDARY_DAMAGE → +25% damage khi HP > 75% (lose nếu HP drops).
+- Buy REGEN rank 3 → +15 HP mỗi giây sau 3s không bị đánh (cap initialHp).
+- Buy DASH rank 2 → +400ms iframes sau mỗi hit.
+- Buy SHIELD rank 4 → shield lasts +6s longer.
+- Buy COMBO_KEEP rank 3 → combo decay window +1.5s.
+- Buy BULLET_DURATION rank 5 → bullet buffs last +50% longer.
+- Buy REVIVE_DROP rank 2 → +4% chance any booster spawn becomes REVIVE_TOKEN.
+- Buy SHIELD_BURST rank 2 → mỗi lần shield expire spawn AoE explosion + 160 damage to enemies trong 120dp.
+- Buy SHIP_UNLOCK_DISCOUNT rank 5 → -50% off ship unlock cost.
+
 ### Round 74 — Ship 3/6 defer items: 20 enemies (4c) + 5 boss patterns/audio (4d sub) + MetaUpgrade audit (4b layer 3)
 
 User: "hãy làm cả 3 item trên đi". Ship Full theo Round 73 picks.

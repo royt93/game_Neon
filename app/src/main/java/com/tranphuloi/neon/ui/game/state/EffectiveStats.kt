@@ -65,6 +65,18 @@ data class EffectiveStats(
         /** Round 74 (R73f) — Wave 10 bullet-buff duration extender. */
         const val META_KEY_BULLET_DURATION = "meta_bullet_duration"
 
+        // Round 75 — add constants cho 9 SkillNode keys (trước hardcode strings).
+        // Mỗi key trỏ tới `SkillNode.<X>.key` — single source of truth.
+        const val META_KEY_REGEN = "meta_regen"
+        const val META_KEY_CRIT = "meta_crit"
+        const val META_KEY_SHIELD_BURST = "meta_shield_burst"
+        const val META_KEY_DASH = "meta_dash"
+        const val META_KEY_EXTRA_BOMB = "meta_extra_bomb"
+        const val META_KEY_COMBO_KEEP = "meta_combo_keep"
+        const val META_KEY_REVIVE_DROP = "meta_revive_drop"
+        const val META_KEY_LEGENDARY_HP = "meta_legendary_hp"
+        const val META_KEY_LEGENDARY_DMG = "meta_legendary_dmg"
+
         /** Round 74 — per-rank score % bonus from LIFETIME_BONUS. */
         const val META_LIFETIME_PER_RANK = 0.05f
         /** Round 74 — per-rank seconds added to base shield duration. */

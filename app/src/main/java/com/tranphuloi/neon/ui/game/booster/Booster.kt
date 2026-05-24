@@ -12,11 +12,18 @@ data class Booster(
     var size: Float,
     private val screenHeight: Float,
     var collected: Boolean = false,
+    /**
+     * Round 75 (R75c) — forceType override cho REVIVE_DROP meta upgrade.
+     * Khi != null, skip weighted random pick. Caller (BoosterController) sets
+     * này after rolling extra revive chance từ meta_revive_drop rank.
+     */
+    private val forceType: BoosterType? = null,
 ) : Serializable {
 
     var yOffset = 1f
     // Weighted random pick — REVIVE_TOKEN has weight 5 (rare ~5%), others 19 each.
-    val type: BoosterType = run {
+    // Round 75 (R75c) — forceType skips random pick (e.g. REVIVE_DROP override).
+    val type: BoosterType = forceType ?: run {
         val all = BoosterType.values()
         val totalWeight = all.sumOf { it.weight }
         var roll = Random.nextInt(totalWeight)

@@ -17,6 +17,12 @@ class BoosterController(
      * skip silently and let the next addBooster tick (4s) try again.
      */
     private val noShieldDrops: () -> Boolean = { false },
+    /**
+     * Round 75 (R75c) — REVIVE_DROP meta upgrade rank lookup. +2% mỗi rank to
+     * override booster type về REVIVE_TOKEN. Max rank 2 = +4% chance bonus
+     * trên top của weighted random pick (REVIVE base ~2%).
+     */
+    private val reviveDropRank: () -> Int = { 0 },
 ) {
 
     init {
@@ -36,7 +42,19 @@ class BoosterController(
             Logger.v { "BoosterController.addBooster: SKIPPED (cap=$MAX_BOOSTERS reached, current=${boosters.size})" }
             return
         }
-        val booster = generateBooster(width = BOOSTER_SIZE, maxXOffset = screenWidth - BOOSTER_SIZE)
+        // Round 75 (R75c) — REVIVE_DROP roll: extra dice trước khi pick type.
+        // Nếu hit, force REVIVE_TOKEN, skip generateBooster.
+        val reviveBonus = reviveDropRank() * 0.02f
+        val booster = if (reviveBonus > 0f && kotlin.random.Random.nextFloat() < reviveBonus) {
+            Logger.d("BoosterController.addBooster: REVIVE_DROP triggered (rank=${reviveDropRank()}, chance=${reviveBonus * 100}%)")
+            Booster(
+                id = uuidUtils.getUuid(),
+                xOffset = kotlin.random.Random.nextInt(BOOSTER_SIZE.toInt(), (screenWidth - BOOSTER_SIZE).toInt()).toFloat(),
+                size = BOOSTER_SIZE,
+                screenHeight = screenHeight,
+                forceType = BoosterType.REVIVE_TOKEN,
+            )
+        } else generateBooster(width = BOOSTER_SIZE, maxXOffset = screenWidth - BOOSTER_SIZE)
         // 25x NO_SHIELDS modifier — drop SHIELD rolls.
         if (noShieldDrops() && booster.type == BoosterType.SHIELD_BOOSTER) {
             Logger.v { "BoosterController.addBooster: SKIPPED SHIELD (NO_SHIELDS modifier active)" }

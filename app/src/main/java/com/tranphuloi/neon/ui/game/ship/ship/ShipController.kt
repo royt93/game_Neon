@@ -56,6 +56,21 @@ class ShipController(
      * player collects every on-screen mineral instantly.
      */
     private val onMineralSupercharge: () -> Unit = {},
+    /**
+     * Round 75 (R75a/b) — meta upgrade rank lookups. GameState passes these so
+     * ShipController applies meta bonuses (BULLET_DURATION extend, SHIELD
+     * duration extend, DASH iframe bonus) without thread-routing the full map.
+     */
+    private val bulletDurationRank: () -> Int = { 0 },
+    private val shieldDurationRank: () -> Int = { 0 },
+    private val dashRank: () -> Int = { 0 },
+    /**
+     * Round 75 (R75c) — SHIELD_BURST callback. Khi shield expire, gọi callback
+     * với position ship để GameState spawn mini explosion AoE damage enemies
+     * trong bán kính. Max rank 2 = scale damage/radius.
+     */
+    private val shieldBurstRank: () -> Int = { 0 },
+    private val onShieldExpireBurst: (xOffset: Float, yOffset: Float, rank: Int) -> Unit = { _, _, _ -> },
 ) {
 
     init {
@@ -281,7 +296,10 @@ class ShipController(
      */
     private fun enableShield(enable: Boolean, multiplier: Float = 1f) {
         val now = System.currentTimeMillis()
-        val dur = (shieldBoosterTimeMillis * multiplier).toLong()
+        // Round 75 (R75a) — BASE_SHIELD meta upgrade: +1.5s mỗi rank (max 4 = +6s)
+        // cộng vào base duration TRƯỚC khi nhân multiplier (rarity scale).
+        val metaShieldExtensionMs = shieldDurationRank() * 1500L
+        val dur = ((shieldBoosterTimeMillis + metaShieldExtensionMs) * multiplier).toLong()
         val newEnd = now + dur
         logBoosterTransition(
             name = "shield",
@@ -727,7 +745,20 @@ class ShipController(
         }
 
         val currentTime = System.currentTimeMillis()
+        // Round 75 (R75c) — detect shield expiry edge để fire SHIELD_BURST.
+        // Track previous wasShieldEnabled so we only fire ON transition (not every tick).
+        val wasShielded = ship.shieldEnabled
         if (shieldEndDurationMillis < currentTime) enableShield(enable = false)
+        // Edge-detect: shield was ON, now OFF → trigger burst.
+        if (wasShielded && !ship.shieldEnabled) {
+            val rank = shieldBurstRank()
+            if (rank > 0) {
+                val shipCx = ship.xOffset + ship.width / 2f
+                val shipCy = ship.yOffset + ship.height / 2f
+                Logger.d("ShipController: SHIELD_BURST fire @ ($shipCx, $shipCy) rank=$rank")
+                onShieldExpireBurst(shipCx, shipCy, rank)
+            }
+        }
         if (laserBoosterEndDurationMillis < currentTime) enableLaserBooster(enable = false)
         if (tripleLaserBoosterEndDurationMillis < currentTime) enableTripleLaserBooster(enable = false)
         // Round 60 (38x) — tick decay for 8 timed buffs. monitorShipCollisions
@@ -790,7 +821,9 @@ class ShipController(
         rarity: com.tranphuloi.neon.ui.game.booster.BoosterRarity =
             com.tranphuloi.neon.ui.game.booster.BoosterRarity.COMMON,
     ) {
-        val dur = (type.activeDurationMillis * multiplier).toLong()
+        // Round 75 (R75a) — BULLET_DURATION meta upgrade: +10% per rank cộng dồn.
+        val metaDurMul = 1f + bulletDurationRank() * 0.10f
+        val dur = (type.activeDurationMillis * multiplier * metaDurMul).toLong()
         val endMillis = System.currentTimeMillis() + dur
         ship = ship.copy(
             activeBulletType = type,
@@ -854,6 +887,41 @@ class ShipController(
     }
 
     private var iframesEndMillis: Long = 0L
+    /** Round 75 (R75b) — REGEN meta: timestamp of last hp damage. */
+    private var lastDamagedMillis: Long = 0L
+
+    /**
+     * Round 75 (R75b) — REGEN SkillNode tick. Called from game loop @ 1s rate.
+     * Hồi +5 HP / rank nếu (now - lastDamagedMillis) > 3000ms (3s no damage).
+     * Tự cap khỏi vượt initialHp (passed in).
+     */
+    fun regenTick(rank: Int, initialHp: Int) {
+        if (rank <= 0) return
+        if (ship.hp <= 0 || ship.hp >= initialHp) return
+        val now = System.currentTimeMillis()
+        if (now - lastDamagedMillis < 3000L) return
+        // Don't stack với HEALING_AURA — let aura priority.
+        if (now < healingAuraEndDurationMillis) return
+        val regenAmount = rank * 5
+        val newHp = (ship.hp + regenAmount).coerceAtMost(initialHp)
+        if (newHp > ship.hp) {
+            ship = ship.copy(hp = newHp)
+            setShip(ship)
+            Logger.v { "ShipController.regenTick: hp ${ship.hp - regenAmount}→${ship.hp} (rank=$rank)" }
+        }
+    }
+
+    /**
+     * Round 75 (R75b) — DASH SkillNode: post-hit extra iframe window.
+     * Called from updateHp when damaged. +200ms/rank extra iframes beyond
+     * the baseline IFRAMES_DURATION_MILLIS (600ms).
+     */
+    fun applyDashIframes(rank: Int) {
+        if (rank <= 0) return
+        val bonusMs = rank * 200L
+        iframesEndMillis = maxOf(iframesEndMillis, System.currentTimeMillis() + bonusMs + IFRAMES_DURATION_MILLIS)
+        Logger.v { "ShipController.applyDashIframes: rank=$rank → +${bonusMs}ms iframes" }
+    }
 
     /**
      * @param silent Round 65 — suppress the per-call Logger.d "Ship hp: X→Y"
@@ -887,8 +955,11 @@ class ShipController(
         }
         setShip(ship)
         if (effective < 0) {
-            iframesEndMillis = System.currentTimeMillis() + IFRAMES_DURATION_MILLIS
-            Logger.v { "Ship i-frames: ON until $iframesEndMillis (+${IFRAMES_DURATION_MILLIS}ms)" }
+            // Round 75 (R75b) — track damage time cho REGEN tick + DASH bonus.
+            lastDamagedMillis = System.currentTimeMillis()
+            val dashBonusMs = dashRank() * 200L
+            iframesEndMillis = System.currentTimeMillis() + IFRAMES_DURATION_MILLIS + dashBonusMs
+            Logger.v { "Ship i-frames: ON until $iframesEndMillis (+${IFRAMES_DURATION_MILLIS + dashBonusMs}ms, dashRank=${dashRank()})" }
             // Round 53 — soft decay (was: full reset). See [resetCharge] kdoc.
             resetCharge(damageAmount = -effective)
             onShipDamaged()

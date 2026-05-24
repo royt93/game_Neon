@@ -49,7 +49,7 @@ enum class SkillNode(
         maxRank = 4,
     ),
     BASE_SHIELD(
-        key = "meta_shield",
+        key = EffectiveStats.META_KEY_SHIELD,
         displayName = "KHIÊN AEGIS",
         description = "+1.5s thời lượng khiên mỗi cấp",
         baseCost = 100,
@@ -65,7 +65,7 @@ enum class SkillNode(
 
     // --- Tier 1: 8 nốt nhánh (yêu cầu cấp nốt cha >= 2 hoặc 3) ---
     REGEN(
-        key = "meta_regen",
+        key = EffectiveStats.META_KEY_REGEN,
         displayName = "TỰ HỒI",
         description = "Tự hồi +5 HP/giây khi không bị bắn",
         baseCost = 250,
@@ -75,7 +75,7 @@ enum class SkillNode(
         tierIndex = 1,
     ),
     CRIT(
-        key = "meta_crit",
+        key = EffectiveStats.META_KEY_CRIT,
         displayName = "CHÍ MẠNG",
         description = "+10% tỷ lệ chí mạng mỗi cấp (×2 sát thương)",
         baseCost = 280,
@@ -85,7 +85,7 @@ enum class SkillNode(
         tierIndex = 1,
     ),
     LIFETIME_BONUS(
-        key = "meta_lifetime",
+        key = EffectiveStats.META_KEY_LIFETIME,
         displayName = "NHÌN SAO",
         description = "+5% điểm thưởng mỗi cấp",
         baseCost = 220,
@@ -95,17 +95,17 @@ enum class SkillNode(
         tierIndex = 1,
     ),
     SHIELD_BURST(
-        key = "meta_shield_burst",
+        key = EffectiveStats.META_KEY_SHIELD_BURST,
         displayName = "PHẢN ỨNG",
         description = "Khiên hết hạn → nổ mini-bom",
         baseCost = 300,
         maxRank = 2,
-        parentKey = "meta_shield",
+        parentKey = EffectiveStats.META_KEY_SHIELD,
         minRequiredParentRank = 2,
         tierIndex = 1,
     ),
     DASH(
-        key = "meta_dash",
+        key = EffectiveStats.META_KEY_DASH,
         displayName = "HẬU TĂNG LỰC",
         description = "I-frame ngắn sau khi bị bắn",
         baseCost = 260,
@@ -115,7 +115,7 @@ enum class SkillNode(
         tierIndex = 1,
     ),
     EXTRA_BOMB(
-        key = "meta_extra_bomb",
+        key = EffectiveStats.META_KEY_EXTRA_BOMB,
         displayName = "KHO ĐẠN",
         description = "+1 smart bomb khởi đầu mỗi cấp",
         baseCost = 200,
@@ -125,7 +125,7 @@ enum class SkillNode(
         tierIndex = 1,
     ),
     COMBO_KEEP(
-        key = "meta_combo_keep",
+        key = EffectiveStats.META_KEY_COMBO_KEEP,
         displayName = "ĐÀ COMBO",
         description = "Combo kéo dài thêm 0.5s mỗi cấp",
         baseCost = 230,
@@ -135,34 +135,34 @@ enum class SkillNode(
         tierIndex = 1,
     ),
     REVIVE_DROP(
-        key = "meta_revive_drop",
+        key = EffectiveStats.META_KEY_REVIVE_DROP,
         displayName = "TIM PHƯỢNG",
         description = "+2% tỷ lệ rơi revive token mỗi cấp",
         baseCost = 350,
         maxRank = 2,
-        parentKey = "meta_shield",
+        parentKey = EffectiveStats.META_KEY_SHIELD,
         minRequiredParentRank = 3,
         tierIndex = 1,
     ),
 
     // --- Tier 2: 2 nốt endgame (yêu cầu cấp nốt tier-1 >= 2) ---
     LEGENDARY_HP(
-        key = "meta_legendary_hp",
+        key = EffectiveStats.META_KEY_LEGENDARY_HP,
         displayName = "LÒ RÈN SAO",
         description = "+50 HP cố định + 1 smart bomb",
         baseCost = 800,
         maxRank = 1,
-        parentKey = "meta_regen",
+        parentKey = EffectiveStats.META_KEY_REGEN,
         minRequiredParentRank = 2,
         tierIndex = 2,
     ),
     LEGENDARY_DAMAGE(
-        key = "meta_legendary_dmg",
+        key = EffectiveStats.META_KEY_LEGENDARY_DMG,
         displayName = "PHÁO HƯ KHÔNG",
         description = "+25% sát thương khi HP > 75%",
         baseCost = 800,
         maxRank = 1,
-        parentKey = "meta_crit",
+        parentKey = EffectiveStats.META_KEY_CRIT,
         minRequiredParentRank = 2,
         tierIndex = 2,
     ),

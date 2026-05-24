@@ -191,8 +191,11 @@ fun rememberGameState(): GameState {
 
     // Round 23 — apply hpMul at Ship construction. Coerce 100..3000 so extreme
     // modifiers (e.g. TANK + Easy + Fortify max) don't get unplayable.
-    val initialShipHp = remember(effectiveStats) {
-        (1000f * effectiveStats.hpMul).toInt().coerceIn(100, 3000)
+    // Round 75 (R75a) — wire LEGENDARY_HP (+50 fixed HP if owned rank 1).
+    val initialShipHp = remember(effectiveStats, runContext) {
+        val baseHp = (1000f * effectiveStats.hpMul).toInt().coerceIn(100, 3000)
+        val legendaryBonus = (runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_LEGENDARY_HP] ?: 0) * 50
+        (baseHp + legendaryBonus).coerceIn(100, 3500)
     }
     var ship by rememberSaveable {
         mutableStateOf(
@@ -214,10 +217,16 @@ fun rememberGameState(): GameState {
         if (loadoutApplied) return@LaunchedEffect
         val resolved = settingsRepo.preferredBulletType.first()
         if (resolved != com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL) {
-            Logger.d("Loadout: applying preferredBulletType=$resolved for 10s head-start")
+            // Round 75 audit fix — wire BULLET_DURATION meta vào head-start
+            // duration. Trước fix hardcode 10_000L bypass meta upgrade.
+            val bulletDurRank = runContext.metaUpgrades[
+                com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_BULLET_DURATION
+            ] ?: 0
+            val durationMs = (10_000L * (1f + bulletDurRank * 0.10f)).toLong()
+            Logger.d("Loadout: applying preferredBulletType=$resolved for ${durationMs}ms head-start (bulletDurRank=$bulletDurRank)")
             ship = ship.copy(
                 activeBulletType = resolved,
-                bulletTypeEndMillis = System.currentTimeMillis() + 10_000L,
+                bulletTypeEndMillis = System.currentTimeMillis() + durationMs,
             )
         } else {
             Logger.d("Loadout: preferredBulletType=NORMAL → no head-start")
@@ -326,7 +335,11 @@ fun rememberGameState(): GameState {
     // 34d Wave 4 — set true when player defeats the FinalBoss (Galaxy Overlord).
     var finalBossDefeated by remember { mutableStateOf(false) }
     // 20b Smart bomb stack — start with 2, +1 per boss kill.
-    var smartBombs by rememberSaveable { mutableIntStateOf(2) }
+    // Round 75 (R75a) — wire EXTRA_BOMB SkillNode (+1 per rank, max 3 = +3 bombs)
+    // + LEGENDARY_HP rank 1 = +1 bomb. Read once at init via runContext.metaUpgrades.
+    val extraBombCount = (runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_EXTRA_BOMB] ?: 0) +
+        (runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_LEGENDARY_HP] ?: 0)
+    var smartBombs by rememberSaveable { mutableIntStateOf(2 + extraBombCount) }
     /**
      * Round 51 (26x Photo mode) — when true, GameScreen hides HUD overlays
      * (movement buttons, smart bomb, secondary weapon, score, combo, banners)
@@ -379,6 +392,10 @@ fun rememberGameState(): GameState {
     // Plain object holder (not mutableStateOf) so reassignment doesn't trigger
     // recomposition — this is pure event dispatch.
     val mineralSuperchargeRef = remember { object { var run: () -> Unit = {} } }
+    // Round 75 (R75c) — deferred ref cho SHIELD_BURST (cần explosions + enemies declared sau).
+    val shieldBurstRef = remember {
+        object { var run: (x: Float, y: Float, rank: Int) -> Unit = { _, _, _ -> } }
+    }
     val shipController = remember {
         Logger.d("rememberGameState: building ShipController (initial hp=${ship.hp})")
         ShipController(
@@ -522,6 +539,14 @@ fun rememberGameState(): GameState {
             // `mineralSuperchargeRef.run` happens below, after mineralsController
             // is built, since the controller is declared later in this scope.
             onMineralSupercharge = { mineralSuperchargeRef.run() },
+            // Round 75 (R75a) — wire 2 meta upgrades via lambdas (rank lookup).
+            bulletDurationRank = { runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_BULLET_DURATION] ?: 0 },
+            shieldDurationRank = { runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_SHIELD] ?: 0 },
+            dashRank = { runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_DASH] ?: 0 },
+            // Round 75 (R75c) — SHIELD_BURST: AoE damage all enemies trong 120dp
+            // bán kính + spawn explosion VFX khi shield expires. Damage scale theo rank.
+            shieldBurstRank = { runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_SHIELD_BURST] ?: 0 },
+            onShieldExpireBurst = { x, y, rank -> shieldBurstRef.run(x, y, rank) },
         )
     }
 
@@ -581,10 +606,22 @@ fun rememberGameState(): GameState {
             // FIRE ×1.2, HOMING ×0.8, BOUNCE ×0.7. Read from current ship state
             // each hit so transitions in/out of bullet-type window apply live.
             damageMultiplier = {
+                // Round 75 (R75b) — LEGENDARY_DAMAGE: +25% damage khi HP > 75%.
+                // Rank 1 only (maxRank=1). HP fraction tính từ initialHp snapshot.
+                val legendaryDmgRank = runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_LEGENDARY_DMG] ?: 0
+                val healthyBonus = if (legendaryDmgRank > 0 &&
+                    ship.hp.toFloat() / initialShipHp > 0.75f) 1.25f else 1f
+                // Round 75 (R75b) — CRIT meta: +10% chance/rank to ×2 damage.
+                // Random roll per hit. Up to maxRank 3 = 30% crit rate.
+                val critRank = runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_CRIT] ?: 0
+                val critRoll = if (critRank > 0 &&
+                    kotlin.random.Random.nextFloat() < critRank * 0.10f) 2f else 1f
                 effectiveStats.damageMul *
                     shipController.berserkDamageMul() *
                     shipController.critSurgeMul() *
-                    ship.activeBulletType.damageMultiplier
+                    ship.activeBulletType.damageMultiplier *
+                    healthyBonus *
+                    critRoll
             },
         )
     }
@@ -609,6 +646,10 @@ fun rememberGameState(): GameState {
             updateBoosters = { boosters = it },
             // 25x NO_SHIELDS modifier: filter SHIELD_BOOSTER spawns.
             noShieldDrops = { effectiveStats.noShieldDrops },
+            // Round 75 (R75c) — wire REVIVE_DROP meta upgrade.
+            reviveDropRank = {
+                runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_REVIVE_DROP] ?: 0
+            },
         )
     }
 
@@ -627,7 +668,11 @@ fun rememberGameState(): GameState {
 
     val comboController = remember {
         Logger.d("rememberGameState: building ComboController")
+        // Round 75 (R75a) — COMBO_KEEP meta upgrade: +500ms decay window/rank (max 3 = +1.5s).
+        val comboKeepRank = runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_COMBO_KEEP] ?: 0
+        val comboWindow = 2000L + comboKeepRank * 500L
         com.tranphuloi.neon.ui.game.combo.ComboController(
+            resetWindowMillis = comboWindow,
             onTierAdvance = { tier ->
                 comboPopupTier = tier
                 comboPopupShownMillis = System.currentTimeMillis()
@@ -698,6 +743,24 @@ fun rememberGameState(): GameState {
     mineralSuperchargeRef.run = { mineralsController.flushAllToShip() }
 
     var enemies: List<Enemy> by rememberSaveable { mutableStateOf(emptyList()) }
+    // Round 75 (R75c) — wire SHIELD_BURST AoE damage now that enemies + explosions
+    // are available. Explosions controller declared earlier; enemies set above.
+    shieldBurstRef.run = { x, y, rank ->
+        val radius = 120f
+        val damage = 80f * rank
+        explosionsController.addExplosion(xOffset = x - 40f, yOffset = y - 40f, width = 80f, height = 80f)
+        enemies.forEach { enemy ->
+            val ex = enemy.xOffset + enemy.width / 2
+            val ey = enemy.yOffset + enemy.height / 2
+            val dx = ex - x
+            val dy = ey - y
+            val dist = kotlin.math.sqrt(dx * dx + dy * dy)
+            if (dist <= radius) {
+                enemy.onObjectImpact(damage)
+                Logger.v { "SHIELD_BURST: enemy ${enemy.enemyId.take(6)} hit for $damage at dist=${dist.toInt()}" }
+            }
+        }
+    }
     val enemyController = remember {
         Logger.d("rememberGameState: building EnemyController")
         EnemyController(
@@ -1025,6 +1088,8 @@ fun rememberGameState(): GameState {
     // Round 34 (41x) — status effect tick id + cadence (250ms).
     val statusEffectTickId = rememberSaveable { UUID.randomUUID().toString() }
     val statusEffectRepeatTime = remember { Millis(250) }
+    // Round 75 (R75b) — REGEN SkillNode tick @ 1s.
+    val regenTickId = rememberSaveable { UUID.randomUUID().toString() }
     fun monitorLoopInSec() {
         updateGameTime()
         updateGameTimeIndicator()
@@ -1156,6 +1221,21 @@ fun rememberGameState(): GameState {
                                         enemyLasers = enemyLaserController.enemyLasers
                                     ) { lasersController.fireUltimateLaser() }
                                 }
+                            )
+                            // Round 75 (R75b) — REGEN SkillNode tick @ 1s.
+                            // +5HP/rank nếu 3s không bị đánh, không stack với HEALING_AURA.
+                            tinker(
+                                id = regenTickId,
+                                repeatTime = com.tranphuloi.neon.ui.game.common.Millis(1000),
+                                doWork = {
+                                    val regenRank = runContext.metaUpgrades[
+                                        com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_REGEN
+                                    ] ?: 0
+                                    shipController.regenTick(
+                                        rank = regenRank,
+                                        initialHp = initialShipHp,
+                                    )
+                                },
                             )
                         }
                         tinker(
