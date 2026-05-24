@@ -86,7 +86,9 @@
       "Bash(sed -i '' 's|draw = { c -> drawCrossPreview\\(c|draw = { sc, c -> sc.drawCrossPreview\\(c|g' InfoScreen.kt)",
       "Bash(sed -i '' 's|draw = { c -> drawOrbVariantPreview\\(c|draw = { sc, c -> sc.drawOrbVariantPreview\\(c|g' InfoScreen.kt)",
       "Bash(python3)",
-      "Bash(./gradlew :app:compileDevDebugKotlin :app:compileProductionReleaseKotlin :app:testDevDebugUnitTest)"
+      "Bash(./gradlew :app:compileDevDebugKotlin :app:compileProductionReleaseKotlin :app:testDevDebugUnitTest)",
+      "Bash(awk '-F\"' '{ for \\(i=1;i<=NF;i++\\) if \\($i ~ /tests=/\\) tests+=$\\(i+1\\); if \\($i ~ /failures=/\\) f+=$\\(i+1\\) } END { print \"tests=\" tests \" failures=\" f }')",
+      "Bash(awk '-F\"' '{ for \\(i=1;i<=NF;i++\\) if \\($i ~ /tests=/\\) t+=$\\(i+1\\); if \\($i ~ /failures=/\\) f+=$\\(i+1\\) } END { print \"tests=\" t \" failures=\" f }')"
     ]
   }
 }

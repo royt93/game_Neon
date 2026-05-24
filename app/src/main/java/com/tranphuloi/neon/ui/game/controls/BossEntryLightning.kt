@@ -30,6 +30,13 @@ import kotlinx.coroutines.delay
 @Composable
 fun BossEntryLightning(
     boss: EnemyUI,
+    /**
+     * Round 79 audit fix (gap 6) — FAR zoom margin in dp. graphicsLayer scale
+     * shrinks GameWorld to inner X% of screen; allowing bolt origins to extend
+     * into negative game coords makes them reach the visual screen edge at any
+     * zoom. Default 0 = no extension (NEAR zoom or unset).
+     */
+    spawnXMargin: Float = 0f,
     modifier: Modifier = Modifier,
 ) {
     if (!boss.isInEntryPhase) return
@@ -49,14 +56,19 @@ fun BossEntryLightning(
         val random = kotlin.random.Random(seed)
         val cx = bossCxDp.dp.toPx()
         val cy = bossCyDp.dp.toPx()
+        val marginPx = spawnXMargin.dp.toPx()
+        // Round 79 fix — extended visual bounds at FAR zoom.
+        val visualLeft = -marginPx
+        val visualRight = size.width + marginPx
+        val visualWidth = visualRight - visualLeft
 
         repeat(5) {
             // Random origin: 0=top edge, 1=left edge, 2=right edge.
             val edge = random.nextInt(3)
             val (sx, sy) = when (edge) {
-                0 -> random.nextFloat() * size.width to 0f
-                1 -> 0f to random.nextFloat() * cy
-                else -> size.width to random.nextFloat() * cy
+                0 -> visualLeft + random.nextFloat() * visualWidth to -marginPx
+                1 -> visualLeft to random.nextFloat() * cy
+                else -> visualRight to random.nextFloat() * cy
             }
 
             // 5-segment zigzag: linearly interpolate from origin to boss with

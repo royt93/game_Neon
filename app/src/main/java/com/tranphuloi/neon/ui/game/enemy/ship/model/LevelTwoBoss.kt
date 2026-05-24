@@ -13,6 +13,8 @@ import kotlin.random.Random
 data class LevelTwoBoss(
     private val screenWidth: Float,
     private val screenHeight: Float,
+    /** Round 79 (#1) — Ch4End → SATAN_GLYPH override (was CROSS dup of Ch2End). */
+    private val bossKindOverride: BossKind? = null,
 ) : Enemy {
 
     override val enemyId: String = UUID.randomUUID().toString()
@@ -29,8 +31,9 @@ data class LevelTwoBoss(
     override val drawableId: Int = R.drawable.enemy_green_boss
     override var lastImpactMillis: Long = 0L
     override val isBoss: Boolean = true
-    // Round 71 (Issue 4d) — CROSS silhouette (4-arm spinner, green).
-    override val bossKind: BossKind = BossKind.CROSS
+    // Round 71 (Issue 4d) — CROSS silhouette (4-arm spinner, green). Round 79
+    // (#1): cho phép override (Ch4End → SATAN_GLYPH).
+    override val bossKind: BossKind = bossKindOverride ?: BossKind.CROSS
     override val displayName: String = "LEVEL 2 BOSS"
     private val bossMovementSpeed = 0.5f
 

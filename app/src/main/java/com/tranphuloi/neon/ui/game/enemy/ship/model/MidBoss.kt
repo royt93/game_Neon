@@ -27,6 +27,8 @@ data class MidBoss(
     private val screenHeight: Float,
     private val variant: MidBossType,
     private val getShip: () -> Ship,
+    /** Round 79 (#1) — chapter-aware bossKind override. */
+    private val bossKindOverride: BossKind? = null,
 ) : Enemy {
 
     override val enemyId: String = UUID.randomUUID().toString()
@@ -44,9 +46,10 @@ data class MidBoss(
     override var lastImpactMillis: Long = 0L
     override val isBoss: Boolean = true               // reuses Boss HP bar + rank overlay
     // Round 71 (Issue 4d) — MidBoss variants map to 2 unique kinds (ORB, FRACTAL).
-    // Total bosses Round 71: STAR (L1) + CROSS (L2) + ORB (Mid Off) + FRACTAL
-    // (Mid Def + Mid Swarm) + SPIDER (Final) = 5 silhouettes shipped.
-    override val bossKind: BossKind = when (variant) {
+    // Round 79 (#1) — bossKindOverride (set theo chapter trong EnemyFactory) cho
+    // phép Ch4Mid OFFENSIVE reuse render HELL_LORD, Ch3Mid SWARM render
+    // HAUNTED_KID — eliminate visual duplicate giữa các chapter.
+    override val bossKind: BossKind = bossKindOverride ?: when (variant) {
         MidBossType.OFFENSIVE -> BossKind.ORB
         MidBossType.DEFENSIVE -> BossKind.FRACTAL
         MidBossType.SWARM -> BossKind.FRACTAL

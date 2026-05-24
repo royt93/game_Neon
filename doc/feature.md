@@ -1144,7 +1144,112 @@ drawArrowRightShape, drawRingPulseShape.
 - `compileDevDebugKotlin` ✅
 - `compileProductionReleaseKotlin` ✅
 - `testDevDebugUnitTest` ✅ all pass
-- Bundle: 7 fixes in 1 round (1 audit, 4 full fixes, 2 partial fixes).
+
+### Round 78 spec follow-up (user audit pushback)
+
+User caught 4 gaps trong R78 đầu tiên:
+
+**Gap A — Enemy shape diversity còn thiếu**: spec list "circle, heart, triangle,
+cơ/rô/chuồn/bích, eye, virus". Initial fix chỉ làm heart/triangle/eye/virus
+(4/8). Added: `drawCircleEnemy`, `drawCardClub`, `drawCardSpade`,
+`drawCardDiamond`. Remap:
+- `enemy_light_blue_3` → CARD CLUB (♣)
+- `enemy_light_blue_4` → CIRCLE (●)
+- `enemy_light_blue_5` → CARD SPADE (♠)
+- `enemy_green_4` → CARD DIAMOND (♦)
+- `enemy_red_3` → CIRCLE (red)
+
+Now mỗi light_blue/green/red variant render bằng silhouette khác nhau.
+
+**Gap B — Boss shape diversity còn thiếu**: spec list "killer eye, black hole,
+atom, lightning, sun". Initial fix chỉ làm killer eye (ORB). Added:
+- BossKind.STAR → `drawBossSun` (corona + 12 radial flares + bright disc).
+  Ch1+Ch3 boss now reads as "Crimson Sun" thay "Crimson Star".
+- BossKind.FRACTAL → `drawBossAtom` (3 elliptical electron orbits + nucleus).
+  Ch2Mid+Ch3Mid boss now "Atom Sentinel/Swarm" thay "Fractal Sentinel/Swarm".
+
+InfoScreen previews (`drawBossStar`, `drawBossFractalPreview`) cập nhật để
+mirror in-game render. Titles + descriptions in BossesTab cũng update.
+
+Còn lại spec: lightning + black hole defer — chưa wire vào BossKind enum
+(invasive: cần add boss class + wire chapter spawn). Có thể đề xuất Wave 12.
+
+**Gap C — Enemy spawn margin tại FAR zoom**: spec said "enemies/bullets/items
+also not appearing" trong margin zones. Initial fix chỉ extend ship drag bounds.
+Added:
+- `EnemyFactory.spawnXMargin: Float = 0f` + `FormationXOffset.spawnXMargin`.
+- `EnemyController.setSpawnXMargin(margin)` pipes through.
+- `GameState.LaunchedEffect(liveCameraZoom)` updates cả `shipController.dragBoundsExtensionX/Y`
+  và `enemyController.setSpawnXMargin(extensionX)`.
+- ZigZag formation bounces -margin↔(screenWidth + margin).
+- Row formation effective width = screenWidth + 2×margin.
+- VFormation X clamp extends to negative margin.
+- SineWave kept original (single-anchor vertical sequence, extending would
+  asymmetrically shift it).
+
+Now at FAR zoom (0.7×), enemies spawn into the visual margin zones — no more
+black bars at left/right edges.
+
+**Gap D — Hardcoded magic strings cho booster shape**: user audit pushback
+"hardcode nhiều quá? liệu có ổn không?". Initial fix dùng `shapeKey: String?`
+với magic strings "atom"/"flame"/...  → typo không bị compiler catch,
+no autocomplete, refactor đau.
+
+Refactored:
+- New `BoosterShape` enum (26 values: 6 base + 20 R78 additions).
+- `BoosterUI.shape: BoosterShape` thay `shapeKey: String?`.
+- `BoosterToBoosterUIMapper.shapeFor(type)` exhaustive `when` over BoosterType
+  — compiler bắt được nếu thêm BoosterType mới mà quên pick shape.
+- `BoosterCanvas` single dispatch on `booster.shape`, exhaustive `when` —
+  warns if new BoosterShape thêm mà chưa handle.
+- Bonus: 11 thêm shape recipes (dollar/plus_double/shard/aura_ring/
+  phase_diamond/cloud_puff/spread_fan/crystal_spark/double_arrow/arrow_cycle/
+  big_dot) → toàn bộ 26 BoosterTypes giờ có silhouette riêng (no duplicates).
+
+### Round 78 spec follow-up files
+
+**New**:
+- `ui/game/booster/BoosterShape.kt` (26-value enum)
+- `ui/game/enemy/ship/factory/FormationXOffset.kt` `spawnXMargin` field
+
+**Modified**:
+- `ui/game/world/EnemyCanvas.kt` — +4 enemy shapes (circle/club/spade/cardDiamond), +2 boss shapes (sun/atom), withTransform import
+- `ui/game/world/BoosterCanvas.kt` — single-dispatch on BoosterShape, +11 shape recipes
+- `ui/info/InfoScreen.kt` — +5 preview helpers, entries 3/4/5/9/12 remap, Ch1/Ch2/Ch3 boss titles+descriptions updated, withTransform import
+- `ui/game/booster/BoosterUI.kt` — `shapeKey: String?` → `shape: BoosterShape`
+- `ui/game/booster/BoosterToBoosterUIMapper.kt` — `shapeFor(type)` exhaustive function
+- `ui/game/enemy/ship/factory/EnemyFactory.kt` — `spawnXMargin` field + V-formation extended clamp
+- `ui/game/enemy/ship/controller/EnemyController.kt` — `setSpawnXMargin(margin)` setter
+- `ui/game/state/GameState.kt` — propagate zoom margin to both ship + enemy
+
+### Round 78 final verification
+
+- `compileDevDebugKotlin` ✅
+- `compileProductionReleaseKotlin` ✅
+- `testDevDebugUnitTest` ✅ all pass
+
+### Known acceptable hardcode (post-R78)
+
+Sau enum refactor vẫn còn 1 số hardcode "intentional":
+- **Geometric proportions** trong draw functions (`size * 0.42f`, etc.):
+  per-shape proportions, không phải config. Để extract sang per-shape data
+  class chỉ tốt nếu cần reuse — hiện chỉ 1 caller.
+- **Tint ARGB constants** trong BoosterToBoosterUIMapper companion:
+  organized as `const val`, OK.
+- **Variant indices** trong `drawDart(... variant = 2)` etc.: passing through
+  dispatcher. Tractable nếu refactor sang BoosterShape pattern cho enemy too —
+  defer.
+- **Zoom margin formula** `screenWidth * (1f / scale - 1f) / 2f`: bản chất
+  toán graphicsLayer center-pivot. Có thể extract thành
+  `CameraZoom.computeMarginPx(screen)` extension. Defer.
+
+### Round 78 deferred (Wave 12 candidates)
+
+- **Lightning + black hole boss shapes** (need BossKind enum extension + boss
+  class + chapter spawn wiring).
+- **Variant index → enum** cho enemy dispatch (parallel to BoosterShape refactor).
+- **Zoom margin extraction** to `CameraZoom.computeMarginPx()`.
+- **NSFW shapes** user joked về (nhũ hoa/dương vật) — skip per production policy.
 - `assembleDevDebug` ✅ BUILD SUCCESSFUL (clean rebuild verified)
 
 ### Round 76 — User audit 6 issues: assets/UI clarity batch

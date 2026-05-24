@@ -14,6 +14,9 @@ data class LevelOneBoss(
     private val screenWidth: Float,
     private val screenHeight: Float,
     private val getShip: () -> Ship,
+    /** Round 79 (#1) — optional override để Ch3End có thể render là DEATH_MOON
+     * thay vì duplicate STAR/SUN của Ch1End. Null = giữ default STAR. */
+    private val bossKindOverride: BossKind? = null,
 ) : Enemy {
 
     override val enemyId: String = UUID.randomUUID().toString()
@@ -30,8 +33,9 @@ data class LevelOneBoss(
     override val drawableId: Int = R.drawable.enemy_red_boss
     override var lastImpactMillis: Long = 0L
     override val isBoss: Boolean = true
-    // Round 71 (Issue 4d) — STAR silhouette (8-point baseline, red).
-    override val bossKind: BossKind = BossKind.STAR
+    // Round 71 (Issue 4d) — STAR silhouette (8-point baseline, red). Round 79
+    // (#1): cho phép override (Ch3End → DEATH_MOON).
+    override val bossKind: BossKind = bossKindOverride ?: BossKind.STAR
     override val displayName: String = "LEVEL 1 BOSS"
     private val bossMovementSpeed = 0.5f
 

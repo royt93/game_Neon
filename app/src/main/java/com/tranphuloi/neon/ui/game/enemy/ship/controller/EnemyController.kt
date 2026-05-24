@@ -37,6 +37,16 @@ class EnemyController(
         Logger.d("EnemyController.setSpawnXMargin: $margin")
     }
 
+    /**
+     * Round 79 (#1) — set current chapter context so EnemyFactory picks the
+     * right bossKind override on next boss spawn (eliminate visual dups across
+     * chapter encounters). Call from GameState when chapter advances.
+     */
+    fun setCurrentChapterId(chapterId: Int) {
+        enemyFactory.currentChapterId = chapterId
+        Logger.d("EnemyController.setCurrentChapterId: $chapterId")
+    }
+
     private var enemies: List<Enemy> = initialEnemies
 
     val addEnemyId = uuidUtils.getUuid()

@@ -17,4 +17,11 @@ enum class BossKind {
     ORB,
     FRACTAL,
     SPIDER,
+
+    // Round 79 (#1) — 4 new shapes to eliminate visual duplicates across the
+    // 9 chapter encounters (Ch3End/Ch3Mid/Ch4Mid/Ch4End previously reused).
+    DEATH_MOON,      // mặt trăng tử thần — full moon + skull cracks
+    HAUNTED_KID,     // kid ma ám — ghost child silhouette
+    HELL_LORD,       // chúa tể địa ngục — devil head + horns
+    SATAN_GLYPH,     // quỷ satan — inverted pentagram + center eye
 }

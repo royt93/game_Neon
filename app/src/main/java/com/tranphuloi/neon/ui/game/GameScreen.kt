@@ -279,6 +279,11 @@ fun GameScreen(
                 com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.ORB -> 1.0f
                 com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.FRACTAL -> 0.85f
                 com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SPIDER -> 0.65f
+                // Round 79 (#1) — new boss kinds với pitch riêng để audio cue distinct.
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.DEATH_MOON -> 0.75f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HAUNTED_KID -> 1.55f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HELL_LORD -> 0.55f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SATAN_GLYPH -> 1.25f
                 null -> 1.0f
             }
             sfx.play(SfxEvent.EXPLOSION, rate)
@@ -579,6 +584,9 @@ fun GameScreen(
                 chargeProgress = gameState.chargeProgress,
                 mines = gameState.mines,
                 lastBurstSweepMillis = gameState.lastBurstSweepMillis,
+                lastBossHitMillis = gameState.lastBossHitMillis,
+                lastBossHitX = gameState.lastBossHitX,
+                lastBossHitY = gameState.lastBossHitY,
                 modifier = Modifier
                     .weight(1f)
                     .layout { measurable, constraints ->

@@ -661,6 +661,25 @@ private fun ShipShapeCard(shape: com.tranphuloi.neon.ui.game.ship.shape.ShipShap
         com.tranphuloi.neon.ui.game.ship.shape.ShipShape.STEALTH -> NeonViolet
         com.tranphuloi.neon.ui.game.ship.shape.ShipShape.TANK -> Color(0xFFFF6020)
         com.tranphuloi.neon.ui.game.ship.shape.ShipShape.INTERCEPTOR -> NeonMagenta
+        // Round 79 (#3) — 12 new ships' InfoScreen accent colors.
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.NGOI_SAO -> Color(0xFFFFD700)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.CAU_VONG -> Color(0xFFFF80E0)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.PHU_THUY -> Color(0xFFB14CFF)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.AURA_GLOW -> Color(0xFF60FFAA)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.SUNG_3_NONG -> Color(0xFFFF3030)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.OBELISK_SPIRE -> Color(0xFFE0E0E0)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.VIETNAM -> Color(0xFFDA251D)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.DIVA -> Color(0xFFFF80B0)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.CHET_CHOC -> Color(0xFF808080)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.TU_THAN -> Color(0xFF404040)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.MANG_NHEN_ACE -> Color(0xFFCC2030)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.AO_GIAP_THIET -> Color(0xFFCC2020)
+        // Round 79 audit follow-up — 5 new ships.
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.TWIN_DOMES -> Color(0xFFFFA0C0)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.NHAT_BAN -> Color(0xFFBC002D)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.HAN_QUOC -> Color(0xFF0047A0)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.MY -> Color(0xFF3C3B6E)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.PHAP -> Color(0xFF002654)
     }
     val unlockText = if (shape.unlockMinerals == 0) "Mở khoá: Có sẵn"
         else "Mở khoá: ${shape.unlockMinerals} khoáng tích luỹ"
@@ -1109,40 +1128,42 @@ private fun BossesTab() {
         // Ch 3 — Hành Tinh Băng
         InfoCard(
             color = violet,
-            title = "Ch3 Mid — Atom Swarm (SWARM)",
-            subtitle = "Giữa Hành Tinh Băng · HP 1200 · ATOM",
-            description = "Atom variant SWARM — spawn 4 drone con khi Phase 2. " +
-                "Phải clear drone trước khi đánh boss chính.",
-            iconDraw = { c -> drawBossFractalPreview(c, violet, violetAcc) },
+            title = "Ch3 Mid — Haunted Kid (SWARM)",
+            subtitle = "Giữa Hành Tinh Băng · HP 1200 · HAUNTED_KID",
+            description = "Hồn ma trẻ em — hollow eyes + wavy bottom sheet. Round 79: visual riêng " +
+                "thay duplicate Atom của Ch2Mid. Pattern SWARM — spawn 4 drone con khi Phase 2.",
+            iconDraw = { c -> drawBossHauntedKidPreview(c, violet, violetAcc) },
         )
         Spacer(modifier = Modifier.height(6.dp))
         InfoCard(
             color = red,
-            title = "Ch3 End — Crimson Sun (reuse)",
-            subtitle = "End Hành Tinh Băng · HP 3000 · SUN · cùng visual với Ch1",
-            description = "LevelOneBoss reuse từ Ch1 với cùng red palette in-game. Khác biệt nằm ở arena " +
-                "ICE_PATCHES — tàu trượt sau khi release movement → dodge ring barrage khó hơn. " +
-                "Audio cue cùng STAR pitch 1.4×.",
-            iconDraw = { c -> drawBossStar(c, red, redAcc) },
+            title = "Ch3 End — Death Moon",
+            subtitle = "End Hành Tinh Băng · HP 3000 · DEATH_MOON",
+            description = "Mặt trăng tử thần — full moon disc + skull eye sockets + teeth row + crack fissures. " +
+                "Round 79: visual riêng thay duplicate Sun của Ch1End. Arena ICE_PATCHES — tàu trượt " +
+                "→ dodge ring barrage khó hơn. Audio cue 0.75× pitch trầm.",
+            iconDraw = { c -> drawBossDeathMoonPreview(c, red, redAcc) },
         )
         Spacer(modifier = Modifier.height(10.dp))
         // Ch 4 — Trạm Thù Địch
         InfoCard(
             color = gold,
-            title = "Ch4 Mid — Killer Eye Veteran (OFFENSIVE-2)",
-            subtitle = "Giữa Trạm Thù Địch · HP 1200 · EYE",
-            description = "Killer Eye pattern. ELITE enemies (cross/orb từ Wave 9a R74) bay xung quanh hỗ trợ. " +
-                "Damage tổng hợp cao hơn các chapter trước.",
-            iconDraw = { c -> drawBossEyePreview(c, gold, goldAcc) },
+            title = "Ch4 Mid — Hell Lord (OFFENSIVE-2)",
+            subtitle = "Giữa Trạm Thù Địch · HP 1200 · HELL_LORD",
+            description = "Chúa tể địa ngục — devil head với 2 curved horns + glowing eyes + fangs. " +
+                "Round 79: visual riêng thay duplicate Killer Eye của Ch1Mid. ELITE enemies bay xung quanh hỗ trợ. " +
+                "Audio cue 0.55× pitch sâu nhất.",
+            iconDraw = { c -> drawBossHellLordPreview(c, gold, goldAcc) },
         )
         Spacer(modifier = Modifier.height(6.dp))
         InfoCard(
             color = green,
-            title = "Ch4 End — Emerald Cross (reuse)",
-            subtitle = "End Trạm Thù Địch · HP 4000 · CROSS · cùng visual với Ch2",
-            description = "LevelTwoBoss reuse từ Ch2 cùng green palette. Khác biệt nằm ở ELITE enemy wave " +
-                "đồng hành (cross/orb violet) bay xung quanh boss → tổng pressure cao hơn.",
-            iconDraw = { c -> drawBossCrossPreview(c, green, greenAcc) },
+            title = "Ch4 End — Satan Glyph",
+            subtitle = "End Trạm Thù Địch · HP 4000 · SATAN_GLYPH",
+            description = "Quỷ Satan — inverted pentagram + all-seeing eye trung tâm + 5 candle dots. " +
+                "Round 79: visual riêng thay duplicate Cross của Ch2End. ELITE enemy wave đồng hành " +
+                "(cross/orb violet) bay xung quanh boss → tổng pressure cao hơn.",
+            iconDraw = { c -> drawBossSatanGlyphPreview(c, green, greenAcc) },
         )
         Spacer(modifier = Modifier.height(10.dp))
         // Ch 5 — Lõi Thiên Hà
@@ -1922,4 +1943,139 @@ private fun InfoCard(
             }
         }
     }
+}
+
+// Round 79 (#1) — 4 boss preview helpers mirror in-game shapes for InfoScreen.
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossDeathMoonPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val r = minOf(w, h) * 0.42f
+    drawCircle(body, r, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, r, androidx.compose.ui.geometry.Offset(cx, cy),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
+    val socketR = r * 0.18f
+    drawCircle(Color.Black.copy(alpha = 0.75f), socketR,
+        androidx.compose.ui.geometry.Offset(cx - r * 0.30f, cy - r * 0.15f))
+    drawCircle(Color.Black.copy(alpha = 0.75f), socketR,
+        androidx.compose.ui.geometry.Offset(cx + r * 0.30f, cy - r * 0.15f))
+    val teethCount = 4
+    val teethY = cy + r * 0.40f
+    val teethStartX = cx - r * 0.30f
+    val teethWidth = r * 0.60f
+    val teethStep = teethWidth / teethCount
+    for (i in 0 until teethCount) {
+        drawRect(Color.Black.copy(alpha = 0.70f),
+            topLeft = androidx.compose.ui.geometry.Offset(teethStartX + i * teethStep + teethStep * 0.10f, teethY),
+            size = androidx.compose.ui.geometry.Size(teethStep * 0.80f, r * 0.10f))
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossHauntedKidPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val headR = minOf(w, h) * 0.22f
+    val bodyW = w * 0.50f
+    val bodyH = h * 0.40f
+    val bodyPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - bodyW / 2f, cy)
+        lineTo(cx - bodyW / 2f, cy + bodyH * 0.45f)
+        val waveCount = 4
+        val waveStep = bodyW / waveCount
+        for (i in 0..waveCount) {
+            val wx = cx - bodyW / 2f + i * waveStep
+            val wy = if (i % 2 == 0) cy + bodyH * 0.55f else cy + bodyH * 0.40f
+            lineTo(wx, wy)
+        }
+        lineTo(cx + bodyW / 2f, cy)
+        close()
+    }
+    drawPath(bodyPath, body.copy(alpha = 0.85f))
+    drawCircle(body.copy(alpha = 0.85f), headR, androidx.compose.ui.geometry.Offset(cx, cy - bodyH * 0.20f))
+    val eyeR = headR * 0.28f
+    drawCircle(Color.Black.copy(alpha = 0.85f), eyeR,
+        androidx.compose.ui.geometry.Offset(cx - headR * 0.35f, cy - bodyH * 0.20f))
+    drawCircle(Color.Black.copy(alpha = 0.85f), eyeR,
+        androidx.compose.ui.geometry.Offset(cx + headR * 0.35f, cy - bodyH * 0.20f))
+    drawCircle(accent, eyeR * 0.40f,
+        androidx.compose.ui.geometry.Offset(cx - headR * 0.35f, cy - bodyH * 0.20f))
+    drawCircle(accent, eyeR * 0.40f,
+        androidx.compose.ui.geometry.Offset(cx + headR * 0.35f, cy - bodyH * 0.20f))
+    drawCircle(Color.Black.copy(alpha = 0.85f), headR * 0.18f,
+        androidx.compose.ui.geometry.Offset(cx, cy - bodyH * 0.05f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossHellLordPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val headR = minOf(w, h) * 0.32f
+    drawOval(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - headR, cy - headR * 0.80f),
+        size = androidx.compose.ui.geometry.Size(headR * 2, headR * 1.80f))
+    for (sign in intArrayOf(-1, 1)) {
+        val baseX = cx + sign * headR * 0.65f
+        val baseY = cy - headR * 0.60f
+        val tipX = cx + sign * headR * 0.80f
+        val tipY = cy - headR * 1.45f
+        val hornPath = androidx.compose.ui.graphics.Path().apply {
+            moveTo(baseX, baseY)
+            cubicTo(cx + sign * headR * 1.0f, cy - headR * 1.20f, cx + sign * headR * 1.0f, cy - headR * 1.20f, tipX, tipY)
+            cubicTo(cx + sign * headR * 0.85f, cy - headR * 1.10f, baseX + sign * headR * 0.10f, baseY - headR * 0.05f, baseX, baseY)
+            close()
+        }
+        drawPath(hornPath, body)
+    }
+    drawOval(accent.copy(alpha = 0.95f),
+        topLeft = androidx.compose.ui.geometry.Offset(cx - headR * 0.50f, cy - headR * 0.18f),
+        size = androidx.compose.ui.geometry.Size(headR * 0.35f, headR * 0.16f))
+    drawOval(accent.copy(alpha = 0.95f),
+        topLeft = androidx.compose.ui.geometry.Offset(cx + headR * 0.15f, cy - headR * 0.18f),
+        size = androidx.compose.ui.geometry.Size(headR * 0.35f, headR * 0.16f))
+    for (i in 0 until 3) {
+        val fx = cx - headR * 0.20f + i * headR * 0.20f
+        val mouthY = cy + headR * 0.35f
+        val fpath = androidx.compose.ui.graphics.Path().apply {
+            moveTo(fx - headR * 0.05f, mouthY)
+            lineTo(fx + headR * 0.05f, mouthY)
+            lineTo(fx, mouthY + headR * 0.15f)
+            close()
+        }
+        drawPath(fpath, Color.White.copy(alpha = 0.85f))
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossSatanGlyphPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val outerR = minOf(w, h) * 0.42f
+    val innerR = outerR * 0.40f
+    drawCircle(body, outerR * 1.10f, androidx.compose.ui.geometry.Offset(cx, cy),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
+    val starPath = androidx.compose.ui.graphics.Path().apply {
+        val rotation = Math.PI / 2.0
+        for (i in 0 until 10) {
+            val a = rotation + i * Math.PI / 5
+            val r = if (i % 2 == 0) outerR else innerR
+            val x = cx + (r * kotlin.math.cos(a)).toFloat()
+            val y = cy + (r * kotlin.math.sin(a)).toFloat()
+            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
+    drawPath(starPath, body)
+    val eyeRx = innerR * 0.85f
+    val eyeRy = innerR * 0.55f
+    drawOval(Color.White,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - eyeRx, cy - eyeRy),
+        size = androidx.compose.ui.geometry.Size(eyeRx * 2, eyeRy * 2))
+    drawCircle(accent, eyeRy * 0.65f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(Color.Black, eyeRy * 0.35f, androidx.compose.ui.geometry.Offset(cx, cy))
 }

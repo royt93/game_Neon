@@ -1,5 +1,6 @@
 package com.tranphuloi.neon.ui.game.enemy.ship.factory
 
+import com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind
 import com.tranphuloi.neon.ui.game.enemy.ship.model.Enemy
 import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyType
 import com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBoss
@@ -38,6 +39,22 @@ class EnemyFactory(
      */
     var spawnXMargin: Float = 0f,
 ) {
+
+    /**
+     * Round 79 (#1) — chapter context để pick bossKind override theo Chapter.
+     * Map duplicate slots sang BossKind mới (Ch3End→DEATH_MOON, Ch3Mid→HAUNTED_KID,
+     * Ch4Mid→HELL_LORD, Ch4End→SATAN_GLYPH). Set bởi EnemyController khi chapter
+     * advance trong GameState. Default 1 = Chapter 1.
+     */
+    var currentChapterId: Int = 1
+
+    private fun resolveBossKindForChapter(type: EnemyType): BossKind? = when {
+        type is LevelOneBossType && currentChapterId == 3 -> BossKind.DEATH_MOON
+        type is LevelTwoBossType && currentChapterId == 4 -> BossKind.SATAN_GLYPH
+        type == MidBossType.OFFENSIVE && currentChapterId == 4 -> BossKind.HELL_LORD
+        type == MidBossType.SWARM -> BossKind.HAUNTED_KID
+        else -> null
+    }
 
     operator fun invoke(type: EnemyType, getShip: () -> Ship): List<Enemy> {
         val enemies: MutableList<Enemy> = mutableListOf()
@@ -121,23 +138,29 @@ class EnemyFactory(
             val boss = LevelOneBoss(
                 screenWidth = screenWidth,
                 screenHeight = screenHeight,
-                getShip = getShip
+                getShip = getShip,
+                bossKindOverride = resolveBossKindForChapter(type),
             )
             enemies += boss
-            Logger.w("EnemyFactory: LevelOneBoss SPAWNED hp=${boss.hp.toInt()} impactPower=${boss.impactPower}")
+            Logger.w("EnemyFactory: LevelOneBoss SPAWNED hp=${boss.hp.toInt()} impactPower=${boss.impactPower} kind=${boss.bossKind}")
         } else if (type is LevelTwoBossType && enemies.isEmpty()) {
-            val boss = LevelTwoBoss(screenWidth = screenWidth, screenHeight = screenHeight)
+            val boss = LevelTwoBoss(
+                screenWidth = screenWidth,
+                screenHeight = screenHeight,
+                bossKindOverride = resolveBossKindForChapter(type),
+            )
             enemies += boss
-            Logger.w("EnemyFactory: LevelTwoBoss SPAWNED hp=${boss.hp.toInt()} impactPower=${boss.impactPower}")
+            Logger.w("EnemyFactory: LevelTwoBoss SPAWNED hp=${boss.hp.toInt()} impactPower=${boss.impactPower} kind=${boss.bossKind}")
         } else if (type is MidBossType && enemies.isEmpty()) {
             val mid = MidBoss(
                 screenWidth = screenWidth,
                 screenHeight = screenHeight,
                 variant = type,
                 getShip = getShip,
+                bossKindOverride = resolveBossKindForChapter(type),
             )
             enemies += mid
-            Logger.w("EnemyFactory: MidBoss SPAWNED variant=${type::class.simpleName} hp=${mid.hp.toInt()}")
+            Logger.w("EnemyFactory: MidBoss SPAWNED variant=${type::class.simpleName} hp=${mid.hp.toInt()} kind=${mid.bossKind}")
         } else if (type is FinalBossType && enemies.isEmpty()) {
             val finalBoss = FinalBoss(
                 screenWidth = screenWidth,

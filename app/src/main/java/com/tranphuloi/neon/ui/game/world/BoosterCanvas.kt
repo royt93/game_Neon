@@ -95,7 +95,6 @@ private fun DrawScope.drawBooster(booster: BoosterUI, density: Density) {
             BoosterShape.ARROW_RIGHT -> drawArrowRightShape(cx, cy, sizePx, glowColor)
             BoosterShape.RING_PULSE -> drawRingPulseShape(cx, cy, sizePx, glowColor)
             BoosterShape.DOLLAR -> drawDollarShape(cx, cy, sizePx, glowColor)
-            BoosterShape.PLUS_DOUBLE -> drawPlusDoubleShape(cx, cy, sizePx, glowColor)
             BoosterShape.SHARD -> drawShardShape(cx, cy, sizePx, glowColor)
             BoosterShape.AURA_RING -> drawAuraRingShape(cx, cy, sizePx, glowColor)
             BoosterShape.PHASE_DIAMOND -> drawPhaseDiamondShape(cx, cy, sizePx, glowColor)
@@ -105,6 +104,8 @@ private fun DrawScope.drawBooster(booster: BoosterUI, density: Density) {
             BoosterShape.DOUBLE_ARROW -> drawDoubleArrowShape(cx, cy, sizePx, glowColor)
             BoosterShape.ARROW_CYCLE -> drawArrowCycleShape(cx, cy, sizePx, glowColor)
             BoosterShape.BIG_DOT -> drawBigDotShape(cx, cy, sizePx, glowColor)
+            BoosterShape.RAGE_FANG -> drawRageFangShape(cx, cy, sizePx, glowColor)
+            BoosterShape.HEALING_FLASK -> drawHealingFlaskShape(cx, cy, sizePx, glowColor)
         }
     }
 }
@@ -509,27 +510,8 @@ private fun DrawScope.drawDollarShape(cx: Float, cy: Float, size: Float, color: 
         style = Stroke(width = size * 0.10f))
 }
 
-/** Plus-double — large + with extra crossbar (quick-heal "double dose"). */
-private fun DrawScope.drawPlusDoubleShape(cx: Float, cy: Float, size: Float, color: Color) {
-    val armW = size * 0.20f
-    val armL = size * 0.75f
-    // Main vertical bar
-    drawRoundRect(color,
-        topLeft = Offset(cx - armW / 2f, cy - armL / 2f),
-        size = Size(armW, armL),
-        cornerRadius = androidx.compose.ui.geometry.CornerRadius(armW / 2f))
-    // Main horizontal bar
-    drawRoundRect(color,
-        topLeft = Offset(cx - armL / 2f, cy - armW / 2f),
-        size = Size(armL, armW),
-        cornerRadius = androidx.compose.ui.geometry.CornerRadius(armW / 2f))
-    // Small extra horizontal bar (the "double")
-    val extraW = size * 0.50f; val extraH = size * 0.10f
-    drawRoundRect(Color.White.copy(alpha = 0.85f),
-        topLeft = Offset(cx - extraW / 2f, cy - extraH / 2f),
-        size = Size(extraW, extraH),
-        cornerRadius = androidx.compose.ui.geometry.CornerRadius(extraH / 2f))
-}
+// drawPlusDoubleShape removed Round 79 audit — PLUS_DOUBLE BoosterShape value
+// no longer referenced (QUICK_HEAL maps to HEALING_FLASK instead).
 
 /** Shard — crystal shard (vertical elongated rhombus, faceted). */
 private fun DrawScope.drawShardShape(cx: Float, cy: Float, size: Float, color: Color) {
@@ -551,14 +533,39 @@ private fun DrawScope.drawShardShape(cx: Float, cy: Float, size: Float, color: C
         strokeWidth = size * 0.03f)
 }
 
-/** Aura ring — soft outer ring + ring + inner pulse dot. */
+/**
+ * Aura — heart-with-radiating-rays (healing aura). Round 79 audit fix:
+ * was concentric rings (looked dup với RING_PULSE). Redesigned thành filled
+ * heart core + 8 radiating beam lines outward — distinct silhouette.
+ */
 private fun DrawScope.drawAuraRingShape(cx: Float, cy: Float, size: Float, color: Color) {
-    drawCircle(color, size * 0.42f, Offset(cx, cy),
-        style = Stroke(width = size * 0.08f))
-    drawCircle(color, size * 0.30f, Offset(cx, cy),
-        style = Stroke(width = size * 0.04f))
-    drawCircle(color, size * 0.10f, Offset(cx, cy))
-    drawCircle(Color.White.copy(alpha = 0.85f), size * 0.05f, Offset(cx, cy))
+    val coreR = size * 0.18f
+    val lobeR = coreR * 0.85f
+    // Heart core (2 lobes + downward tip)
+    drawCircle(color, lobeR, Offset(cx - coreR * 0.55f, cy - coreR * 0.20f))
+    drawCircle(color, lobeR, Offset(cx + coreR * 0.55f, cy - coreR * 0.20f))
+    val triPath = Path().apply {
+        moveTo(cx - coreR, cy - coreR * 0.05f)
+        lineTo(cx + coreR, cy - coreR * 0.05f)
+        lineTo(cx, cy + coreR * 1.10f)
+        close()
+    }
+    drawPath(triPath, color)
+    // 8 radiating beam lines (aura emit)
+    for (i in 0 until 8) {
+        val a = i * Math.PI / 4
+        val sx = cx + (coreR * 1.40f * kotlin.math.cos(a)).toFloat()
+        val sy = cy + (coreR * 1.40f * kotlin.math.sin(a)).toFloat()
+        val ex = cx + (size * 0.42f * kotlin.math.cos(a)).toFloat()
+        val ey = cy + (size * 0.42f * kotlin.math.sin(a)).toFloat()
+        drawLine(color.copy(alpha = 0.65f),
+            Offset(sx, sy), Offset(ex, ey),
+            strokeWidth = size * 0.04f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+    // Inner white highlight on heart
+    drawCircle(Color.White.copy(alpha = 0.70f), lobeR * 0.40f,
+        Offset(cx - coreR * 0.50f, cy - coreR * 0.25f))
 }
 
 /** Phase diamond — diamond outline with ghost stutter (double offset). */
@@ -694,4 +701,81 @@ private fun DrawScope.drawBigDotShape(cx: Float, cy: Float, size: Float, color: 
     drawCircle(color, r, Offset(cx, cy), style = Stroke(width = size * 0.10f))
     drawCircle(color, r * 0.65f, Offset(cx, cy))
     drawCircle(Color.White.copy(alpha = 0.85f), r * 0.25f, Offset(cx, cy))
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Round 79 — 2 more booster shapes to eliminate remaining visual dups.
+// ──────────────────────────────────────────────────────────────────────────
+
+/** Rage fang — jagged downward fang/teeth row (BERSERK rage). */
+private fun DrawScope.drawRageFangShape(cx: Float, cy: Float, size: Float, color: Color) {
+    val w = size * 0.80f
+    val h = size * 0.65f
+    // 5 fang teeth pointing down
+    val toothCount = 5
+    val toothW = w / toothCount
+    val path = Path().apply {
+        moveTo(cx - w / 2f, cy - h / 2f)
+        // Top edge (lip)
+        for (i in 0..toothCount) {
+            val px = cx - w / 2f + i * toothW
+            lineTo(px, cy - h / 2f)
+        }
+        // Right side down
+        lineTo(cx + w / 2f, cy - h * 0.15f)
+        // Bottom edge — alternating fang tips
+        for (i in toothCount - 1 downTo 0) {
+            val tipX = cx - w / 2f + i * toothW + toothW / 2f
+            val tipY = if (i % 2 == 0) cy + h / 2f else cy + h * 0.25f
+            val nextValleyX = cx - w / 2f + i * toothW
+            val nextValleyY = cy - h * 0.15f
+            lineTo(tipX, tipY)
+            lineTo(nextValleyX, nextValleyY)
+        }
+        close()
+    }
+    drawPath(path, color)
+    // Inner highlight: white drip down center
+    drawCircle(Color.White.copy(alpha = 0.7f), size * 0.05f,
+        Offset(cx, cy - h * 0.10f))
+    // Blood drip at center fang tip
+    drawCircle(Color.White.copy(alpha = 0.5f), size * 0.03f,
+        Offset(cx, cy + h * 0.55f))
+}
+
+/** Healing flask — potion bottle silhouette with liquid level (QUICK_HEAL). */
+private fun DrawScope.drawHealingFlaskShape(cx: Float, cy: Float, size: Float, color: Color) {
+    val bottleW = size * 0.50f
+    val bottleH = size * 0.65f
+    val neckW = bottleW * 0.40f
+    val neckH = bottleH * 0.25f
+    // Bottle neck
+    drawRoundRect(color,
+        topLeft = Offset(cx - neckW / 2f, cy - bottleH / 2f),
+        size = Size(neckW, neckH),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(size * 0.04f))
+    // Bottle body (rounded rect)
+    drawRoundRect(color,
+        topLeft = Offset(cx - bottleW / 2f, cy - bottleH / 2f + neckH * 0.65f),
+        size = Size(bottleW, bottleH * 0.85f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(bottleW * 0.25f))
+    // Liquid level (inner brighter color, partial fill)
+    val liquidTopY = cy - bottleH * 0.08f
+    drawRoundRect(Color.White.copy(alpha = 0.85f),
+        topLeft = Offset(cx - bottleW * 0.40f, liquidTopY),
+        size = Size(bottleW * 0.80f, bottleH * 0.40f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(bottleW * 0.20f))
+    // Cross marking on bottle (medical icon)
+    val crossArm = size * 0.08f
+    val crossThick = size * 0.04f
+    drawRect(color,
+        topLeft = Offset(cx - crossArm / 2f, cy + bottleH * 0.10f - crossThick),
+        size = Size(crossArm, crossThick * 2.5f))
+    drawRect(color,
+        topLeft = Offset(cx - crossThick, cy + bottleH * 0.10f - crossArm / 2f),
+        size = Size(crossThick * 2.5f, crossArm))
+    // Cap (top of neck)
+    drawRect(color,
+        topLeft = Offset(cx - neckW * 0.65f, cy - bottleH / 2f - size * 0.04f),
+        size = Size(neckW * 1.30f, size * 0.05f))
 }

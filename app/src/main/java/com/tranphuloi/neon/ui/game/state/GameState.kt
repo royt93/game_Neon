@@ -313,6 +313,12 @@ fun rememberGameState(): GameState {
     }
     // HitStopController declared early so onLaserHit can call freezeForHit().
     var bossKillFlashMillis by remember { mutableLongStateOf(0L) }
+    // Round 79 (#4 fix) — boss hit lightning state. Updated on bullet→boss hit
+    // via LasersController.onLaserHit(isBoss=true). BossHitLightning Composable
+    // reads triggerMillis + position; fires 5-bolt full-screen lightning.
+    var lastBossHitMillis by remember { androidx.compose.runtime.mutableLongStateOf(0L) }
+    var lastBossHitX by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    var lastBossHitY by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
     val hitStopController = remember {
         HitStopController(onBossKillFlash = { bossKillFlashMillis = System.currentTimeMillis() })
     }
@@ -579,6 +585,12 @@ fun rememberGameState(): GameState {
             onLaserHit = { targetId, damage, x, y, isBoss ->
                 damageNumberController.report(targetId, damage, x, y, isBoss)
                 impactSparkController.spawnBurst(x, y)
+                // Round 79 (#4 fix) — full-screen lightning when bullet hits boss.
+                if (isBoss) {
+                    lastBossHitMillis = System.currentTimeMillis()
+                    lastBossHitX = x
+                    lastBossHitY = y
+                }
                 // Mini explosion at hit point — reuses the GIF explosion system so the
                 // hit reads as a real "pháo hoa nổ tung" not just sparks. Smaller size
                 // (45-55dp) so it doesn't dwarf small enemies; bigger on boss.
@@ -1022,6 +1034,12 @@ fun rememberGameState(): GameState {
                     is com.tranphuloi.neon.ui.game.stage.StageBoss -> newStage.chapterId
                     is com.tranphuloi.neon.ui.game.stage.StageMessage -> newStage.chapterId
                     else -> 0
+                }
+                // Round 79 (#1) — propagate chapter ID to EnemyFactory so the
+                // next boss spawn picks the right bossKindOverride. Idempotent
+                // (Factory just stores int).
+                if (chapterId in 1..5) {
+                    enemyController.setCurrentChapterId(chapterId)
                 }
                 if (chapterId in 1..5 && chapterId != chapterIntroPlayedChapter) {
                     chapterIntroPlayedChapter = chapterId
@@ -1573,6 +1591,9 @@ fun rememberGameState(): GameState {
         pickupBursts = pickupBursts,
         pickupPopups = pickupPopups,
         bossKillFlashMillis = bossKillFlashMillis,
+        lastBossHitMillis = lastBossHitMillis,
+        lastBossHitX = lastBossHitX,
+        lastBossHitY = lastBossHitY,
         achievementUnlocked = achievementUnlocked,
         achievementShownAtMillis = achievementShownAtMillis,
         waveClearBannerShownMillis = waveClearBannerShownMillis,
@@ -1765,6 +1786,11 @@ data class GameState(
     val pickupBursts: List<com.tranphuloi.neon.ui.game.spark.PickupBurst>,
     val pickupPopups: List<PickupPopup>,
     val bossKillFlashMillis: Long,
+    /** Round 79 (#4) — wall-clock of last bullet→boss hit; 0 if none yet. */
+    val lastBossHitMillis: Long,
+    /** Round 79 (#4) — boss center in game-coord dp when last hit. */
+    val lastBossHitX: Float,
+    val lastBossHitY: Float,
     val achievementUnlocked: Achievement?,
     val achievementShownAtMillis: Long,
     val waveClearBannerShownMillis: Long,

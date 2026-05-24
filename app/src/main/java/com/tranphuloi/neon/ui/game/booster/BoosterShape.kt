@@ -33,7 +33,7 @@ enum class BoosterShape {
     ARROW_RIGHT,     // → chevron (PIERCING_BOOSTER)
     RING_PULSE,      // 3 concentric rings (PLASMA_BOOSTER)
     DOLLAR,          // $ glyph (SCORE_X3)
-    PLUS_DOUBLE,     // double + (QUICK_HEAL)
+    // PLUS_DOUBLE removed Round 79 audit — QUICK_HEAL now maps to HEALING_FLASK.
     SHARD,           // crystal shard (MINERAL_SUPERCHARGE)
     AURA_RING,       // soft ring (HEALING_AURA)
     PHASE_DIAMOND,   // ghost diamond (PHASE_SHIELD)
@@ -43,4 +43,8 @@ enum class BoosterShape {
     DOUBLE_ARROW,    // 2 chevrons (DOUBLE_FIRE)
     ARROW_CYCLE,     // cyclic arrow (BOUNCE_BOOSTER)
     BIG_DOT,         // heavy disc (GIANT_BOOSTER)
+
+    // ── Round 79 audit fix (dup elimination) ──
+    RAGE_FANG,       // jagged fang/teeth — BERSERK (was LIGHTNING dup w/ ZIGZAG)
+    HEALING_FLASK,   // potion bottle — QUICK_HEAL (was PLUS_DOUBLE dup w/ CROSS)
 }

@@ -84,10 +84,10 @@ class BoosterToBoosterUIMapper {
         BoosterType.MAGNET_BOOST -> BoosterShape.MAGNET
         BoosterType.CRIT_SURGE -> BoosterShape.CRYSTAL_SPARK
         BoosterType.SPREAD_SHOT -> BoosterShape.SPREAD_FAN
-        BoosterType.BERSERK -> BoosterShape.LIGHTNING
+        BoosterType.BERSERK -> BoosterShape.RAGE_FANG
         BoosterType.PHASE_SHIELD -> BoosterShape.PHASE_DIAMOND
         BoosterType.SCORE_X3 -> BoosterShape.DOLLAR
-        BoosterType.QUICK_HEAL -> BoosterShape.PLUS_DOUBLE
+        BoosterType.QUICK_HEAL -> BoosterShape.HEALING_FLASK
         BoosterType.MINERAL_SUPERCHARGE -> BoosterShape.SHARD
         BoosterType.HEALING_AURA -> BoosterShape.AURA_RING
         BoosterType.DOUBLE_FIRE -> BoosterShape.DOUBLE_ARROW

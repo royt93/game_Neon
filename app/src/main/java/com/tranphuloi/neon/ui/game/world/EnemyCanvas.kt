@@ -276,6 +276,15 @@ private fun DrawScope.drawEnemyShape(
                 drawBossAtom(cx, cy, wPx, hPx, body, accent)
             com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SPIDER ->
                 drawBossSpider(cx, cy, wPx, hPx, body, accent)
+            // Round 79 (#1) — 4 new boss shapes for chapter visual uniqueness.
+            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.DEATH_MOON ->
+                drawBossDeathMoon(cx, cy, wPx, hPx, body, accent)
+            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HAUNTED_KID ->
+                drawBossHauntedKid(cx, cy, wPx, hPx, body, accent)
+            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HELL_LORD ->
+                drawBossHellLord(cx, cy, wPx, hPx, body, accent)
+            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SATAN_GLYPH ->
+                drawBossSatanGlyph(cx, cy, wPx, hPx, body, accent)
         }
         return
     }
@@ -1033,5 +1042,219 @@ private fun DrawScope.drawBossEye(
         drawLine(accent, Offset(sx, sy), Offset(ex, ey),
             strokeWidth = w * 0.04f,
             cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Round 79 (#1) — 4 new boss shape recipes to give each chapter encounter a
+// unique silhouette (was 5 distinct over 9 encounters).
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Boss DEATH MOON — full moon disc with skull-crater details + crack fissures. */
+private fun DrawScope.drawBossDeathMoon(
+    cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color,
+) {
+    val r = minOf(w, h) * 0.45f
+    // Main moon body
+    drawCircle(body, r, Offset(cx, cy))
+    drawCircle(accent, r, Offset(cx, cy), style = Stroke(width = w * 0.04f))
+    // 2 large craters (skull eye sockets)
+    val socketR = r * 0.18f
+    drawCircle(Color.Black.copy(alpha = 0.75f), socketR,
+        Offset(cx - r * 0.30f, cy - r * 0.15f))
+    drawCircle(Color.Black.copy(alpha = 0.75f), socketR,
+        Offset(cx + r * 0.30f, cy - r * 0.15f))
+    // Nose (triangular dark)
+    val nosePath = Path().apply {
+        moveTo(cx, cy + r * 0.05f)
+        lineTo(cx - r * 0.10f, cy + r * 0.20f)
+        lineTo(cx + r * 0.10f, cy + r * 0.20f)
+        close()
+    }
+    drawPath(nosePath, Color.Black.copy(alpha = 0.70f))
+    // Teeth row (mouth grin)
+    val teethCount = 5
+    val teethY = cy + r * 0.40f
+    val teethStartX = cx - r * 0.30f
+    val teethWidth = r * 0.60f
+    val teethStep = teethWidth / teethCount
+    val teethH = r * 0.12f
+    for (i in 0 until teethCount) {
+        drawRect(Color.Black.copy(alpha = 0.70f),
+            topLeft = Offset(teethStartX + i * teethStep + teethStep * 0.10f, teethY),
+            size = Size(teethStep * 0.80f, teethH))
+    }
+    // Crack fissures (4 jagged lines radiating from center)
+    for (i in 0 until 3) {
+        val ang = (i * 70.0 + 100.0) * Math.PI / 180.0
+        val sx = cx + (r * 0.55f * kotlin.math.cos(ang)).toFloat()
+        val sy = cy + (r * 0.55f * kotlin.math.sin(ang)).toFloat()
+        val ex = cx + (r * 0.95f * kotlin.math.cos(ang)).toFloat()
+        val ey = cy + (r * 0.95f * kotlin.math.sin(ang)).toFloat()
+        drawLine(accent.copy(alpha = 0.6f), Offset(sx, sy), Offset(ex, ey),
+            strokeWidth = w * 0.025f)
+    }
+    // Highlight glow upper-left
+    drawCircle(Color.White.copy(alpha = 0.20f), r * 0.30f,
+        Offset(cx - r * 0.40f, cy - r * 0.45f))
+}
+
+/** Boss HAUNTED KID — ghost child silhouette with hollow eyes + wavy bottom. */
+private fun DrawScope.drawBossHauntedKid(
+    cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color,
+) {
+    val headR = minOf(w, h) * 0.25f
+    val bodyW = w * 0.55f
+    val bodyH = h * 0.50f
+    // Body — bell-shape sheet from top-rounded to wavy bottom
+    val bodyPath = Path().apply {
+        // Top arc (head connects)
+        moveTo(cx - bodyW / 2f, cy - bodyH * 0.10f)
+        // Left side down
+        lineTo(cx - bodyW / 2f, cy + bodyH * 0.40f)
+        // Wavy bottom — 5 waves
+        val waveCount = 5
+        val waveStep = bodyW / waveCount
+        for (i in 0..waveCount) {
+            val wx = cx - bodyW / 2f + i * waveStep
+            val wy = if (i % 2 == 0) cy + bodyH * 0.50f else cy + bodyH * 0.35f
+            lineTo(wx, wy)
+        }
+        // Right side up
+        lineTo(cx + bodyW / 2f, cy - bodyH * 0.10f)
+        // Top arc (close via head — go up)
+        lineTo(cx - bodyW / 2f, cy - bodyH * 0.10f)
+        close()
+    }
+    drawPath(bodyPath, body.copy(alpha = 0.85f))
+    // Head — circle on top
+    drawCircle(body.copy(alpha = 0.85f), headR, Offset(cx, cy - bodyH * 0.30f))
+    // Hollow eyes (2 dark sockets)
+    val eyeR = headR * 0.30f
+    drawCircle(Color.Black.copy(alpha = 0.85f), eyeR,
+        Offset(cx - headR * 0.35f, cy - bodyH * 0.30f - headR * 0.10f))
+    drawCircle(Color.Black.copy(alpha = 0.85f), eyeR,
+        Offset(cx + headR * 0.35f, cy - bodyH * 0.30f - headR * 0.10f))
+    // Glowing eye-pupil
+    drawCircle(accent, eyeR * 0.40f,
+        Offset(cx - headR * 0.35f, cy - bodyH * 0.30f - headR * 0.10f))
+    drawCircle(accent, eyeR * 0.40f,
+        Offset(cx + headR * 0.35f, cy - bodyH * 0.30f - headR * 0.10f))
+    // Open mouth (small "O" of horror)
+    val mouthY = cy - bodyH * 0.30f + headR * 0.30f
+    drawCircle(Color.Black.copy(alpha = 0.85f), headR * 0.20f, Offset(cx, mouthY))
+    // Outline highlight
+    drawCircle(Color.White.copy(alpha = 0.3f), headR * 0.5f,
+        Offset(cx - headR * 0.25f, cy - bodyH * 0.30f - headR * 0.30f))
+}
+
+/** Boss HELL LORD — devil head with 2 curved horns + glowing eyes + fangs. */
+private fun DrawScope.drawBossHellLord(
+    cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color,
+) {
+    val headR = minOf(w, h) * 0.36f
+    // Main head (oval-ish, slightly elongated down)
+    drawOval(body,
+        topLeft = Offset(cx - headR, cy - headR * 0.90f),
+        size = Size(headR * 2, headR * 2.0f))
+    drawOval(accent,
+        topLeft = Offset(cx - headR, cy - headR * 0.90f),
+        size = Size(headR * 2, headR * 2.0f),
+        style = Stroke(width = w * 0.035f))
+    // 2 curved horns
+    for (sign in intArrayOf(-1, 1)) {
+        val baseX = cx + sign * headR * 0.70f
+        val baseY = cy - headR * 0.70f
+        val midX = cx + sign * headR * 1.10f
+        val midY = cy - headR * 1.30f
+        val tipX = cx + sign * headR * 0.85f
+        val tipY = cy - headR * 1.70f
+        val hornPath = Path().apply {
+            moveTo(baseX, baseY)
+            cubicTo(midX, midY, midX * 1.05f, midY, tipX, tipY)
+            // Inner curve back
+            cubicTo(midX * 0.85f, midY * 1.10f, baseX + sign * headR * 0.10f, baseY - headR * 0.05f, baseX, baseY)
+            close()
+        }
+        drawPath(hornPath, body)
+        drawPath(hornPath, accent, style = Stroke(width = w * 0.03f))
+    }
+    // Glowing eyes (2 red slits)
+    val eyeY = cy - headR * 0.10f
+    drawOval(accent.copy(alpha = 0.95f),
+        topLeft = Offset(cx - headR * 0.55f, eyeY - headR * 0.08f),
+        size = Size(headR * 0.40f, headR * 0.18f))
+    drawOval(accent.copy(alpha = 0.95f),
+        topLeft = Offset(cx + headR * 0.15f, eyeY - headR * 0.08f),
+        size = Size(headR * 0.40f, headR * 0.18f))
+    // Eye glints
+    drawCircle(Color.White, headR * 0.06f,
+        Offset(cx - headR * 0.40f, eyeY - headR * 0.03f))
+    drawCircle(Color.White, headR * 0.06f,
+        Offset(cx + headR * 0.30f, eyeY - headR * 0.03f))
+    // Mouth grin with fangs
+    val mouthY = cy + headR * 0.40f
+    drawArc(color = Color.Black.copy(alpha = 0.80f),
+        startAngle = 20f, sweepAngle = 140f,
+        useCenter = true,
+        topLeft = Offset(cx - headR * 0.45f, mouthY - headR * 0.20f),
+        size = Size(headR * 0.90f, headR * 0.45f))
+    // 4 fangs (white triangles dropping from upper lip)
+    for (i in 0 until 4) {
+        val fx = cx - headR * 0.30f + i * headR * 0.20f
+        val fpath = Path().apply {
+            moveTo(fx - headR * 0.05f, mouthY)
+            lineTo(fx + headR * 0.05f, mouthY)
+            lineTo(fx, mouthY + headR * 0.15f)
+            close()
+        }
+        drawPath(fpath, Color.White.copy(alpha = 0.85f))
+    }
+}
+
+/** Boss SATAN GLYPH — inverted pentagram with all-seeing eye in center. */
+private fun DrawScope.drawBossSatanGlyph(
+    cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color,
+) {
+    val outerR = minOf(w, h) * 0.45f
+    val innerR = outerR * 0.40f
+    // Outer protective ring
+    drawCircle(body, outerR * 1.10f, Offset(cx, cy),
+        style = Stroke(width = w * 0.045f))
+    drawCircle(accent.copy(alpha = 0.55f), outerR * 1.10f, Offset(cx, cy))
+    // Inverted pentagram (5-point star, point DOWN)
+    val starPath = Path().apply {
+        val rotation = Math.PI / 2.0  // start pointing down
+        for (i in 0 until 10) {
+            val a = rotation + i * Math.PI / 5
+            val r = if (i % 2 == 0) outerR else innerR
+            val x = cx + (r * kotlin.math.cos(a)).toFloat()
+            val y = cy + (r * kotlin.math.sin(a)).toFloat()
+            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
+    drawPath(starPath, body)
+    drawPath(starPath, Color.White.copy(alpha = 0.65f),
+        style = Stroke(width = w * 0.025f))
+    // Central all-seeing eye (oval body + iris + pupil)
+    val eyeRx = innerR * 0.85f
+    val eyeRy = innerR * 0.55f
+    drawOval(Color.White,
+        topLeft = Offset(cx - eyeRx, cy - eyeRy),
+        size = Size(eyeRx * 2, eyeRy * 2))
+    drawOval(accent,
+        topLeft = Offset(cx - eyeRx, cy - eyeRy),
+        size = Size(eyeRx * 2, eyeRy * 2),
+        style = Stroke(width = w * 0.025f))
+    drawCircle(accent, eyeRy * 0.65f, Offset(cx, cy))
+    drawCircle(Color.Black, eyeRy * 0.35f, Offset(cx, cy))
+    drawCircle(Color.White, eyeRy * 0.10f, Offset(cx + eyeRy * 0.20f, cy - eyeRy * 0.15f))
+    // 5 small candle dots at outer star tips
+    for (i in 0 until 5) {
+        val a = (Math.PI / 2.0) + i * 2 * Math.PI / 5
+        val px = cx + (outerR * 1.15f * kotlin.math.cos(a)).toFloat()
+        val py = cy + (outerR * 1.15f * kotlin.math.sin(a)).toFloat()
+        drawCircle(accent, w * 0.025f, Offset(px, py))
     }
 }

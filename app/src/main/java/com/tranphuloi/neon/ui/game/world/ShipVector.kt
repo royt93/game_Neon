@@ -36,6 +36,43 @@ fun DrawScope.drawShipVector(
             drawTankShape(color, laserBoosterEnabled)
         com.tranphuloi.neon.ui.game.ship.shape.ShipShape.INTERCEPTOR ->
             drawInterceptorShape(color, laserBoosterEnabled)
+        // Round 79 (#3) — 12 new ship shapes. 6 distinct recipes + 6 reuse
+        // existing recipes as placeholder (visual deferred to R80 polish).
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.NGOI_SAO ->
+            drawNgoiSaoShape(color, laserBoosterEnabled)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.CAU_VONG ->
+            drawCauVongShape(color, laserBoosterEnabled)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.PHU_THUY ->
+            drawPhuThuyShape(color, laserBoosterEnabled)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.SUNG_3_NONG ->
+            drawSung3NongShape(color, laserBoosterEnabled)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.AURA_GLOW ->
+            drawAuraGlowShape(color, laserBoosterEnabled)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.OBELISK_SPIRE ->
+            drawObeliskSpireShape(color, laserBoosterEnabled)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.VIETNAM ->
+            drawVietnamShape(color, laserBoosterEnabled)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.DIVA ->
+            drawDivaShape(color, laserBoosterEnabled)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.CHET_CHOC ->
+            drawChetChocShape(color, laserBoosterEnabled)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.TU_THAN ->
+            drawTuThanShape(color, laserBoosterEnabled)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.MANG_NHEN_ACE ->
+            drawMangNhenShape(color, laserBoosterEnabled)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.AO_GIAP_THIET ->
+            drawAoGiapThietShape(color, laserBoosterEnabled)
+        // Round 79 audit follow-up (gap 2+3) — 5 new ship shapes.
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.TWIN_DOMES ->
+            drawTwinDomesShape(color, laserBoosterEnabled)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.NHAT_BAN ->
+            drawNhatBanShape(color, laserBoosterEnabled)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.HAN_QUOC ->
+            drawHanQuocShape(color, laserBoosterEnabled)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.MY ->
+            drawMyShape(color, laserBoosterEnabled)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.PHAP ->
+            drawPhapShape(color, laserBoosterEnabled)
     }
 }
 
@@ -305,4 +342,553 @@ private fun DrawScope.drawInterceptorShape(color: Color, laserBoosterEnabled: Bo
         Offset(cx, bodyBottomY + h * 0.04f))
     drawCircle(color.copy(alpha = 0.30f), w * 0.16f,
         Offset(cx, bodyBottomY + h * 0.10f))
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Round 79 (#3) — 12 new ship shape recipes. Each distinct silhouette to
+// satisfy user request for ship variety. Tasteful + inspired-by per policy
+// (no NSFW anatomy, no IP trademark names).
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Ngôi Sao — 5-point star body với engine glow đáy. */
+private fun DrawScope.drawNgoiSaoShape(color: Color, laserBoost: Boolean) {
+    val w = size.width; val h = size.height
+    val cx = w / 2f; val cy = h / 2f
+    val outerR = minOf(w, h) * 0.40f
+    val innerR = outerR * 0.45f
+    val path = androidx.compose.ui.graphics.Path().apply {
+        val rotation = -Math.PI / 2.0
+        for (i in 0 until 10) {
+            val a = rotation + i * Math.PI / 5
+            val r = if (i % 2 == 0) outerR else innerR
+            val x = cx + (r * kotlin.math.cos(a)).toFloat()
+            val y = cy + (r * kotlin.math.sin(a)).toFloat() + h * 0.05f
+            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
+    drawPath(path, color)
+    drawCircle(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
+        innerR * 0.6f, androidx.compose.ui.geometry.Offset(cx, cy + h * 0.05f))
+    // Engine trail at bottom
+    drawCircle(color.copy(alpha = 0.6f), w * 0.10f,
+        androidx.compose.ui.geometry.Offset(cx, h * 0.95f))
+}
+
+/** Cầu Vồng — multi-band rainbow stripe ship (curved bands). */
+private fun DrawScope.drawCauVongShape(color: Color, laserBoost: Boolean) {
+    val w = size.width; val h = size.height
+    val cx = w / 2f; val cy = h / 2f
+    val outerR = minOf(w, h) * 0.42f
+    // 5 nested arcs in rainbow-stripe pattern (color shifts via alpha)
+    val bandColors = listOf(
+        androidx.compose.ui.graphics.Color(0xFFFF0040),    // red
+        androidx.compose.ui.graphics.Color(0xFFFF9020),    // orange
+        androidx.compose.ui.graphics.Color(0xFFFFD040),    // yellow
+        androidx.compose.ui.graphics.Color(0xFF40FF80),    // green
+        androidx.compose.ui.graphics.Color(0xFF40C0FF),    // blue
+        androidx.compose.ui.graphics.Color(0xFFC060FF),    // violet
+    )
+    for ((i, bandColor) in bandColors.withIndex()) {
+        val r = outerR * (0.45f + i * 0.10f)
+        drawArc(color = bandColor,
+            startAngle = 180f, sweepAngle = 180f,
+            useCenter = false,
+            topLeft = androidx.compose.ui.geometry.Offset(cx - r, cy - r * 0.5f),
+            size = androidx.compose.ui.geometry.Size(r * 2, r * 1.0f),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
+    }
+    // Cockpit dome
+    drawCircle(color, w * 0.10f, androidx.compose.ui.geometry.Offset(cx, cy + h * 0.10f))
+}
+
+/** Phù Thuỷ — witch hat top + broom-stick body. */
+private fun DrawScope.drawPhuThuyShape(color: Color, laserBoost: Boolean) {
+    val w = size.width; val h = size.height
+    val cx = w / 2f
+    // Witch hat (triangle with brim)
+    val hatBrimY = h * 0.45f
+    val hatTipY = h * 0.05f
+    val hatPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx, hatTipY)
+        lineTo(cx + w * 0.20f, hatBrimY)
+        lineTo(cx - w * 0.20f, hatBrimY)
+        close()
+    }
+    drawPath(hatPath, color)
+    // Brim (wide ellipse)
+    drawOval(color,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.40f, hatBrimY - h * 0.02f),
+        size = androidx.compose.ui.geometry.Size(w * 0.80f, h * 0.08f))
+    // Hat star buckle
+    drawCircle(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
+        w * 0.05f, androidx.compose.ui.geometry.Offset(cx, hatBrimY - h * 0.05f))
+    // Broomstick body (vertical rect from below hat)
+    drawRect(color,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.05f, h * 0.50f),
+        size = androidx.compose.ui.geometry.Size(w * 0.10f, h * 0.40f))
+    // Broom bristles at bottom (spread fan)
+    for (i in -2..2) {
+        drawLine(color,
+            androidx.compose.ui.geometry.Offset(cx, h * 0.88f),
+            androidx.compose.ui.geometry.Offset(cx + i * w * 0.08f, h * 0.98f),
+            strokeWidth = w * 0.03f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+}
+
+/** Súng 3 Nòng — triple-barrel gun fuselage. */
+private fun DrawScope.drawSung3NongShape(color: Color, laserBoost: Boolean) {
+    val w = size.width; val h = size.height
+    val cx = w / 2f
+    // Center barrel (longest)
+    drawRoundRect(color,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.06f, h * 0.05f),
+        size = androidx.compose.ui.geometry.Size(w * 0.12f, h * 0.60f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.03f))
+    // Left barrel
+    drawRoundRect(color,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.24f, h * 0.15f),
+        size = androidx.compose.ui.geometry.Size(w * 0.10f, h * 0.50f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.03f))
+    // Right barrel
+    drawRoundRect(color,
+        topLeft = androidx.compose.ui.geometry.Offset(cx + w * 0.14f, h * 0.15f),
+        size = androidx.compose.ui.geometry.Size(w * 0.10f, h * 0.50f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.03f))
+    // Base body (trapezoid)
+    val bodyPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - w * 0.35f, h * 0.65f)
+        lineTo(cx + w * 0.35f, h * 0.65f)
+        lineTo(cx + w * 0.25f, h * 0.95f)
+        lineTo(cx - w * 0.25f, h * 0.95f)
+        close()
+    }
+    drawPath(bodyPath, color)
+    // Muzzle flash tips
+    drawCircle(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f),
+        w * 0.04f, androidx.compose.ui.geometry.Offset(cx, h * 0.06f))
+}
+
+/** Aura Glow — circular orb body với 3 expanding aura rings. */
+private fun DrawScope.drawAuraGlowShape(color: Color, laserBoost: Boolean) {
+    val w = size.width; val h = size.height
+    val cx = w / 2f; val cy = h / 2f
+    val coreR = minOf(w, h) * 0.18f
+    drawCircle(color.copy(alpha = 0.20f), coreR * 2.2f, androidx.compose.ui.geometry.Offset(cx, cy),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.03f))
+    drawCircle(color.copy(alpha = 0.40f), coreR * 1.6f, androidx.compose.ui.geometry.Offset(cx, cy),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
+    drawCircle(color, coreR, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
+        coreR * 0.4f, androidx.compose.ui.geometry.Offset(cx, cy))
+    // Engine glow tail bottom
+    drawCircle(color.copy(alpha = 0.5f), w * 0.08f,
+        androidx.compose.ui.geometry.Offset(cx, h * 0.92f))
+}
+
+/** Obelisk Spire — tall pointed spire (phallic/monument silhouette, tasteful). */
+private fun DrawScope.drawObeliskSpireShape(color: Color, laserBoost: Boolean) {
+    val w = size.width; val h = size.height
+    val cx = w / 2f
+    // Tapered spire body
+    val spirePath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx, h * 0.05f)
+        lineTo(cx + w * 0.12f, h * 0.25f)
+        lineTo(cx + w * 0.16f, h * 0.85f)
+        lineTo(cx + w * 0.22f, h * 0.95f)
+        lineTo(cx - w * 0.22f, h * 0.95f)
+        lineTo(cx - w * 0.16f, h * 0.85f)
+        lineTo(cx - w * 0.12f, h * 0.25f)
+        close()
+    }
+    drawPath(spirePath, color)
+    // Tip glow
+    drawCircle(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
+        w * 0.04f, androidx.compose.ui.geometry.Offset(cx, h * 0.08f))
+    // Mid markings (3 horizontal stripes)
+    for (i in 0 until 3) {
+        val y = h * (0.40f + i * 0.15f)
+        drawLine(color.copy(alpha = 0.5f),
+            androidx.compose.ui.geometry.Offset(cx - w * 0.16f, y),
+            androidx.compose.ui.geometry.Offset(cx + w * 0.16f, y),
+            strokeWidth = w * 0.02f)
+    }
+}
+
+/** Việt Nam — red body với yellow 5-point star center. */
+private fun DrawScope.drawVietnamShape(color: Color, laserBoost: Boolean) {
+    val w = size.width; val h = size.height
+    val cx = w / 2f; val cy = h / 2f
+    // Body (red flag-like rectangle with rounded fighter shape)
+    val flagColor = androidx.compose.ui.graphics.Color(0xFFDA251D)
+    val starColor = androidx.compose.ui.graphics.Color(0xFFFFD700)
+    val bodyPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx, h * 0.10f)
+        lineTo(cx + w * 0.35f, h * 0.50f)
+        lineTo(cx + w * 0.30f, h * 0.90f)
+        lineTo(cx - w * 0.30f, h * 0.90f)
+        lineTo(cx - w * 0.35f, h * 0.50f)
+        close()
+    }
+    drawPath(bodyPath, flagColor)
+    // Yellow 5-point star
+    val outerR = w * 0.18f
+    val innerR = outerR * 0.45f
+    val starPath = androidx.compose.ui.graphics.Path().apply {
+        val rotation = -Math.PI / 2.0
+        for (i in 0 until 10) {
+            val a = rotation + i * Math.PI / 5
+            val r = if (i % 2 == 0) outerR else innerR
+            val x = cx + (r * kotlin.math.cos(a)).toFloat()
+            val y = cy + (r * kotlin.math.sin(a)).toFloat()
+            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
+    drawPath(starPath, starColor)
+}
+
+/** Diva — feminine silhouette với hourglass curve + crown. */
+private fun DrawScope.drawDivaShape(color: Color, laserBoost: Boolean) {
+    val w = size.width; val h = size.height
+    val cx = w / 2f
+    // Hourglass body (curved silhouette)
+    val bodyPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - w * 0.22f, h * 0.15f)
+        cubicTo(cx - w * 0.30f, h * 0.30f, cx - w * 0.15f, h * 0.45f, cx - w * 0.10f, h * 0.55f)
+        cubicTo(cx - w * 0.25f, h * 0.70f, cx - w * 0.20f, h * 0.85f, cx - w * 0.30f, h * 0.95f)
+        lineTo(cx + w * 0.30f, h * 0.95f)
+        cubicTo(cx + w * 0.20f, h * 0.85f, cx + w * 0.25f, h * 0.70f, cx + w * 0.10f, h * 0.55f)
+        cubicTo(cx + w * 0.15f, h * 0.45f, cx + w * 0.30f, h * 0.30f, cx + w * 0.22f, h * 0.15f)
+        close()
+    }
+    drawPath(bodyPath, color)
+    // Crown (3 triangle peaks at top)
+    val crownPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - w * 0.22f, h * 0.15f)
+        lineTo(cx - w * 0.15f, h * 0.05f)
+        lineTo(cx - w * 0.08f, h * 0.12f)
+        lineTo(cx, h * 0.02f)
+        lineTo(cx + w * 0.08f, h * 0.12f)
+        lineTo(cx + w * 0.15f, h * 0.05f)
+        lineTo(cx + w * 0.22f, h * 0.15f)
+        close()
+    }
+    drawPath(crownPath, color)
+    // Center gem
+    drawCircle(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
+        w * 0.04f, androidx.compose.ui.geometry.Offset(cx, h * 0.10f))
+}
+
+/** Chết Chóc — scythe blade silhouette with skull pommel. */
+private fun DrawScope.drawChetChocShape(color: Color, laserBoost: Boolean) {
+    val w = size.width; val h = size.height
+    val cx = w / 2f
+    // Scythe handle (vertical curving)
+    drawLine(color,
+        androidx.compose.ui.geometry.Offset(cx + w * 0.05f, h * 0.20f),
+        androidx.compose.ui.geometry.Offset(cx - w * 0.05f, h * 0.95f),
+        strokeWidth = w * 0.06f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    // Scythe blade (curved arc top)
+    val bladePath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx + w * 0.05f, h * 0.20f)
+        cubicTo(cx + w * 0.35f, h * 0.10f, cx + w * 0.45f, h * 0.35f, cx + w * 0.20f, h * 0.30f)
+        lineTo(cx + w * 0.05f, h * 0.20f)
+        close()
+    }
+    drawPath(bladePath, color)
+    drawPath(bladePath, androidx.compose.ui.graphics.Color.White.copy(alpha = 0.6f),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.02f))
+    // Skull at bottom
+    drawCircle(color, w * 0.10f,
+        androidx.compose.ui.geometry.Offset(cx - w * 0.05f, h * 0.95f))
+    drawCircle(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.85f), w * 0.025f,
+        androidx.compose.ui.geometry.Offset(cx - w * 0.10f, h * 0.93f))
+    drawCircle(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.85f), w * 0.025f,
+        androidx.compose.ui.geometry.Offset(cx + w * 0.0f, h * 0.93f))
+}
+
+/** Tử Thần — grim reaper hood + glowing eyes + cloak silhouette. */
+private fun DrawScope.drawTuThanShape(color: Color, laserBoost: Boolean) {
+    val w = size.width; val h = size.height
+    val cx = w / 2f
+    // Hood (curved trapezoid)
+    val hoodPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - w * 0.30f, h * 0.05f)
+        cubicTo(cx - w * 0.40f, h * 0.30f, cx - w * 0.35f, h * 0.55f, cx - w * 0.40f, h * 0.95f)
+        lineTo(cx + w * 0.40f, h * 0.95f)
+        cubicTo(cx + w * 0.35f, h * 0.55f, cx + w * 0.40f, h * 0.30f, cx + w * 0.30f, h * 0.05f)
+        // Hood opening curve
+        cubicTo(cx + w * 0.15f, h * 0.08f, cx - w * 0.15f, h * 0.08f, cx - w * 0.30f, h * 0.05f)
+        close()
+    }
+    drawPath(hoodPath, color)
+    // Dark face void inside hood
+    val faceVoid = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - w * 0.20f, h * 0.10f)
+        cubicTo(cx - w * 0.25f, h * 0.30f, cx - w * 0.20f, h * 0.50f, cx, h * 0.55f)
+        cubicTo(cx + w * 0.20f, h * 0.50f, cx + w * 0.25f, h * 0.30f, cx + w * 0.20f, h * 0.10f)
+        close()
+    }
+    drawPath(faceVoid, androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.85f))
+    // 2 glowing red eyes
+    drawCircle(androidx.compose.ui.graphics.Color(0xFFFF2D55),
+        w * 0.04f, androidx.compose.ui.geometry.Offset(cx - w * 0.08f, h * 0.30f))
+    drawCircle(androidx.compose.ui.graphics.Color(0xFFFF2D55),
+        w * 0.04f, androidx.compose.ui.geometry.Offset(cx + w * 0.08f, h * 0.30f))
+}
+
+/** Mạng Nhện Ace (Spider-inspired) — web pattern body. */
+private fun DrawScope.drawMangNhenShape(color: Color, laserBoost: Boolean) {
+    val w = size.width; val h = size.height
+    val cx = w / 2f; val cy = h / 2f
+    // Body (red-blue fighter shape — inspired by Spider hero costume colors)
+    val redColor = androidx.compose.ui.graphics.Color(0xFFCC2030)
+    val blueColor = androidx.compose.ui.graphics.Color(0xFF2050C0)
+    val bodyPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx, h * 0.08f)
+        lineTo(cx + w * 0.35f, h * 0.50f)
+        lineTo(cx + w * 0.25f, h * 0.95f)
+        lineTo(cx - w * 0.25f, h * 0.95f)
+        lineTo(cx - w * 0.35f, h * 0.50f)
+        close()
+    }
+    drawPath(bodyPath, redColor)
+    // Blue lower half
+    val lowerPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - w * 0.30f, h * 0.55f)
+        lineTo(cx + w * 0.30f, h * 0.55f)
+        lineTo(cx + w * 0.25f, h * 0.95f)
+        lineTo(cx - w * 0.25f, h * 0.95f)
+        close()
+    }
+    drawPath(lowerPath, blueColor)
+    // Web pattern (radial lines from center + 3 concentric arcs)
+    for (i in 0 until 8) {
+        val a = i * Math.PI / 4
+        val ex = cx + (w * 0.30f * kotlin.math.cos(a)).toFloat()
+        val ey = cy + (h * 0.30f * kotlin.math.sin(a)).toFloat()
+        drawLine(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.55f),
+            androidx.compose.ui.geometry.Offset(cx, cy), androidx.compose.ui.geometry.Offset(ex, ey),
+            strokeWidth = w * 0.015f)
+    }
+    for (r in listOf(0.08f, 0.16f, 0.24f)) {
+        drawCircle(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.45f),
+            w * r, androidx.compose.ui.geometry.Offset(cx, cy),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.012f))
+    }
+}
+
+/** Áo Giáp Thiết (Iron-inspired) — armored mask + chest reactor arc. */
+private fun DrawScope.drawAoGiapThietShape(color: Color, laserBoost: Boolean) {
+    val w = size.width; val h = size.height
+    val cx = w / 2f
+    val ironRed = androidx.compose.ui.graphics.Color(0xFFCC2020)
+    val ironGold = androidx.compose.ui.graphics.Color(0xFFFFC020)
+    // Helmet/body (rounded pentagon)
+    val helmetPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx, h * 0.08f)
+        lineTo(cx + w * 0.32f, h * 0.30f)
+        lineTo(cx + w * 0.28f, h * 0.65f)
+        lineTo(cx + w * 0.20f, h * 0.95f)
+        lineTo(cx - w * 0.20f, h * 0.95f)
+        lineTo(cx - w * 0.28f, h * 0.65f)
+        lineTo(cx - w * 0.32f, h * 0.30f)
+        close()
+    }
+    drawPath(helmetPath, ironRed)
+    // Mask eyes (gold slits)
+    val eyeY = h * 0.30f
+    drawRect(ironGold,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.20f, eyeY - h * 0.02f),
+        size = androidx.compose.ui.geometry.Size(w * 0.15f, h * 0.04f))
+    drawRect(ironGold,
+        topLeft = androidx.compose.ui.geometry.Offset(cx + w * 0.05f, eyeY - h * 0.02f),
+        size = androidx.compose.ui.geometry.Size(w * 0.15f, h * 0.04f))
+    // Chest reactor (central circle with cyan glow)
+    val reactorY = h * 0.55f
+    drawCircle(ironGold, w * 0.10f, androidx.compose.ui.geometry.Offset(cx, reactorY))
+    drawCircle(androidx.compose.ui.graphics.Color(0xFF40E0FF), w * 0.07f,
+        androidx.compose.ui.geometry.Offset(cx, reactorY))
+    drawCircle(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
+        w * 0.03f, androidx.compose.ui.geometry.Offset(cx, reactorY))
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Round 79 audit follow-up (gap 2+3) — 5 new ship shapes.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Twin Domes — 2 curved dome-shells on fighter base. Tasteful version of
+ *  user's "vú phụ nữ" request — abstract curves, no anatomical detail. */
+private fun DrawScope.drawTwinDomesShape(color: Color, laserBoost: Boolean) {
+    val w = size.width; val h = size.height
+    val cx = w / 2f
+    // 2 dome curves at top (rounded ellipses)
+    val domeRx = w * 0.16f
+    val domeRy = h * 0.16f
+    val domeY = h * 0.30f
+    drawOval(color,
+        topLeft = Offset(cx - w * 0.22f - domeRx, domeY - domeRy),
+        size = androidx.compose.ui.geometry.Size(domeRx * 2, domeRy * 2))
+    drawOval(color,
+        topLeft = Offset(cx + w * 0.22f - domeRx, domeY - domeRy),
+        size = androidx.compose.ui.geometry.Size(domeRx * 2, domeRy * 2))
+    // Small bright tips (engine intake glow)
+    drawCircle(Color.White.copy(alpha = 0.85f), w * 0.04f,
+        Offset(cx - w * 0.22f, domeY - domeRy * 0.30f))
+    drawCircle(Color.White.copy(alpha = 0.85f), w * 0.04f,
+        Offset(cx + w * 0.22f, domeY - domeRy * 0.30f))
+    // Connecting body (fighter base)
+    val bodyPath = Path().apply {
+        moveTo(cx - w * 0.30f, domeY)
+        lineTo(cx + w * 0.30f, domeY)
+        lineTo(cx + w * 0.25f, h * 0.95f)
+        lineTo(cx - w * 0.25f, h * 0.95f)
+        close()
+    }
+    drawPath(bodyPath, color)
+    // Cockpit dome center
+    drawCircle(color, w * 0.07f, Offset(cx, h * 0.55f))
+    drawCircle(Color.White.copy(alpha = 0.7f), w * 0.03f, Offset(cx, h * 0.55f))
+}
+
+/** Nhật Bản — round red sun on white body (rising sun motif). */
+private fun DrawScope.drawNhatBanShape(color: Color, laserBoost: Boolean) {
+    val w = size.width; val h = size.height
+    val cx = w / 2f; val cy = h / 2f
+    val white = Color.White
+    val red = Color(0xFFBC002D)                       // hinomaru red
+    // Main body white pentagon
+    val bodyPath = Path().apply {
+        moveTo(cx, h * 0.08f)
+        lineTo(cx + w * 0.35f, h * 0.40f)
+        lineTo(cx + w * 0.28f, h * 0.95f)
+        lineTo(cx - w * 0.28f, h * 0.95f)
+        lineTo(cx - w * 0.35f, h * 0.40f)
+        close()
+    }
+    drawPath(bodyPath, white)
+    drawPath(bodyPath, color, style = Stroke(width = w * 0.025f))
+    // Hinomaru red sun center
+    drawCircle(red, w * 0.18f, Offset(cx, cy + h * 0.05f))
+    // Sun-rays (16 small lines radiating)
+    for (i in 0 until 16) {
+        val a = i * 2.0 * Math.PI / 16.0
+        val sx = cx + (w * 0.18f * kotlin.math.cos(a)).toFloat()
+        val sy = cy + h * 0.05f + (w * 0.18f * kotlin.math.sin(a)).toFloat()
+        val ex = cx + (w * 0.30f * kotlin.math.cos(a)).toFloat()
+        val ey = cy + h * 0.05f + (w * 0.30f * kotlin.math.sin(a)).toFloat()
+        drawLine(red.copy(alpha = 0.50f), Offset(sx, sy), Offset(ex, ey),
+            strokeWidth = w * 0.012f)
+    }
+}
+
+/** Hàn Quốc — Taegeuk symbol (yin-yang red-blue) on white body. */
+private fun DrawScope.drawHanQuocShape(color: Color, laserBoost: Boolean) {
+    val w = size.width; val h = size.height
+    val cx = w / 2f; val cy = h / 2f
+    val white = Color.White
+    val red = Color(0xFFCD2E3A)
+    val blue = Color(0xFF0047A0)
+    val bodyPath = Path().apply {
+        moveTo(cx, h * 0.08f)
+        lineTo(cx + w * 0.35f, h * 0.40f)
+        lineTo(cx + w * 0.28f, h * 0.95f)
+        lineTo(cx - w * 0.28f, h * 0.95f)
+        lineTo(cx - w * 0.35f, h * 0.40f)
+        close()
+    }
+    drawPath(bodyPath, white)
+    drawPath(bodyPath, color, style = Stroke(width = w * 0.025f))
+    // Taegeuk (yin-yang split horizontally with curves)
+    val symbolR = w * 0.20f
+    val symbolCy = cy + h * 0.05f
+    // Upper red half-circle
+    drawArc(red, startAngle = 180f, sweepAngle = 180f, useCenter = true,
+        topLeft = Offset(cx - symbolR, symbolCy - symbolR),
+        size = androidx.compose.ui.geometry.Size(symbolR * 2, symbolR * 2))
+    // Lower blue half-circle
+    drawArc(blue, startAngle = 0f, sweepAngle = 180f, useCenter = true,
+        topLeft = Offset(cx - symbolR, symbolCy - symbolR),
+        size = androidx.compose.ui.geometry.Size(symbolR * 2, symbolR * 2))
+    // 2 swirl dots
+    drawCircle(red, symbolR * 0.45f, Offset(cx - symbolR * 0.45f, symbolCy))
+    drawCircle(blue, symbolR * 0.45f, Offset(cx + symbolR * 0.45f, symbolCy))
+    drawCircle(blue, symbolR * 0.15f, Offset(cx - symbolR * 0.45f, symbolCy))
+    drawCircle(red, symbolR * 0.15f, Offset(cx + symbolR * 0.45f, symbolCy))
+}
+
+/** Mỹ — stars-stripes pattern (rectangular blue field + red stripes). */
+private fun DrawScope.drawMyShape(color: Color, laserBoost: Boolean) {
+    val w = size.width; val h = size.height
+    val cx = w / 2f
+    val white = Color.White
+    val red = Color(0xFFB22234)
+    val blue = Color(0xFF3C3B6E)
+    val bodyPath = Path().apply {
+        moveTo(cx, h * 0.08f)
+        lineTo(cx + w * 0.35f, h * 0.40f)
+        lineTo(cx + w * 0.28f, h * 0.95f)
+        lineTo(cx - w * 0.28f, h * 0.95f)
+        lineTo(cx - w * 0.35f, h * 0.40f)
+        close()
+    }
+    drawPath(bodyPath, white)
+    // 5 red stripes
+    val stripeStartY = h * 0.40f
+    val stripeEndY = h * 0.95f
+    val stripeStep = (stripeEndY - stripeStartY) / 9f
+    for (i in 0 until 5) {
+        val y = stripeStartY + i * stripeStep * 2f
+        drawRect(red,
+            topLeft = Offset(cx - w * 0.30f, y),
+            size = androidx.compose.ui.geometry.Size(w * 0.60f, stripeStep * 1.0f))
+    }
+    // Blue canton (top-left) with 5 white stars
+    drawRect(blue,
+        topLeft = Offset(cx - w * 0.30f, h * 0.10f),
+        size = androidx.compose.ui.geometry.Size(w * 0.30f, h * 0.30f))
+    for (row in 0 until 2) for (col in 0 until 3) {
+        val sx = cx - w * 0.25f + col * w * 0.10f
+        val sy = h * 0.16f + row * h * 0.12f
+        drawCircle(white, w * 0.025f, Offset(sx, sy))
+    }
+    drawPath(bodyPath, color, style = Stroke(width = w * 0.025f))
+}
+
+/** Pháp — Bleu-Blanc-Rouge tricolor vertical bands. */
+private fun DrawScope.drawPhapShape(color: Color, laserBoost: Boolean) {
+    val w = size.width; val h = size.height
+    val cx = w / 2f
+    val blue = Color(0xFF002654)
+    val white = Color.White
+    val red = Color(0xFFCE1126)
+    val bodyPath = Path().apply {
+        moveTo(cx, h * 0.08f)
+        lineTo(cx + w * 0.35f, h * 0.40f)
+        lineTo(cx + w * 0.28f, h * 0.95f)
+        lineTo(cx - w * 0.28f, h * 0.95f)
+        lineTo(cx - w * 0.35f, h * 0.40f)
+        close()
+    }
+    drawPath(bodyPath, white)
+    // 3 vertical bands (clipped roughly to body bounds)
+    val bandTopY = h * 0.20f; val bandBottomY = h * 0.95f
+    val bandW = w * 0.20f
+    drawRect(blue,
+        topLeft = Offset(cx - w * 0.30f, bandTopY),
+        size = androidx.compose.ui.geometry.Size(bandW, bandBottomY - bandTopY))
+    // Middle is white (already body bg) — skip
+    drawRect(red,
+        topLeft = Offset(cx + w * 0.10f, bandTopY),
+        size = androidx.compose.ui.geometry.Size(bandW, bandBottomY - bandTopY))
+    drawPath(bodyPath, color, style = Stroke(width = w * 0.025f))
+    // Eiffel Tower nose tip (small triangle)
+    val eiffel = Path().apply {
+        moveTo(cx, h * 0.08f)
+        lineTo(cx + w * 0.06f, h * 0.20f)
+        lineTo(cx - w * 0.06f, h * 0.20f)
+        close()
+    }
+    drawPath(eiffel, Color(0xFF888888))
 }

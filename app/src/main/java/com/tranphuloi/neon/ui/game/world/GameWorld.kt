@@ -96,6 +96,10 @@ fun GameWorld(
     mines: List<com.tranphuloi.neon.ui.game.ship.weapon.Mine> = emptyList(),
     /** Round 41 (29x.2) — wall-clock of last BURST sweep; 0 = no active sweep. */
     lastBurstSweepMillis: Long = 0L,
+    /** Round 79 (#4) — boss hit lightning trigger + position (game coord dp). */
+    lastBossHitMillis: Long = 0L,
+    lastBossHitX: Float = 0f,
+    lastBossHitY: Float = 0f,
     modifier: Modifier = Modifier,
 ) {
 
@@ -456,8 +460,31 @@ fun GameWorld(
         }
         // Boss entry lightning crackle — drawn after enemies so bolts overlay the
         // boss + thrust trail. Filter for entry-phase boss(es) only.
+        // Round 79 audit fix (gap 6) — pipe FAR-zoom margin so entry bolts also
+        // reach visual screen edges (parallel to BossHitLightning fix).
+        val entryZoomMargin = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp *
+            (1f / cameraZoom.pixelScale - 1f) / 2f
         enemies.filter { it.isBoss && it.isInEntryPhase }.forEach { boss ->
-            BossEntryLightning(boss = boss, modifier = Modifier.fillMaxSize())
+            BossEntryLightning(
+                boss = boss,
+                spawnXMargin = entryZoomMargin,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+        // Round 79 (#4 fix) — full-screen lightning khi player bullet hit boss.
+        // Bolts extend to negative game-coord bounds via spawnXMargin so chúng
+        // reach the visual screen edge ngay cả ở FAR zoom (graphicsLayer.clip=false
+        // means rendering past Box bounds is OK; graphicsLayer scales them back
+        // to screen edges symmetrically).
+        if (lastBossHitMillis > 0L) {
+            val cfg = androidx.compose.ui.platform.LocalConfiguration.current
+            val zoomMargin = cfg.screenWidthDp * (1f / cameraZoom.pixelScale - 1f) / 2f
+            com.tranphuloi.neon.ui.game.controls.BossHitLightning(
+                bossCxDp = lastBossHitX,
+                bossCyDp = lastBossHitY,
+                triggerMillis = lastBossHitMillis,
+                spawnXMargin = zoomMargin,
+            )
         }
         // Laser impact spark burst at every enemy hit point.
         ImpactSparkOverlay(sparks = impactSparks)
