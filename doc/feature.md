@@ -968,6 +968,68 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 71 — Mega round Issues 3 + 4a + 4d + 4e + 5 (5 of 8 picked)
+
+User audit Round 70 phát hiện "thiếu spec khá nhiều" — 9 issues từ Round 69 chỉ 4 issues được làm. User pick "Mega 1 round tất cả" cho 8 issues còn lại. Honest disclosure: hết context budget chỉ done 5/8.
+
+**Done trong Round 71:**
+
+| Issue | Scope | Files |
+|---|---|---|
+| 4e (vật phẩm) | 27 BoosterType: friendly Vietnamese title + multi-line description + tip "Khi nào nên nhặt" + duration/cooldown badge. New `BoosterCard` Composable. | `ui/info/InfoScreen.kt` |
+| 4a (đạn shapes) | 12 BulletType unique vector shapes — InfoScreen + LaserCanvas dispatch in-game. PIERCING=needle, PLASMA=orb, FIRE=capsule+flame, HOMING=ring+ticks, BOUNCE=ball, GIANT=mega capsule, SMOKE=cloud, ZIGZAG=chevron, KAMEHAMEHA=beam, ATOMIC=nucleus+electrons, SPLIT=branched. ShipLaser/ShipBoostedLaser nhận `bulletType` field; LaserUI + Mapper truyền through. | `ui/info/InfoScreen.kt`, `ui/game/world/LaserCanvas.kt`, `ui/game/ship/laser/ShipLaser.kt`, `ShipBoostedLaser.kt`, `LaserUI.kt`, `LasersController.kt`, `ui/game/laser/LaserToLaserUIMapper.kt` |
+| 3 (loadout enrich) | LoadoutCard: mini bullet Canvas preview thay glyph + multi-line damage/duration/AoE breakdown + tooltip "✦ tip" + color-coded border thickness theo damage tier (1/1.5/2.5dp). | `ui/dlg/loadoutpicker/DialogLoadoutPicker.kt` |
+| 5 (asteroid 3-family) | `AsteroidFamily` enum: ROCK (violet) / ICE (cyan) / METAL (gold). Variable vertex 8-14, family-specific jitter (rock 0.28 / ice 0.15 / metal 0.20), 3 crater styles (RING/SPARKLE/RIVET). | `ui/game/world/SpaceObjectCanvas.kt` |
+| 4d (5 boss silhouettes) | `BossKind` enum: STAR (L1) / CROSS (L2) / ORB (MidBoss OFFENSIVE) / FRACTAL (MidBoss DEFENSIVE+SWARM) / SPIDER (FinalBoss). 4 new shape recipes trong EnemyCanvas. **Attack patterns + audio cue ĐỊNH DEFER Round 72+ vì cần EnemyLasersController refactor + audio assets.** | `ui/game/enemy/ship/model/BossKind.kt` (new), `Enemy.kt`, `LevelOneBoss.kt`, `LevelTwoBoss.kt`, `FinalBoss.kt`, `MidBoss.kt`, `EnemyUI.kt`, `EnemyToEnemyUIMapper.kt`, `ui/game/world/EnemyCanvas.kt` |
+
+**HONEST DEFER (3/8 issues KHÔNG làm trong Round 71):**
+
+| Issue | Lý do defer | Round dự kiến |
+|---|---|---|
+| 4b (Ship 3-layer + ShipPickerScreen + wire stat) | Cần new screen + nav route + wire `selectedShipShape` vào EffectiveStats. Effort ~30-45 mins thuần. Hết context budget. | Round 72 |
+| 4c (20 enemies, 5 family × 4 variant) | Cần 8 shape recipes mới + 5+ new drawable XML resources + Chapter pool expansion + RegularEnemyType stat profile refactor. Effort ~45+ mins. Hết context budget. | Round 73 |
+| 7 (Canvas explosion particle) | Migrate `anim_explosion.gif` (Coil) sang Canvas particle system. Perf risk (100+ particles/frame). Cần test kỹ. | Round 74 |
+
+**Boss attack pattern + audio cue (Issue 4d sub-scope):** Defer Round 72 cùng với 4b. Cụ thể: EnemyLasersController dispatch per-boss attack pattern (STAR=radial 8-laser, CROSS=spinning, ORB=tracking lasers, FRACTAL=child split, SPIDER=web pattern) + audio asset added per boss intro.
+
+### Round 71 audit follow-up — 3 gaps fix sau "bạn chắc chưa?"
+
+User audit phát hiện 3 gaps trong Round 71 chính:
+
+| Gap | Trước fix | Sau fix |
+|---|---|---|
+| 4a in-game (3 bullet shapes không unique) | `BounceShipLaser`, `GiantShipLaser`, `MissileLaser` không override `bulletType` → LaserCanvas dispatch về NORMAL → render plain capsule | Added `override val bulletType = BulletType.BOUNCE/GIANT/HOMING` cho 3 classes. Test `MissileLaserTest.bulletType is NORMAL...` updated theo invariant mới. |
+| 4a HOMING in-game không có ring | Cố ý fallback `drawCapsuleBody` (no ring) — sai spec "ring overlay only in InfoScreen" | New `drawHomingBody` trong LaserCanvas: capsule + targeting ring stroke. Matches InfoScreen behavior. |
+| 3 "animated" preview là STATIC | Claim "animated bullet preview" nhưng implementation là static Canvas | Added `rememberInfiniteTransition` + `animateFloat` Y-bob ±2dp loop 800ms. Bullet bay nhẹ trong preview tile. |
+
+**Files modified Round 71 audit fix:**
+- `ui/game/ship/laser/BounceShipLaser.kt` — override bulletType = BOUNCE
+- `ui/game/ship/laser/GiantShipLaser.kt` — override bulletType = GIANT
+- `ui/game/ship/laser/MissileLaser.kt` — override bulletType = HOMING
+- `ui/game/world/LaserCanvas.kt` — new drawHomingBody + dispatch update
+- `ui/dlg/loadoutpicker/DialogLoadoutPicker.kt` — infinite Y-bob animation cho bullet preview
+- `test/.../MissileLaserTest.kt` — invariant updated NORMAL → HOMING
+
+**Defer còn lại (KHÔNG fix trong audit này):**
+- Issue 4d boss attack patterns + audio cue — vẫn defer Round 72
+- Issue 4b + 4c + 7 — vẫn defer Round 72-74
+
+### Round 71 verification
+
+- `compileDevDebugKotlin` ✅
+- `compileProductionReleaseKotlin` ✅
+- `testDevDebugUnitTest` ✅ 219 tests pass (MissileLaserTest invariant updated)
+- `assembleDevDebug` ✅ BUILD SUCCESSFUL
+
+### Runtime expectations Round 71
+
+- BÁCH KHOA tab VẬT PHẨM: 27 booster cards với friendly title (e.g. "Hồi máu", "Đạn xuyên", "Cuồng nộ") + multi-line description (Thường/Hiếm/Sử Thi thay rarity 1.0/1.5/2.0) + tip "✦ Khi nào nên nhặt" italic + duration badge "⏱ 10s · Refresh".
+- BÁCH KHOA tab ĐẠN: 12 bullet types với silhouette khác nhau ở 48dp icon preview. PIERCING là tam giác nhọn, PLASMA là orb, KAMEHAMEHA là beam ngang, ATOMIC là nucleus + electron, etc.
+- Trong game khi nhặt bullet booster: laser bay ra cũng có shape khác (FIRE = capsule + flame, HOMING = capsule + ring overlay InfoScreen-only, BOUNCE = orb, etc).
+- TRANG BỊ dialog: bullet tiles có Canvas mini preview thay glyph + multi-line description "Sát thương ×1.0 · ⏱10s · Xuyên 3 enemy" + tip italic + border đậm/mỏng theo damage tier. Selected tile có border full alpha.
+- In-game asteroid: 3 màu khác nhau theo seed % 3 (violet rock / cyan ice / gold metal). Vertex count khác (8-14 random), crater style khác (ring/sparkle/rivet).
+- Boss fights: L1 boss = star 8-point cũ, L2 boss = cross spinner mới, MidBoss OFFENSIVE = orb với 3 satellites, MidBoss DEFENSIVE/SWARM = fractal triangle, FinalBoss = spider 8 legs + 2 eyes.
+
 ### Round 70 — UI polish batch (Issues 1, 2, 6, 9 from Round 69 audit)
 
 Triển khai 4 issues quick-wins từ roadmap Round 69. Tất cả không cần content mới, chỉ refactor/rewire/fix.

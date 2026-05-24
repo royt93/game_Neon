@@ -11,6 +11,10 @@ data class ShipLaser(
     override var yOffset: Float,
     private val yRange: Float,
     override var width: Float = SHIP_LASER_WIDTH,
+    // Round 71 (Issue 4a) — explicit bulletType to surface unique vector shape
+    // trong LaserCanvas. Default NORMAL = capsule. Stub bullets (FIRE/HOMING/
+    // SMOKE/ZIGZAG/KAMEHAMEHA/ATOMIC/SPLIT) pass actual type cho visual diff.
+    override val bulletType: BulletType = BulletType.NORMAL,
 ) : Laser {
 
     override val xOffsetMovementSpeed: Float = 0f

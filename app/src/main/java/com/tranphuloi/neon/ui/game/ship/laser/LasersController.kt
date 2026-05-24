@@ -117,6 +117,7 @@ class LasersController(
                     xOffset = ship.xOffset + ship.width / 2 - SHIP_BOOSTED_LASER_WIDTH / 2 + dx,
                     yOffset = ship.yOffset - 25f + dy,
                     yRange = screenHeight,
+                    bulletType = BulletType.FIRE,
                 )
             } else {
                 ShipLaser(
@@ -124,6 +125,7 @@ class LasersController(
                     xOffset = ship.xOffset + ship.width / 2 - SHIP_LASER_WIDTH / 2 + dx,
                     yOffset = ship.yOffset - 20f + dy,
                     yRange = screenHeight,
+                    bulletType = BulletType.FIRE,
                 )
             }
             // Round 67 — HOMING: reuse MissileLaser for ship lasers (already
@@ -164,6 +166,9 @@ class LasersController(
                     xOffset = ship.xOffset + ship.width / 2 - SHIP_BOOSTED_LASER_WIDTH / 2 + dx,
                     yOffset = ship.yOffset - 25f + dy,
                     yRange = screenHeight,
+                    // Round 71 (Issue 4a) — pass bullet type cho LaserCanvas
+                    // dispatch unique vector shape mỗi loại đạn.
+                    bulletType = ship.activeBulletType,
                 )
             } else {
                 ShipLaser(
@@ -171,6 +176,7 @@ class LasersController(
                     xOffset = ship.xOffset + ship.width / 2 - SHIP_LASER_WIDTH / 2 + dx,
                     yOffset = ship.yOffset - 20f + dy,
                     yRange = screenHeight,
+                    bulletType = ship.activeBulletType,
                 )
             }
             BulletType.NORMAL -> if (ship.laserBoosterEnabled) {

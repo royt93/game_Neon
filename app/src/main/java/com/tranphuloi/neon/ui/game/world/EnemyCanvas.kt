@@ -129,11 +129,12 @@ private fun DrawScope.drawEnemy(
                     body = bodyColor.copy(alpha = trailAlpha),
                     accent = accent.copy(alpha = trailAlpha),
                     isBoss = enemy.isBoss,
+                    bossKind = enemy.bossKind,
                 )
             }
         }
 
-        // Main body shape per family.
+        // Main body shape per family / boss kind.
         drawEnemyShape(
             drawableId = enemy.drawableId,
             cx = cx,
@@ -143,6 +144,7 @@ private fun DrawScope.drawEnemy(
             body = bodyColor,
             accent = accent,
             isBoss = enemy.isBoss,
+            bossKind = enemy.bossKind,
         )
     }
 }
@@ -223,7 +225,25 @@ private fun DrawScope.drawEnemyShape(
     drawableId: Int,
     cx: Float, cy: Float, wPx: Float, hPx: Float,
     body: Color, accent: Color, isBoss: Boolean,
+    bossKind: com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind? = null,
 ) {
+    // Round 71 (Issue 4d) — Boss dispatch via bossKind nếu boss, else family
+    // dispatch theo drawableId.
+    if (isBoss && bossKind != null) {
+        when (bossKind) {
+            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.STAR ->
+                drawBossStar(cx, cy, wPx, hPx, body, accent)
+            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.CROSS ->
+                drawBossCross(cx, cy, wPx, hPx, body, accent)
+            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.ORB ->
+                drawBossOrb(cx, cy, wPx, hPx, body, accent)
+            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.FRACTAL ->
+                drawBossFractal(cx, cy, wPx, hPx, body, accent)
+            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SPIDER ->
+                drawBossSpider(cx, cy, wPx, hPx, body, accent)
+        }
+        return
+    }
     when (drawableId) {
         // Light blue family — dart/triangle attackers (pointing DOWN since
         // they're enemies coming at the player).
@@ -241,11 +261,122 @@ private fun DrawScope.drawEnemyShape(
         R.drawable.enemy_red_1 -> drawDiamond(cx, cy, wPx, hPx, body, accent, variant = 0)
         R.drawable.enemy_red_2 -> drawDiamond(cx, cy, wPx, hPx, body, accent, variant = 1)
         R.drawable.enemy_red_3 -> drawDiamond(cx, cy, wPx, hPx, body, accent, variant = 2)
-        // Bosses — large 8-pointed stars w/ inner detail.
-        R.drawable.enemy_green_boss -> drawBossStar(cx, cy, wPx, hPx, body, accent)
-        R.drawable.enemy_red_boss -> drawBossStar(cx, cy, wPx, hPx, body, accent)
+        // Boss drawables fallback (bossKind null — defensive).
+        R.drawable.enemy_green_boss, R.drawable.enemy_red_boss ->
+            drawBossStar(cx, cy, wPx, hPx, body, accent)
         else -> drawHexagon(cx, cy, wPx, hPx, body, accent, variant = 0)
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Round 71 (Issue 4d) — 4 new boss silhouettes (STAR đã có).
+// ─────────────────────────────────────────────────────────────────────────
+
+private fun DrawScope.drawBossCross(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    // 4-arm cross spinner (LevelTwoBoss). Center disc + 4 arms với hollow tip.
+    val armW = minOf(wPx, hPx) * 0.18f
+    val armLen = minOf(wPx, hPx) * 0.5f
+    val centerR = minOf(wPx, hPx) * 0.25f
+    // Vertical arm
+    drawRect(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - armW / 2, cy - armLen),
+        size = androidx.compose.ui.geometry.Size(armW, armLen * 2),
+    )
+    // Horizontal arm
+    drawRect(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - armLen, cy - armW / 2),
+        size = androidx.compose.ui.geometry.Size(armLen * 2, armW),
+    )
+    // Center disc
+    drawCircle(body, centerR, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, centerR * 0.5f, androidx.compose.ui.geometry.Offset(cx, cy))
+    // Tip circles
+    drawCircle(accent, armW * 0.6f, androidx.compose.ui.geometry.Offset(cx, cy - armLen))
+    drawCircle(accent, armW * 0.6f, androidx.compose.ui.geometry.Offset(cx, cy + armLen))
+    drawCircle(accent, armW * 0.6f, androidx.compose.ui.geometry.Offset(cx - armLen, cy))
+    drawCircle(accent, armW * 0.6f, androidx.compose.ui.geometry.Offset(cx + armLen, cy))
+}
+
+private fun DrawScope.drawBossOrb(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    // Large orb + 3 ring satellites (MidBoss OFFENSIVE).
+    val r = minOf(wPx, hPx) * 0.4f
+    drawCircle(body, r, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, r * 0.55f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(
+        color = body,
+        radius = r * 0.85f,
+        center = androidx.compose.ui.geometry.Offset(cx, cy),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = r * 0.08f),
+    )
+    // 3 orbiting satellite discs
+    for (i in 0 until 3) {
+        val a = i * 120.0 * Math.PI / 180.0
+        val sx = cx + (r * 1.15f * kotlin.math.cos(a)).toFloat()
+        val sy = cy + (r * 1.15f * kotlin.math.sin(a)).toFloat()
+        drawCircle(accent, r * 0.18f, androidx.compose.ui.geometry.Offset(sx, sy))
+    }
+}
+
+private fun DrawScope.drawBossFractal(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    // Recursive triangle (MidBoss DEFENSIVE / SWARM).
+    val r = minOf(wPx, hPx) * 0.45f
+    // Outer triangle pointing DOWN (toward player)
+    val outer = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx, cy + r)
+        lineTo(cx - r * 0.866f, cy - r * 0.5f)
+        lineTo(cx + r * 0.866f, cy - r * 0.5f)
+        close()
+    }
+    drawPath(outer, body)
+    drawPath(outer, accent, style = androidx.compose.ui.graphics.drawscope.Stroke(width = r * 0.08f))
+    // Inner upward triangle (Sierpinski child)
+    val innerR = r * 0.5f
+    val inner = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx, cy - innerR)
+        lineTo(cx - innerR * 0.866f, cy + innerR * 0.5f)
+        lineTo(cx + innerR * 0.866f, cy + innerR * 0.5f)
+        close()
+    }
+    drawPath(inner, accent)
+    // Center dot
+    drawCircle(body, r * 0.15f, androidx.compose.ui.geometry.Offset(cx, cy))
+}
+
+private fun DrawScope.drawBossSpider(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    // 8 legs radiating from oval body (FinalBoss).
+    val bodyR = minOf(wPx, hPx) * 0.3f
+    val legLen = minOf(wPx, hPx) * 0.55f
+    val legW = bodyR * 0.18f
+    // 8 legs at 45° spacing
+    for (i in 0 until 8) {
+        val a = i * 45.0 * Math.PI / 180.0
+        val ex = cx + (legLen * kotlin.math.cos(a)).toFloat()
+        val ey = cy + (legLen * kotlin.math.sin(a)).toFloat()
+        drawLine(
+            color = body,
+            start = androidx.compose.ui.geometry.Offset(cx, cy),
+            end = androidx.compose.ui.geometry.Offset(ex, ey),
+            strokeWidth = legW,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+        )
+        // Joint glow
+        drawCircle(accent, legW * 0.6f, androidx.compose.ui.geometry.Offset(ex, ey))
+    }
+    // Body — oval shape (use draw circle with scaled = horizontal)
+    drawCircle(body, bodyR, androidx.compose.ui.geometry.Offset(cx, cy))
+    // 2 "eyes" indicating it's looking
+    drawCircle(accent, bodyR * 0.18f,
+        androidx.compose.ui.geometry.Offset(cx - bodyR * 0.4f, cy - bodyR * 0.1f))
+    drawCircle(accent, bodyR * 0.18f,
+        androidx.compose.ui.geometry.Offset(cx + bodyR * 0.4f, cy - bodyR * 0.1f))
 }
 
 // ─────────── Shape recipes ───────────

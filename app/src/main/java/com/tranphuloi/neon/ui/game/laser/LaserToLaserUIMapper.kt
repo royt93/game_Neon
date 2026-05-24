@@ -32,7 +32,8 @@ class LaserToLaserUIMapper {
             cached.width == laser.width &&
             cached.height == laser.height &&
             cached.rotation == laser.rotation &&
-            cached.drawableId == laser.drawableId
+            cached.drawableId == laser.drawableId &&
+            cached.bulletType == laser.bulletType
         ) {
             return cached
         }
@@ -44,7 +45,9 @@ class LaserToLaserUIMapper {
                 width = width,
                 height = height,
                 rotation = rotation,
-                drawableId = drawableId
+                drawableId = drawableId,
+                // Round 71 (Issue 4a) — pass bullet type to UI for canvas dispatch.
+                bulletType = bulletType,
             )
         }
         cache[laser.id] = newUi

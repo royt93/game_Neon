@@ -30,6 +30,8 @@ data class LevelOneBoss(
     override val drawableId: Int = R.drawable.enemy_red_boss
     override var lastImpactMillis: Long = 0L
     override val isBoss: Boolean = true
+    // Round 71 (Issue 4d) — STAR silhouette (8-point baseline, red).
+    override val bossKind: BossKind = BossKind.STAR
     override val displayName: String = "LEVEL 1 BOSS"
     private val bossMovementSpeed = 0.5f
 

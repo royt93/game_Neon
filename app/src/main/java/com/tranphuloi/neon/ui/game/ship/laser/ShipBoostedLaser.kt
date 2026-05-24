@@ -11,6 +11,9 @@ data class ShipBoostedLaser(
     override var yOffset: Float,
     private val yRange: Float,
     override var width: Float = SHIP_BOOSTED_LASER_WIDTH,
+    // Round 71 (Issue 4a) — explicit bulletType cho stub bullets dùng
+    // ShipBoostedLaser fallback khi `laserBoosterEnabled`.
+    override val bulletType: BulletType = BulletType.NORMAL,
 ) : Laser {
 
     override val xOffsetMovementSpeed: Float = 0f

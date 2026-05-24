@@ -32,4 +32,6 @@ data class EnemyUI(
      * EnemyUI stays self-contained and Serializable-friendly.
      */
     val activeStatusEffectTints: List<Long> = emptyList(),
+    /** Round 71 (Issue 4d) — boss silhouette kind. Null = regular enemy. */
+    val bossKind: BossKind? = null,
 ) : Serializable

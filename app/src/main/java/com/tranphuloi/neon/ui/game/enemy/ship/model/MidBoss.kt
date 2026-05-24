@@ -43,6 +43,14 @@ data class MidBoss(
     override val drawableId: Int = variant.drawableId
     override var lastImpactMillis: Long = 0L
     override val isBoss: Boolean = true               // reuses Boss HP bar + rank overlay
+    // Round 71 (Issue 4d) — MidBoss variants map to 2 unique kinds (ORB, FRACTAL).
+    // Total bosses Round 71: STAR (L1) + CROSS (L2) + ORB (Mid Off) + FRACTAL
+    // (Mid Def + Mid Swarm) + SPIDER (Final) = 5 silhouettes shipped.
+    override val bossKind: BossKind = when (variant) {
+        MidBossType.OFFENSIVE -> BossKind.ORB
+        MidBossType.DEFENSIVE -> BossKind.FRACTAL
+        MidBossType.SWARM -> BossKind.FRACTAL
+    }
     override val displayName: String = variant.displayName
 
     override var xOffset: Float = (screenWidth - width) / 2f

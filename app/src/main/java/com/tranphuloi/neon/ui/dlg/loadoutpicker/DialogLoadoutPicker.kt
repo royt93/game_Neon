@@ -1,5 +1,11 @@
 package com.tranphuloi.neon.ui.dlg.loadoutpicker
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -12,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -100,12 +107,17 @@ fun DialogLoadoutPicker(onConfirm: () -> Unit) {
             ) {
                 BulletType.entries.forEach { b ->
                     val color = colorForBullet(b, palette)
+                    // Round 71 (Issue 3) — animated bullet preview + multi-line +
+                    // tooltip + color-code thickness theo damage tier.
                     LoadoutCard(
                         glyph = b.glyph,
                         title = b.displayName,
                         subtitle = subtitleForBullet(b),
+                        tip = tipForBullet(b),
                         color = color,
+                        damageTier = damageTier(b.damageMultiplier),
                         selected = b == bulletType,
+                        bulletPreview = b,
                         onClick = {
                             Logger.d("LoadoutPicker: BulletType pick=$b")
                             scope.launch { settings.setPreferredBulletType(b) }
@@ -130,8 +142,11 @@ fun DialogLoadoutPicker(onConfirm: () -> Unit) {
                         glyph = w.glyph,
                         title = w.displayName,
                         subtitle = subtitleForSecondary(w),
+                        tip = "Bắn theo phím phụ. Đạn limit/run.",
                         color = color,
+                        damageTier = 1,                                  // secondary always mid tier
                         selected = w == secondary,
+                        bulletPreview = null,                            // glyph mode for secondary
                         onClick = {
                             Logger.d("LoadoutPicker: SecondaryWeapon pick=$w")
                             scope.launch { settings.setSecondaryWeapon(w) }
@@ -186,17 +201,32 @@ private fun SectionHeader(label: String, color: Color) {
     }
 }
 
+/**
+ * Round 71 (Issue 3) — 4 enrichments:
+ *   1. Animated bullet preview (mini Canvas) thay glyph cho bullets.
+ *   2. Multi-line subtitle (damage/duration/AoE).
+ *   3. Tooltip dòng dưới (✦ tip).
+ *   4. Color-code border thickness theo damage tier (1=low, 2=mid, 3=high).
+ */
 @Composable
 private fun LoadoutCard(
     glyph: String,
     title: String,
     subtitle: String,
+    tip: String,
     color: Color,
+    damageTier: Int,
     selected: Boolean,
+    bulletPreview: BulletType?,
     onClick: () -> Unit,
 ) {
     val bgAlpha = if (selected) 0.30f else 0.10f
-    val borderWidth = if (selected) 2.dp else 1.dp
+    // Round 71 — color-code border: tier 1 (×0.x dmg) thin, tier 2 (×1.x) mid, tier 3 (×2+) thick.
+    val baseBorder = when (damageTier) { 1 -> 1.dp; 2 -> 1.5.dp; else -> 2.5.dp }
+    val borderWidth = if (selected) baseBorder + 1.dp else baseBorder
+    // Round 71 (Issue 3) — selected card có border đậm hơn (no animation —
+    // simpler + ít cost). Color-code thickness handles damage tier.
+    val borderColor = if (selected) color else color.copy(alpha = 0.7f)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -204,24 +234,51 @@ private fun LoadoutCard(
             .clip(RoundedCornerShape(12.dp))
             .clickable { onClick() }
             .background(color.copy(alpha = bgAlpha))
-            .border(BorderStroke(borderWidth, color), RoundedCornerShape(12.dp))
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .border(BorderStroke(borderWidth, borderColor), RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(40.dp)
+                .size(44.dp)
                 .clip(RoundedCornerShape(10.dp))
                 .background(color.copy(alpha = 0.22f))
                 .border(BorderStroke(1.dp, color.copy(alpha = 0.7f)), RoundedCornerShape(10.dp)),
         ) {
-            Text(text = glyph, color = color, fontSize = 22.sp, fontWeight = FontWeight.Black)
+            if (bulletPreview != null) {
+                // Round 71 fix (Issue 3 audit) — ANIMATED preview: infinite bob
+                // Y-axis 800ms loop. Trước fix là static Canvas → spec gap.
+                val bobAnim = rememberInfiniteTransition(label = "bulletBob")
+                val bobOffset by bobAnim.animateFloat(
+                    initialValue = -2f,
+                    targetValue = 2f,
+                    animationSpec = infiniteRepeatable(
+                        animation = tween(800, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse,
+                    ),
+                    label = "bulletBobOffset",
+                )
+                androidx.compose.foundation.Canvas(
+                    modifier = Modifier.size(36.dp).offset(y = bobOffset.dp),
+                ) {
+                    drawBulletPreview(size, bulletPreview, color)
+                }
+            } else {
+                Text(text = glyph, color = color, fontSize = 22.sp, fontWeight = FontWeight.Black)
+            }
         }
         Spacer(modifier = Modifier.size(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(text = title, color = color, fontSize = 15.sp, fontWeight = FontWeight.Black)
             Spacer(modifier = Modifier.height(2.dp))
-            Text(text = subtitle, color = Color.White.copy(alpha = 0.78f), fontSize = 12.sp)
+            Text(text = subtitle, color = Color.White.copy(alpha = 0.82f), fontSize = 11.sp, lineHeight = 14.sp)
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(
+                text = "✦ $tip",
+                color = color.copy(alpha = 0.78f),
+                fontSize = 10.sp,
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+            )
         }
         if (selected) {
             Text(text = "✓", color = color, fontSize = 18.sp, fontWeight = FontWeight.Black)
@@ -246,19 +303,198 @@ private fun colorForBullet(b: BulletType, palette: NeonPalette): Color = when (b
     BulletType.SPLIT -> palette.violet
 }
 
+// Round 71 (Issue 3) — multi-line subtitle: line 1 = combat stats, line 2 = description.
 private fun subtitleForBullet(b: BulletType): String = when (b) {
-    BulletType.NORMAL -> "Đạn tiêu chuẩn · không buff khởi đầu"
-    BulletType.PIERCING -> "Xuyên qua 3 enemy · 10s head-start"
-    BulletType.PLASMA -> "+60% dmg · AoE 80px · 10s head-start"
-    BulletType.FIRE -> "Đạn lửa · BURN DoT · ${b.activeDurationMillis / 1000}s"
-    BulletType.HOMING -> "Đuổi địch · ×${b.damageMultiplier} dmg · ${b.activeDurationMillis / 1000}s"
-    BulletType.BOUNCE -> "Phản xạ ×3 hits · ×${b.damageMultiplier} dmg · ${b.activeDurationMillis / 1000}s"
-    BulletType.GIANT -> "Đạn khổng lồ · ×${b.damageMultiplier} dmg · ${b.activeDurationMillis / 1000}s"
-    BulletType.SMOKE -> "Đạn khói · slow (stub) · ${b.activeDurationMillis / 1000}s"
-    BulletType.ZIGZAG -> "Đạn zigzag · sine path (stub) · ${b.activeDurationMillis / 1000}s"
-    BulletType.KAMEHAMEHA -> "Kamehameha · pierce-all (stub) · ×${b.damageMultiplier} · ${b.activeDurationMillis / 1000}s"
-    BulletType.ATOMIC -> "Đạn nguyên tử · AoE 150dp (stub) · ${b.activeDurationMillis / 1000}s"
-    BulletType.SPLIT -> "Đạn phân tách · 3 children (stub) · ${b.activeDurationMillis / 1000}s"
+    BulletType.NORMAL -> "Sát thương ×1.0 · Không thời hạn\nĐạn tiêu chuẩn không buff khởi đầu."
+    BulletType.PIERCING -> "Sát thương ×1.0 · ⏱10s · Xuyên 3 enemy\nĐạn xuyên qua nhiều địch trước khi biến mất."
+    BulletType.PLASMA -> "Sát thương ×1.6 · ⏱10s · AoE 80px\nNổ AoE khi va chạm, sát thương quanh điểm chạm."
+    BulletType.FIRE -> "Sát thương ×1.2 · ⏱10s · Cháy 5HP/s\nGây cháy enemy mất máu liên tục 3 giây."
+    BulletType.HOMING -> "Sát thương ×0.8 · ⏱10s · Tự đuổi\nĐạn tự nhắm enemy gần nhất, không cần aim."
+    BulletType.BOUNCE -> "Sát thương ×0.7 · ⏱12s · Nảy 3 lần\nNảy lại khi va cạnh, trúng nhiều enemy/viên."
+    BulletType.GIANT -> "Sát thương ×2.0 · ⏱10s · Size ×2\nĐạn to gấp đôi + damage gấp đôi."
+    BulletType.SMOKE -> "Sát thương ×0.8 · ⏱10s · (Sắp ra)\nĐạn khói AoE 60px chậm enemy."
+    BulletType.ZIGZAG -> "Sát thương ×0.9 · ⏱12s · (Sắp ra)\nĐạn bay sine path né dodge enemy."
+    BulletType.KAMEHAMEHA -> "Sát thương ×3.0 · ⏱8s · Pierce-all\nTia năng lượng xuyên thấu vô hạn."
+    BulletType.ATOMIC -> "Sát thương ×1.5 · ⏱10s · AoE 150px\nNổ nguyên tử AoE khổng lồ."
+    BulletType.SPLIT -> "Sát thương ×0.6 · ⏱12s · Tách 3\nVa chạm phân tách thành 3 mảnh nhỏ."
+}
+
+// Round 71 (Issue 3) — tooltip 1-line explaining game mechanic.
+private fun tipForBullet(b: BulletType): String = when (b) {
+    BulletType.NORMAL -> "Không buff. Phù hợp cho người mới."
+    BulletType.PIERCING -> "10s 'head-start' = active ngay khi vào game, hết sau 10s."
+    BulletType.PLASMA -> "Hợp khi enemy bay theo cụm dày đặc."
+    BulletType.FIRE -> "Hợp với enemy nhiều máu (DoT tích lũy)."
+    BulletType.HOMING -> "Tốt cho người mới — đạn auto-aim."
+    BulletType.BOUNCE -> "Tốt khi enemy bay sát mép màn hình."
+    BulletType.GIANT -> "Combo với boss — damage cao + hit box to."
+    BulletType.SMOKE -> "Behavior chưa hoàn thiện — vẫn ×0.8 sát thương real."
+    BulletType.ZIGZAG -> "Behavior chưa hoàn thiện — vẫn ×0.9 sát thương real."
+    BulletType.KAMEHAMEHA -> "Damage ×3 nổi bật ngay từ Round 71, dù visual chưa final."
+    BulletType.ATOMIC -> "Behavior chưa hoàn thiện — vẫn ×1.5 sát thương real."
+    BulletType.SPLIT -> "Behavior chưa hoàn thiện — vẫn ×0.6 sát thương real."
+}
+
+// Round 71 (Issue 3) — damage tier mapping cho border thickness.
+//   ≤0.9 → tier 1 (thin border)
+//   1.0-1.7 → tier 2 (mid)
+//   ≥1.8 → tier 3 (thick — KAMEHAMEHA, GIANT)
+private fun damageTier(mul: Float): Int = when {
+    mul < 1.0f -> 1
+    mul < 1.8f -> 2
+    else -> 3
+}
+
+// Round 71 audit fix — mini bullet preview Canvas cho LoadoutCard tile.
+// Trước fix có 5 shape + 1 default chung 7 bullets → SAI spec "12 unique".
+// Giờ dispatch all 12 distinct recipes (compact version cho tile 36dp).
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBulletPreview(
+    canvasSize: androidx.compose.ui.geometry.Size,
+    bullet: BulletType,
+    color: Color,
+) {
+    val cx = canvasSize.width / 2f
+    val cy = canvasSize.height / 2f
+    val w = canvasSize.width
+    drawCircle(color = color.copy(alpha = 0.3f), radius = w * 0.42f,
+        center = androidx.compose.ui.geometry.Offset(cx, cy))
+    val capsuleW = w * 0.25f
+    val capsuleH = w * 0.7f
+    when (bullet) {
+        BulletType.NORMAL -> {
+            // Plain capsule + white core
+            drawRoundRect(color = color,
+                topLeft = androidx.compose.ui.geometry.Offset(cx - capsuleW / 2, cy - capsuleH / 2),
+                size = androidx.compose.ui.geometry.Size(capsuleW, capsuleH),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(capsuleW / 2))
+            drawRoundRect(color = Color.White.copy(alpha = 0.85f),
+                topLeft = androidx.compose.ui.geometry.Offset(cx - capsuleW / 4, cy - capsuleH / 2 + capsuleH * 0.12f),
+                size = androidx.compose.ui.geometry.Size(capsuleW / 2, capsuleH * 0.76f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(capsuleW / 4))
+        }
+        BulletType.PIERCING -> {
+            val path = androidx.compose.ui.graphics.Path().apply {
+                moveTo(cx, cy - w * 0.42f)
+                lineTo(cx + w * 0.18f, cy + w * 0.42f)
+                lineTo(cx - w * 0.18f, cy + w * 0.42f)
+                close()
+            }
+            drawPath(path, color)
+        }
+        BulletType.PLASMA -> {
+            drawCircle(color, w * 0.32f, androidx.compose.ui.geometry.Offset(cx, cy))
+            drawCircle(Color.White.copy(alpha = 0.85f), w * 0.16f,
+                androidx.compose.ui.geometry.Offset(cx, cy))
+        }
+        BulletType.FIRE -> {
+            // Capsule + flame trail below
+            drawRoundRect(color = color,
+                topLeft = androidx.compose.ui.geometry.Offset(cx - capsuleW / 2, cy - capsuleH * 0.5f),
+                size = androidx.compose.ui.geometry.Size(capsuleW, capsuleH * 0.7f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(capsuleW / 2))
+            val flamePath = androidx.compose.ui.graphics.Path().apply {
+                moveTo(cx - capsuleW / 2, cy + capsuleH * 0.2f)
+                lineTo(cx, cy + capsuleH * 0.5f)
+                lineTo(cx + capsuleW / 2, cy + capsuleH * 0.2f)
+                close()
+            }
+            drawPath(flamePath, Color(0xFFFFD040).copy(alpha = 0.9f))
+        }
+        BulletType.HOMING -> {
+            // Capsule + targeting ring
+            drawRoundRect(color = color,
+                topLeft = androidx.compose.ui.geometry.Offset(cx - capsuleW / 2, cy - capsuleH / 2),
+                size = androidx.compose.ui.geometry.Size(capsuleW, capsuleH),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(capsuleW / 2))
+            drawCircle(color = color, radius = w * 0.32f,
+                center = androidx.compose.ui.geometry.Offset(cx, cy),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
+        }
+        BulletType.BOUNCE -> {
+            // Ball + 2 motion arc dots
+            drawCircle(color.copy(alpha = 0.45f), w * 0.12f,
+                androidx.compose.ui.geometry.Offset(cx - w * 0.2f, cy + w * 0.18f))
+            drawCircle(color.copy(alpha = 0.65f), w * 0.10f,
+                androidx.compose.ui.geometry.Offset(cx + w * 0.2f, cy + w * 0.12f))
+            drawCircle(color, w * 0.22f, androidx.compose.ui.geometry.Offset(cx, cy))
+            drawCircle(Color.White.copy(alpha = 0.9f), w * 0.09f,
+                androidx.compose.ui.geometry.Offset(cx, cy))
+        }
+        BulletType.GIANT -> {
+            val ww = w * 0.45f; val hh = w * 0.85f
+            drawRoundRect(color = color,
+                topLeft = androidx.compose.ui.geometry.Offset(cx - ww / 2, cy - hh / 2),
+                size = androidx.compose.ui.geometry.Size(ww, hh),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(ww / 2))
+            // 2 segment dividers consistent với in-game
+            drawLine(color, androidx.compose.ui.geometry.Offset(cx - ww / 4, cy - hh * 0.15f),
+                androidx.compose.ui.geometry.Offset(cx + ww / 4, cy - hh * 0.15f), strokeWidth = w * 0.025f)
+            drawLine(color, androidx.compose.ui.geometry.Offset(cx - ww / 4, cy + hh * 0.15f),
+                androidx.compose.ui.geometry.Offset(cx + ww / 4, cy + hh * 0.15f), strokeWidth = w * 0.025f)
+        }
+        BulletType.SMOKE -> {
+            // Capsule + cloud puff
+            drawRoundRect(color = color,
+                topLeft = androidx.compose.ui.geometry.Offset(cx - capsuleW / 2, cy - capsuleH * 0.55f),
+                size = androidx.compose.ui.geometry.Size(capsuleW, capsuleH * 0.7f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(capsuleW / 2))
+            drawCircle(color.copy(alpha = 0.5f), capsuleW * 0.55f,
+                androidx.compose.ui.geometry.Offset(cx, cy + capsuleH * 0.3f))
+        }
+        BulletType.ZIGZAG -> {
+            val path = androidx.compose.ui.graphics.Path().apply {
+                val step = capsuleH / 4f
+                val widerW = capsuleW * 1.8f
+                moveTo(cx - widerW / 2, cy - capsuleH / 2)
+                lineTo(cx + widerW / 2, cy - capsuleH / 2 + step)
+                lineTo(cx - widerW / 2, cy - capsuleH / 2 + step * 2)
+                lineTo(cx + widerW / 2, cy - capsuleH / 2 + step * 3)
+                lineTo(cx - widerW / 2, cy + capsuleH / 2)
+            }
+            drawPath(path, color, style = androidx.compose.ui.graphics.drawscope.Stroke(
+                width = capsuleW * 0.4f,
+                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                join = androidx.compose.ui.graphics.StrokeJoin.Round,
+            ))
+        }
+        BulletType.KAMEHAMEHA -> {
+            drawRoundRect(color = color,
+                topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.4f, cy - w * 0.12f),
+                size = androidx.compose.ui.geometry.Size(w * 0.8f, w * 0.24f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.12f))
+            drawCircle(color.copy(alpha = 0.8f), w * 0.14f,
+                androidx.compose.ui.geometry.Offset(cx + w * 0.4f, cy))
+        }
+        BulletType.ATOMIC -> {
+            drawCircle(color, w * 0.18f, androidx.compose.ui.geometry.Offset(cx, cy))
+            for (i in 0 until 3) {
+                val a = i * 120.0 * Math.PI / 180.0
+                val ex = cx + (w * 0.32f * kotlin.math.cos(a)).toFloat()
+                val ey = cy + (w * 0.32f * kotlin.math.sin(a)).toFloat()
+                drawCircle(color.copy(alpha = 0.85f), w * 0.07f,
+                    androidx.compose.ui.geometry.Offset(ex, ey))
+            }
+        }
+        BulletType.SPLIT -> {
+            // Capsule + 3 branches at top
+            drawRoundRect(color = color,
+                topLeft = androidx.compose.ui.geometry.Offset(cx - capsuleW / 2, cy - capsuleH * 0.2f),
+                size = androidx.compose.ui.geometry.Size(capsuleW, capsuleH * 0.6f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(capsuleW / 2))
+            val branchTop = cy - capsuleH * 0.2f
+            val branchLen = capsuleH * 0.35f
+            for (i in -1..1) {
+                val angle = i * 30.0 * Math.PI / 180.0
+                val tipX = cx + (branchLen * kotlin.math.sin(angle)).toFloat()
+                val tipY = branchTop - (branchLen * kotlin.math.cos(angle)).toFloat()
+                drawLine(color = color,
+                    start = androidx.compose.ui.geometry.Offset(cx, branchTop),
+                    end = androidx.compose.ui.geometry.Offset(tipX, tipY),
+                    strokeWidth = capsuleW * 0.4f,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            }
+        }
+    }
 }
 
 private fun colorForSecondary(w: SecondaryWeapon, palette: NeonPalette): Color = when (w) {

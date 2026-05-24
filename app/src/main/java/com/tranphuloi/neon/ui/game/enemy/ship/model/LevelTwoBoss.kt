@@ -29,6 +29,8 @@ data class LevelTwoBoss(
     override val drawableId: Int = R.drawable.enemy_green_boss
     override var lastImpactMillis: Long = 0L
     override val isBoss: Boolean = true
+    // Round 71 (Issue 4d) — CROSS silhouette (4-arm spinner, green).
+    override val bossKind: BossKind = BossKind.CROSS
     override val displayName: String = "LEVEL 2 BOSS"
     private val bossMovementSpeed = 0.5f
 

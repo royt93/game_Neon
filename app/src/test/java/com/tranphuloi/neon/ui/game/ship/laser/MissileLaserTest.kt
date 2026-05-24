@@ -13,9 +13,12 @@ class MissileLaserTest {
         MissileLaser(id = "m1", xOffset = x, yOffset = y, yRange = 1000f)
 
     @Test
-    fun `bulletType is NORMAL not PIERCING or PLASMA`() {
-        // Missile is single-hit; collision handler should treat it like NORMAL.
-        assertEquals(BulletType.NORMAL, missileAt(0f, 0f).bulletType)
+    fun `bulletType is HOMING for visual dispatch + collision treated single-hit`() {
+        // Round 71 fix (Issue 4a audit) — MissileLaser now reports HOMING so
+        // LaserCanvas can dispatch unique vector shape (capsule + targeting
+        // ring) instead of plain capsule. Collision handler still treats it as
+        // single-hit because pierceRemaining stays 0 (separate invariant).
+        assertEquals(BulletType.HOMING, missileAt(0f, 0f).bulletType)
     }
 
     @Test

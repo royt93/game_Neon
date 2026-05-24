@@ -32,6 +32,8 @@ data class BounceShipLaser(
     override var impactPower: Float = 25f
     override val drawableId: Int = R.drawable.ic_laser_blue_7
     override var destroyed: Boolean = false
+    // Round 71 fix (Issue 4a audit) — surface bulletType cho LaserCanvas dispatch.
+    override val bulletType: BulletType = BulletType.BOUNCE
 
     /** Lateral velocity for ricochet — flipped on edge hit. */
     var xVelocity: Float = if (kotlin.random.Random.nextBoolean()) 3f else -3f

@@ -24,6 +24,13 @@ interface Enemy : Serializable {
     /** True while boss is sliding from off-screen to patrol position. */
     val isInEntryPhase: Boolean get() = false
 
+    /**
+     * Round 71 (Issue 4d) — boss silhouette kind cho EnemyCanvas dispatch.
+     * null = regular enemy (dispatch theo drawableId). 5 distinct kinds cho 5
+     * boss class variants.
+     */
+    val bossKind: BossKind? get() = null
+
     /** 34d FinalBoss phase id (1..3); 0 for non-multi-phase enemies. */
     val currentPhase: Int get() = 0
 

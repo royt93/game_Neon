@@ -15,4 +15,6 @@ data class LaserUI(
     val height: Float,
     val rotation: Float,
     @DrawableRes val drawableId: Int,
+    // Round 71 (Issue 4a) — bullet type cho LaserCanvas dispatch unique vector shape.
+    val bulletType: BulletType = BulletType.NORMAL,
 ) : Serializable

@@ -233,50 +233,279 @@ private fun bulletDescription(b: BulletType): String = when (b) {
     BulletType.SPLIT -> "(Stub Round 68) Đạn phân tách thành 3 mảnh nhỏ khi va chạm. Hành vi đầy đủ: Round 69+."
 }
 
+/**
+ * Round 71 (Issue 4a) — Unique vector shape per BulletType. Dispatch table
+ * thay capsule-only. Cùng glow halo + center origin (cx, cy), khác body
+ * recipe per type. Color come từ bulletColor().
+ *
+ * Shapes:
+ *   NORMAL      = capsule (baseline)
+ *   PIERCING    = nhọn dài (needle)
+ *   PLASMA      = full orb (circle)
+ *   FIRE        = capsule + flame trail
+ *   HOMING      = capsule + reticle ring
+ *   BOUNCE      = ball + motion arcs
+ *   GIANT       = capsule ×1.5
+ *   SMOKE       = capsule + cloud puff
+ *   ZIGZAG      = chevron stack
+ *   KAMEHAMEHA  = wide beam + core
+ *   ATOMIC      = nucleus + 3 electrons
+ *   SPLIT       = capsule + 3 branches
+ */
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBulletCapsule(
     canvasSize: androidx.compose.ui.geometry.Size,
     bullet: BulletType,
 ) {
-    val color = when (bullet) {
-        BulletType.NORMAL -> NeonCyan
-        BulletType.PIERCING -> Color(0xFFFF2DE0)
-        BulletType.PLASMA -> Color(0xFF00F0FF)
-        BulletType.FIRE -> Color(0xFFFF6020)
-        BulletType.HOMING -> Color(0xFFFF40A0)
-        BulletType.BOUNCE -> Color(0xFF40FFD0)
-        BulletType.GIANT -> Color(0xFFFFD040)
-        BulletType.SMOKE -> Color(0xFFA0A0B0)
-        BulletType.ZIGZAG -> Color(0xFFFFE040)
-        BulletType.KAMEHAMEHA -> Color(0xFF60E0FF)
-        BulletType.ATOMIC -> Color(0xFF80FF80)
-        BulletType.SPLIT -> Color(0xFFB060FF)
-    }
+    val color = bulletColor(bullet)
     val cx = canvasSize.width / 2f
     val cy = canvasSize.height / 2f
-    val w = if (bullet == BulletType.GIANT) canvasSize.width * 0.5f
-        else if (bullet == BulletType.PLASMA) canvasSize.width * 0.65f
-        else canvasSize.width * 0.25f
-    val h = canvasSize.height * 0.7f
-    // Glow halo
+    val w = canvasSize.width
+    val h = canvasSize.height
+    // Universal glow halo
     drawCircle(
-        color = color.copy(alpha = 0.4f),
-        radius = canvasSize.width * 0.4f,
+        color = color.copy(alpha = 0.35f),
+        radius = w * 0.42f,
         center = androidx.compose.ui.geometry.Offset(cx, cy),
     )
-    // Capsule body
+    when (bullet) {
+        BulletType.NORMAL -> drawCapsuleBullet(cx, cy, w * 0.25f, h * 0.7f, color)
+        BulletType.PIERCING -> drawNeedleBullet(cx, cy, w * 0.18f, h * 0.85f, color)
+        BulletType.PLASMA -> drawOrbBullet(cx, cy, w * 0.32f, color)
+        BulletType.FIRE -> drawFireBullet(cx, cy, w * 0.25f, h * 0.7f, color)
+        BulletType.HOMING -> drawHomingBullet(cx, cy, w * 0.25f, h * 0.7f, color)
+        BulletType.BOUNCE -> drawBounceBullet(cx, cy, w * 0.28f, color)
+        BulletType.GIANT -> drawGiantBullet(cx, cy, w * 0.45f, h * 0.85f, color)
+        BulletType.SMOKE -> drawSmokeBullet(cx, cy, w * 0.25f, h * 0.7f, color)
+        BulletType.ZIGZAG -> drawZigzagBullet(cx, cy, w * 0.4f, h * 0.7f, color)
+        BulletType.KAMEHAMEHA -> drawBeamBullet(cx, cy, w * 0.75f, h * 0.35f, color)
+        BulletType.ATOMIC -> drawAtomicBullet(cx, cy, w * 0.3f, color)
+        BulletType.SPLIT -> drawSplitBullet(cx, cy, w * 0.25f, h * 0.7f, color)
+    }
+}
+
+// Round 71 audit fix — GIANT distinct recipe: bigger capsule + 2 inner
+// segment dividers (matches drawGiantBody in LaserCanvas). Trước fix GIANT
+// dùng cùng drawCapsuleBullet → SAI spec "12 unique" — chỉ khác size.
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawGiantBullet(
+    cx: Float, cy: Float, w: Float, h: Float, color: Color,
+) {
+    drawCapsuleBullet(cx, cy, w, h, color)
+    // 2 horizontal segment dividers across core
+    val coreW = w * 0.5f
+    drawLine(color = color,
+        start = androidx.compose.ui.geometry.Offset(cx - coreW / 2, cy - h * 0.15f),
+        end = androidx.compose.ui.geometry.Offset(cx + coreW / 2, cy - h * 0.15f),
+        strokeWidth = w * 0.08f)
+    drawLine(color = color,
+        start = androidx.compose.ui.geometry.Offset(cx - coreW / 2, cy + h * 0.15f),
+        end = androidx.compose.ui.geometry.Offset(cx + coreW / 2, cy + h * 0.15f),
+        strokeWidth = w * 0.08f)
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleBullet(
+    cx: Float, cy: Float, w: Float, h: Float, color: Color,
+) {
     drawRoundRect(
         color = color,
         topLeft = androidx.compose.ui.geometry.Offset(cx - w / 2, cy - h / 2),
         size = androidx.compose.ui.geometry.Size(w, h),
         cornerRadius = androidx.compose.ui.geometry.CornerRadius(w / 2),
     )
-    // White-hot core
     drawRoundRect(
         color = Color.White.copy(alpha = 0.85f),
-        topLeft = androidx.compose.ui.geometry.Offset(cx - w / 4, cy - h / 2 + h * 0.1f),
-        size = androidx.compose.ui.geometry.Size(w / 2, h * 0.8f),
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w / 4, cy - h / 2 + h * 0.12f),
+        size = androidx.compose.ui.geometry.Size(w / 2, h * 0.76f),
         cornerRadius = androidx.compose.ui.geometry.CornerRadius(w / 4),
     )
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawNeedleBullet(
+    cx: Float, cy: Float, w: Float, h: Float, color: Color,
+) {
+    val path = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx, cy - h / 2)               // top tip
+        lineTo(cx + w / 2, cy + h / 2)       // bottom-right
+        lineTo(cx - w / 2, cy + h / 2)       // bottom-left
+        close()
+    }
+    drawPath(path, color)
+    val corePath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx, cy - h / 2 + h * 0.1f)
+        lineTo(cx + w / 4, cy + h / 2 - h * 0.1f)
+        lineTo(cx - w / 4, cy + h / 2 - h * 0.1f)
+        close()
+    }
+    drawPath(corePath, Color.White.copy(alpha = 0.85f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawOrbBullet(
+    cx: Float, cy: Float, r: Float, color: Color,
+) {
+    drawCircle(color, r, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(Color.White.copy(alpha = 0.85f), r * 0.5f, androidx.compose.ui.geometry.Offset(cx, cy))
+    // Outer ring
+    drawCircle(
+        color = color,
+        radius = r * 1.25f,
+        center = androidx.compose.ui.geometry.Offset(cx, cy),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = r * 0.12f),
+    )
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFireBullet(
+    cx: Float, cy: Float, w: Float, h: Float, color: Color,
+) {
+    drawCapsuleBullet(cx, cy - h * 0.1f, w, h * 0.85f, color)
+    // Flame trail behind (below capsule)
+    val flamePath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - w / 2, cy + h / 2 - h * 0.1f)
+        lineTo(cx, cy + h * 0.65f)
+        lineTo(cx + w / 2, cy + h / 2 - h * 0.1f)
+        close()
+    }
+    drawPath(flamePath, color.copy(alpha = 0.7f))
+    drawPath(
+        androidx.compose.ui.graphics.Path().apply {
+            moveTo(cx - w / 4, cy + h / 2 - h * 0.1f)
+            lineTo(cx, cy + h * 0.5f)
+            lineTo(cx + w / 4, cy + h / 2 - h * 0.1f)
+            close()
+        },
+        Color(0xFFFFD040).copy(alpha = 0.9f),
+    )
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawHomingBullet(
+    cx: Float, cy: Float, w: Float, h: Float, color: Color,
+) {
+    drawCapsuleBullet(cx, cy, w, h, color)
+    // Reticle ring around bullet (target lock)
+    val ringR = h * 0.55f
+    drawCircle(
+        color = color,
+        radius = ringR,
+        center = androidx.compose.ui.geometry.Offset(cx, cy),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.1f),
+    )
+    // Crosshair ticks
+    val tickLen = ringR * 0.3f
+    drawLine(color, androidx.compose.ui.geometry.Offset(cx + ringR, cy),
+        androidx.compose.ui.geometry.Offset(cx + ringR + tickLen, cy), strokeWidth = w * 0.1f)
+    drawLine(color, androidx.compose.ui.geometry.Offset(cx - ringR, cy),
+        androidx.compose.ui.geometry.Offset(cx - ringR - tickLen, cy), strokeWidth = w * 0.1f)
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBounceBullet(
+    cx: Float, cy: Float, r: Float, color: Color,
+) {
+    // Ball + 2 motion arcs (bouncing trail)
+    drawCircle(color, r, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(Color.White.copy(alpha = 0.85f), r * 0.4f, androidx.compose.ui.geometry.Offset(cx, cy))
+    // Trail arcs
+    for (i in 1..2) {
+        val ang = i * 35.0
+        val rad = ang * Math.PI / 180.0
+        val tx = cx + (r * 1.5f * kotlin.math.cos(rad)).toFloat()
+        val ty = cy + (r * 1.5f * kotlin.math.sin(rad)).toFloat()
+        drawCircle(color.copy(alpha = 0.5f / i), r * 0.6f / i,
+            androidx.compose.ui.geometry.Offset(tx, ty))
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSmokeBullet(
+    cx: Float, cy: Float, w: Float, h: Float, color: Color,
+) {
+    drawCapsuleBullet(cx, cy - h * 0.1f, w, h * 0.7f, color)
+    // 3 cloud puffs behind
+    drawCircle(color.copy(alpha = 0.5f), w * 0.45f,
+        androidx.compose.ui.geometry.Offset(cx - w * 0.4f, cy + h * 0.35f))
+    drawCircle(color.copy(alpha = 0.4f), w * 0.5f,
+        androidx.compose.ui.geometry.Offset(cx, cy + h * 0.5f))
+    drawCircle(color.copy(alpha = 0.5f), w * 0.4f,
+        androidx.compose.ui.geometry.Offset(cx + w * 0.4f, cy + h * 0.35f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawZigzagBullet(
+    cx: Float, cy: Float, w: Float, h: Float, color: Color,
+) {
+    val path = androidx.compose.ui.graphics.Path().apply {
+        val step = h / 5f
+        moveTo(cx - w / 2, cy - h / 2)
+        for (i in 1..5) {
+            val x = if (i % 2 == 0) cx - w / 2 else cx + w / 2
+            lineTo(x, cy - h / 2 + i * step)
+        }
+    }
+    drawPath(path, color, style = androidx.compose.ui.graphics.drawscope.Stroke(
+        width = w * 0.18f, cap = androidx.compose.ui.graphics.StrokeCap.Round,
+        join = androidx.compose.ui.graphics.StrokeJoin.Round,
+    ))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBeamBullet(
+    cx: Float, cy: Float, w: Float, h: Float, color: Color,
+) {
+    // Wide horizontal energy beam (Kamehameha style)
+    drawRoundRect(
+        color = color,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w / 2, cy - h / 2),
+        size = androidx.compose.ui.geometry.Size(w, h),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(h / 2),
+    )
+    drawRoundRect(
+        color = Color.White.copy(alpha = 0.9f),
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w / 2 + w * 0.05f, cy - h / 4),
+        size = androidx.compose.ui.geometry.Size(w * 0.9f, h / 2),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(h / 4),
+    )
+    // Burst at front (right side)
+    drawCircle(color.copy(alpha = 0.8f), h * 0.7f,
+        androidx.compose.ui.geometry.Offset(cx + w / 2, cy))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawAtomicBullet(
+    cx: Float, cy: Float, r: Float, color: Color,
+) {
+    // Central nucleus
+    drawCircle(color, r * 0.5f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(Color.White.copy(alpha = 0.9f), r * 0.25f, androidx.compose.ui.geometry.Offset(cx, cy))
+    // 3 elliptical orbits (drawn as stroked circles at varied angles)
+    for (i in 0 until 3) {
+        val angle = i * 60.0
+        val rad = angle * Math.PI / 180.0
+        val ex = cx + (r * 1.1f * kotlin.math.cos(rad)).toFloat()
+        val ey = cy + (r * 1.1f * kotlin.math.sin(rad)).toFloat()
+        drawCircle(color.copy(alpha = 0.85f), r * 0.18f,
+            androidx.compose.ui.geometry.Offset(ex, ey))
+    }
+    drawCircle(
+        color = color.copy(alpha = 0.5f),
+        radius = r * 1.1f,
+        center = androidx.compose.ui.geometry.Offset(cx, cy),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = r * 0.06f),
+    )
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSplitBullet(
+    cx: Float, cy: Float, w: Float, h: Float, color: Color,
+) {
+    drawCapsuleBullet(cx, cy + h * 0.15f, w, h * 0.6f, color)
+    // 3 branches at top (split lines)
+    val branchLen = h * 0.5f
+    for (i in -1..1) {
+        val angle = i * 35.0
+        val rad = angle * Math.PI / 180.0
+        val tipX = cx + (branchLen * kotlin.math.sin(rad)).toFloat()
+        val tipY = cy - h * 0.15f - (branchLen * kotlin.math.cos(rad)).toFloat()
+        drawLine(
+            color = color,
+            start = androidx.compose.ui.geometry.Offset(cx, cy - h * 0.15f),
+            end = androidx.compose.ui.geometry.Offset(tipX, tipY),
+            strokeWidth = w * 0.22f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round,
+        )
+        drawCircle(color, w * 0.15f, androidx.compose.ui.geometry.Offset(tipX, tipY))
+    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -621,14 +850,18 @@ private fun ItemsTab() {
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         items(BoosterType.entries) { booster ->
-            InfoCard(
+            // Round 71 (Issue 4e) — BoosterCard với friendly title + multi-line
+            // description + tip + duration badges (4 enrichments).
+            BoosterCard(
                 color = boosterColor(booster),
-                title = booster.name,
-                subtitle = "Weight ${booster.weight}",
+                title = boosterTitle(booster),
+                rarity = "Tỉ lệ rơi: ${"%.1f".format(booster.weight * 100f / 238f)}%",
                 description = boosterDescription(booster),
+                tip = boosterTip(booster),
+                duration = boosterDuration(booster),
                 iconDraw = { c -> drawBoosterPreview(c, booster) },
             )
         }
@@ -741,39 +974,218 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBoosterPreview(
     }
 }
 
+// Round 71 (Issue 4e) — Friendly Vietnamese title cho người chơi thường.
+private fun boosterTitle(b: BoosterType): String = when (b) {
+    BoosterType.HEALTH_BOOSTER -> "Hồi máu"
+    BoosterType.SHIELD_BOOSTER -> "Khiên chắn"
+    BoosterType.LASER_BOOSTER -> "Đạn mạnh"
+    BoosterType.TRIPLE_LASER_BOOSTER -> "Đạn ba"
+    BoosterType.ULTIMATE_WEAPON_BOOSTER -> "Vũ khí tối thượng"
+    BoosterType.REVIVE_TOKEN -> "Hồi sinh"
+    BoosterType.PIERCING_BOOSTER -> "Đạn xuyên"
+    BoosterType.PLASMA_BOOSTER -> "Đạn plasma"
+    BoosterType.MAGNET_BOOST -> "Hút khoáng"
+    BoosterType.CRIT_SURGE -> "Chí mạng"
+    BoosterType.SPREAD_SHOT -> "Bắn rộng"
+    BoosterType.BERSERK -> "Cuồng nộ"
+    BoosterType.PHASE_SHIELD -> "Khiên ảo"
+    BoosterType.SCORE_X3 -> "Điểm ×3"
+    BoosterType.QUICK_HEAL -> "Hồi máu nhanh"
+    BoosterType.MINERAL_SUPERCHARGE -> "Thu khoáng nhanh"
+    BoosterType.HEALING_AURA -> "Hồi máu liên tục"
+    BoosterType.DOUBLE_FIRE -> "Bắn đôi"
+    BoosterType.FIRE_BOOSTER -> "Đạn lửa"
+    BoosterType.HOMING_BOOSTER -> "Đạn đuổi"
+    BoosterType.BOUNCE_BOOSTER -> "Đạn nảy"
+    BoosterType.GIANT_BOOSTER -> "Đạn khổng lồ"
+    BoosterType.SMOKE_BOOSTER -> "Đạn khói"
+    BoosterType.ZIGZAG_BOOSTER -> "Đạn zigzag"
+    BoosterType.KAMEHAMEHA_BOOSTER -> "Đạn năng lượng"
+    BoosterType.ATOMIC_BOOSTER -> "Đạn nguyên tử"
+    BoosterType.SPLIT_BOOSTER -> "Đạn phân tách"
+}
+
+// Round 71 (Issue 4e) — Multi-line WHAT it does, từ ngữ thân thiện thay
+// "×rarity (1.0/1.5/2.0)" bằng "Thường/Hiếm/Sử Thi".
 private fun boosterDescription(b: BoosterType): String = when (b) {
-    BoosterType.HEALTH_BOOSTER -> "+100 HP × rarity (1.0/1.5/2.0)."
-    BoosterType.SHIELD_BOOSTER -> "Khiên 10s × rarity. Chặn mọi damage."
-    BoosterType.LASER_BOOSTER -> "Boosted laser 15s × rarity."
-    BoosterType.TRIPLE_LASER_BOOSTER -> "Bắn 3 đạn cùng lúc 20s × rarity."
-    BoosterType.ULTIMATE_WEAPON_BOOSTER -> "Quét 9 beams (one-shot)."
-    BoosterType.REVIVE_TOKEN -> "Auto-revive 1 lần khi HP=0. Restore 300 HP + 1.5s i-frames."
-    BoosterType.PIERCING_BOOSTER -> "Bullet PIERCING 10s. Xuyên 3/4/5 enemy theo rarity."
-    BoosterType.PLASMA_BOOSTER -> "Bullet PLASMA 10s. AoE 80/110/140px theo rarity."
-    BoosterType.MAGNET_BOOST -> "Magnet radius ×2 trong 15s."
-    BoosterType.CRIT_SURGE -> "Damage ×3 trong 8s."
-    BoosterType.SPREAD_SHOT -> "Bắn 5-way fan trong 10s."
-    BoosterType.BERSERK -> "Damage ×2 + take ×1.5 damage trong 12s."
-    BoosterType.PHASE_SHIELD -> "Extended i-frames + ghost visual ring 5s."
-    BoosterType.SCORE_X3 -> "Minerals earned ×3 trong 15s."
-    BoosterType.QUICK_HEAL -> "+250 HP × rarity (one-shot)."
-    BoosterType.MINERAL_SUPERCHARGE -> "Instant collect tất cả minerals + bonus +5/each."
-    BoosterType.HEALING_AURA -> "+5 HP/sec regen trong 10s."
-    BoosterType.DOUBLE_FIRE -> "Fire 2 lasers per shot stacked trong 10s."
-    BoosterType.FIRE_BOOSTER -> "Bullet FIRE 10s. Apply BURN status 100% per hit."
-    BoosterType.HOMING_BOOSTER -> "Bullet HOMING 10s. Đuổi theo enemy gần nhất."
-    BoosterType.BOUNCE_BOOSTER -> "Bullet BOUNCE 12s. Ricochet off edges, 3 hits per laser."
-    BoosterType.GIANT_BOOSTER -> "Bullet GIANT 10s. ×2 size + ×2 damage."
-    BoosterType.SMOKE_BOOSTER -> "(Stub R68) Bullet SMOKE 10s. AoE 60px. Hành vi đầy đủ: Round 69+."
-    BoosterType.ZIGZAG_BOOSTER -> "(Stub R68) Bullet ZIGZAG 12s. Bay zigzag. Hành vi đầy đủ: Round 69+."
-    BoosterType.KAMEHAMEHA_BOOSTER -> "(Stub R68) Bullet KAMEHAMEHA 8s. Damage ×3 + xuyên thấu. Hành vi đầy đủ: Round 69+."
-    BoosterType.ATOMIC_BOOSTER -> "(Stub R68) Bullet ATOMIC 10s. AoE 150px. Hành vi đầy đủ: Round 69+."
-    BoosterType.SPLIT_BOOSTER -> "(Stub R68) Bullet SPLIT 12s. Phân tách 3 mảnh. Hành vi đầy đủ: Round 69+."
+    BoosterType.HEALTH_BOOSTER ->
+        "Hồi 100 máu (Thường) / 150 máu (Hiếm) / 200 máu (Sử Thi).\nDùng ngay khi nhặt."
+    BoosterType.SHIELD_BOOSTER ->
+        "Tạo khiên chống mọi sát thương.\nThường 10 giây, Hiếm 15, Sử Thi 20."
+    BoosterType.LASER_BOOSTER ->
+        "Nâng cấp đạn thường thành đạn mạnh hơn.\nThường 15 giây, Hiếm 22, Sử Thi 30."
+    BoosterType.TRIPLE_LASER_BOOSTER ->
+        "Bắn 3 đường đạn cùng lúc thay vì 1.\nThường 20 giây, Hiếm 30, Sử Thi 40."
+    BoosterType.ULTIMATE_WEAPON_BOOSTER ->
+        "Quét 9 tia laser ngang màn hình một lần duy nhất.\nGiết gần hết enemy đang có."
+    BoosterType.REVIVE_TOKEN ->
+        "Khi máu về 0, tự hồi sinh với 300 máu + 1.5 giây bất tử.\nDùng 1 lần mỗi run."
+    BoosterType.PIERCING_BOOSTER ->
+        "Đạn xuyên qua nhiều enemy thay vì biến mất khi va chạm.\nXuyên 3/4/5 enemy theo cấp Thường/Hiếm/Sử Thi."
+    BoosterType.PLASMA_BOOSTER ->
+        "Đạn nổ AoE khi trúng enemy, gây sát thương quanh điểm chạm.\nBán kính 80/110/140 px theo cấp."
+    BoosterType.MAGNET_BOOST ->
+        "Tăng gấp đôi bán kính hút khoáng sản.\nNhặt nhanh hơn trong 15 giây."
+    BoosterType.CRIT_SURGE ->
+        "Sát thương ×3 trong 8 giây.\nDồn dập diệt enemy / boss nhanh."
+    BoosterType.SPREAD_SHOT ->
+        "Bắn 5 đường đạn hình quạt trong 10 giây.\nCover rộng diệt nhiều enemy 1 lúc."
+    BoosterType.BERSERK ->
+        "Sát thương ×2 nhưng nhận sát thương ×1.5 trong 12 giây.\nLiều mạng — chỉ dùng khi máu đầy."
+    BoosterType.PHASE_SHIELD ->
+        "Bất tử 5 giây + hiệu ứng ma quái quanh tàu.\nLao qua đạn enemy không sao."
+    BoosterType.SCORE_X3 ->
+        "Mọi khoáng sản nhận được nhân 3 trong 15 giây.\nFarm tiền mua nâng cấp."
+    BoosterType.QUICK_HEAL ->
+        "Hồi ngay 250 máu (Thường) / 375 (Hiếm) / 500 (Sử Thi).\nDùng khi máu thấp."
+    BoosterType.MINERAL_SUPERCHARGE ->
+        "Hút ngay tất cả khoáng sản trên màn hình + thưởng +5 mỗi mảnh.\nKhông giới hạn bán kính."
+    BoosterType.HEALING_AURA ->
+        "Tự động hồi +5 máu mỗi giây trong 10 giây.\nSống sót lâu trong combat dài."
+    BoosterType.DOUBLE_FIRE ->
+        "Bắn 2 phát đạn xếp chồng mỗi lần thay vì 1.\nGấp đôi tốc độ sát thương trong 10 giây."
+    BoosterType.FIRE_BOOSTER ->
+        "Đạn gây cháy enemy, mất 5 máu/giây trong 3 giây sau khi trúng.\nKéo dài 10 giây."
+    BoosterType.HOMING_BOOSTER ->
+        "Đạn tự đuổi theo enemy gần nhất.\nNhắm mắt cũng trúng. Kéo dài 10 giây."
+    BoosterType.BOUNCE_BOOSTER ->
+        "Đạn nảy lại khi va vào cạnh màn hình, trúng tối đa 3 enemy/viên.\nKéo dài 12 giây."
+    BoosterType.GIANT_BOOSTER ->
+        "Đạn to gấp đôi + sát thương ×2.\nKéo dài 10 giây."
+    BoosterType.SMOKE_BOOSTER ->
+        "Đạn khói AoE 60 px (sắp ra mắt — hiện tại hoạt động như đạn thường, ×0.8 sát thương).\nKéo dài 10 giây."
+    BoosterType.ZIGZAG_BOOSTER ->
+        "Đạn bay đường zigzag né dodge enemy (sắp ra mắt — hiện đạn thường, ×0.9 sát thương).\nKéo dài 12 giây."
+    BoosterType.KAMEHAMEHA_BOOSTER ->
+        "Tia năng lượng xuyên thấu vô hạn, sát thương ×3 (sắp ra mắt — hiện đạn thường, vẫn ×3 sát thương).\nKéo dài 8 giây."
+    BoosterType.ATOMIC_BOOSTER ->
+        "Đạn nguyên tử nổ AoE 150 px khổng lồ (sắp ra mắt — hiện đạn thường, ×1.5 sát thương).\nKéo dài 10 giây."
+    BoosterType.SPLIT_BOOSTER ->
+        "Đạn phân tách thành 3 mảnh khi va chạm (sắp ra mắt — hiện đạn thường, ×0.6 sát thương).\nKéo dài 12 giây."
+}
+
+// Round 71 (Issue 4e) — "Khi nào nên nhặt" — gameplay tip 1-line.
+private fun boosterTip(b: BoosterType): String = when (b) {
+    BoosterType.HEALTH_BOOSTER -> "Nhặt khi máu dưới 50%."
+    BoosterType.SHIELD_BOOSTER -> "Tốt nhất khi gặp boss hoặc combat dày đặc."
+    BoosterType.LASER_BOOSTER -> "Nhặt bất kỳ lúc nào — tăng damage cơ bản."
+    BoosterType.TRIPLE_LASER_BOOSTER -> "Tuyệt vời để dọn nhanh đám enemy."
+    BoosterType.ULTIMATE_WEAPON_BOOSTER -> "Dùng khi màn hình đầy enemy."
+    BoosterType.REVIVE_TOKEN -> "Hiếm — luôn nhặt khi thấy."
+    BoosterType.PIERCING_BOOSTER -> "Hiệu quả nhất khi enemy xếp hàng dọc."
+    BoosterType.PLASMA_BOOSTER -> "Tốt khi enemy bay theo cụm."
+    BoosterType.MAGNET_BOOST -> "Nhặt sau khi giết boss có nhiều khoáng."
+    BoosterType.CRIT_SURGE -> "Dùng ngay trước khi boss xuất hiện."
+    BoosterType.SPREAD_SHOT -> "Hợp cho stage có enemy bay sideways."
+    BoosterType.BERSERK -> "Chỉ nhặt khi máu trên 70%."
+    BoosterType.PHASE_SHIELD -> "Dùng để vượt qua đợt enemy laser."
+    BoosterType.SCORE_X3 -> "Nhặt khi đang farm — combo với MAGNET."
+    BoosterType.QUICK_HEAL -> "Cấp cứu khi máu cực thấp."
+    BoosterType.MINERAL_SUPERCHARGE -> "Cuối stage để dọn sạch khoáng."
+    BoosterType.HEALING_AURA -> "Tốt cho boss fight dài."
+    BoosterType.DOUBLE_FIRE -> "Combo với LASER_BOOSTER để DPS tối đa."
+    BoosterType.FIRE_BOOSTER -> "Hiệu quả với enemy nhiều máu."
+    BoosterType.HOMING_BOOSTER -> "Hợp cho người mới — không cần aim."
+    BoosterType.BOUNCE_BOOSTER -> "Tốt khi enemy bay sát mép màn hình."
+    BoosterType.GIANT_BOOSTER -> "Combo boss — damage ×2 đáng giá."
+    BoosterType.SMOKE_BOOSTER -> "(Sắp ra) — chưa khuyến nghị."
+    BoosterType.ZIGZAG_BOOSTER -> "(Sắp ra) — chưa khuyến nghị."
+    BoosterType.KAMEHAMEHA_BOOSTER -> "(Sắp ra) — nhặt cho damage ×3 ngay."
+    BoosterType.ATOMIC_BOOSTER -> "(Sắp ra) — nhặt cho damage ×1.5."
+    BoosterType.SPLIT_BOOSTER -> "(Sắp ra) — chưa khuyến nghị."
+}
+
+// Round 71 (Issue 4e) — Duration / stack rule badge text.
+private fun boosterDuration(b: BoosterType): String = when (b) {
+    BoosterType.HEALTH_BOOSTER, BoosterType.ULTIMATE_WEAPON_BOOSTER,
+    BoosterType.QUICK_HEAL, BoosterType.MINERAL_SUPERCHARGE -> "Tức thời · Không stack"
+    BoosterType.REVIVE_TOKEN -> "Vĩnh viễn · 1 lần/run"
+    BoosterType.SHIELD_BOOSTER -> "⏱ 10/15/20s · Không stack"
+    BoosterType.LASER_BOOSTER -> "⏱ 15/22/30s · Không stack"
+    BoosterType.TRIPLE_LASER_BOOSTER -> "⏱ 20/30/40s · Không stack"
+    BoosterType.PIERCING_BOOSTER, BoosterType.PLASMA_BOOSTER -> "⏱ 10s · Stack reset"
+    BoosterType.MAGNET_BOOST -> "⏱ 15s · Refresh"
+    BoosterType.CRIT_SURGE -> "⏱ 8s · Refresh"
+    BoosterType.SPREAD_SHOT -> "⏱ 10s · Refresh"
+    BoosterType.BERSERK -> "⏱ 12s · Refresh"
+    BoosterType.PHASE_SHIELD -> "⏱ 5s · Refresh"
+    BoosterType.SCORE_X3 -> "⏱ 15s · Refresh"
+    BoosterType.HEALING_AURA -> "⏱ 10s · Refresh"
+    BoosterType.DOUBLE_FIRE -> "⏱ 10s · Refresh"
+    BoosterType.FIRE_BOOSTER, BoosterType.HOMING_BOOSTER, BoosterType.GIANT_BOOSTER,
+    BoosterType.SMOKE_BOOSTER, BoosterType.ATOMIC_BOOSTER -> "⏱ 10s · Stack reset"
+    BoosterType.BOUNCE_BOOSTER, BoosterType.ZIGZAG_BOOSTER, BoosterType.SPLIT_BOOSTER -> "⏱ 12s · Stack reset"
+    BoosterType.KAMEHAMEHA_BOOSTER -> "⏱ 8s · Stack reset"
 }
 
 // ─────────────────────────────────────────────────────────────────────────
 // Shared card
 // ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * Round 71 (Issue 4e) — Specialized booster card với 4 enrichments:
+ *   1. Friendly title (Vietnamese, không enum name).
+ *   2. Multi-line description.
+ *   3. "Khi nào nên nhặt" tip ở dòng riêng với icon hint 💡 → ✦.
+ *   4. Duration / stack rule badge dưới cùng.
+ */
+@Composable
+private fun BoosterCard(
+    color: Color,
+    title: String,
+    rarity: String,
+    description: String,
+    tip: String,
+    duration: String,
+    iconDraw: androidx.compose.ui.graphics.drawscope.DrawScope.(
+        canvasSize: androidx.compose.ui.geometry.Size,
+    ) -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(BorderStroke(1.dp, color.copy(alpha = 0.4f)), RoundedCornerShape(10.dp))
+            .background(color.copy(alpha = 0.06f), RoundedCornerShape(10.dp))
+            .padding(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.Top) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .border(BorderStroke(1.5.dp, color), RoundedCornerShape(8.dp))
+                    .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Canvas(modifier = Modifier.size(48.dp)) { iconDraw(size) }
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = title, color = color, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(text = rarity, color = color.copy(alpha = 0.65f), fontSize = 10.sp)
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = description,
+                    color = Color.White.copy(alpha = 0.88f),
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "✦ $tip",
+                    color = color.copy(alpha = 0.85f),
+                    fontSize = 11.sp,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = duration,
+                    color = Color.White.copy(alpha = 0.55f),
+                    fontSize = 10.sp,
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun InfoCard(

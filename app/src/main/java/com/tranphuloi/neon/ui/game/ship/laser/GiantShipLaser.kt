@@ -30,6 +30,8 @@ data class GiantShipLaser(
     override var impactPower: Float = 25f                            // base; ×2 applied via BulletType mul
     override val drawableId: Int = R.drawable.ic_laser_blue_7        // legacy, unused (Round 66 vector)
     override var destroyed: Boolean = false
+    // Round 71 fix (Issue 4a audit) — surface bulletType cho LaserCanvas dispatch.
+    override val bulletType: BulletType = BulletType.GIANT
 
     override fun moveLaser() {
         yOffset -= yOffsetMovementSpeed

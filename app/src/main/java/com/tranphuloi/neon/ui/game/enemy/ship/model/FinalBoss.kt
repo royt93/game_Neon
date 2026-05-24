@@ -47,6 +47,8 @@ data class FinalBoss(
     override val drawableId: Int = R.drawable.enemy_green_boss   // reuse — palette tinted
     override var lastImpactMillis: Long = 0L
     override val isBoss: Boolean = true
+    // Round 71 (Issue 4d) — SPIDER silhouette (8 legs, FinalBoss).
+    override val bossKind: BossKind = BossKind.SPIDER
     override val displayName: String = "GALAXY OVERLORD"
 
     override var xOffset: Float = (screenWidth - width) / 2f

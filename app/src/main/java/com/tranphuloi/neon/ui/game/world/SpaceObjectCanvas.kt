@@ -14,6 +14,8 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.tranphuloi.neon.common.NeonCyan
+import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.common.NeonViolet
 import com.tranphuloi.neon.ui.game.spaceObject.SpaceObjectUI
 import kotlin.math.cos
@@ -62,12 +64,16 @@ private fun DrawScope.drawSpaceObject(obj: SpaceObjectUI, density: Density) {
         val cy = yPx + sizePx / 2f
         val glowR = (sizePx / 2f) * 1.4f
 
-        // 1. Halo
+        // Round 71 (Issue 5) — 3-family asteroid: pick family by seed % 3.
+        val seed = obj.id.hashCode()
+        val family = AsteroidFamily.entries[Math.floorMod(seed, AsteroidFamily.entries.size)]
+
+        // 1. Halo (family color)
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(
-                    NeonViolet.copy(alpha = 0.35f),
-                    NeonViolet.copy(alpha = 0.14f),
+                    family.glow.copy(alpha = 0.35f),
+                    family.glow.copy(alpha = 0.14f),
                     Color.Transparent,
                 ),
                 center = Offset(cx, cy),
@@ -77,31 +83,81 @@ private fun DrawScope.drawSpaceObject(obj: SpaceObjectUI, density: Density) {
             center = Offset(cx, cy),
         )
 
-        // 2. Irregular asteroid polygon + craters.
-        // Seed from id hash so each rock has a stable shape between frames.
-        val seed = obj.id.hashCode()
+        // 2. Family-aware asteroid: variable vertex 8-14 + family-specific
+        //    body color / stroke / crater style.
         rotate(degrees = obj.rotation, pivot = Offset(cx, cy)) {
-            drawAsteroidShape(cx, cy, sizePx / 2f, seed)
+            drawAsteroidShape(cx, cy, sizePx / 2f, seed, family)
         }
     }
 }
+
+/**
+ * Round 71 (Issue 5) — 3 asteroid families distinguished by color + texture
+ * style. Sub-style variation comes from variable vertex count + per-seed jitter.
+ *
+ *   ROCK  : violet neon stroke, dark violet body, 10-14 vertex (jagged), 2-3 craters
+ *   ICE   : cyan stroke, navy body, 8-10 vertex (smooth crystal), 1-2 sparkle highlights
+ *   METAL : gold stroke, charcoal body, 12-14 vertex (angular plated), 3-4 rivet dots
+ */
+private enum class AsteroidFamily(
+    val body: Color,
+    val stroke: Color,
+    val glow: Color,
+    val vertexRange: IntRange,
+    val craterStyle: CraterStyle,
+) {
+    ROCK(
+        body = Color(0xFF1A0B2E),
+        stroke = NeonViolet,
+        glow = NeonViolet,
+        vertexRange = 10..14,
+        craterStyle = CraterStyle.RING,
+    ),
+    ICE(
+        body = Color(0xFF071E2E),
+        stroke = NeonCyan,
+        glow = NeonCyan,
+        vertexRange = 8..10,
+        craterStyle = CraterStyle.SPARKLE,
+    ),
+    METAL(
+        body = Color(0xFF1F1A0B),
+        stroke = NeonGold,
+        glow = NeonGold,
+        vertexRange = 12..14,
+        craterStyle = CraterStyle.RIVET,
+    );
+}
+
+private enum class CraterStyle { RING, SPARKLE, RIVET }
 
 /**
  * Draws an asteroid silhouette: 8-12 vertex polygon with radius jitter so the
  * outline looks rough, filled with dark violet, neon-stroked + 2-3 inner dots
  * to suggest craters.
  */
-private fun DrawScope.drawAsteroidShape(cx: Float, cy: Float, baseR: Float, seed: Int) {
-    val vertexCount = 10
+private fun DrawScope.drawAsteroidShape(
+    cx: Float, cy: Float, baseR: Float, seed: Int, family: AsteroidFamily,
+) {
     val rand = kotlin.random.Random(seed)
-    val angles = FloatArray(vertexCount) { i ->
-        // Even angle spacing + small jitter for asymmetry.
-        val baseAngle = (2.0 * Math.PI * i / vertexCount).toFloat()
-        baseAngle + (rand.nextFloat() - 0.5f) * 0.25f
+    // Round 71 (Issue 5) — variable vertex count per family.
+    val vertexCount = family.vertexRange.let { it.first + rand.nextInt(it.last - it.first + 1) }
+    val angleJitter = when (family) {
+        AsteroidFamily.ROCK -> 0.28f
+        AsteroidFamily.ICE -> 0.15f          // smoother crystal
+        AsteroidFamily.METAL -> 0.20f
     }
-    val radii = FloatArray(vertexCount) { i ->
-        // Jitter radius 80-110% of base.
-        baseR * (0.80f + rand.nextFloat() * 0.30f)
+    val radiusVariance = when (family) {
+        AsteroidFamily.ROCK -> 0.30f         // jagged
+        AsteroidFamily.ICE -> 0.18f          // smooth
+        AsteroidFamily.METAL -> 0.22f
+    }
+    val angles = FloatArray(vertexCount) { i ->
+        val baseAngle = (2.0 * Math.PI * i / vertexCount).toFloat()
+        baseAngle + (rand.nextFloat() - 0.5f) * angleJitter
+    }
+    val radii = FloatArray(vertexCount) {
+        baseR * (1f - radiusVariance / 2f + rand.nextFloat() * radiusVariance)
     }
     val outline = Path().apply {
         for (i in 0 until vertexCount) {
@@ -111,24 +167,56 @@ private fun DrawScope.drawAsteroidShape(cx: Float, cy: Float, baseR: Float, seed
         }
         close()
     }
-    // Filled dark interior (slightly transparent for depth) + neon stroke.
-    drawPath(path = outline, color = Color(0xFF1A0B2E))               // deep violet body
+    drawPath(path = outline, color = family.body)
     drawPath(
         path = outline,
-        color = NeonViolet,
+        color = family.stroke,
         style = Stroke(width = baseR * 0.10f),
     )
-    // 2-3 small crater dots inside.
-    val craterCount = 2 + (rand.nextInt(2))                            // 2 or 3
-    repeat(craterCount) {
-        val craterAngle = rand.nextFloat() * Math.PI.toFloat() * 2f
-        val craterDist = baseR * (0.20f + rand.nextFloat() * 0.40f)
-        val craterR = baseR * (0.06f + rand.nextFloat() * 0.06f)
-        drawCircle(
-            color = NeonViolet.copy(alpha = 0.65f),
-            radius = craterR,
-            center = Offset(cx + craterDist * cos(craterAngle), cy + craterDist * sin(craterAngle)),
-            style = Stroke(width = baseR * 0.05f),
-        )
+
+    // Crater style per family.
+    when (family.craterStyle) {
+        CraterStyle.RING -> {
+            val n = 2 + rand.nextInt(2)
+            repeat(n) {
+                val a = rand.nextFloat() * Math.PI.toFloat() * 2f
+                val d = baseR * (0.20f + rand.nextFloat() * 0.40f)
+                val r = baseR * (0.06f + rand.nextFloat() * 0.06f)
+                drawCircle(
+                    color = family.stroke.copy(alpha = 0.65f),
+                    radius = r,
+                    center = Offset(cx + d * cos(a), cy + d * sin(a)),
+                    style = Stroke(width = baseR * 0.05f),
+                )
+            }
+        }
+        CraterStyle.SPARKLE -> {
+            // Cross-shaped sparkles for ice — 1-2 highlights.
+            val n = 1 + rand.nextInt(2)
+            repeat(n) {
+                val a = rand.nextFloat() * Math.PI.toFloat() * 2f
+                val d = baseR * (0.15f + rand.nextFloat() * 0.45f)
+                val px = cx + d * cos(a)
+                val py = cy + d * sin(a)
+                val len = baseR * (0.10f + rand.nextFloat() * 0.06f)
+                drawLine(family.stroke.copy(alpha = 0.85f),
+                    Offset(px - len, py), Offset(px + len, py), strokeWidth = baseR * 0.04f)
+                drawLine(family.stroke.copy(alpha = 0.85f),
+                    Offset(px, py - len), Offset(px, py + len), strokeWidth = baseR * 0.04f)
+            }
+        }
+        CraterStyle.RIVET -> {
+            // Filled small dots for metal "rivets" — 3-4.
+            val n = 3 + rand.nextInt(2)
+            repeat(n) {
+                val a = rand.nextFloat() * Math.PI.toFloat() * 2f
+                val d = baseR * (0.20f + rand.nextFloat() * 0.45f)
+                drawCircle(
+                    color = family.stroke,
+                    radius = baseR * 0.06f,
+                    center = Offset(cx + d * cos(a), cy + d * sin(a)),
+                )
+            }
+        }
     }
 }

@@ -59,7 +59,8 @@ class EnemyToEnemyUIMapper {
             cached.isInEntryPhase == enemy.isInEntryPhase &&
             cached.currentPhase == enemy.currentPhase &&
             cached.phaseTransitionMillis == enemy.phaseTransitionMillis &&
-            cached.activeStatusEffectTints == activeStatusEffectTints
+            cached.activeStatusEffectTints == activeStatusEffectTints &&
+            cached.bossKind == enemy.bossKind
         ) {
             return cached
         }
@@ -81,6 +82,7 @@ class EnemyToEnemyUIMapper {
                 currentPhase = currentPhase,
                 phaseTransitionMillis = phaseTransitionMillis,
                 activeStatusEffectTints = activeStatusEffectTints,
+                bossKind = bossKind,
             )
         }
         cache[enemy.enemyId] = newUi
