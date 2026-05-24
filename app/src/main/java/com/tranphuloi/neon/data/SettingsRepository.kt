@@ -33,6 +33,10 @@ object SettingsKeys {
     val PREFERRED_BULLET_TYPE = stringPreferencesKey("preferred_bullet_type")
     /** Round 62 — voice announcer (TTS) toggle. Default true. */
     val VOICE_ANNOUNCER_ENABLED = booleanPreferencesKey("voice_announcer_enabled")
+    /** Round 68 — auto skip LoadoutPicker khi PLAY, dùng loadout last-picked. */
+    val AUTO_SKIP_LOADOUT = booleanPreferencesKey("auto_skip_loadout")
+    /** Round 68 (Wave 8) — selected ship shape. Default FIGHTER. */
+    val SELECTED_SHIP_SHAPE = stringPreferencesKey("selected_ship_shape")
 }
 
 /**
@@ -163,6 +167,15 @@ class SettingsRepository(private val appContext: Context) {
     val voiceAnnouncerEnabled: Flow<Boolean> = appContext.dataStore.data.map {
         it[SettingsKeys.VOICE_ANNOUNCER_ENABLED] ?: true
     }
+    /** Round 68 — when true (default), PLAY skips LoadoutPicker → reuses last picks. */
+    val autoSkipLoadout: Flow<Boolean> = appContext.dataStore.data.map {
+        it[SettingsKeys.AUTO_SKIP_LOADOUT] ?: true
+    }
+    /** Round 68 (Wave 8) — selected ship shape. Defaults to FIGHTER. */
+    val selectedShipShape: Flow<com.tranphuloi.neon.ui.game.ship.shape.ShipShape> =
+        appContext.dataStore.data.map {
+            com.tranphuloi.neon.ui.game.ship.shape.ShipShape.fromKey(it[SettingsKeys.SELECTED_SHIP_SHAPE])
+        }
 
     suspend fun setReduceMotion(value: Boolean) {
         Logger.d("SettingsRepository.setReduceMotion=$value")
@@ -230,5 +243,15 @@ class SettingsRepository(private val appContext: Context) {
     suspend fun setVoiceAnnouncerEnabled(value: Boolean) {
         Logger.d("SettingsRepository.setVoiceAnnouncerEnabled=$value")
         appContext.dataStore.edit { it[SettingsKeys.VOICE_ANNOUNCER_ENABLED] = value }
+    }
+
+    suspend fun setAutoSkipLoadout(value: Boolean) {
+        Logger.d("SettingsRepository.setAutoSkipLoadout=$value")
+        appContext.dataStore.edit { it[SettingsKeys.AUTO_SKIP_LOADOUT] = value }
+    }
+
+    suspend fun setSelectedShipShape(value: com.tranphuloi.neon.ui.game.ship.shape.ShipShape) {
+        Logger.d("SettingsRepository.setSelectedShipShape=${value.key}")
+        appContext.dataStore.edit { it[SettingsKeys.SELECTED_SHIP_SHAPE] = value.key }
     }
 }

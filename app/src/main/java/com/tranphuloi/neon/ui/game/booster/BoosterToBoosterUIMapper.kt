@@ -32,6 +32,11 @@ class BoosterToBoosterUIMapper {
             BoosterType.HOMING_BOOSTER -> HOMING_TINT_ARGB to "◎"
             BoosterType.BOUNCE_BOOSTER -> BOUNCE_TINT_ARGB to "⇄"
             BoosterType.GIANT_BOOSTER -> GIANT_TINT_ARGB to "⬤"
+            BoosterType.SMOKE_BOOSTER -> SMOKE_TINT_ARGB to "❍"
+            BoosterType.ZIGZAG_BOOSTER -> ZIGZAG_TINT_ARGB to "⌇"
+            BoosterType.KAMEHAMEHA_BOOSTER -> KAMEHAMEHA_TINT_ARGB to "⊛"
+            BoosterType.ATOMIC_BOOSTER -> ATOMIC_TINT_ARGB to "⊙"
+            BoosterType.SPLIT_BOOSTER -> SPLIT_TINT_ARGB to "Ѱ"
             else -> 0L to null
         }
         return with(booster) {
@@ -76,5 +81,11 @@ class BoosterToBoosterUIMapper {
         const val HOMING_TINT_ARGB: Long = 0xFFFF40A0L                  // hot pink (lock-on)
         const val BOUNCE_TINT_ARGB: Long = 0xFF40FFD0L                  // mint (rubber bounce)
         const val GIANT_TINT_ARGB: Long = 0xFFFFD040L                   // gold (heavyweight)
+        // Round 68 (Wave 10 finish) — 5 tints cho 5 bullets còn lại.
+        const val SMOKE_TINT_ARGB: Long = 0xFFA0A0B0L                   // gray-blue smoke
+        const val ZIGZAG_TINT_ARGB: Long = 0xFFFFE040L                  // electric yellow
+        const val KAMEHAMEHA_TINT_ARGB: Long = 0xFF60E0FFL              // sky cyan beam
+        const val ATOMIC_TINT_ARGB: Long = 0xFF80FF80L                  // radioactive green
+        const val SPLIT_TINT_ARGB: Long = 0xFFB060FFL                   // purple multi-shard
     }
 }

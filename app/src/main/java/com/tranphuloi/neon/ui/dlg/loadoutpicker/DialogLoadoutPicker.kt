@@ -239,6 +239,11 @@ private fun colorForBullet(b: BulletType, palette: NeonPalette): Color = when (b
     BulletType.HOMING -> palette.magenta
     BulletType.BOUNCE -> palette.cyan
     BulletType.GIANT -> palette.gold
+    BulletType.SMOKE -> palette.violet
+    BulletType.ZIGZAG -> palette.gold
+    BulletType.KAMEHAMEHA -> palette.cyan
+    BulletType.ATOMIC -> palette.gold
+    BulletType.SPLIT -> palette.violet
 }
 
 private fun subtitleForBullet(b: BulletType): String = when (b) {
@@ -249,6 +254,11 @@ private fun subtitleForBullet(b: BulletType): String = when (b) {
     BulletType.HOMING -> "Đuổi địch · ×${b.damageMultiplier} dmg · ${b.activeDurationMillis / 1000}s"
     BulletType.BOUNCE -> "Phản xạ ×3 hits · ×${b.damageMultiplier} dmg · ${b.activeDurationMillis / 1000}s"
     BulletType.GIANT -> "Đạn khổng lồ · ×${b.damageMultiplier} dmg · ${b.activeDurationMillis / 1000}s"
+    BulletType.SMOKE -> "Đạn khói · slow (stub) · ${b.activeDurationMillis / 1000}s"
+    BulletType.ZIGZAG -> "Đạn zigzag · sine path (stub) · ${b.activeDurationMillis / 1000}s"
+    BulletType.KAMEHAMEHA -> "Kamehameha · pierce-all (stub) · ×${b.damageMultiplier} · ${b.activeDurationMillis / 1000}s"
+    BulletType.ATOMIC -> "Đạn nguyên tử · AoE 150dp (stub) · ${b.activeDurationMillis / 1000}s"
+    BulletType.SPLIT -> "Đạn phân tách · 3 children (stub) · ${b.activeDurationMillis / 1000}s"
 }
 
 private fun colorForSecondary(w: SecondaryWeapon, palette: NeonPalette): Color = when (w) {

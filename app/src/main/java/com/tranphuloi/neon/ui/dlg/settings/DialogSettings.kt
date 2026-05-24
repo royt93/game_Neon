@@ -88,6 +88,7 @@ fun DialogSettings(
     val vibrationEnabled by settings.vibrationEnabled.collectAsState(initial = true)
     val reduceMotion by settings.reduceMotion.collectAsState(initial = false)
     val voiceAnnouncerEnabled by settings.voiceAnnouncerEnabled.collectAsState(initial = true)
+    val autoSkipLoadout by settings.autoSkipLoadout.collectAsState(initial = true)
     val difficulty by settings.difficulty.collectAsState(initial = Difficulty.NORMAL)
     val shipSkin by settings.shipSkin.collectAsState(initial = ShipSkin.AURA_CYAN)
     val colorBlindMode by settings.colorBlindMode.collectAsState(
@@ -137,6 +138,13 @@ fun DialogSettings(
                     label = stringResource(com.tranphuloi.neon.R.string.settings_voice_announcer),
                     value = voiceAnnouncerEnabled,
                     onChange = { scope.launch { settings.setVoiceAnnouncerEnabled(it) } },
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                // Round 68 — auto-skip LoadoutPicker toggle (default ON).
+                SettingCheck(
+                    label = "Tự động bỏ qua Trang Bị",
+                    value = autoSkipLoadout,
+                    onChange = { scope.launch { settings.setAutoSkipLoadout(it) } },
                 )
             }
 

@@ -496,6 +496,16 @@ fun rememberGameState(): GameState {
                         "⇄ ${type.displayName}" to mapper.BOUNCE_TINT_ARGB
                     com.tranphuloi.neon.ui.game.ship.laser.BulletType.GIANT ->
                         "⬤ ${type.displayName}" to mapper.GIANT_TINT_ARGB
+                    com.tranphuloi.neon.ui.game.ship.laser.BulletType.SMOKE ->
+                        "❍ ${type.displayName}" to mapper.SMOKE_TINT_ARGB
+                    com.tranphuloi.neon.ui.game.ship.laser.BulletType.ZIGZAG ->
+                        "⌇ ${type.displayName}" to mapper.ZIGZAG_TINT_ARGB
+                    com.tranphuloi.neon.ui.game.ship.laser.BulletType.KAMEHAMEHA ->
+                        "⊛ ${type.displayName}" to mapper.KAMEHAMEHA_TINT_ARGB
+                    com.tranphuloi.neon.ui.game.ship.laser.BulletType.ATOMIC ->
+                        "⊙ ${type.displayName}" to mapper.ATOMIC_TINT_ARGB
+                    com.tranphuloi.neon.ui.game.ship.laser.BulletType.SPLIT ->
+                        "Ѱ ${type.displayName}" to mapper.SPLIT_TINT_ARGB
                     else -> return@ShipController
                 }
                 pickupPopupController.spawnBulletTypeActivation(

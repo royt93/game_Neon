@@ -39,8 +39,9 @@ class BoosterTypeTest {
         // Round 60 (38x) — +10 new boosters at weight 6 each = +60. Total 184.
         // Round 67 (10a) — +3 bullet-type boosters at weight 6 each = +18. Total 202.
         // Round 67.5 — +1 GIANT_BOOSTER at weight 6 = +6. Total 208.
+        // Round 68 (Wave 10 finish) — +5 bullet-type boosters at weight 6 each = +30. Total 238.
         // (Weight 6 chosen over 4 to keep REVIVE_TOKEN weight=5 the rarest drop.)
-        assertEquals(208, total)
+        assertEquals(238, total)
     }
 
     @Test

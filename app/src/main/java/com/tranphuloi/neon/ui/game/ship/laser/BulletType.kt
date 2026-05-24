@@ -93,6 +93,50 @@ enum class BulletType(
         pierceCount = 0,
         aoeRadius = 0f,
         glyph = "⬤",                               // large filled circle
+    ),
+    // Round 68 (Wave 10 finish) — 5 bullet types remaining. Stubs: enum
+    // entries + dispatch + damage mul. UNIQUE BEHAVIORS deferred to Round 69+
+    // (each behavior 1 dedicated round per bullet). Damage mul + duration
+    // metadata real ngay từ Round 68.
+    SMOKE(
+        displayName = "Khói",
+        activeDurationMillis = 10_000L,
+        damageMultiplier = 0.8f,
+        pierceCount = 0,
+        aoeRadius = 60f,
+        glyph = "❍",                               // outline circle (cloud-ish)
+    ),
+    ZIGZAG(
+        displayName = "Zigzag",
+        activeDurationMillis = 12_000L,
+        damageMultiplier = 0.9f,
+        pierceCount = 0,
+        aoeRadius = 0f,
+        glyph = "⌇",                               // wavy diagonal
+    ),
+    KAMEHAMEHA(
+        displayName = "Kamehameha",
+        activeDurationMillis = 8_000L,
+        damageMultiplier = 3f,
+        pierceCount = 99,
+        aoeRadius = 0f,
+        glyph = "⊛",                               // circled asterisk
+    ),
+    ATOMIC(
+        displayName = "Nguyên tử",
+        activeDurationMillis = 10_000L,
+        damageMultiplier = 1.5f,
+        pierceCount = 0,
+        aoeRadius = 150f,
+        glyph = "⊙",                               // circled dot (nucleus)
+    ),
+    SPLIT(
+        displayName = "Phân tách",
+        activeDurationMillis = 12_000L,
+        damageMultiplier = 0.6f,
+        pierceCount = 0,
+        aoeRadius = 0f,
+        glyph = "Ѱ",                               // psi (3-prong)
     );
 
     companion object {

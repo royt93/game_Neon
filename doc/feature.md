@@ -968,6 +968,153 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 68 — "Ship full mega": LoadoutPicker UX + Wave 10 finish (5 bullets stub) + Wave 8 ShipShape
+
+User picked **"Ship full mega — stub all 4 waves Round 68"** as one prompt for whole-batch scope. Decision: ship the auto-skip toggle real, ship Wave 10 remaining 5 bullets as stubs (metadata + dispatch + popup nhưng behavior fallback NORMAL), ship Wave 8 ShipShape enum + Settings persistence (stub — render fallback FIGHTER), defer Wave 9a (15 enemies) + Wave 9b (5 bosses) entirely as doc-only mention.
+
+**(1) LoadoutPicker UX fix (real)**
+
+User's prior question: "tôi chưa hiểu picker này có ý nghĩa gì? không phải là trang bị auto sao?". Resolution: keep picker reachable for explicit choice, but default to AUTO-SKIP. New Settings toggle `Tự động bỏ qua Trang Bị` (default ON). When ON, "BẮT ĐẦU" jumps straight to Game. When OFF, picker shows. Picker still reachable via MenuScreen "TRANG BỊ" button.
+
+- `data/SettingsRepository.kt` — added `AUTO_SKIP_LOADOUT` boolean key (default true) + `autoSkipLoadout: Flow<Boolean>` + `setAutoSkipLoadout(Boolean)`.
+- `ui/MainActivity.kt` — `onPlay = { if (autoSkipLoadout) navigate(Game) else navigate(LoadoutPicker) }`, new `onOpenLoadout = { navigate(LoadoutPicker) }`.
+- `ui/menu/MenuScreen.kt` — added `onOpenLoadout` param + new "TRANG BỊ" button (cyan ◈) paired với "BÁCH KHOA" trong Row 3 (both weight=1f). Gap uniform 12dp.
+- `ui/dlg/settings/DialogSettings.kt` — added `SettingCheck` row "Tự động bỏ qua Trang Bị" trong audio/UX section.
+
+**(2) Wave 10 finish — 5 bullets remaining (STUB)**
+
+User listed 10 bullets từ original vision. Round 67 shipped 3 (FIRE/HOMING/BOUNCE), Round 67.5 added GIANT (4 total). Round 68 stubs remaining 5: SMOKE / ZIGZAG / KAMEHAMEHA / ATOMIC / SPLIT. Stub = enum entry + booster pickup + activation popup + LasersController dispatch fallback to NORMAL ShipLaser/ShipBoostedLaser. Damage multiplier + duration metadata REAL ngay từ Round 68 (e.g. KAMEHAMEHA damage ×3 + duration 8s effective). Unique behaviors (smoke trail AoE, zigzag movement, charge-up beam, atomic AoE, mid-flight split) deferred to Round 69+.
+
+Bullet metadata Round 68:
+| Bullet | Duration | Damage ×  | AoE | Pierce | Glyph |
+|---|---|---|---|---|---|
+| SMOKE      | 10s | 0.8× | 60px  | 0  | ❍ |
+| ZIGZAG     | 12s | 0.9× | 0     | 0  | ⌇ |
+| KAMEHAMEHA | 8s  | 3.0× | 0     | 99 | ⊛ |
+| ATOMIC     | 10s | 1.5× | 150px | 0  | ⊙ |
+| SPLIT      | 12s | 0.6× | 0     | 0  | Ѱ |
+
+5 new boosters (one per bullet) at weight=6 each, reuse existing drawables. Total weight 208 → 238. REVIVE_TOKEN (weight=5) still rarest.
+
+- `ui/game/ship/laser/BulletType.kt` — 5 new entries với metadata real.
+- `ui/game/booster/BoosterType.kt` — 5 new BOOSTER entries reuse `booster_shield/red_lasers/ultimate_weapon` (recycled drawables).
+- `ui/game/booster/BoosterToBoosterUIMapper.kt` — 5 new tint+glyph pairs (SMOKE gray-blue, ZIGZAG yellow, KAMEHAMEHA cyan, ATOMIC green, SPLIT purple).
+- `ui/game/ship/ship/ShipController.kt` — 5 new pickup dispatch cases setBulletType().
+- `ui/game/state/GameState.kt` — 5 new activation popup cases (glyph + display name).
+- `ui/game/ship/laser/LasersController.kt` — 5 new buildOneLaser fallback branches (use ShipLaser/ShipBoostedLaser based on laserBoosterEnabled) + 5 destroy-on-hit cases.
+- `ui/dlg/loadoutpicker/DialogLoadoutPicker.kt` — 5 new colorForBullet + subtitleForBullet entries (subtitle marked "(stub)").
+- `ui/info/InfoScreen.kt` — 5 new BulletType color + description entries + 5 new BoosterType description entries. All description prefixed "(Stub R68)" / "(stub)" + "Hành vi đầy đủ: Round 69+".
+
+**(3) Wave 8 ShipShape (STUB)**
+
+New enum `ShipShape` for 5 ship variants with stat multiplier profile. Settings persistence done. ShipPickerScreen UI + actual vector rendering per shape deferred to Round 69+.
+
+| Shape | Unlock | HP × | Speed × | Damage × |
+|---|---|---|---|---|
+| FIGHTER     | 0       | 1.00 | 1.00 | 1.00 |
+| BOMBER      | 1,000   | 1.25 | 0.90 | 1.10 |
+| STEALTH     | 2,500   | 0.85 | 1.20 | 1.00 |
+| TANK        | 5,000   | 1.50 | 0.75 | 0.95 |
+| INTERCEPTOR | 10,000  | 0.80 | 1.30 | 1.10 |
+
+- New: `ui/game/ship/shape/ShipShape.kt` — enum + `fromKey(String?)` fallback FIGHTER.
+- `data/SettingsRepository.kt` — `SELECTED_SHIP_SHAPE` string key + `selectedShipShape: Flow<ShipShape>` + `setSelectedShipShape(ShipShape)`. fromKey resolves null/unknown → FIGHTER.
+
+NOT yet wired: ShipPickerScreen UI, unlock check vs lifetime minerals, stat multiplier feed into EffectiveStats, vector recipe per shape (currently render fallback FIGHTER for all).
+
+**(4) Defer Wave 9a (enemies) + Wave 9b (bosses)**
+
+Per scope reduction conversation: deferred entirely. No code touched. Roadmap remains in §"Wave 9" section of doc (15 enemy variants, 5 distinct bosses). Estimated 2-3 rounds each when picked up.
+
+### Round 68 files
+
+**New:**
+- `ui/game/ship/shape/ShipShape.kt` (~38 LOC).
+
+**Modified:**
+- `data/SettingsRepository.kt` — 2 new keys + 2 flows + 2 setters.
+- `ui/MainActivity.kt` — autoSkipLoadout gate + onOpenLoadout param wiring.
+- `ui/menu/MenuScreen.kt` — onOpenLoadout param + TRANG BỊ button in Row 3.
+- `ui/dlg/settings/DialogSettings.kt` — autoSkipLoadout toggle.
+- `ui/game/ship/laser/BulletType.kt` — 5 new entries.
+- `ui/game/booster/BoosterType.kt` — 5 new boosters.
+- `ui/game/booster/BoosterToBoosterUIMapper.kt` — 5 new tint+glyph mappings + 5 new const tint values.
+- `ui/game/ship/ship/ShipController.kt` — 5 new pickup dispatch.
+- `ui/game/state/GameState.kt` — 5 new bullet activation popup cases.
+- `ui/game/ship/laser/LasersController.kt` — 5 new buildOneLaser branches + 5 new destroy-on-hit cases.
+- `ui/dlg/loadoutpicker/DialogLoadoutPicker.kt` — 5 new colorForBullet + 5 new subtitleForBullet.
+- `ui/info/InfoScreen.kt` — 5 new BulletType color/description + 5 new BoosterType description (all stub annotated).
+- `test/.../BoosterTypeTest.kt` — total weight 208 → 238.
+- `test/.../BoosterTypeDistributionTest.kt` — PIERCING+PLASMA combined floor 90 → 60 (pool diluted 184→238, 5σ-safe at new ratio).
+
+### Round 68 verification
+
+- `./gradlew compileDevDebugKotlin` ✅ BUILD SUCCESSFUL.
+- `./gradlew compileProductionReleaseKotlin` ✅ BUILD SUCCESSFUL.
+- `./gradlew testDevDebugUnitTest` ✅ 219 tests passed (after distribution floor recalibration).
+- `./gradlew assembleDevDebug` ✅ BUILD SUCCESSFUL.
+
+**Runtime expectations:**
+- MenuScreen: 6 buttons (PLAY / SETTINGS / LEADERBOARD / DIFFICULTY / TRANG BỊ / BÁCH KHOA) — Row layout đồng đều 12dp gaps.
+- Settings dialog: new toggle "Tự động bỏ qua Trang Bị" mặc định ON.
+- PLAY tap với toggle ON: jump thẳng Game (no LoadoutPicker).
+- PLAY tap với toggle OFF: LoadoutPicker shows (existing behavior).
+- TRANG BỊ button: opens LoadoutPicker explicit, regardless toggle.
+- 5 new bullet boosters spawn @ weight=6 each (~2.5% per drop, ~13% combined). Pickup → activation popup với glyph + tên tiếng Việt + tint flash. Stat trong duration: damage multiplier real (e.g. KAMEHAMEHA effectively ×3 damage during 8s), nhưng visual = plain ShipLaser (real unique behavior Round 69+).
+- BÁCH KHOA tab "ĐẠN" giờ list 12 BulletType (NORMAL + PIERCING/PLASMA + FIRE/HOMING/BOUNCE/GIANT + 5 stub). Stub entries có description marked "(Stub R68) ... Round 69+".
+
+**Round 68+ roadmap:**
+- Round 69 (Wave 8 fill): ShipPickerScreen UI + unlock check + stat multiplier feed + per-shape vector recipe (5 distinct ship silhouettes).
+- Round 70-72 (Wave 10 fill): real behaviors for SMOKE (lingering AoE puff trail) → ZIGZAG (sin movement) → KAMEHAMEHA (charge-up + massive beam) → ATOMIC (huge AoE explosion) → SPLIT (mid-flight 3-way split).
+- Round 73-75 (Wave 9a): 15 enemy variants.
+- Round 76-78 (Wave 9b): 5 distinct boss patterns.
+
+### Round 67.7 — User feedback iteration (menu spacing + InfoScreen edge-to-edge + 2 emoji button icons)
+
+User audit Round 67.6 confirmed 4 issues remained:
+1. MenuScreen buttons vẫn chưa cách đều — Row 1/2 (50% width) vs BÁCH KHOA (100% width) cảm giác "không đồng đều"
+2. InfoScreen vẫn edge-to-edge bug — mix statusBars + systemBars padding gây gap nửa-vời
+3. 2 emoji icons trên game screen góc bottom-right (SmartBomb 💣, SecondaryWeapon 🚀/💠/💥) chưa vector
+4. Item description cần tiếng Việt rõ ràng + animation cho sinh động
+
+**Fix 1 — MenuScreen "buttons cách đều"**
+- Unified gap: Column spacedBy(12.dp) + Row spacedBy(12.dp). Pre-fix có vertical 12dp + horizontal 14dp inconsistent.
+- BÁCH KHOA giờ trong Row 3 với invisible Spacer placeholder ở slot trái → giữ width đúng 50% như các button khác (thay vì fillMaxWidth 100% gây cảm giác "to gấp đôi" so với row 1/2).
+
+**Fix 2 — InfoScreen edge-to-edge proper**
+- `WindowInsets.safeDrawing` thay mix `statusBars` (outer) + `systemBars` (inner). safeDrawing = status bar + navigation bar + display cutout combined → 1 outer padding xử lý hết.
+- Tab content giờ `animateFloatAsState` fade-in 320ms mỗi khi switch tab. Subtle nhưng sinh động.
+
+**Fix 3 — 2 emoji icons → Canvas vector**
+
+| Element | Before | After |
+|---|---|---|
+| SmartBombButton | `Text("💣", 16sp)` emoji | Canvas vector: bomb sphere + highlight + diagonal fuse line + gold spark dot |
+| SecondaryWeaponButton MISSILE | `Text("🚀")` | Canvas vector: tear-drop body + 2 fins + gold flame trail |
+| SecondaryWeaponButton MINE | `Text("💠")` | Canvas vector: 4-spike diamond caltrop + center white pulse |
+| SecondaryWeaponButton BURST | `Text("💥")` | Canvas vector: 8-ray asterisk + bright white center |
+
+API change: `SecondaryWeaponButton` signature changed from `glyph: String` → `weapon: SecondaryWeapon`. Internal `when (weapon)` dispatches to per-weapon `drawWeaponIcon` recipes. Caller (GameScreen) passes the enum directly. Cleaner coupling.
+
+**Round 67.6 retro fixes that aren't actually Round 67.7:**
+The user mentioned LoadoutPicker UX in feedback #3 (asking "ý nghĩa gì") — that's not a bug, it's a feature explanation. See Notes section.
+
+**Files modified:**
+- `ui/menu/MenuScreen.kt` — 14dp→12dp uniform, BÁCH KHOA in Row 3 với spacer.
+- `ui/info/InfoScreen.kt` — safeDrawing inset + Animatable fade-in per tab + cleanup nested padding.
+- `ui/game/controls/SmartBombButton.kt` — Text("💣") → Canvas bomb vector (~50 LOC).
+- `ui/game/controls/SecondaryWeaponButton.kt` — signature change (glyph → weapon) + 3 vector recipes (~85 LOC for drawWeaponIcon dispatch).
+- `ui/game/GameScreen.kt` — `glyph = ...glyph` → `weapon = ...activeSecondaryWeapon`.
+
+**Tests:** 219 unchanged.
+
+**Build verify:** `compileDevDebugKotlin` + `compileProductionReleaseKotlin` + `testDevDebugUnitTest` + `assembleDevDebug` BUILD SUCCESSFUL.
+
+**Runtime expectations:**
+- MenuScreen: 5 buttons + BÁCH KHOA — tất cả ~50% width, 12dp gaps uniform.
+- InfoScreen: header + tabs + content all properly inset (no flush against status/nav bar). Tab switch = subtle 320ms fade-in.
+- HUD bottom-right: SmartBomb vector bomb sphere (red khi enabled), SecondaryWeapon vector icon đổi theo loadout setting (missile/mine/burst).
+
 ### Round 67.6 — 4 user feedback fixes (MenuScreen + InfoScreen + HUD vector + asset cleanup)
 
 User audit Round 67.5 (4 issues):

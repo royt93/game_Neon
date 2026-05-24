@@ -444,7 +444,7 @@ fun GameScreen(
         // Round 40 (29x) → 41 — secondary weapon button. Glyph reflects active
         // weapon (MISSILE / MINE / BURST) picked in Settings.
         if (hudVisible) com.tranphuloi.neon.ui.game.controls.SecondaryWeaponButton(
-            glyph = gameState.activeSecondaryWeapon.glyph,
+            weapon = gameState.activeSecondaryWeapon,
             cooldownProgress = gameState.secondaryCooldownProgress,
             onFire = { gameState.fireSecondary() },
             modifier = Modifier

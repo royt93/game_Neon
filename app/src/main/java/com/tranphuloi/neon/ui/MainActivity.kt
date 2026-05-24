@@ -192,11 +192,23 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(route = Menu.route) {
+                            // Round 68 — auto-skip LoadoutPicker if Settings flag enabled
+                            // (default true). Player only sees picker when they explicitly
+                            // tap "TRANG BỊ" or turn the setting off.
+                            val autoSkipLoadout by app.settings.autoSkipLoadout
+                                .collectAsState(initial = true)
                             MenuScreen(
                                 onPlay = {
-                                    // Round 45 (36x) — PLAY now goes through LoadoutPicker,
-                                    // which forwards to Game after the player confirms.
-                                    Logger.d("Nav: Menu → LoadoutPicker")
+                                    if (autoSkipLoadout) {
+                                        Logger.d("Nav: Menu → Game (auto-skip LoadoutPicker)")
+                                        navController.navigate(Game.route)
+                                    } else {
+                                        Logger.d("Nav: Menu → LoadoutPicker")
+                                        navController.navigate(com.tranphuloi.neon.navigation.LoadoutPicker.route)
+                                    }
+                                },
+                                onOpenLoadout = {
+                                    Logger.d("Nav: Menu → LoadoutPicker (manual)")
                                     navController.navigate(com.tranphuloi.neon.navigation.LoadoutPicker.route)
                                 },
                                 onOpenModePicker = {

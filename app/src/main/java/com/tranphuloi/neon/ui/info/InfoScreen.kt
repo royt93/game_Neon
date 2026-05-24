@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -71,13 +73,22 @@ private enum class InfoTab(val label: String, val color: Color) {
 @Composable
 fun InfoScreen(onBack: () -> Unit) {
     var selectedTab by remember { mutableStateOf(InfoTab.BULLETS) }
+    // Round 67.7 — fade-in animation for tab content. Tăng dần alpha 0→1 trong
+    // 320ms mỗi khi switch tab. Subtle sinh động.
+    val tabAlpha = androidx.compose.animation.core.animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = androidx.compose.animation.core.tween(320),
+        label = "tab-fade",
+    )
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(NeonBgDeep)
-            // Round 67.6 — statusBars padding only (not systemBars) so the
-            // bottom is flush + the top respects status bar when visible.
-            .windowInsetsPadding(WindowInsets.statusBars),
+            // Round 67.7 — proper edge-to-edge: safeDrawing covers BOTH status
+            // bar (top) + navigation bar (bottom) + display cutout. Outer Box
+            // applies it once, không split insets giữa outer/inner như Round 67.6
+            // (gây gap nửa-vời ở 1 cạnh).
+            .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Header
@@ -142,18 +153,26 @@ fun InfoScreen(onBack: () -> Unit) {
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
-            // Content with bottom-padded so last item not flush against nav bar
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .windowInsetsPadding(WindowInsets.systemBars),
-            ) {
-                when (selectedTab) {
-                    InfoTab.BULLETS -> BulletsTab()
-                    InfoTab.SHIP -> ShipTab()
-                    InfoTab.ENEMIES -> EnemiesTab()
-                    InfoTab.BOSSES -> BossesTab()
-                    InfoTab.ITEMS -> ItemsTab()
+            // Round 67.7 — content fades in on tab switch. key(selectedTab)
+            // restarts the Animatable from 0 so transition feels deliberate.
+            androidx.compose.runtime.key(selectedTab) {
+                val fade = remember { androidx.compose.animation.core.Animatable(0f) }
+                androidx.compose.runtime.LaunchedEffect(selectedTab) {
+                    fade.animateTo(1f, animationSpec = androidx.compose.animation.core.tween(320))
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { alpha = fade.value }
+                        // No extra inset padding — outer Box already handles safeDrawing.
+                ) {
+                    when (selectedTab) {
+                        InfoTab.BULLETS -> BulletsTab()
+                        InfoTab.SHIP -> ShipTab()
+                        InfoTab.ENEMIES -> EnemiesTab()
+                        InfoTab.BOSSES -> BossesTab()
+                        InfoTab.ITEMS -> ItemsTab()
+                    }
                 }
             }
         }
@@ -192,6 +211,11 @@ private fun bulletColor(b: BulletType): Color = when (b) {
     BulletType.HOMING -> Color(0xFFFF40A0)                  // hot pink
     BulletType.BOUNCE -> Color(0xFF40FFD0)                  // mint
     BulletType.GIANT -> Color(0xFFFFD040)                   // gold
+    BulletType.SMOKE -> Color(0xFFA0A0B0)                   // gray-blue
+    BulletType.ZIGZAG -> Color(0xFFFFE040)                  // electric yellow
+    BulletType.KAMEHAMEHA -> Color(0xFF60E0FF)              // sky cyan
+    BulletType.ATOMIC -> Color(0xFF80FF80)                  // radioactive green
+    BulletType.SPLIT -> Color(0xFFB060FF)                   // purple
 }
 
 private fun bulletDescription(b: BulletType): String = when (b) {
@@ -202,6 +226,11 @@ private fun bulletDescription(b: BulletType): String = when (b) {
     BulletType.HOMING -> "Tự đuổi theo enemy gần nhất mỗi tick (MissileLaser pattern)."
     BulletType.BOUNCE -> "Phản xạ off cạnh màn hình. Mỗi viên đạn hit tối đa 3 enemy trước khi tiêu hủy."
     BulletType.GIANT -> "Kích thước ×2 + damage ×2. Không cần charge-up."
+    BulletType.SMOKE -> "(Stub Round 68) Để lại vệt khói AoE 60px gây sát thương cộng dồn. Hành vi đầy đủ: Round 69+."
+    BulletType.ZIGZAG -> "(Stub Round 68) Đạn bay zigzag né dodge. Hành vi đầy đủ: Round 69+."
+    BulletType.KAMEHAMEHA -> "(Stub Round 68) Tia laser khủng xuyên thấu vô hạn, damage ×3. Hành vi đầy đủ: Round 69+."
+    BulletType.ATOMIC -> "(Stub Round 68) Đạn nguyên tử với AoE explosion 150px khổng lồ. Hành vi đầy đủ: Round 69+."
+    BulletType.SPLIT -> "(Stub Round 68) Đạn phân tách thành 3 mảnh nhỏ khi va chạm. Hành vi đầy đủ: Round 69+."
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBulletCapsule(
@@ -216,6 +245,11 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBulletCapsule(
         BulletType.HOMING -> Color(0xFFFF40A0)
         BulletType.BOUNCE -> Color(0xFF40FFD0)
         BulletType.GIANT -> Color(0xFFFFD040)
+        BulletType.SMOKE -> Color(0xFFA0A0B0)
+        BulletType.ZIGZAG -> Color(0xFFFFE040)
+        BulletType.KAMEHAMEHA -> Color(0xFF60E0FF)
+        BulletType.ATOMIC -> Color(0xFF80FF80)
+        BulletType.SPLIT -> Color(0xFFB060FF)
     }
     val cx = canvasSize.width / 2f
     val cy = canvasSize.height / 2f
@@ -730,6 +764,11 @@ private fun boosterDescription(b: BoosterType): String = when (b) {
     BoosterType.HOMING_BOOSTER -> "Bullet HOMING 10s. Đuổi theo enemy gần nhất."
     BoosterType.BOUNCE_BOOSTER -> "Bullet BOUNCE 12s. Ricochet off edges, 3 hits per laser."
     BoosterType.GIANT_BOOSTER -> "Bullet GIANT 10s. ×2 size + ×2 damage."
+    BoosterType.SMOKE_BOOSTER -> "(Stub R68) Bullet SMOKE 10s. AoE 60px. Hành vi đầy đủ: Round 69+."
+    BoosterType.ZIGZAG_BOOSTER -> "(Stub R68) Bullet ZIGZAG 12s. Bay zigzag. Hành vi đầy đủ: Round 69+."
+    BoosterType.KAMEHAMEHA_BOOSTER -> "(Stub R68) Bullet KAMEHAMEHA 8s. Damage ×3 + xuyên thấu. Hành vi đầy đủ: Round 69+."
+    BoosterType.ATOMIC_BOOSTER -> "(Stub R68) Bullet ATOMIC 10s. AoE 150px. Hành vi đầy đủ: Round 69+."
+    BoosterType.SPLIT_BOOSTER -> "(Stub R68) Bullet SPLIT 12s. Phân tách 3 mảnh. Hành vi đầy đủ: Round 69+."
 }
 
 // ─────────────────────────────────────────────────────────────────────────

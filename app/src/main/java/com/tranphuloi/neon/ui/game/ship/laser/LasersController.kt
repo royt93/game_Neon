@@ -152,6 +152,27 @@ class LasersController(
                 yOffset = ship.yOffset - 40f + dy,
                 yRange = screenHeight,
             )
+            // Round 68 (Wave 10 finish) — 5 bullet types stub. Fall back về
+            // NORMAL ShipLaser body, damage mul áp dụng qua damageMultiplier
+            // lambda. Behaviors thật (SMOKE AoE slow, ZIGZAG sine path,
+            // KAMEHAMEHA wide beam, ATOMIC AoE 150dp, SPLIT 3 children at
+            // apex) deferred to Round 69a-e, each behavior 1 round.
+            BulletType.SMOKE, BulletType.ZIGZAG, BulletType.KAMEHAMEHA,
+            BulletType.ATOMIC, BulletType.SPLIT -> if (ship.laserBoosterEnabled) {
+                ShipBoostedLaser(
+                    id = uuidUtils.getUuid(),
+                    xOffset = ship.xOffset + ship.width / 2 - SHIP_BOOSTED_LASER_WIDTH / 2 + dx,
+                    yOffset = ship.yOffset - 25f + dy,
+                    yRange = screenHeight,
+                )
+            } else {
+                ShipLaser(
+                    id = uuidUtils.getUuid(),
+                    xOffset = ship.xOffset + ship.width / 2 - SHIP_LASER_WIDTH / 2 + dx,
+                    yOffset = ship.yOffset - 20f + dy,
+                    yRange = screenHeight,
+                )
+            }
             BulletType.NORMAL -> if (ship.laserBoosterEnabled) {
                 ShipBoostedLaser(
                     id = uuidUtils.getUuid(),
@@ -372,6 +393,9 @@ class LasersController(
                         }
                     }
                     BulletType.GIANT -> destroyShipLaser(laser)
+                    // Round 68 stub — destroy on hit. Behaviors thật Round 69+.
+                    BulletType.SMOKE, BulletType.ZIGZAG, BulletType.KAMEHAMEHA,
+                    BulletType.ATOMIC, BulletType.SPLIT -> destroyShipLaser(laser)
                 }
                 updateShipLasersUI()
             }

@@ -95,6 +95,7 @@ fun MenuScreen(
     onOpenMetaUpgrade: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenInfo: () -> Unit = {},
+    onOpenLoadout: () -> Unit = {},
 ) {
     val settings = LocalSettings.current
     val meta = LocalMetaProgression.current
@@ -185,14 +186,20 @@ fun MenuScreen(
             // bottom (before grid) on tall screens — visually balanced.
             if (tallEnough) Spacer(modifier = Modifier.weight(0.7f))
 
-            // ─── 2x2 icon grid (stagger 480ms — single anim for both rows) ───
+            // ─── 5-button grid (stagger 480ms) ───
+            // Round 67.7 — fix "buttons không cách đều":
+            // (a) Unified gap: Column spacedBy(12.dp) + Row spacedBy(12.dp) — was
+            //     vertical 12dp + horizontal 14dp (inconsistent).
+            // (b) BÁCH KHOA now in Row 3 với invisible spacer placeholder ở slot
+            //     trái — giữ width đúng bằng các button khác (~50% width thay vì
+            //     100% fillMaxWidth gây cảm giác "to gấp đôi").
             EntryAnim(stepIndex = 4) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         MenuButton(
@@ -217,7 +224,7 @@ fun MenuScreen(
                         )
                     }
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         MenuButton(
@@ -241,19 +248,33 @@ fun MenuScreen(
                             },
                         )
                     }
-                    // Round 67.6 — BÁCH KHOA in its own row, full width. Removed
-                    // manual Spacer(8dp) — Column's spacedBy(12.dp) now governs
-                    // ALL vertical gaps (consistent với 2 row trên + row này).
-                    MenuButton(
-                        label = "BÁCH KHOA",
-                        glyph = "❡",
-                        color = NeonViolet,
+                    // Round 68 — Row 3: TRANG BỊ + BÁCH KHOA paired (full row).
+                    // Trang Bị mở LoadoutPicker manually (auto-skip Settings default true).
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxWidth(),
-                        onClick = {
-                            Logger.d("MenuScreen: INFO tapped")
-                            onOpenInfo()
-                        },
-                    )
+                    ) {
+                        MenuButton(
+                            label = "TRANG BỊ",
+                            glyph = "◈",
+                            color = NeonCyan,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                Logger.d("MenuScreen: LOADOUT tapped")
+                                onOpenLoadout()
+                            },
+                        )
+                        MenuButton(
+                            label = "BÁCH KHOA",
+                            glyph = "❡",
+                            color = NeonViolet,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                Logger.d("MenuScreen: INFO tapped")
+                                onOpenInfo()
+                            },
+                        )
+                    }
                 }
             }
 

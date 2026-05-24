@@ -1,6 +1,7 @@
 package com.tranphuloi.neon.ui.game.controls
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -12,7 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -22,14 +25,8 @@ import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.neonGlow
 
 /**
- * 20b: Smart bomb button — circular badge showing remaining bomb count.
- *
- * Layout: outer wrapper Box (NOT clipped — so the count badge can sit at the
- * corner outside the inscribed circle), inner clipped circle as the button face,
- * badge as a sibling positioned at the bottom-end corner.
- *
- * Tap to dispatch (clears all enemies + enemy lasers via callback). Disabled when
- * count = 0.
+ * 20b: Smart bomb button — Round 67.7 vector. Replaced emoji 💣 với Canvas
+ * drawing: dark sphere body + diagonal fuse line + bright spark dot at tip.
  */
 @Composable
 fun SmartBombButton(
@@ -39,7 +36,6 @@ fun SmartBombButton(
 ) {
     val enabled = count > 0
     val accent = if (enabled) NeonGold else Color.White.copy(alpha = 0.25f)
-    // 30% smaller per user feedback: wrapper 60→42dp, inner 48→34dp, badge 20→14dp.
     Box(
         modifier = modifier
             .size(42.dp)
@@ -49,7 +45,6 @@ fun SmartBombButton(
                 }
             },
     ) {
-        // Inner button face (circle, clipped, glow).
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -64,9 +59,46 @@ fun SmartBombButton(
                     radiusFactor = 1.5f,
                 ),
         ) {
-            Text(text = "💣", fontSize = 16.sp)
+            // Round 67.7 — vector bomb: sphere + fuse + spark.
+            Canvas(modifier = Modifier.size(22.dp)) {
+                val cx = size.width / 2f
+                val cy = size.height / 2f + size.height * 0.10f
+                val bombR = size.width * 0.35f
+                // Bomb sphere
+                drawCircle(
+                    color = if (enabled) NeonRedAlert else accent,
+                    radius = bombR,
+                    center = Offset(cx, cy),
+                )
+                // Bomb sphere outline highlight
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.6f),
+                    radius = bombR * 0.30f,
+                    center = Offset(cx - bombR * 0.30f, cy - bombR * 0.30f),
+                )
+                // Fuse line (top-right) — diagonal stroke from sphere tip outward
+                val fuseStart = Offset(cx + bombR * 0.55f, cy - bombR * 0.85f)
+                val fuseEnd = Offset(cx + bombR * 1.05f, cy - bombR * 1.55f)
+                drawLine(
+                    color = accent,
+                    start = fuseStart,
+                    end = fuseEnd,
+                    strokeWidth = size.width * 0.05f,
+                )
+                // Spark at fuse tip
+                drawCircle(
+                    color = NeonGold,
+                    radius = size.width * 0.07f,
+                    center = fuseEnd,
+                )
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.85f),
+                    radius = size.width * 0.03f,
+                    center = fuseEnd,
+                )
+            }
         }
-        // Count badge — sibling, NOT clipped by parent. Sits at bottom-end corner.
+        // Count badge
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier

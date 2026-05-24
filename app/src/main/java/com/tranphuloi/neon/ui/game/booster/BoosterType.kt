@@ -55,4 +55,11 @@ enum class BoosterType(
     BOUNCE_BOOSTER(R.drawable.booster_red_lasers, weight = 6),
     // Round 67.5 — GIANT bullet booster. Total weight 202 → 208.
     GIANT_BOOSTER(R.drawable.booster_ultimate_weapon, weight = 6),
+    // Round 68 (Wave 10 finish) — 5 boosters mới trigger 5 bullets còn lại.
+    // Total weight 208 → 238.
+    SMOKE_BOOSTER(R.drawable.booster_shield, weight = 6),
+    ZIGZAG_BOOSTER(R.drawable.booster_red_lasers, weight = 6),
+    KAMEHAMEHA_BOOSTER(R.drawable.booster_ultimate_weapon, weight = 6),
+    ATOMIC_BOOSTER(R.drawable.booster_ultimate_weapon, weight = 6),
+    SPLIT_BOOSTER(R.drawable.booster_red_lasers, weight = 6),
 }

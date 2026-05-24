@@ -102,16 +102,18 @@ class BoosterTypeDistributionTest {
     }
 
     @Test
-    fun `combined PIERCING+PLASMA reaches at least 90 in N=1000 (round 60)`() {
+    fun `combined PIERCING+PLASMA reaches at least 60 in N=1000 (round 68)`() {
         val tally = rollBoosters(1000)
         val combined = tally.getValue(BoosterType.PIERCING_BOOSTER) +
             tally.getValue(BoosterType.PLASMA_BOOSTER)
         // Round 55: expected 19.4% combined (24/124), floor 150.
         // Round 60: expected 13.0% combined (24/184), floor 90 = ~5σ below 130.
+        // Round 68: expected 10.1% combined (24/238) after Wave 10 finish added
+        // 5 boosters × weight 6 = +30. σ ≈ 9.5 → floor 60 ≈ 4σ below 101.
         assertTrue(
-            "PIERCING+PLASMA combined $combined/1000 = ${combined / 10.0}% — should be ~13.0%. " +
-                "If this fails, round 55 weight bump (8 → 12) isn't active.",
-            combined >= 90,
+            "PIERCING+PLASMA combined $combined/1000 = ${combined / 10.0}% — should be ~10.1%. " +
+                "If this fails, weight bump isn't active OR pool composition drifted.",
+            combined >= 60,
         )
     }
 
