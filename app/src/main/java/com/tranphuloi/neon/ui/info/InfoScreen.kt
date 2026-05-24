@@ -514,68 +514,126 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSplitBullet(
 
 @Composable
 private fun ShipTab() {
+    // Round 72 (Issue 3 user audit) — Apply 3-layer Ship info đúng Round 69 pick.
+    // Layer 1: 5 ShipShape (Wave 8 enum từ R68) + stat profile + unlock minerals.
+    // Layer 2: 5 ShipSkin color customization.
+    // Layer 3: MetaUpgrade stats summary (link MetaUpgradeScreen).
+    // ShipPickerScreen UI + EffectiveStats wiring: defer R73 (user pick R72).
     Column(modifier = Modifier.padding(horizontal = 12.dp).verticalScroll(rememberScrollState())) {
-        InfoCard(
-            color = NeonCyan,
-            title = "Fighter (mặc định)",
-            subtitle = "HP base 1000 · speed base 2.0 px/tick",
-            description = "Phi thuyền chính. Vector arrow body + wings (rộng hơn khi LASER_BOOSTER) + " +
-                "cockpit + engine glow. Color = ship-skin setting.",
-            iconDraw = { c -> drawShipPreview(c, NeonCyan, laserBoosted = false) },
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+        // Header
         InfoCard(
             color = NeonGold,
-            title = "Boosted ship (LASER active)",
-            subtitle = "Wings rộng hơn khi LASER_BOOSTER pickup",
-            description = "Hình dạng wings ×1.2 khi laser-booster active 15s. Visual cue.",
-            iconDraw = { c -> drawShipPreview(c, NeonGold, laserBoosted = true) },
+            title = "Phi thuyền — 3 lớp tuỳ chỉnh",
+            subtitle = "Loại tàu · Màu sắc · Nâng cấp chỉ số",
+            description = "1) Chọn LOẠI TÀU (mở khoá theo khoáng tích luỹ) ảnh hưởng HP/Tốc độ/Sát thương\n" +
+                "2) Đổi MÀU SẮC (skin) — chỉ thẩm mỹ, miễn phí\n" +
+                "3) NÂNG CẤP CHỈ SỐ vĩnh viễn — tốn khoáng",
+            iconDraw = { c -> drawShipPreview(c, NeonGold, laserBoosted = false) },
         )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // ── Layer 1: 5 ShipShape ──
+        SectionLabel(label = "1. CHỌN LOẠI TÀU", color = NeonCyan)
+        Spacer(modifier = Modifier.height(6.dp))
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.entries.forEach { shape ->
+            ShipShapeCard(shape)
+            Spacer(modifier = Modifier.height(6.dp))
+        }
         Spacer(modifier = Modifier.height(8.dp))
+
+        // ── Layer 2: 5 ShipSkin ──
+        SectionLabel(label = "2. ĐỔI MÀU AURA", color = NeonMagenta)
+        Spacer(modifier = Modifier.height(6.dp))
         InfoCard(
             color = NeonMagenta,
-            title = "5 Ship Skins",
-            subtitle = "Settings → Skin tàu",
-            description = "Cyan / Gold / Magenta / Violet / Đỏ. Đổi màu aura + glow của ship + lasers.",
+            title = "5 màu Aura tàu",
+            subtitle = "Cài đặt → Hào quang tàu",
+            description = "Cyan / Vàng / Magenta / Tím / Đỏ. Đổi màu aura + glow của tàu + tia laser.\n" +
+                "Tiện thẩm mỹ, không ảnh hưởng chỉ số.",
             iconDraw = { c ->
-                // Show 5 mini-rings of skin colors.
                 val colors = listOf(Color(0xFF00F0FF), Color(0xFFFFCB47), Color(0xFFFF2DE0),
                     Color(0xFFB14CFF), Color(0xFFFF2D55))
-                val r = c.width * 0.10f
-                val gap = c.width * 0.06f
+                val r = c.width * 0.09f
+                val gap = c.width * 0.05f
                 val totalW = colors.size * (2 * r) + (colors.size - 1) * gap
                 val startX = (c.width - totalW) / 2 + r
                 colors.forEachIndexed { i, col ->
-                    drawCircle(
-                        color = col,
-                        radius = r,
+                    drawCircle(color = col, radius = r,
                         center = androidx.compose.ui.geometry.Offset(
-                            startX + i * (2 * r + gap), c.height / 2,
-                        ),
-                    )
+                            startX + i * (2 * r + gap), c.height / 2))
                 }
             },
         )
         Spacer(modifier = Modifier.height(8.dp))
+
+        // ── Layer 3: MetaUpgrade ──
+        SectionLabel(label = "3. NÂNG CẤP CHỈ SỐ", color = NeonViolet)
+        Spacer(modifier = Modifier.height(6.dp))
         InfoCard(
             color = NeonViolet,
-            title = "Stat upgrades (Wave 8)",
-            subtitle = "Chưa implement",
-            description = "Roadmap: 5 ship shape variants (Fighter/Bomber/Stealth/Tank/Interceptor) " +
-                "+ 5 stat tracks (HP/Damage/Speed/Magnet/Crit) × 5 levels. Mua bằng lifetime minerals.",
+            title = "Nâng cấp vĩnh viễn",
+            subtitle = "Menu → NÂNG CẤP — tốn khoáng",
+            description = "5 cây nâng cấp: HP / Sát thương / Tốc độ / Hút khoáng / Chí mạng.\n" +
+                "Mỗi cây 5 cấp. Tốn khoáng tích luỹ. Áp dụng vĩnh viễn cho mọi run.",
             iconDraw = { c ->
-                // Placeholder — neutral diamond.
+                // Placeholder — upward arrow
                 val path = androidx.compose.ui.graphics.Path().apply {
-                    moveTo(c.width / 2, c.height * 0.1f)
-                    lineTo(c.width * 0.9f, c.height / 2)
-                    lineTo(c.width / 2, c.height * 0.9f)
-                    lineTo(c.width * 0.1f, c.height / 2)
+                    moveTo(c.width / 2, c.height * 0.15f)
+                    lineTo(c.width * 0.78f, c.height / 2)
+                    lineTo(c.width * 0.6f, c.height / 2)
+                    lineTo(c.width * 0.6f, c.height * 0.85f)
+                    lineTo(c.width * 0.4f, c.height * 0.85f)
+                    lineTo(c.width * 0.4f, c.height / 2)
+                    lineTo(c.width * 0.22f, c.height / 2)
                     close()
                 }
-                drawPath(path, NeonViolet.copy(alpha = 0.7f))
+                drawPath(path, NeonViolet)
+            },
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // ── Honest disclosure cho user về defer ──
+        InfoCard(
+            color = Color.White.copy(alpha = 0.5f),
+            title = "⏸ ShipPickerScreen chưa có",
+            subtitle = "Defer Round 73 (sau audit user)",
+            description = "Round 71 đã thiết lập enum ShipShape + persistence. Round 73 sẽ ship UI picker " +
+                "+ wire selectedShipShape vào EffectiveStats. Hiện tại chỉ FIGHTER active mặc định.",
+            iconDraw = { c ->
+                drawCircle(color = Color.White.copy(alpha = 0.3f), radius = c.width * 0.3f,
+                    center = androidx.compose.ui.geometry.Offset(c.width / 2, c.height / 2))
             },
         )
     }
+}
+
+@Composable
+private fun SectionLabel(label: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(modifier = Modifier.size(width = 3.dp, height = 14.dp).background(color))
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = label, color = color, fontSize = 13.sp, fontWeight = FontWeight.Black)
+    }
+}
+
+@Composable
+private fun ShipShapeCard(shape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape) {
+    val color = when (shape) {
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.FIGHTER -> NeonCyan
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.BOMBER -> NeonGold
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.STEALTH -> NeonViolet
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.TANK -> Color(0xFFFF6020)
+        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.INTERCEPTOR -> NeonMagenta
+    }
+    val unlockText = if (shape.unlockMinerals == 0) "Mở khoá: Có sẵn"
+        else "Mở khoá: ${shape.unlockMinerals} khoáng tích luỹ"
+    InfoCard(
+        color = color,
+        title = shape.displayName,
+        subtitle = unlockText,
+        description = "Máu ×${shape.hpMul} · Tốc độ ×${shape.speedMul} · Sát thương ×${shape.damageMul}",
+        iconDraw = { c -> drawShipPreview(c, color, laserBoosted = false) },
+    )
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawShipPreview(
@@ -663,17 +721,32 @@ private fun EnemiesTab() {
         Spacer(modifier = Modifier.height(8.dp))
         InfoCard(
             color = NeonMagenta,
-            title = "Status Effects",
+            title = "Status Effects (3)",
             subtitle = "BURN / SLOW / STUN",
             description = "BURN — 5HP/sec DoT (cam). SLOW — movement ×0.5 (cyan). " +
                 "STUN — stop firing 2s (vàng). 10% per hit (5% on boss). FIRE bullet luôn apply BURN 100%.",
             iconDraw = { c ->
-                // 3 colored circles representing the 3 status effects.
                 val cy = c.height / 2
                 val r = c.height * 0.13f
                 drawCircle(Color(0xFFFF6020), r, androidx.compose.ui.geometry.Offset(c.width * 0.25f, cy))
                 drawCircle(Color(0xFF00F0FF), r, androidx.compose.ui.geometry.Offset(c.width * 0.50f, cy))
                 drawCircle(Color(0xFFFFD040), r, androidx.compose.ui.geometry.Offset(c.width * 0.75f, cy))
+            },
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        // Round 72 (Issue 3 user audit) — HONEST DISCLOSURE về Wave 9a roadmap.
+        // Trước fix tab này không nhắc đến 20 enemies user picked Round 69.
+        InfoCard(
+            color = Color.White.copy(alpha = 0.5f),
+            title = "⏸ 20 enemy variants (Wave 9a)",
+            subtitle = "Roadmap Round 73 — chưa ship",
+            description = "Round 69 user pick FULL 20 enemies (5 family × 4 variant). Round 71 chỉ ship " +
+                "12 hiện có. Round 73 sẽ thêm 8 shape mới (spike/cross/orb/crescent/triangle/octagon/" +
+                "hexagram/chevron) + 5 family Scout/Fighter/Heavy/Elite/Berserker với stat profile riêng " +
+                "+ assign vào Chapter pools. Hiện tại chỉ thấy 3 shape (dart/hexagon/diamond) là honest.",
+            iconDraw = { c ->
+                drawCircle(color = Color.White.copy(alpha = 0.3f), radius = c.width * 0.3f,
+                    center = androidx.compose.ui.geometry.Offset(c.width / 2, c.height / 2))
             },
         )
     }
@@ -744,42 +817,163 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyDiamond(
 
 @Composable
 private fun BossesTab() {
+    // Round 72 (Issue 3 user audit) — 5 distinct boss silhouettes (BossKind từ
+    // Round 71). Match đúng what's in game now. Attack patterns + audio cue
+    // defer R73 (user pick).
     Column(modifier = Modifier.padding(horizontal = 12.dp).verticalScroll(rememberScrollState())) {
         InfoCard(
-            color = NeonRedAlert,
-            title = "Mid Bosses (3 variants)",
-            subtitle = "Giữa Chapter 1-4 · HP 1200",
-            description = "OFFENSIVE — 360° spread (Ch 1+4). DEFENSIVE — orbit + counter (Ch 2). " +
-                "SWARM — spawn 4 drones (Ch 3). Phase 2 kích hoạt khi HP < 50%.",
-            iconDraw = { c -> drawMidBoss(c, NeonRedAlert, Color(0xFFCC1144)) },
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        InfoCard(
-            color = NeonRedAlert,
-            title = "LevelOneBoss",
-            subtitle = "End Ch 1 (Vành Đai Tiểu HT) + Ch 3 (HT Băng) · HP 3000",
-            description = "Star + inner hex core. Có HP bar riêng + intro cinematic + buff picker " +
-                "post-kill. Ch 3 reuse cùng model với palette change.",
+            color = Color(0xFFFF5555),
+            title = "1. LevelOneBoss — Star",
+            subtitle = "End Chapter 1 + Chapter 3 · HP 3000 · BossKind.STAR",
+            description = "Ngôi sao 8 cánh + lõi lục giác. Mở khoá ở cuối Vành Đai Tiểu HT (Ch1) " +
+                "và lặp lại tại Hành Tinh Băng (Ch3) với palette đổi. Pattern: bắn từng đợt + " +
+                "đợt cuối ring barrage. Có HP bar full-width + intro cinematic + buff picker.",
             iconDraw = { c -> drawBossStar(c, Color(0xFFFF5555), Color(0xFFCC1144)) },
         )
         Spacer(modifier = Modifier.height(8.dp))
         InfoCard(
-            color = NeonRedAlert,
-            title = "LevelTwoBoss",
-            subtitle = "End Ch 2 (Mây Tinh Vân) + Ch 4 (Trạm Thù Địch) · HP 4000",
-            description = "Mid-game boss. Pattern attacks phức tạp hơn LevelOne.",
-            iconDraw = { c -> drawBossStar(c, Color(0xFF6EFFAA), Color(0xFF24B86E)) },
+            color = Color(0xFF6EFFAA),
+            title = "2. LevelTwoBoss — Cross",
+            subtitle = "End Chapter 2 + Chapter 4 · HP 4000 · BossKind.CROSS",
+            description = "Cross spinner 4 cánh + center disc + 4 tip glow. Mid-game boss. " +
+                "Quay liên tục, bắn theo trục dọc/ngang xen kẽ. Pattern phức tạp hơn LevelOne.",
+            iconDraw = { c -> drawBossCrossPreview(c, Color(0xFF6EFFAA), Color(0xFF24B86E)) },
         )
         Spacer(modifier = Modifier.height(8.dp))
         InfoCard(
-            color = NeonRedAlert,
-            title = "FinalBoss",
-            subtitle = "End Ch 5 (Lõi Thiên Hà) · HP 22500 · 3-phase",
-            description = "Phase 1 — fire pattern thông thường. Phase 2 (HP ≤ 15000) — tăng tốc độ. " +
-                "Phase 3 (HP ≤ 7500) — ring barrage 360°. Victory ending khác theo difficulty.",
-            iconDraw = { c -> drawBossStar(c, NeonMagenta, Color(0xFFCC1144)) },
+            color = NeonGold,
+            title = "3. MidBoss OFFENSIVE — Orb",
+            subtitle = "Giữa Chapter 1+4 · HP 1200 · BossKind.ORB",
+            description = "Quả cầu lớn + 3 vệ tinh quay quanh. 360° spread spray. " +
+                "Phase 2 (HP<50%) — tăng fire rate.",
+            iconDraw = { c -> drawBossOrbPreview(c, NeonGold, Color(0xFFCC9900)) },
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        InfoCard(
+            color = NeonViolet,
+            title = "4. MidBoss DEFENSIVE/SWARM — Fractal",
+            subtitle = "Giữa Chapter 2+3 · HP 1200 · BossKind.FRACTAL",
+            description = "Tam giác lồng nhau (Sierpinski). DEFENSIVE = orbit + counter (Ch2). " +
+                "SWARM = spawn 4 drones (Ch3). Phase 2 (HP<50%) — pattern chia 3.",
+            iconDraw = { c -> drawBossFractalPreview(c, NeonViolet, Color(0xFF8855CC)) },
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        InfoCard(
+            color = NeonMagenta,
+            title = "5. FinalBoss — Spider",
+            subtitle = "End Chapter 5 (Lõi Thiên Hà) · HP 22500 · BossKind.SPIDER · 3-phase",
+            description = "8 chân + thân + 2 mắt sáng. Phase 1: fire pattern thông thường. " +
+                "Phase 2 (HP≤15000): tăng tốc độ. Phase 3 (HP≤7500): ring barrage 360°. " +
+                "Victory ending khác theo difficulty.",
+            iconDraw = { c -> drawBossSpiderPreview(c, NeonMagenta, Color(0xFFCC1144)) },
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        InfoCard(
+            color = Color.White.copy(alpha = 0.5f),
+            title = "⏸ Attack pattern + audio cue chưa unique",
+            subtitle = "Defer Round 73",
+            description = "Round 71 đã ship 5 silhouette khác nhau (đã thấy in-game). " +
+                "Round 73 sẽ refactor EnemyLasersController để mỗi boss có attack pattern + " +
+                "audio cue riêng (STAR=ring, CROSS=spin lasers, ORB=tracking, FRACTAL=split, SPIDER=web).",
+            iconDraw = { c ->
+                drawCircle(color = Color.White.copy(alpha = 0.3f), radius = c.width * 0.3f,
+                    center = androidx.compose.ui.geometry.Offset(c.width / 2, c.height / 2))
+            },
         )
     }
+}
+
+// Round 72 (Issue 3) — Preview helpers cho 4 boss kinds mới trong InfoScreen.
+// Mirror các shape recipes trong EnemyCanvas, scaled cho 48dp icon.
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossCrossPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val armW = minOf(w, h) * 0.18f
+    val armLen = minOf(w, h) * 0.5f
+    val centerR = minOf(w, h) * 0.25f
+    drawRect(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - armW / 2, cy - armLen),
+        size = androidx.compose.ui.geometry.Size(armW, armLen * 2))
+    drawRect(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - armLen, cy - armW / 2),
+        size = androidx.compose.ui.geometry.Size(armLen * 2, armW))
+    drawCircle(body, centerR, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, centerR * 0.5f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, armW * 0.6f, androidx.compose.ui.geometry.Offset(cx, cy - armLen))
+    drawCircle(accent, armW * 0.6f, androidx.compose.ui.geometry.Offset(cx, cy + armLen))
+    drawCircle(accent, armW * 0.6f, androidx.compose.ui.geometry.Offset(cx - armLen, cy))
+    drawCircle(accent, armW * 0.6f, androidx.compose.ui.geometry.Offset(cx + armLen, cy))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossOrbPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val r = minOf(w, h) * 0.35f
+    drawCircle(body, r, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, r * 0.55f, androidx.compose.ui.geometry.Offset(cx, cy))
+    for (i in 0 until 3) {
+        val a = i * 120.0 * Math.PI / 180.0
+        val sx = cx + (r * 1.15f * kotlin.math.cos(a)).toFloat()
+        val sy = cy + (r * 1.15f * kotlin.math.sin(a)).toFloat()
+        drawCircle(accent, r * 0.18f, androidx.compose.ui.geometry.Offset(sx, sy))
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossFractalPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val r = minOf(w, h) * 0.42f
+    val outer = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx, cy + r)
+        lineTo(cx - r * 0.866f, cy - r * 0.5f)
+        lineTo(cx + r * 0.866f, cy - r * 0.5f)
+        close()
+    }
+    drawPath(outer, body)
+    drawPath(outer, accent,
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = r * 0.08f))
+    val innerR = r * 0.5f
+    val inner = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx, cy - innerR)
+        lineTo(cx - innerR * 0.866f, cy + innerR * 0.5f)
+        lineTo(cx + innerR * 0.866f, cy + innerR * 0.5f)
+        close()
+    }
+    drawPath(inner, accent)
+    drawCircle(body, r * 0.15f, androidx.compose.ui.geometry.Offset(cx, cy))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossSpiderPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val bodyR = minOf(w, h) * 0.25f
+    val legLen = minOf(w, h) * 0.5f
+    val legW = bodyR * 0.18f
+    for (i in 0 until 8) {
+        val a = i * 45.0 * Math.PI / 180.0
+        val ex = cx + (legLen * kotlin.math.cos(a)).toFloat()
+        val ey = cy + (legLen * kotlin.math.sin(a)).toFloat()
+        drawLine(color = body,
+            start = androidx.compose.ui.geometry.Offset(cx, cy),
+            end = androidx.compose.ui.geometry.Offset(ex, ey),
+            strokeWidth = legW,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        drawCircle(accent, legW * 0.6f, androidx.compose.ui.geometry.Offset(ex, ey))
+    }
+    drawCircle(body, bodyR, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, bodyR * 0.18f,
+        androidx.compose.ui.geometry.Offset(cx - bodyR * 0.4f, cy - bodyR * 0.1f))
+    drawCircle(accent, bodyR * 0.18f,
+        androidx.compose.ui.geometry.Offset(cx + bodyR * 0.4f, cy - bodyR * 0.1f))
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMidBoss(

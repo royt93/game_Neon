@@ -968,6 +968,58 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 72 — Loadout UX bug fixes + Ship/Boss InfoScreen update + Canvas explosion
+
+User audit Round 71 lần 3 phát hiện 5 issues mới:
+
+| # | Issue | Fix |
+|---|---|---|
+| 1 | Loadout bottom sheet section Vũ khí phụ bị méo, không scroll | Column thêm `verticalScroll(rememberScrollState())` |
+| 2 | Loadout dismiss tự động auto play game | Split `onConfirm` vs `onDismiss` callbacks. MainActivity wire dismiss → `popBackStack()` về Menu. Drag-down/✕ tap không còn commit |
+| 3 | InfoScreen tabs Ship/Bosses không apply spec đầy đủ | **Ship tab**: 3-layer info (5 ShipShape + 5 ShipSkin + MetaUpgrade stats) thay vì 4-card mơ hồ. **Bosses tab**: 5 distinct cards (Star/Cross/Orb/Fractal/Spider) thay vì 4 cũ, mỗi card có preview helper riêng. **Enemies tab**: thêm honest disclosure "⏸ 20 enemies Wave 9a chưa ship, defer R73". |
+| 4 | Hiệu ứng nổ vẫn dùng GIF asset | **Migrate sang `ExplosionCanvas.kt`**: 3-layer pure Canvas (fireball radial gradient + 12 sparks + shockwave ring). Xoá `anim_explosion.gif` + `ExplosionBurstOverlay.kt` orphan + `ImageLoader.kt` orphan + Coil 3 deps trong app/build.gradle. |
+| 5 | Unused assets chưa xoá | **Deleted**: `anim_explosion.gif` (34KB), `ExplosionBurstOverlay.kt`, `ImageLoader.kt`, Coil 3 dependencies (`coil-compose:3.4.0` + `coil-gif:3.4.0`), `explosion_content_description` string (3 locale files). **Còn defer**: 27 webp/png files (enemy_*/booster_*/ic_laser_*/ic_space_rock_*/ship_*_laser) vẫn referenced làm `drawableId` int key cho EnemyCanvas/BoosterCanvas/etc dispatch — cần refactor `drawableId: Int` → typed enum để xoá an toàn. Plan R73. |
+
+**Files modified Round 72:**
+- `ui/dlg/loadoutpicker/DialogLoadoutPicker.kt` — verticalScroll + onDismiss param.
+- `ui/MainActivity.kt` — wire onDismiss = popBackStack.
+- `ui/info/InfoScreen.kt` — Ship tab 3-layer redesign + 5 boss cards + Enemies disclosure card + 4 boss preview helpers.
+- `ui/game/world/GameWorld.kt` — explosion render từ GIF + ExplosionBurstOverlay → ExplosionCanvas single layer; removed imageLoader/Coil/LocalContext imports.
+- `app/build.gradle` — removed Coil 3 deps (2 lines).
+
+**New file:**
+- `ui/game/world/ExplosionCanvas.kt` (~100 LOC) — 3-layer pure-vector explosion.
+
+**Deleted:**
+- `ui/game/world/ExplosionBurstOverlay.kt` (orphan).
+- `ui/game/utils/ImageLoader.kt` (orphan).
+- `res/drawable-hdpi/anim_explosion.gif` (34KB).
+- `explosion_content_description` từ values/values-en/values-vi strings.xml.
+
+**Asset cleanup — DONE all 28 files (user audit "booster_health thì sao?")**:
+
+Initial Round 72 claim "27 binary files cần enum refactor" was lazy. User pushback đúng — verified ZERO bitmap loads anywhere (only `painterResource` used cho `splash_image` + `ic_launcher`). 28 webp/png files chỉ là dispatch key dưới dạng `Int` ID. Replace mỗi file bằng vector XML placeholder 200 bytes giữ nguyên `R.drawable.*` int resolution.
+
+| Asset family | Files | Before | After |
+|---|---|---|---|
+| Booster (health/red_lasers/shield/triple_laser/ultimate_weapon) | 5 | ~72KB | 5 placeholder XMLs |
+| Enemy regular (red_1-3, green_1-4, light_blue_1-5) | 12 | ~80KB | 12 placeholder XMLs |
+| Enemy boss (red_boss, green_boss) | 2 | ~16KB | 2 placeholder XMLs |
+| Ship laser (ic_laser_blue_7/11, ic_laser_red_8/14/16) | 5 | ~2.7KB | 5 placeholder XMLs |
+| Space rock (ic_space_rock_1-4) | 4 | ~4.5KB | 4 placeholder XMLs |
+| Ship body laser (ship_regular_laser, ship_boosted_laser) | 2 | ~21KB | 2 placeholder XMLs |
+| Explosion GIF (anim_explosion.gif) | 1 | ~34KB | DELETED (no longer referenced) |
+| **TOTAL** | **31** | **~230KB** | **~6KB (placeholder XMLs)** |
+
+**APK net reduction: ~224KB.** `R.drawable.*` int dispatch keys vẫn resolve compile-time, không phải refactor sang enum. `drawable-hdpi/` còn lại: `ic_launcher.png` + `splash_image.png` (cả 2 đều actually loaded qua `painterResource`).
+
+### Round 72 verification
+
+- `compileDevDebugKotlin` ✅
+- `compileProductionReleaseKotlin` ✅
+- `testDevDebugUnitTest` ✅ 219 tests pass
+- `assembleDevDebug` ✅ BUILD SUCCESSFUL
+
 ### Round 71 — Mega round Issues 3 + 4a + 4d + 4e + 5 (5 of 8 picked)
 
 User audit Round 70 phát hiện "thiếu spec khá nhiều" — 9 issues từ Round 69 chỉ 4 issues được làm. User pick "Mega 1 round tất cả" cho 8 issues còn lại. Honest disclosure: hết context budget chỉ done 5/8.

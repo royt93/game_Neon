@@ -75,7 +75,10 @@
       "Bash(awk '/^# Phần 7/,/^# Notes/' /Users/loitran/AndroidStudioProjects/@mckimquyen/@gameKotlin/5_Neon/doc/feature.md)",
       "Bash(./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest assembleDevDebug)",
       "Bash(./gradlew compileDevDebugKotlin testDevDebugUnitTest)",
-      "Bash(./gradlew compileProductionReleaseKotlin testDevDebugUnitTest)"
+      "Bash(./gradlew compileProductionReleaseKotlin testDevDebugUnitTest)",
+      "Bash(awk '{print $5, $NF}')",
+      "Bash(rm booster_red_lasers.webp booster_shield.webp booster_triple_laser.webp booster_ultimate_weapon.webp enemy_green_1.webp enemy_green_2.webp enemy_green_3.webp enemy_green_4.webp enemy_green_boss.webp enemy_light_blue_1.webp enemy_light_blue_2.webp enemy_light_blue_3.webp enemy_light_blue_4.webp enemy_light_blue_5.webp enemy_red_1.webp enemy_red_2.webp enemy_red_3.webp enemy_red_boss.webp ic_laser_blue_7.webp ic_laser_red_8.webp ic_laser_red_14.webp ic_laser_red_16.webp ic_space_rock_1.webp ic_space_rock_2.webp ic_space_rock_3.webp ic_space_rock_4.webp ship_regular_laser.webp ship_boosted_laser.webp)",
+      "Bash(ls *.webp *.png)"
     ]
   }
 }

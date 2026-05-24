@@ -17,7 +17,6 @@
     <string name="game_over_dialog_title">KẾT THÚC</string>
     <string name="game_over_dialog_score">Khoáng thạch: %1$s</string>
     <string name="mineral_content_description">Khoáng thạch</string>
-    <string name="explosion_content_description">Vụ nổ</string>
     <string name="revived_banner">SỐNG LẠI!</string>
     <string name="daily_challenge_label">Thử Thách Hàng Ngày</string>
     <string name="daily_seed_label">Ngày %1$s</string>

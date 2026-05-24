@@ -19,7 +19,6 @@
     <string name="game_over_dialog_title">KẾT THÚC</string>
     <string name="game_over_dialog_score">Khoáng vật: %1$s</string>
     <string name="mineral_content_description">Khoáng vật</string>
-    <string name="explosion_content_description">Vụ nổ</string>
     <!-- 14c Auto-revive token -->
     <string name="revived_banner">HỒI SINH!</string>
     <!-- 17c Daily challenge -->

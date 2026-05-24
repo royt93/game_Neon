@@ -385,6 +385,12 @@ class MainActivity : ComponentActivity() {
                                         launchSingleTop = true
                                     }
                                 },
+                                // Round 72 fix — dismiss chỉ pop back stack về
+                                // Menu, KHÔNG navigate Game.
+                                onDismiss = {
+                                    Logger.d("Nav: LoadoutPicker dismissed → back to Menu")
+                                    navController.popBackStack()
+                                },
                             )
                         }
                         dialog(

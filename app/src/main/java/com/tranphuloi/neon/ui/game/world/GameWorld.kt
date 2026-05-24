@@ -45,13 +45,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+// Round 72 — LocalContext + Coil imports removed cùng với GIF explosion migration.
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.compose.rememberAsyncImagePainter
-import coil3.request.ImageRequest
+// Round 72 — coil3 imports removed; explosion migrated to ExplosionCanvas.
 import com.tranphuloi.neon.R
 import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonGold
@@ -70,7 +69,7 @@ import com.tranphuloi.neon.ui.game.mineral.model.MineralUI
 import com.tranphuloi.neon.ui.game.ship.laser.LaserUI
 import com.tranphuloi.neon.ui.game.ship.ship.Ship
 import com.tranphuloi.neon.ui.game.spaceObject.SpaceObjectUI
-import com.tranphuloi.neon.ui.game.utils.rememberImageLoader
+// Round 72 — rememberImageLoader removed; no more Coil-loaded assets in GameWorld.
 import com.tranphuloi.neon.utils.Logger
 
 @Composable
@@ -100,7 +99,7 @@ fun GameWorld(
     modifier: Modifier = Modifier,
 ) {
 
-    val imageLoader = rememberImageLoader()
+    // Round 72 — `imageLoader` removed: no Coil-loaded asset in GameWorld nữa.
     // Round 49 (refactored in Round 66) — LaserCanvas now renders pure-vector
     // capsules (drawRoundRect + glow) instead of drawImage. Sprite preload
     // removed. The 5 ic_laser_*.webp drawables can be deleted in a cleanup
@@ -476,22 +475,13 @@ fun GameWorld(
             minerals = minerals,
             modifier = Modifier.fillMaxSize(),
         )
+        // Round 72 (Issue 4 user audit) — PURE-CANVAS explosion thay GIF.
+        // Trước fix: `anim_explosion.gif` loaded qua Coil 3 + ExplosionBurstOverlay
+        // sparks/ring overlay. Sau fix: ExplosionCanvas chứa fireball + sparks +
+        // shockwave ring trong 1 lớp Canvas. GIF asset không còn được render
+        // (sẵn sàng xoá file ở cleanup phase).
         explosions.forEach {
-            Image(
-                painter = rememberAsyncImagePainter(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(R.drawable.anim_explosion)
-                        .build(),
-                    imageLoader = imageLoader
-                ),
-                contentDescription = stringResource(id = R.string.explosion_content_description),
-                contentScale = ContentScale.FillBounds,
-                modifier = Modifier
-                    .offset(it.xOffset.dp, it.yOffset.dp)
-                    .size(it.size.dp)
-            )
-            // 13c: 8-12 burst lines + ring shockwave overlay on top of GIF.
-            ExplosionBurstOverlay(explosion = it)
+            ExplosionCanvas(explosion = it)
         }
         // Round 49 — enemy lasers also via LaserCanvas. Placed here (after
         // enemies + explosions) so they render in front of enemies just like

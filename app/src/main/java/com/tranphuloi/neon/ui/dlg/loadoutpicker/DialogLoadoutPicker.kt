@@ -8,6 +8,8 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -59,7 +61,12 @@ import kotlinx.coroutines.launch
  * pick. Tap "BẮT ĐẦU" to commit and proceed to Game.
  */
 @Composable
-fun DialogLoadoutPicker(onConfirm: () -> Unit) {
+fun DialogLoadoutPicker(
+    onConfirm: () -> Unit,
+    // Round 72 fix (user audit) — separate dismiss callback. Trước fix
+    // onDismiss = onConfirm → drag-down hoặc ✕ tap → auto navigate Game (bug).
+    onDismiss: () -> Unit = {},
+) {
     val settings = LocalSettings.current
     val scope = rememberCoroutineScope()
     // Round 45 fix 1 — was `collectAsState(initial = NORMAL/MISSILE)` which
@@ -83,11 +90,19 @@ fun DialogLoadoutPicker(onConfirm: () -> Unit) {
         title = "TRANG BỊ",
         accentColor = palette.gold,
         onDismiss = {
-            Logger.d("DialogLoadoutPicker: dismissed (committing $bulletType + $secondary)")
-            onConfirm()
+            // Round 72 fix — pop back stack KHÔNG commit. User chỉ confirm khi
+            // tap nút BẮT ĐẦU explicit (line ~170).
+            Logger.d("DialogLoadoutPicker: dismissed (NO commit)")
+            onDismiss()
         },
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
+        // Round 72 fix (Issue 1) — verticalScroll cho section dài. Trước fix
+        // section "Vũ khí phụ" bị cắt vì content > sheet maxHeight (90% screen).
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState()),
+        ) {
             Text(
                 text = "Chọn vũ khí cho lượt chơi này",
                 color = Color.White.copy(alpha = 0.75f),
