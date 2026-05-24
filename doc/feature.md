@@ -968,6 +968,82 @@ User said "tiếp tục đi" then added "bạn có chắc không? hãy check k�
 - `ui/game/GameScreen.kt` — mount ActiveBuffsHud at TopStart padding-top 90dp.
 - `app/build.gradle` — `testImplementation junit` + `testOptions.unitTests.returnDefaultValues = true`.
 
+### Round 77 — User audit 8 issues: diversity + UX + camera + control overhaul
+
+User feedback 8 issues, all picked Full. Major UX changes including hold+drag movement.
+
+**R77a — Pause icon -30%**: ButtonSettings 48dp → 34dp.
+
+**R77b — HUD 2-column**: IndicatorStatus restructured: Row [Left col COMBAT (HP/mineral/revive/combo)] [Right col PROGRESSION (chapter/stage/kills/ship badge)]. Compact horizontally + all info kept.
+
+**R77c — Ship tab +6 entries**: Each ShipSkin individual card (5) + MetaUpgrade summary card + Tip card (3-layer combo strategy). Total tab now 12+ entries.
+
+**R77d — Boss aura + scale + corner markers**: EnemyCanvas isBoss path adds (a) bigger halo radial gradient (×2.2 vs ×1.4 for regular), (b) red haloColor thay magenta, (c) secondary stroke ring, (d) 4 corner diamond markers at NE/SE/SW/NW. Boss visually unmistakable.
+
+**R77e — Enemy variant additive modifiers**: drawDart variants 0..4 get unique modifiers (baseline / thruster trail / side-spikes / swept-wings / heavy armor pip). drawHexagon variants 0..3 (baseline / inner-hex / corner orbs / center cross). Each variant within family visually distinct.
+
+**R77f — GameOver staggered animations**: New `RevealWrap` composable wraps each section. LaunchedEffect tăng `revealStep` 1..8 mỗi 120ms → AnimatedVisibility fade+slide-up. "KỶ LỤC MỚI" badge có pulse animation 600ms infinite scale 1.0↔1.08.
+
+**R77g — Camera zoom 3 levels**:
+- New `CameraZoom` enum (NEAR 1.0, MEDIUM 0.85, FAR 0.7) + Settings persistence.
+- GameWorld outer Box `.graphicsLayer { scaleX = scaleY = pixelScale }` áp zoom level lên render. Gameplay coordinates không scale → tốc độ giữ nguyên.
+- Settings "Tầm nhìn" pill row (3 options) violet.
+- Default MEDIUM (giuã hiện tại + xa).
+
+**R77h — Hold+drag movement + time-slow**:
+- 2 buttons REMOVED khỏi GameScreen compose tree (ButtonsMovement.kt giữ làm legacy).
+- ShipController.dragTargetX/Y + setDragTarget(x, y) + clearDragTarget(). moveShip() snaps về drag target với lerp 30%/tick → smooth follow finger.
+- setDragTarget offset finger position -80dp Y để finger không che ship.
+- GameScreen detectDragGestures onDragStart/onDrag/onDragEnd → callback vào GameState onShipDragStart/Move/End → ShipController.
+- **Slow-motion**: Game loop checks `shipController.dragTargetX != null`. Nếu KHÔNG hold + gameStatus RUNNING → `delay(26L)` (vs `delay(8L)`). Entities di chuyển ~3.3× chậm hơn. Hold lại → resume real-time.
+
+### Round 77 files
+
+**New:** `data/CameraZoom.kt`
+
+**Modified:**
+- `ui/game/controls/ButtonSettings.kt` — buttonSize 48dp → 34dp
+- `ui/game/controls/IndicatorStatus.kt` — Row 2-column layout restructure
+- `ui/info/InfoScreen.kt` — Ship tab +6 entries; enemy variant additive (delegate via in-game)
+- `ui/game/world/EnemyCanvas.kt` — Boss aura/corner markers + drawDart/Hexagon variant modifiers
+- `ui/dlg/gameover/DialogGameOver.kt` — RevealWrap composable + revealStep staggering
+- `data/SettingsRepository.kt` — CameraZoom key + flow + setter
+- `ui/dlg/settings/DialogSettings.kt` — Tầm nhìn pill row
+- `ui/game/world/GameWorld.kt` — graphicsLayer scale theo cameraZoom
+- `ui/game/ship/ship/ShipController.kt` — dragTargetX/Y + setDragTarget + clearDragTarget + drag-override path trong moveShip()
+- `ui/game/state/GameState.kt` — slow-motion gate trong game loop delay; onShipDragStart/Move/End expose
+- `ui/game/GameScreen.kt` — pointerInput detectDragGestures wrap GameWorld; ButtonsMovement xoá khỏi tree
+
+### Round 77 audit follow-up — 3 gaps phát hiện trước user self-test
+
+**Gap 1 — drawDiamond (HEAVY 3 variants) thiếu modifier**: R77e shipped drawDart + drawHexagon variants nhưng quên drawDiamond. 3 HEAVY cards trong InfoScreen + 3 enemy in-game render giống nhau.
+
+**Fix**: Added drawDiamond variants 0..2 unique modifiers:
+- v0 baseline (1 center pip)
+- v1 horizontal spikes (2 pips L-R + vertical center pip)
+- v2 corner mini-diamonds (4 mini-diamonds tại N/E/S/W cardinal points)
+
+Apply both `EnemyCanvas.drawDiamond` (in-game) + `InfoScreen.drawEnemyDiamond` (preview). Sync.
+
+**Gap 2 — Camera zoom + Hold+drag coord mismatch (critical)**: graphicsLayer scale affect render KHÔNG affect pointer input space. Khi cameraZoom = FAR (0.7×) + user drag → ship vị trí lệch finger.
+
+**Fix**: GameScreen drag callback chuyển touch → game coord qua formula:
+`gameX = (touch - centerX) / scale + centerX` (transformOrigin 0.5, 0.5).
+- New `mapTouchToGame()` helper trong GameScreen.
+- pointerInput key thay `Unit` → `zoomScale` để recompose khi user đổi zoom.
+- `liveCameraZoom by settingsRepo.cameraZoom.collectAsState()` reactive trong rememberGameState. Avoid runBlocking per-frame.
+- `GameState.cameraZoom` field expose ra data class.
+- Reactive update: user đổi Settings → mid-game ship drag dùng đúng scale ngay.
+
+**Gap 3 — Hold+drag pointerInput potential conflict với HUD button tap**: Chưa playtest. Risk smart bomb / pause button tap accidentally start drag. detectDragGestures chỉ fire khi pointer di chuyển vượt touch slop nên single tap không trigger. Buttons có own gesture handler (top zIndex) sẽ intercept trước. Probably OK nhưng untested — flagged for runtime test.
+
+### Round 77 verification
+
+- `compileDevDebugKotlin` ✅
+- `compileProductionReleaseKotlin` ✅
+- `testDevDebugUnitTest` ✅ 223 tests pass
+- `assembleDevDebug` ✅ BUILD SUCCESSFUL (clean rebuild verified)
+
 ### Round 76 — User audit 6 issues: assets/UI clarity batch
 
 User feedback 5 issues + issue 6 inline:

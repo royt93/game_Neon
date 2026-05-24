@@ -120,6 +120,10 @@ fun GameWorld(
     val selectedShipShape by settings.selectedShipShape.collectAsState(
         initial = com.tranphuloi.neon.ui.game.ship.shape.ShipShape.FIGHTER,
     )
+    // Round 77 (R77g) — camera zoom level scale toàn entity render.
+    val cameraZoom by settings.cameraZoom.collectAsState(
+        initial = com.tranphuloi.neon.data.CameraZoom.MEDIUM,
+    )
     // Round 41 — BURST sweep uses palette.cyan so it follows Color Blind mode.
     val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
 
@@ -176,7 +180,16 @@ fun GameWorld(
             }
         }
     }
-    Box(modifier = modifier.fillMaxSize()) {
+    // Round 77 (R77g) — camera zoom applies graphicsLayer scale to entire world.
+    // Pivot at center so zooming doesn't shift origin. Gameplay coordinates
+    // (collision/movement) unchanged — purely visual scaling.
+    Box(
+        modifier = modifier.fillMaxSize().graphicsLayer {
+            scaleX = cameraZoom.pixelScale
+            scaleY = cameraZoom.pixelScale
+            transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 0.5f)
+        },
+    ) {
         // Primary visibility gate: explicit state flag on Ship. Set to true via
         // GameState.onShipDestroyed coroutine after delay(200L). Mutating Ship
         // changes the data-class reference → Compose recomposes GameWorld and

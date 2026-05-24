@@ -566,42 +566,43 @@ private fun ShipTab(onOpenShipPicker: () -> Unit) {
         }
         Spacer(modifier = Modifier.height(8.dp))
 
-        // ── Layer 2: 5 ShipSkin ──
+        // ── Layer 2: 5 ShipSkin individual cards ──
+        // Round 77 (R77c) — Each skin riêng card thay 1 summary card.
         SectionLabel(label = "2. ĐỔI MÀU AURA", color = NeonMagenta)
         Spacer(modifier = Modifier.height(6.dp))
-        InfoCard(
-            color = NeonMagenta,
-            title = "5 màu Aura tàu",
-            subtitle = "Cài đặt → Hào quang tàu",
-            description = "Cyan / Vàng / Magenta / Tím / Đỏ. Đổi màu aura + glow của tàu + tia laser.\n" +
-                "Tiện thẩm mỹ, không ảnh hưởng chỉ số.",
-            iconDraw = { c ->
-                val colors = listOf(Color(0xFF00F0FF), Color(0xFFFFCB47), Color(0xFFFF2DE0),
-                    Color(0xFFB14CFF), Color(0xFFFF2D55))
-                val r = c.width * 0.09f
-                val gap = c.width * 0.05f
-                val totalW = colors.size * (2 * r) + (colors.size - 1) * gap
-                val startX = (c.width - totalW) / 2 + r
-                colors.forEachIndexed { i, col ->
-                    drawCircle(color = col, radius = r,
-                        center = androidx.compose.ui.geometry.Offset(
-                            startX + i * (2 * r + gap), c.height / 2))
-                }
-            },
-        )
+        com.tranphuloi.neon.data.ShipSkin.entries.forEach { skin ->
+            val skinColor = Color(skin.glowColorHex)
+            InfoCard(
+                color = skinColor,
+                title = "Aura ${skin.displayName}",
+                subtitle = "Skin · Cài đặt → Hào quang tàu",
+                description = "Đổi màu aura + glow tàu + tia laser sang ${skin.displayName.lowercase()}. " +
+                    "Thẩm mỹ thuần — không ảnh hưởng chỉ số gameplay.",
+                iconDraw = { c ->
+                    drawCircle(color = skinColor.copy(alpha = 0.35f), radius = c.width * 0.42f,
+                        center = androidx.compose.ui.geometry.Offset(c.width / 2, c.height / 2))
+                    drawCircle(color = skinColor, radius = c.width * 0.28f,
+                        center = androidx.compose.ui.geometry.Offset(c.width / 2, c.height / 2))
+                    drawCircle(color = Color.White.copy(alpha = 0.85f), radius = c.width * 0.13f,
+                        center = androidx.compose.ui.geometry.Offset(c.width / 2, c.height / 2))
+                },
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+        }
         Spacer(modifier = Modifier.height(8.dp))
 
-        // ── Layer 3: MetaUpgrade ──
+        // ── Layer 3: MetaUpgrade — 5 stat tracks individual cards + summary ──
         SectionLabel(label = "3. NÂNG CẤP CHỈ SỐ", color = NeonViolet)
         Spacer(modifier = Modifier.height(6.dp))
         InfoCard(
             color = NeonViolet,
-            title = "Nâng cấp vĩnh viễn",
-            subtitle = "Menu → NÂNG CẤP — tốn khoáng",
-            description = "5 cây nâng cấp: HP / Sát thương / Tốc độ / Hút khoáng / Chí mạng.\n" +
-                "Mỗi cây 5 cấp. Tốn khoáng tích luỹ. Áp dụng vĩnh viễn cho mọi run.",
+            title = "17 cây nâng cấp · 5 nền tảng",
+            subtitle = "Menu → NÂNG CẤP — tốn khoáng tích luỹ",
+            description = "5 cây nền tảng: HP (+10%/cấp) / Sát thương (+8%/cấp) / Tốc độ (+6%/cấp) / " +
+                "Nam châm (+15%/cấp) / Khiên (+1.5s/cấp). " +
+                "+ 10 cây nhánh + 2 cây tối thượng (legendary). " +
+                "Tất cả áp dụng vĩnh viễn cho mọi run.",
             iconDraw = { c ->
-                // Placeholder — upward arrow
                 val path = androidx.compose.ui.graphics.Path().apply {
                     moveTo(c.width / 2, c.height * 0.15f)
                     lineTo(c.width * 0.78f, c.height / 2)
@@ -613,6 +614,29 @@ private fun ShipTab(onOpenShipPicker: () -> Unit) {
                     close()
                 }
                 drawPath(path, NeonViolet)
+            },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = NeonGold,
+            title = "Tip — kết hợp 3 lớp",
+            subtitle = "ShipShape + ShipSkin + MetaUpgrade",
+            description = "Mở khoá BOMBER (1000 khoáng) → ×1.25 HP. Combo với meta_hp rank 5 → ×1.5 HP total. " +
+                "TANK (5000 khoáng) max meta + LEGENDARY_HP → 3x HP cap.",
+            iconDraw = { c ->
+                // 3 stacked rings cho 3-layer concept
+                val cx = c.width / 2; val cy = c.height / 2
+                drawCircle(NeonCyan, c.width * 0.35f,
+                    androidx.compose.ui.geometry.Offset(cx, cy),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f))
+                drawCircle(NeonMagenta, c.width * 0.25f,
+                    androidx.compose.ui.geometry.Offset(cx, cy),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f))
+                drawCircle(NeonViolet, c.width * 0.15f,
+                    androidx.compose.ui.geometry.Offset(cx, cy),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f))
+                drawCircle(NeonGold, c.width * 0.06f,
+                    androidx.compose.ui.geometry.Offset(cx, cy))
             },
         )
         Spacer(modifier = Modifier.height(8.dp))
@@ -1001,12 +1025,29 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyDiamond(
         style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.07f))
     val spikeR = w * 0.10f
     drawCircle(accent, spikeR, androidx.compose.ui.geometry.Offset(cx, cy))
-    // variant 0..2 — extra spike pips on top/bottom (matches in-game drawDiamond).
-    if (variant >= 1) {
-        drawCircle(accent, spikeR * 0.6f, androidx.compose.ui.geometry.Offset(cx, cy - halfH * 0.6f))
-    }
-    if (variant >= 2) {
-        drawCircle(accent, spikeR * 0.6f, androidx.compose.ui.geometry.Offset(cx, cy + halfH * 0.6f))
+    // Round 77 audit fix — match in-game drawDiamond variant modifiers.
+    when (variant) {
+        1 -> {
+            drawCircle(accent, spikeR * 0.7f, androidx.compose.ui.geometry.Offset(cx - halfW * 0.5f, cy))
+            drawCircle(accent, spikeR * 0.7f, androidx.compose.ui.geometry.Offset(cx + halfW * 0.5f, cy))
+            drawCircle(accent, spikeR * 0.5f, androidx.compose.ui.geometry.Offset(cx, cy - halfH * 0.6f))
+        }
+        2 -> {
+            val miniR = w * 0.07f
+            for (i in 0 until 4) {
+                val a = i * 90.0 * Math.PI / 180.0
+                val mx = cx + (halfW * 0.75f * kotlin.math.cos(a)).toFloat()
+                val my = cy + (halfH * 0.75f * kotlin.math.sin(a)).toFloat()
+                val mini = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(mx, my - miniR)
+                    lineTo(mx + miniR, my)
+                    lineTo(mx, my + miniR)
+                    lineTo(mx - miniR, my)
+                    close()
+                }
+                drawPath(mini, accent)
+            }
+        }
     }
 }
 

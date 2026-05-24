@@ -156,6 +156,10 @@ fun rememberGameState(): GameState {
     // mergedStats = baseStats × buffMultipliers (recompute on buff change).
     val activeBuffsState = com.tranphuloi.neon.ui.game.buff.LocalActiveBuffs.current
     val activeBuffs by activeBuffsState
+    // Round 77 audit fix — reactive cameraZoom for live update + drag coord conversion.
+    val liveCameraZoom by settingsRepo.cameraZoom.collectAsState(
+        initial = com.tranphuloi.neon.data.CameraZoom.MEDIUM,
+    )
     val baseEffectiveStats = remember(runContext) {
         com.tranphuloi.neon.ui.game.state.EffectiveStats.compute(runContext)
     }
@@ -1468,9 +1472,12 @@ fun rememberGameState(): GameState {
                         }
                     }
                     refreshHandler = System.currentTimeMillis()
-                    // delay() suspends and propagates cancellation; gives ~125Hz cap when running
-                    // and keeps CPU idle when paused (gameStatus != RUNNING just sleeps).
-                    delay(8)
+                    // delay() suspends and propagates cancellation; gives ~125Hz cap when running.
+                    // Round 77 (R77h) — slow-motion gate. Khi user KHÔNG hold ship
+                    // (dragTargetX == null), delay 26ms (~38Hz) → mọi entity di chuyển
+                    // 3.3× chậm hơn. Hold lại để resume real-time. Tactical pause-and-aim.
+                    val isHeld = shipController.dragTargetX != null
+                    delay(if (!isHeld && gameStatus == GameStatus.RUNNING) 26L else 8L)
                     yield()
                 }
             }
@@ -1563,6 +1570,8 @@ fun rememberGameState(): GameState {
         maxComboReached = maxComboReached,
         stagesReached = stageController.currentIndex(),
         shipShape = runContext.shipShape,
+        // Round 77 audit fix — reactive cameraZoom (collectAsState above).
+        cameraZoom = liveCameraZoom,
         smartBombs = smartBombs,
         mines = mines,
         lastBurstSweepMillis = lastBurstSweepMillis,
@@ -1690,6 +1699,10 @@ fun rememberGameState(): GameState {
         },
         moveShipLeft = { shipController.movingLeft = it },
         moveShipRight = { shipController.movingRight = it },
+        // Round 77 (R77h) — hold+drag callbacks.
+        onShipDragStart = { x, y -> shipController.setDragTarget(x, y) },
+        onShipDragMove = { x, y -> shipController.setDragTarget(x, y) },
+        onShipDragEnd = { shipController.clearDragTarget() },
         toggleGameStatus = {
             // Settings button must not be able to revive a destroyed ship.
             if (gameStatus != GameStatus.GAME_OVER) {
@@ -1752,6 +1765,9 @@ data class GameState(
     /** Round 76 (R76d) — selected ship shape, exposed for HUD badge. */
     val shipShape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape =
         com.tranphuloi.neon.ui.game.ship.shape.ShipShape.FIGHTER,
+    /** Round 77 audit fix — exposed camera zoom for GameScreen drag coord conversion. */
+    val cameraZoom: com.tranphuloi.neon.data.CameraZoom =
+        com.tranphuloi.neon.data.CameraZoom.MEDIUM,
     val smartBombs: Int,
     val dispatchSmartBomb: () -> Unit,
     /**
@@ -1798,6 +1814,10 @@ data class GameState(
     val storyShownMillis: Long,
     val moveShipLeft: (Boolean) -> Unit,
     val moveShipRight: (Boolean) -> Unit,
+    /** Round 77 (R77h) — hold+drag ship control. x/y in game world dp. */
+    val onShipDragStart: (x: Float, y: Float) -> Unit = { _, _ -> },
+    val onShipDragMove: (x: Float, y: Float) -> Unit = { _, _ -> },
+    val onShipDragEnd: () -> Unit = {},
     val toggleGameStatus: () -> Unit,
 )
 

@@ -84,6 +84,27 @@ class ShipController(
     var movingLeft = false
     var movingRight = false
 
+    /**
+     * Round 77 (R77h) — direct touch position from hold+drag gesture. When set,
+     * moveShip() snaps ship xOffset to this target instead of incremental L/R.
+     * null = no active drag.
+     */
+    var dragTargetX: Float? = null
+    var dragTargetY: Float? = null
+
+    /** Round 77 (R77h) — clamp target into screen. */
+    fun setDragTarget(x: Float, y: Float) {
+        // Ship draws from top-left. Adjust để finger ở center-bottom of ship +
+        // offset 50dp up để finger không che ship.
+        dragTargetX = (x - ship.width / 2f).coerceIn(0f, screenWidth - ship.width)
+        dragTargetY = (y - ship.height / 2f - 80f).coerceIn(0f, maxYOffset)
+    }
+
+    fun clearDragTarget() {
+        dragTargetX = null
+        dragTargetY = null
+    }
+
     // Round 34 (44x) — ICE_PATCHES slip: residual horizontal velocity that
     // decays each tick. Set on movement release; while > 0 ship continues
     // gliding briefly. Only applied when isIceHazardActive() == true.
@@ -156,8 +177,19 @@ class ShipController(
         }
         var newX = ship.xOffset
         var newY = ship.yOffset
-        // 25x/48x — effective movement speed = base × modifier × meta. Recomputed
-        // per tick so reactive multiplier changes (none currently, but cheap).
+        // Round 77 (R77h) — direct drag override. When dragTargetX != null,
+        // ship snaps về target position (smooth lerp 30%). Skip movement
+        // buttons + slip ice (drag wins).
+        if (dragTargetX != null) {
+            val targetX = dragTargetX!!
+            val targetY = dragTargetY ?: newY
+            // Smooth lerp 0.30 mỗi tick → ~5 tick để converge
+            newX += (targetX - newX) * 0.30f
+            newY += (targetY - newY) * 0.30f
+            ship = ship.copy(xOffset = newX, yOffset = newY, bankRotation = 0f)
+            setShip(ship)
+            return
+        }
         val effSpeed = movementSpeed * speedMultiplier()
         // Settle to play position bi-directionally. Activity recreate (config change,
         // theme switch, etc.) preserves Ship.yOffset via rememberSaveable but resets

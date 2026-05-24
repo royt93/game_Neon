@@ -91,15 +91,17 @@ private fun DrawScope.drawEnemy(
             (1f - sinceHit / 120f).coerceIn(0f, 1f)
         } else 0f
 
-        // Glow halo — Magenta as before.
+        // Glow halo — Magenta. Round 77 (R77d): boss có 2 aura layers + corner markers.
         val glowIntensity = 0.45f + hitFlash * 0.4f
-        val glowRadiusFactor = 1.4f + hitFlash * 0.4f
+        val glowRadiusFactor = if (enemy.isBoss) 2.2f + hitFlash * 0.4f
+            else 1.4f + hitFlash * 0.4f                    // Boss aura BIGGER halo
         val glowR = (minOf(wPx, hPx) / 2f) * glowRadiusFactor
+        val haloColor = if (enemy.isBoss) Color(0xFFFF2D55) else NeonMagenta
         drawCircle(
             brush = Brush.radialGradient(
                 colors = listOf(
-                    NeonMagenta.copy(alpha = glowIntensity),
-                    NeonMagenta.copy(alpha = glowIntensity * 0.4f),
+                    haloColor.copy(alpha = glowIntensity),
+                    haloColor.copy(alpha = glowIntensity * 0.4f),
                     Color.Transparent,
                 ),
                 center = Offset(cx, cy),
@@ -108,6 +110,31 @@ private fun DrawScope.drawEnemy(
             radius = glowR,
             center = Offset(cx, cy),
         )
+        // Round 77 (R77d) — Boss inner secondary aura ring (rotating effect via animation deferred).
+        if (enemy.isBoss) {
+            drawCircle(
+                color = haloColor.copy(alpha = 0.45f + hitFlash * 0.3f),
+                radius = (minOf(wPx, hPx) / 2f) * 1.35f,
+                center = Offset(cx, cy),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = wPx * 0.06f),
+            )
+            // 4 corner markers — small glowing diamonds at NE/SE/SW/NW của bounding ring
+            val markerR = (minOf(wPx, hPx) / 2f) * 1.55f
+            val markerSize = wPx * 0.10f
+            for (i in 0 until 4) {
+                val ang = (45.0 + i * 90.0) * Math.PI / 180.0
+                val mx = cx + (markerR * kotlin.math.cos(ang)).toFloat()
+                val my = cy + (markerR * kotlin.math.sin(ang)).toFloat()
+                val path = androidx.compose.ui.graphics.Path().apply {
+                    moveTo(mx, my - markerSize)
+                    lineTo(mx + markerSize, my)
+                    lineTo(mx, my + markerSize)
+                    lineTo(mx - markerSize, my)
+                    close()
+                }
+                drawPath(path, haloColor.copy(alpha = 0.85f))
+            }
+        }
 
         // Body color, blended with hit flash white + status effect tint.
         val baseBody = bodyColorFor(enemy.drawableId)
@@ -499,33 +526,84 @@ private fun DrawScope.drawBossSpider(
 
 // ─────────── Shape recipes ───────────
 
-/** Dart shape — triangle pointing DOWN (enemies attack downward). */
+/**
+ * Dart shape — triangle pointing DOWN (enemies attack downward).
+ * Round 77 (R77e) — Mỗi variant 0..4 có unique additive modifier:
+ *   v0 baseline / v1 thruster trail / v2 side-spikes / v3 swept-wings / v4 heavy armor pip.
+ */
 private fun DrawScope.drawDart(
     cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color, variant: Int,
 ) {
     val halfW = w * 0.42f
     val halfH = h * 0.45f
-    val tipY = cy + halfH                            // points down
+    val tipY = cy + halfH
     val baseY = cy - halfH
-    val notch = h * (0.10f + variant * 0.04f)        // variant tweaks back notch depth
+    val notch = h * (0.10f + variant * 0.04f)
     val path = Path().apply {
-        moveTo(cx, tipY)                             // tip down
-        lineTo(cx + halfW, baseY)                    // top-right
-        lineTo(cx, baseY + notch)                    // back notch (chevron)
-        lineTo(cx - halfW, baseY)                    // top-left
+        moveTo(cx, tipY)
+        lineTo(cx + halfW, baseY)
+        lineTo(cx, baseY + notch)
+        lineTo(cx - halfW, baseY)
         close()
     }
     drawPath(path = path, color = body)
     drawPath(path = path, color = accent, style = Stroke(width = w * 0.06f))
-    // Cockpit spot
-    drawCircle(
-        color = accent,
-        radius = w * 0.10f,
-        center = Offset(cx, cy + h * 0.10f),
-    )
+    drawCircle(accent, w * 0.10f, Offset(cx, cy + h * 0.10f))
+    // Round 77 — additive modifier per variant.
+    when (variant) {
+        1 -> {
+            // Thruster trail behind (upward extra lines)
+            drawLine(accent, Offset(cx - w * 0.10f, baseY), Offset(cx - w * 0.15f, baseY - h * 0.18f),
+                strokeWidth = w * 0.04f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            drawLine(accent, Offset(cx + w * 0.10f, baseY), Offset(cx + w * 0.15f, baseY - h * 0.18f),
+                strokeWidth = w * 0.04f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        }
+        2 -> {
+            // Side-spikes — 2 nhỏ ở mép cánh
+            drawCircle(accent, w * 0.06f, Offset(cx + halfW, baseY + h * 0.05f))
+            drawCircle(accent, w * 0.06f, Offset(cx - halfW, baseY + h * 0.05f))
+        }
+        3 -> {
+            // Swept-wings — extra triangle nhỏ phía mép cánh
+            val sweepW = w * 0.18f
+            val sweepH = h * 0.18f
+            val swp = Path().apply {
+                moveTo(cx + halfW, baseY)
+                lineTo(cx + halfW + sweepW, baseY + sweepH * 0.5f)
+                lineTo(cx + halfW, baseY + sweepH)
+                close()
+            }
+            drawPath(swp, accent)
+            val swpL = Path().apply {
+                moveTo(cx - halfW, baseY)
+                lineTo(cx - halfW - sweepW, baseY + sweepH * 0.5f)
+                lineTo(cx - halfW, baseY + sweepH)
+                close()
+            }
+            drawPath(swpL, accent)
+        }
+        4 -> {
+            // Heavy armor pip — extra inner triangle layer
+            val innerScale = 0.6f
+            val innerPath = Path().apply {
+                moveTo(cx, tipY - h * 0.05f)
+                lineTo(cx + halfW * innerScale, baseY + h * 0.05f)
+                lineTo(cx, baseY + notch + h * 0.05f)
+                lineTo(cx - halfW * innerScale, baseY + h * 0.05f)
+                close()
+            }
+            drawPath(innerPath, accent.copy(alpha = 0.65f))
+            // Center heavy pip
+            drawCircle(Color.White.copy(alpha = 0.65f), w * 0.07f, Offset(cx, cy))
+        }
+    }
 }
 
-/** Hexagon — flat-top, slightly elongated vertically. variant rotates 10° each. */
+/**
+ * Hexagon — flat-top, slightly elongated vertically. variant rotates 10° each.
+ * Round 77 (R77e) — Mỗi variant 0..3 unique additive:
+ *   v0 baseline / v1 inner-hex / v2 corner orbs / v3 center cross.
+ */
 private fun DrawScope.drawHexagon(
     cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color, variant: Int,
 ) {
@@ -543,11 +621,46 @@ private fun DrawScope.drawHexagon(
     }
     drawPath(path = path, color = body)
     drawPath(path = path, color = accent, style = Stroke(width = w * 0.06f))
-    // Inner pip
-    drawCircle(color = accent, radius = w * 0.12f, center = Offset(cx, cy))
+    drawCircle(accent, w * 0.12f, Offset(cx, cy))
+    when (variant) {
+        1 -> {
+            // Inner hex shell
+            val ix = rx * 0.55f; val iy = ry * 0.55f
+            val ip = Path().apply {
+                for (i in 0 until 6) {
+                    val a = baseAngle + 2.0 * Math.PI * i / 6.0
+                    val x = cx + (ix * cos(a)).toFloat()
+                    val y = cy + (iy * sin(a)).toFloat()
+                    if (i == 0) moveTo(x, y) else lineTo(x, y)
+                }
+                close()
+            }
+            drawPath(ip, accent, style = Stroke(width = w * 0.04f))
+        }
+        2 -> {
+            // 6 corner orbs
+            for (i in 0 until 6) {
+                val a = baseAngle + 2.0 * Math.PI * i / 6.0
+                val ox = cx + (rx * cos(a)).toFloat()
+                val oy = cy + (ry * sin(a)).toFloat()
+                drawCircle(accent, w * 0.05f, Offset(ox, oy))
+            }
+        }
+        3 -> {
+            // Center cross (4-tip mini star)
+            drawLine(accent, Offset(cx, cy - ry * 0.45f), Offset(cx, cy + ry * 0.45f),
+                strokeWidth = w * 0.05f)
+            drawLine(accent, Offset(cx - rx * 0.45f, cy), Offset(cx + rx * 0.45f, cy),
+                strokeWidth = w * 0.05f)
+        }
+    }
 }
 
-/** Diamond — vertical, wider than tall, with 4-spike accent. */
+/**
+ * Diamond — vertical, wider than tall, with 4-spike accent.
+ * Round 77 audit fix — additive modifier per variant 0..2:
+ *   v0 baseline / v1 horizontal spikes (đối xứng L-R) / v2 corner mini-diamonds.
+ */
 private fun DrawScope.drawDiamond(
     cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color, variant: Int,
 ) {
@@ -562,14 +675,33 @@ private fun DrawScope.drawDiamond(
     }
     drawPath(path = path, color = body)
     drawPath(path = path, color = accent, style = Stroke(width = w * 0.07f))
-    // Variant adds extra spike pips
     val spikeR = w * 0.10f
     drawCircle(color = accent, radius = spikeR, center = Offset(cx, cy))
-    if (variant >= 1) {
-        drawCircle(color = accent, radius = spikeR * 0.6f, center = Offset(cx, cy - halfH * 0.6f))
-    }
-    if (variant >= 2) {
-        drawCircle(color = accent, radius = spikeR * 0.6f, center = Offset(cx, cy + halfH * 0.6f))
+    when (variant) {
+        1 -> {
+            // Horizontal spikes — 2 pips trái + phải để biến tấu visual.
+            drawCircle(accent, spikeR * 0.7f, Offset(cx - halfW * 0.5f, cy))
+            drawCircle(accent, spikeR * 0.7f, Offset(cx + halfW * 0.5f, cy))
+            // Plus vertical center pip
+            drawCircle(accent, spikeR * 0.5f, Offset(cx, cy - halfH * 0.6f))
+        }
+        2 -> {
+            // Corner mini-diamonds at 4 cardinal points
+            val miniR = w * 0.07f
+            for (i in 0 until 4) {
+                val a = i * 90.0 * Math.PI / 180.0
+                val mx = cx + (halfW * 0.75f * kotlin.math.cos(a)).toFloat()
+                val my = cy + (halfH * 0.75f * kotlin.math.sin(a)).toFloat()
+                val mini = Path().apply {
+                    moveTo(mx, my - miniR)
+                    lineTo(mx + miniR, my)
+                    lineTo(mx, my + miniR)
+                    lineTo(mx - miniR, my)
+                    close()
+                }
+                drawPath(mini, accent)
+            }
+        }
     }
 }
 

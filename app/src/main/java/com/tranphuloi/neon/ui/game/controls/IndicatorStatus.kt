@@ -92,39 +92,17 @@ fun IndicatorStatus(
         else -> NeonRedAlert
     }
 
-    Column(modifier = modifier.padding(start = buttonPaddingEnd, top = buttonPaddingTop)) {
-        // Round 76 (R76d) — Chapter + Stage badge (top row, compact).
-        if (currentChapterId > 0) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.padding(start = 2.dp, bottom = 4.dp),
-            ) {
-                Text(
-                    text = "Ch.$currentChapterId",
-                    color = NeonGold,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Black,
-                    modifier = Modifier.neonGlow(NeonGold, intensity = 0.4f, radiusFactor = 1.2f),
-                )
-                if (currentChapterName.isNotEmpty()) {
-                    Text(
-                        text = "· $currentChapterName",
-                        color = Color.White.copy(alpha = 0.75f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-                if (stagesReached > 0) {
-                    Text(
-                        text = " · Stage $stagesReached",
-                        color = Color.White.copy(alpha = 0.6f),
-                        fontSize = 10.sp,
-                    )
-                }
-            }
-        }
-        Box(modifier = modifier.height(height = height)) {
+    // Round 77 (R77b) — 2-column layout. Left = COMBAT (HP/mineral/combo/revive).
+    // Right = PROGRESSION (chapter/stage/kills/ship). User feedback "HUD to + ít info"
+    // mâu thuẫn → giải bằng cách chia layout 2 cột (compact horizontally) + giữ
+    // all info (mỗi cột riêng category dễ scan).
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier.padding(start = buttonPaddingEnd, top = buttonPaddingTop),
+    ) {
+        // ── Left column: COMBAT ──
+        Column {
+        Box(modifier = Modifier.height(height = height)) {
             // Round 67.6 — Vector HP frame replacing button_hp_indicator.webp.
             // Stadium (capsule) outline + neon glow, color tracks HP tier.
             androidx.compose.foundation.Canvas(
@@ -249,28 +227,62 @@ fun IndicatorStatus(
                 },
             )
         }
-        // Round 76 (R76d) — Combat counter row (enemies + bosses killed).
-        if (enemiesKilledTotal > 0 || bossesDefeatedTotal > 0) {
+        // ── Left column: Revive + Combo (combat continued) ──
+        if (hasReviveToken) {
             Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(start = 2.dp),
-            ) {
+            ReviveTokenBadge()
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        ComboHud(
+            count = comboCount,
+            tier = comboTier,
+            lastKillMillis = lastEnemyKillMillis,
+        )
+        } // end Left column
+
+        // ── Right column: PROGRESSION ──
+        Column {
+        // Round 77 (R77b) — chapter/stage/kills/ship badge stacked vertically.
+        if (currentChapterId > 0) {
+            Text(
+                text = "Ch.$currentChapterId",
+                color = NeonGold,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Black,
+                modifier = Modifier.neonGlow(NeonGold, intensity = 0.4f, radiusFactor = 1.2f),
+            )
+            if (currentChapterName.isNotEmpty()) {
                 Text(
-                    text = "⚔ $enemiesKilledTotal",
-                    color = NeonCyan.copy(alpha = 0.85f),
+                    text = currentChapterName,
+                    color = Color.White.copy(alpha = 0.75f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+            if (stagesReached > 0) {
+                Text(
+                    text = "Stage $stagesReached",
+                    color = Color.White.copy(alpha = 0.6f),
+                    fontSize = 10.sp,
+                )
+            }
+        }
+        // Combat counter (right col, stacked).
+        if (enemiesKilledTotal > 0 || bossesDefeatedTotal > 0) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "⚔ $enemiesKilledTotal",
+                color = NeonCyan.copy(alpha = 0.85f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            if (bossesDefeatedTotal > 0) {
+                Text(
+                    text = "☠ $bossesDefeatedTotal",
+                    color = NeonRedAlert.copy(alpha = 0.85f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                 )
-                if (bossesDefeatedTotal > 0) {
-                    Text(
-                        text = "☠ $bossesDefeatedTotal",
-                        color = NeonRedAlert.copy(alpha = 0.85f),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
             }
         }
         // Round 76 (R76d) — Ship shape badge.
@@ -282,25 +294,13 @@ fun IndicatorStatus(
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
-                    .padding(start = 2.dp)
                     .clip(MaterialTheme.shapes.small)
                     .background(Color(0xFFB14CFF).copy(alpha = 0.18f))
                     .padding(horizontal = 6.dp, vertical = 2.dp),
             )
         }
-        // 14c: Auto-revive token indicator — small heart pill, only when held.
-        if (hasReviveToken) {
-            Spacer(modifier = Modifier.height(4.dp))
-            ReviveTokenBadge()
-        }
-        // 7c: Combo HUD — only renders when count > 0 (auto-hides on expire).
-        Spacer(modifier = Modifier.height(4.dp))
-        ComboHud(
-            count = comboCount,
-            tier = comboTier,
-            lastKillMillis = lastEnemyKillMillis,
-        )
-    }
+        } // end Right column
+    } // end Row
 }
 
 @Composable

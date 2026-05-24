@@ -15,8 +15,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -68,6 +70,15 @@ fun DialogGameOver(
     var submitted by remember { mutableStateOf(false) }
     val runStatsState = LocalRunStats.current.value
     val isEndless = runStatsState?.gameModeKey == "endless"
+
+    // Round 77 (R77f) — staggered reveal animation. Mỗi step = 120ms delay.
+    var revealStep by remember { mutableStateOf(0) }
+    LaunchedEffect(Unit) {
+        for (i in 1..8) {
+            kotlinx.coroutines.delay(120L)
+            revealStep = i
+        }
+    }
 
     LaunchedEffect(Unit) {
         Logger.d("DialogGameOver shown (score=$score, mode=${runStatsState?.gameModeKey ?: "?"})")
@@ -150,72 +161,94 @@ fun DialogGameOver(
         },
     ) {
         Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
-            ScoreRow(
-                label = "KHOÁNG VẬT",
-                value = score,
-                accentColor = NeonGold,
-            )
+            // Round 77 (R77f) — staggered reveal: step 1 = score, 2 = highest, 3 = badge,
+            // 4 = victory, 5 = stats, 6 = endless, 7 = daily, 8 = leaderboard.
+            RevealWrap(visible = revealStep >= 1) {
+                ScoreRow(
+                    label = "KHOÁNG VẬT",
+                    value = score,
+                    accentColor = NeonGold,
+                )
+            }
             Spacer(modifier = Modifier.height(8.dp))
-            ScoreRow(
-                label = "KỶ LỤC",
-                value = highestSoFar.toString(),
-                accentColor = NeonCyan,
-            )
+            RevealWrap(visible = revealStep >= 2) {
+                ScoreRow(
+                    label = "KỶ LỤC",
+                    value = highestSoFar.toString(),
+                    accentColor = NeonCyan,
+                )
+            }
             if (isNewBest && currentScore > 0) {
                 Spacer(modifier = Modifier.height(10.dp))
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(NeonGold.copy(alpha = 0.25f))
-                        .border(
-                            BorderStroke(1.5.dp, NeonGold),
-                            RoundedCornerShape(4.dp),
-                        )
-                        .padding(horizontal = 14.dp, vertical = 4.dp),
-                ) {
-                    Text(
-                        text = "★ KỶ LỤC MỚI ★",
-                        color = NeonGold,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 13.sp,
-                        style = TextStyle(letterSpacing = 3.sp),
+                // Round 77 (R77f) — pulse animation cho "KỶ LỤC MỚI" badge.
+                RevealWrap(visible = revealStep >= 3) {
+                    val pulseTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "newBestPulse")
+                    val pulseScale by pulseTransition.animateFloat(
+                        initialValue = 1f,
+                        targetValue = 1.08f,
+                        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                            animation = androidx.compose.animation.core.tween(600, easing = androidx.compose.animation.core.FastOutSlowInEasing),
+                            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
+                        ),
+                        label = "newBestPulseScale",
                     )
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .graphicsLayer { scaleX = pulseScale; scaleY = pulseScale }
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(NeonGold.copy(alpha = 0.25f))
+                            .border(
+                                BorderStroke(1.5.dp, NeonGold),
+                                RoundedCornerShape(4.dp),
+                            )
+                            .padding(horizontal = 14.dp, vertical = 4.dp),
+                    ) {
+                        Text(
+                            text = "★ KỶ LỤC MỚI ★",
+                            color = NeonGold,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 13.sp,
+                            style = TextStyle(letterSpacing = 3.sp),
+                        )
+                    }
                 }
             }
             // 34d Wave 4 — victory ending text shown only when player defeated FinalBoss.
             // Difficulty-aware: hard difficulty gets a stronger congratulations message.
             if (runStatsState?.victoryAchieved == true) {
                 Spacer(modifier = Modifier.height(14.dp))
-                VictoryPanel()
+                RevealWrap(visible = revealStep >= 4) { VictoryPanel() }
             }
-            // 15c: stats breakdown panel — only when stats snapshot exists.
             if (runStatsState != null) {
                 Spacer(modifier = Modifier.height(14.dp))
-                StatsPanel(stats = runStatsState)
+                RevealWrap(visible = revealStep >= 5) { StatsPanel(stats = runStatsState) }
             }
-            // 23x Endless — only when current run was endless. `isEndless` already
-            // implies runStatsState != null (since isEndless = state?.key == "endless").
             if (isEndless) {
                 Spacer(modifier = Modifier.height(14.dp))
-                EndlessPanel(
-                    currentSeconds = runStatsState.timeSec.toInt(),
-                    endlessEntries = endlessEntries,
+                RevealWrap(visible = revealStep >= 6) {
+                    EndlessPanel(
+                        currentSeconds = runStatsState.timeSec.toInt(),
+                        endlessEntries = endlessEntries,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(14.dp))
+            RevealWrap(visible = revealStep >= 7) {
+                DailyPanel(
+                    dayKey = todayKey,
+                    dailyEntries = dailyEntries,
+                    currentScore = currentScore,
                 )
             }
-            // 17c Daily challenge — daily best panel above the all-time list.
             Spacer(modifier = Modifier.height(14.dp))
-            DailyPanel(
-                dayKey = todayKey,
-                dailyEntries = dailyEntries,
-                currentScore = currentScore,
-            )
-            Spacer(modifier = Modifier.height(14.dp))
-            LeaderboardList(
-                entries = entries,
-                currentScore = currentScore,
-                playerRank = playerRank,
-            )
+            RevealWrap(visible = revealStep >= 8) {
+                LeaderboardList(
+                    entries = entries,
+                    currentScore = currentScore,
+                    playerRank = playerRank,
+                )
+            }
             Spacer(modifier = Modifier.height(18.dp))
             // ─── Action buttons (round 28: inline since sheet has no actions slot) ───
             Column(
@@ -452,6 +485,27 @@ private fun StatLine(label: String, value: String) {
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
         )
+    }
+}
+
+/**
+ * Round 77 (R77f) — Staggered reveal wrapper. AnimatedVisibility với slide-up
+ * + fade-in. Gate visible bằng revealStep counter.
+ */
+@Composable
+private fun RevealWrap(visible: Boolean, content: @Composable () -> Unit) {
+    androidx.compose.animation.AnimatedVisibility(
+        visible = visible,
+        enter = androidx.compose.animation.fadeIn(
+            animationSpec = androidx.compose.animation.core.tween(280),
+        ) + androidx.compose.animation.slideInVertically(
+            animationSpec = androidx.compose.animation.core.tween(280,
+                easing = androidx.compose.animation.core.FastOutSlowInEasing),
+            initialOffsetY = { it / 3 },
+        ),
+        exit = androidx.compose.animation.fadeOut(),
+    ) {
+        content()
     }
 }
 

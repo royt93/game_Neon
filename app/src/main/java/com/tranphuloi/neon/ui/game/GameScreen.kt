@@ -50,6 +50,8 @@ import com.tranphuloi.neon.ui.game.controls.PhaseTransitionBanner
 import com.tranphuloi.neon.ui.game.controls.SmartBombButton
 import com.tranphuloi.neon.ui.game.controls.StageBanner
 import com.tranphuloi.neon.ui.game.controls.WaveClearBanner
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectDragGestures
 import com.tranphuloi.neon.ui.game.controls.ButtonsMovement
 import com.tranphuloi.neon.ui.game.controls.ButtonSettings
 import com.tranphuloi.neon.ui.game.controls.ComboPopup
@@ -513,8 +515,48 @@ fun GameScreen(
                 modifier = Modifier.align(Alignment.Center),
             )
         }
+        // Round 77 (R77h) — hold+drag layer over game world. Ship follows finger.
+        // Round 77 audit fix — camera zoom coord conversion. graphicsLayer scale
+        // pivot center (0.5, 0.5). Touch in screen coord. Game coord =
+        // (touch - center) / scale + center.
+        val density = androidx.compose.ui.platform.LocalDensity.current
+        val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+        val zoomScale = gameState.cameraZoom.pixelScale
+        val screenCenterX = configuration.screenWidthDp / 2f
+        val screenCenterY = configuration.screenHeightDp / 2f
+        fun mapTouchToGame(touchDpX: Float, touchDpY: Float): Pair<Float, Float> {
+            val gx = (touchDpX - screenCenterX) / zoomScale + screenCenterX
+            val gy = (touchDpY - screenCenterY) / zoomScale + screenCenterY
+            return gx to gy
+        }
         Column(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(zoomScale) {
+                    detectDragGestures(
+                        onDragStart = { offset: androidx.compose.ui.geometry.Offset ->
+                            with(density) {
+                                val (gx, gy) = mapTouchToGame(
+                                    offset.x.toDp().value, offset.y.toDp().value,
+                                )
+                                gameState.onShipDragStart(gx, gy)
+                            }
+                        },
+                        onDrag = { change: androidx.compose.ui.input.pointer.PointerInputChange,
+                                   _: androidx.compose.ui.geometry.Offset ->
+                            change.consume()
+                            with(density) {
+                                val (gx, gy) = mapTouchToGame(
+                                    change.position.x.toDp().value,
+                                    change.position.y.toDp().value,
+                                )
+                                gameState.onShipDragMove(gx, gy)
+                            }
+                        },
+                        onDragEnd = { gameState.onShipDragEnd() },
+                        onDragCancel = { gameState.onShipDragEnd() },
+                    )
+                },
         ) {
             GameWorld(
                 ship = gameState.ship,
@@ -549,14 +591,10 @@ fun GameScreen(
                         }
                     }
             )
-            // Round 51 (26x) — hide movement buttons during photo capture
-            // so the bottom of the captured frame isn't dominated by control
-            // chrome.
-            if (!gameState.photoModeActive) ButtonsMovement(
-                onMoveLeft = { gameState.moveShipLeft(it) },
-                onMoveRight = { gameState.moveShipRight(it) },
-                modifier = Modifier.padding(bottom = 24.dp)
-            )
+            // Round 77 (R77h) — 2 buttons REMOVED, replaced bằng hold+drag
+            // anywhere on game world. ButtonsMovement deleted from compose tree.
+            // (ButtonsMovement.kt + moveShipLeft/Right callbacks giữ lại trong
+            // GameState class cho back-compat nếu user revert.)
         }
 
         // Vignette dark frame (1c cinematic).

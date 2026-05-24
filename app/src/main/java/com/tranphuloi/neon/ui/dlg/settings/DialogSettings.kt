@@ -208,8 +208,6 @@ fun DialogSettings(
                 // bullet + secondary weapon per-run.
                 Spacer(modifier = Modifier.height(10.dp))
                 ControlGroup {
-                    // Round 39 — Color blind mode picker. Wong-derived palette swap
-                    // applied to LocalNeonPalette via MainActivity provider.
                     LabelledPillRow(label = "Chế độ màu", color = palette.cyan) {
                         com.tranphuloi.neon.data.ColorBlindMode.entries.forEach { m ->
                             Pill(
@@ -217,6 +215,23 @@ fun DialogSettings(
                                 selected = m == colorBlindMode,
                                 color = palette.cyan,
                                 onClick = { scope.launch { settings.setColorBlindMode(m) } }
+                            )
+                        }
+                    }
+                }
+                // Round 77 (R77g) — Camera zoom picker.
+                Spacer(modifier = Modifier.height(10.dp))
+                ControlGroup {
+                    val cameraZoom by settings.cameraZoom.collectAsState(
+                        initial = com.tranphuloi.neon.data.CameraZoom.MEDIUM,
+                    )
+                    LabelledPillRow(label = "Tầm nhìn", color = palette.violet) {
+                        com.tranphuloi.neon.data.CameraZoom.entries.forEach { z ->
+                            Pill(
+                                label = z.displayName,
+                                selected = z == cameraZoom,
+                                color = palette.violet,
+                                onClick = { scope.launch { settings.setCameraZoom(z) } }
                             )
                         }
                     }

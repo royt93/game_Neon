@@ -27,10 +27,9 @@ import com.tranphuloi.neon.common.neonGlow
 @Composable
 fun ButtonSettings(modifier: Modifier = Modifier, onSettings: () -> Unit) {
     val buttonPaddingEnd = dimensionResource(id = R.dimen.button_padding)
-    val buttonPaddingTop = 14.dp
-    // Round 70 v3 — user feedback "icon quá to". Revert 68dp → 48dp (nhỏ hơn
-    // original 60dp). Pause bars + glow đã đủ rõ; không cần tap target bự.
-    val buttonSize = 48.dp
+    val buttonPaddingTop = 12.dp
+    // Round 77 (R77a) — user feedback "pause icon cần nhỏ lại 30%". 48dp × 0.7 = 34dp.
+    val buttonSize = 34.dp
 
     Canvas(
         modifier = modifier
