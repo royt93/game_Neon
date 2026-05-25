@@ -284,6 +284,19 @@ fun GameScreen(
                 com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HAUNTED_KID -> 1.55f
                 com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HELL_LORD -> 0.55f
                 com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SATAN_GLYPH -> 1.25f
+                // Round 81 — 12 new boss kinds.
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HEN_MOTHER -> 1.60f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.BUFFALO_RAGE -> 0.60f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.DUMB_RAT -> 1.40f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.FIERCE_TIGER -> 0.70f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SEXY_DIVA -> 1.20f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.TROLL_TOWER -> 0.85f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.TWIN_SUMMITS -> 1.10f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.VOID_GLOBES -> 0.65f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.WHITE_DRAGON -> 0.50f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HAMMER_SICKLE -> 0.90f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.MONEY_TYCOON -> 1.05f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.GOLDEN_TYCOON -> 1.15f
                 null -> 1.0f
             }
             sfx.play(SfxEvent.EXPLOSION, rate)

@@ -62,6 +62,19 @@ object StoryRegistry {
                 MidBossType.OFFENSIVE -> "Hàng hay là chết."
                 MidBossType.DEFENSIVE -> "Phá khiên ta đi. Thách đó."
                 MidBossType.SWARM -> "Không bắt được, không bắn được."
+                // Round 82 — 12 R81 boss taunts (Vietnamese, in-character).
+                MidBossType.HEN_MOTHER -> "Cục tác! Ta đẻ trứng cho ngươi đó!"
+                MidBossType.BUFFALO_RAGE -> "Sừng ta sẽ xuyên qua tàu ngươi!"
+                MidBossType.DUMB_RAT -> "Phô-mai... à không, laser! Ta bắn đây!"
+                MidBossType.FIERCE_TIGER -> "Gầm! Hú vang khắp dải Ngân Hà!"
+                MidBossType.SEXY_DIVA -> "Tóc ta lấp lánh, đẹp lắm. Cẩn thận nhé."
+                MidBossType.TROLL_TOWER -> "Cao chót vót, ánh sáng từ đỉnh thần thánh."
+                MidBossType.TWIN_SUMMITS -> "Hai đỉnh kép, hai tia sữa song hành."
+                MidBossType.VOID_GLOBES -> "Vô tận hư vô, hứng đòn của ta đi!"
+                MidBossType.WHITE_DRAGON -> "Bạch Long Mắt Lam — thét ra lửa!"
+                MidBossType.HAMMER_SICKLE -> "Búa liềm bịp bợm — vinh quang giai cấp!"
+                MidBossType.MONEY_TYCOON -> "Money makes the world go round, tàu trẻ con."
+                MidBossType.GOLDEN_TYCOON -> "Believe me, tàu ngươi sẽ chết tuyệt vời nhất."
             },
         )
         else -> null

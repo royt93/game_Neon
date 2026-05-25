@@ -21,7 +21,12 @@ enum class Chapter(
     val tintArgb: Long,
     val regularEnemyDrawables: List<Int>,
     val hazard: HazardType?,
-    val midBossType: MidBossType?,
+    /**
+     * Round 82 — was `midBossType: MidBossType?` (single). Now List để insert
+     * multiple mid-bosses per chapter, wiring 12 R81 new bosses into actual
+     * gameplay. Empty list = no mid-bosses (Ch5 default before FinalBoss).
+     */
+    val midBossTypes: List<MidBossType>,
     val finalBossType: EnemyType,
 ) {
     ASTEROID_BELT(
@@ -32,9 +37,17 @@ enum class Chapter(
             R.drawable.enemy_red_1,
             R.drawable.enemy_red_2,
             R.drawable.enemy_red_3,
+            // Round 82 — Ch1 gets Spinning Saw + Mine Layer as introduction.
+            R.drawable.enemy_spinning_saw,
+            R.drawable.enemy_mine_layer,
         ),
         hazard = HazardType.ASTEROID_STORM,
-        midBossType = MidBossType.OFFENSIVE,
+        // Round 82 — Ch1: OFFENSIVE (existing) + HEN_MOTHER + BUFFALO_RAGE (R81 new)
+        midBossTypes = listOf(
+            MidBossType.OFFENSIVE,
+            MidBossType.HEN_MOTHER,
+            MidBossType.BUFFALO_RAGE,
+        ),
         finalBossType = LevelOneBossType,
     ),
     NEBULA_CLOUD(
@@ -46,9 +59,17 @@ enum class Chapter(
             R.drawable.enemy_green_2,
             R.drawable.enemy_green_3,
             R.drawable.enemy_green_4,
+            // Round 82 — Ch2: Tentacle Squid (foggy nebula = creatures hide).
+            R.drawable.enemy_tentacle_squid,
+            R.drawable.enemy_phantom,
         ),
         hazard = HazardType.NEBULA_FOG,
-        midBossType = MidBossType.DEFENSIVE,
+        // Round 82 — Ch2: DEFENSIVE (existing) + DUMB_RAT + FIERCE_TIGER
+        midBossTypes = listOf(
+            MidBossType.DEFENSIVE,
+            MidBossType.DUMB_RAT,
+            MidBossType.FIERCE_TIGER,
+        ),
         finalBossType = LevelTwoBossType,
     ),
     ICE_PLANET(
@@ -61,9 +82,17 @@ enum class Chapter(
             R.drawable.enemy_light_blue_3,
             R.drawable.enemy_light_blue_4,
             R.drawable.enemy_light_blue_5,
+            // Round 82 — Ch3 Ice: Shield Drone + Sniper (high-tech defensive).
+            R.drawable.enemy_shield_drone,
+            R.drawable.enemy_sniper,
         ),
         hazard = HazardType.ICE_PATCHES,
-        midBossType = MidBossType.SWARM,
+        // Round 82 — Ch3: SWARM (existing) + SEXY_DIVA + TROLL_TOWER
+        midBossTypes = listOf(
+            MidBossType.SWARM,
+            MidBossType.SEXY_DIVA,
+            MidBossType.TROLL_TOWER,
+        ),
         finalBossType = LevelOneBossType,             // reuse — palette change handled visually
     ),
     HOSTILE_STATION(
@@ -71,6 +100,7 @@ enum class Chapter(
         displayName = "TRẠM THÙ ĐỊCH",
         tintArgb = 0xFFFF2D55,                        // red alert
         // Round 74 (R73d) — Chapter 4 introduces ELITE family (cross/orb).
+        // Round 82 — adds Mirror Twin + Healer + Bomber Crawler (advanced tactics).
         regularEnemyDrawables = listOf(
             R.drawable.enemy_red_2,
             R.drawable.enemy_red_3,
@@ -80,9 +110,17 @@ enum class Chapter(
             R.drawable.enemy_cross_2,
             R.drawable.enemy_orb_1,
             R.drawable.enemy_orb_2,
+            R.drawable.enemy_mirror_twin,
+            R.drawable.enemy_healer,
+            R.drawable.enemy_bomber_crawler,
         ),
         hazard = null,                                // station = open zone
-        midBossType = MidBossType.OFFENSIVE,
+        // Round 82 — Ch4: OFFENSIVE reuse (→HELL_LORD via factory) + TWIN_SUMMITS + VOID_GLOBES
+        midBossTypes = listOf(
+            MidBossType.OFFENSIVE,
+            MidBossType.TWIN_SUMMITS,
+            MidBossType.VOID_GLOBES,
+        ),
         finalBossType = LevelTwoBossType,
     ),
     GALAXY_CORE(
@@ -90,6 +128,7 @@ enum class Chapter(
         displayName = "LÕI THIÊN HÀ",
         tintArgb = 0xFFFF2DE0,                        // deep magenta
         // Round 74 (R73d) — Chapter 5 introduces BERSERKER family (chevron/spike).
+        // Round 82 — climactic chapter gets Kamikaze (suicide rush).
         regularEnemyDrawables = listOf(
             R.drawable.enemy_red_3,
             R.drawable.enemy_green_4,
@@ -98,11 +137,22 @@ enum class Chapter(
             R.drawable.enemy_chevron_2,
             R.drawable.enemy_spike_1,
             R.drawable.enemy_spike_2,
+            R.drawable.enemy_kamikaze,
         ),
         hazard = null,
-        midBossType = null,                           // no mid-boss before final
+        // Round 82 — Ch5: 4 mini-bosses before FinalBoss (was null = no mid-boss).
+        // Climactic chapter — 4 themed bosses để culminate journey.
+        midBossTypes = listOf(
+            MidBossType.WHITE_DRAGON,
+            MidBossType.HAMMER_SICKLE,
+            MidBossType.MONEY_TYCOON,
+            MidBossType.GOLDEN_TYCOON,
+        ),
         finalBossType = FinalBossType,                // 34d 3-phase final boss
     );
+
+    /** Round 82 — back-compat convenience: first midBossType (or null). */
+    val midBossType: MidBossType? get() = midBossTypes.firstOrNull()
 }
 
 /**

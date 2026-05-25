@@ -24,4 +24,18 @@ enum class BossKind {
     HAUNTED_KID,     // kid ma ám — ghost child silhouette
     HELL_LORD,       // chúa tể địa ngục — devil head + horns
     SATAN_GLYPH,     // quỷ satan — inverted pentagram + center eye
+
+    // ── Round 81 — 12 new boss kinds per user roster ──
+    HEN_MOTHER,      // con gà mái dầu — throws eggs
+    BUFFALO_RAGE,    // con trâu hung hẵn — throws horns
+    DUMB_RAT,        // con chuột ngu si — laser bullets
+    FIERCE_TIGER,    // con cọp hung tợn — roar bullet pattern
+    SEXY_DIVA,       // cô gái sexy — throws hair 4 directions (feminine silhouette)
+    TROLL_TOWER,     // tháp tinh quỷ (dương vật tinh nghịch → tasteful tower)
+    TWIN_SUMMITS,    // đôi đỉnh sinh hoa (nhũ hoa → tasteful twin domes)
+    VOID_GLOBES,     // đôi cầu hư vô (cặp mông → tasteful twin spheres)
+    WHITE_DRAGON,    // bạch long mắt lam — fire breath
+    HAMMER_SICKLE,   // cộng sản — hammer+sickle symbol throws
+    MONEY_TYCOON,    // tư bản bóc lột — throws money bags
+    GOLDEN_TYCOON,   // (trump caricature, no real name) — orange hair tycoon + dollar throws
 }

@@ -63,18 +63,29 @@ private fun buildStageScript(): List<Stage> {
         list.add(StageMessage(message = chapter.displayName, durationMillis = 3, chapterId = chapter.id))
         list.add(StageMessage(message = "BẮT ĐẦU!", durationMillis = 1, chapterId = chapter.id))
 
-        // 12 game stages, mid-boss inserted at game-stage 6 + 12.
+        // 12 game stages, mid-boss inserted at game-stage 6 + 12 + extras.
         // Tier scales difficulty across the chapter: 0=early, 1=mid, 2=late.
+        // Round 82 — iterate midBossTypes list. Game-stage 6 = midBossTypes[0],
+        // game-stage 12 = midBossTypes[1], game-stage 10 = midBossTypes[2],
+        // game-stage 8 = midBossTypes[3]. Insert extra mid-bosses for chapters
+        // với midBossTypes.size > 2 (R81 wire: each chapter có 3-4 mini-bosses).
+        val midBossSlotsByStage = mapOf(
+            6 to chapter.midBossTypes.getOrNull(0),
+            8 to chapter.midBossTypes.getOrNull(3),
+            10 to chapter.midBossTypes.getOrNull(2),
+            12 to chapter.midBossTypes.getOrNull(1),
+        )
         for (gameStage in 1..12) {
             val tier = (gameStage - 1) / 4
             list.add(buildGameStage(chapter, gameStage, tier))
 
-            if ((gameStage == 6 || gameStage == 12) && chapter.midBossType != null) {
+            val midBossForStage = midBossSlotsByStage[gameStage]
+            if (midBossForStage != null) {
                 list.add(StageMessage(message = "NGUY HIỂM", durationMillis = 2, chapterId = chapter.id))
                 list.add(
                     StageBoss(
                         bossId = UUID.randomUUID().toString(),
-                        enemyType = chapter.midBossType,
+                        enemyType = midBossForStage,
                         chapterId = chapter.id,
                     )
                 )

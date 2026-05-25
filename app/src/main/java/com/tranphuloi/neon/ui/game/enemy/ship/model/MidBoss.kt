@@ -49,11 +49,10 @@ data class MidBoss(
     // Round 79 (#1) — bossKindOverride (set theo chapter trong EnemyFactory) cho
     // phép Ch4Mid OFFENSIVE reuse render HELL_LORD, Ch3Mid SWARM render
     // HAUNTED_KID — eliminate visual duplicate giữa các chapter.
-    override val bossKind: BossKind = bossKindOverride ?: when (variant) {
-        MidBossType.OFFENSIVE -> BossKind.ORB
-        MidBossType.DEFENSIVE -> BossKind.FRACTAL
-        MidBossType.SWARM -> BossKind.FRACTAL
-    }
+    // Round 82 — data-driven via variant.defaultBossKind. 12 new variants tự
+    // mang BossKind riêng → KHÔNG cần hardcode dispatch. bossKindOverride vẫn
+    // ưu tiên cao nhất cho chapter-aware reuse (Ch4 OFFENSIVE→HELL_LORD, etc.).
+    override val bossKind: BossKind = bossKindOverride ?: variant.defaultBossKind
     override val displayName: String = variant.displayName
 
     override var xOffset: Float = (screenWidth - width) / 2f
@@ -83,24 +82,42 @@ data class MidBoss(
             return
         }
 
-        // Movement pattern by variant
+        // Movement pattern by variant. Round 82 — 12 new variants tái sử dụng
+        // movement pattern của variant gốc gần nhất theo behavior:
+        // - Aggressive (HEN/BUFFALO/TIGER/TROLL/DIVA/SATAN/SICKLE/TYCOON) → sine
+        // - Defensive (RAT/DRAGON/MONEY/SUMMITS/GLOBES) → slow patrol
         movementTime += 1f
-        when (variant) {
-            MidBossType.OFFENSIVE -> {
+        val patternForVariant: Int = when (variant) {
+            MidBossType.OFFENSIVE -> 0           // sine
+            MidBossType.DEFENSIVE -> 1           // patrol
+            MidBossType.SWARM -> 2               // figure-8
+            MidBossType.HEN_MOTHER -> 2          // erratic
+            MidBossType.BUFFALO_RAGE -> 0        // sine
+            MidBossType.DUMB_RAT -> 1            // patrol
+            MidBossType.FIERCE_TIGER -> 0        // sine
+            MidBossType.SEXY_DIVA -> 2           // erratic
+            MidBossType.TROLL_TOWER -> 1         // patrol slow
+            MidBossType.TWIN_SUMMITS -> 1        // patrol
+            MidBossType.VOID_GLOBES -> 1         // patrol slow heavy
+            MidBossType.WHITE_DRAGON -> 0        // sine sinuous
+            MidBossType.HAMMER_SICKLE -> 0       // sine
+            MidBossType.MONEY_TYCOON -> 1        // patrol
+            MidBossType.GOLDEN_TYCOON -> 2       // erratic
+        }
+        when (patternForVariant) {
+            0 -> {
                 // Sine wave horizontal: ±100px around center, 3s cycle.
-                val t = movementTime / 600f                  // ~600 ticks per cycle
+                val t = movementTime / 600f
                 val targetX = (screenWidth - width) / 2f + sin(t.toDouble()).toFloat() * 100f
-                xOffset += (targetX - xOffset) * 0.05f       // smooth chase
+                xOffset += (targetX - xOffset) * 0.05f
             }
-
-            MidBossType.DEFENSIVE -> {
+            1 -> {
                 // Slow horizontal patrol — left ↔ right.
-                val cycle = (movementTime / 1200f) % 2f      // 0..2 → 0..1 left→right, 1..2 right→left
+                val cycle = (movementTime / 1200f) % 2f
                 val phase = if (cycle < 1f) cycle else 2f - cycle
                 xOffset = phase * (screenWidth - width)
             }
-
-            MidBossType.SWARM -> {
+            2 -> {
                 // Erratic figure-8 motion.
                 val t = movementTime / 400f
                 xOffset = (screenWidth - width) / 2f + sin(t.toDouble()).toFloat() * 120f
@@ -130,21 +147,31 @@ data class MidBoss(
     override fun generateLasers(): List<Laser> {
         val ship: Ship = getShip()
         val phase2 = phase == 2
-        return when (variant) {
-            MidBossType.OFFENSIVE -> {
-                if (phase2) tripleSpreadLasers(ship) else listOf(aimedLaser(ship))
-            }
-
-            MidBossType.DEFENSIVE -> {
-                if (phase2) barrageLasers() else listOf(aimedLaser(ship))
-            }
-
-            MidBossType.SWARM -> {
-                // Phase 1: single aimed laser. Phase 2: triple-spread (same primitive as
-                // OFFENSIVE phase 2) — emulates the "doubled fire rate" intent without
-                // touching EnemyLasersController's fixed 1000ms cadence.
-                if (phase2) tripleSpreadLasers(ship) else listOf(aimedLaser(ship))
-            }
+        // Round 82 — 12 new variants reuse existing laser patterns (triple-spread,
+        // barrage, aimed). Bullet customization (egg/horn/laser/roar/hair-projectile
+        // etc per user spec) defer R83+.
+        val firePatternId: Int = when (variant) {
+            MidBossType.OFFENSIVE -> 0
+            MidBossType.DEFENSIVE -> 1
+            MidBossType.SWARM -> 2
+            MidBossType.HEN_MOTHER -> 2          // spread (egg cluster proxy)
+            MidBossType.BUFFALO_RAGE -> 0        // aimed (horn throw proxy)
+            MidBossType.DUMB_RAT -> 0            // aimed laser
+            MidBossType.FIERCE_TIGER -> 1        // barrage roar
+            MidBossType.SEXY_DIVA -> 2           // spread hair
+            MidBossType.TROLL_TOWER -> 0         // aimed projectile
+            MidBossType.TWIN_SUMMITS -> 0        // dual high-dmg aimed
+            MidBossType.VOID_GLOBES -> 1         // cluster barrage
+            MidBossType.WHITE_DRAGON -> 1        // fire breath barrage
+            MidBossType.HAMMER_SICKLE -> 2       // hammer+sickle spread
+            MidBossType.MONEY_TYCOON -> 2        // money bill spread
+            MidBossType.GOLDEN_TYCOON -> 2       // dollar bill spread
+        }
+        return when (firePatternId) {
+            0 -> if (phase2) tripleSpreadLasers(ship) else listOf(aimedLaser(ship))
+            1 -> if (phase2) barrageLasers() else listOf(aimedLaser(ship))
+            2 -> if (phase2) tripleSpreadLasers(ship) else listOf(aimedLaser(ship))
+            else -> listOf(aimedLaser(ship))
         }
     }
 

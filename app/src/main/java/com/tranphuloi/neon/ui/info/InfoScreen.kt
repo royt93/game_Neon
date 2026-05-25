@@ -826,7 +826,7 @@ private fun enemyVariantSpecs(): List<EnemyVariantSpec> {
             color = heavyColor, draw = { sc, c -> sc.drawEnemyDiamond(c, heavyColor, heavyAccent, variant = 0) }),
         EnemyVariantSpec(
             title = "11. HEAVY Tonk-B", subtitle = "Chapter 1 + 4 · HP 288",
-            description = "Trái tim đỏ — heart shape đỏ chính danh. Round 78: thay diamond v1.",
+            description = "Trái tim đỏ — heart shape đỏ chính danh. Tank-class hạng nặng.",
             color = heavyColor, draw = { sc, c -> sc.drawEnemyHeart(c, heavyColor, heavyAccent) }),
         EnemyVariantSpec(
             title = "12. HEAVY Tonk-C ●", subtitle = "Chapter 1 + 4 + 5 · HP 288",
@@ -838,34 +838,85 @@ private fun enemyVariantSpecs(): List<EnemyVariantSpec> {
             description = "Cross variant 0 — 4 cánh + tip glow nhỏ. Arm spinner spread.",
             color = eliteColor, draw = { sc, c -> sc.drawCrossPreview(c, eliteColor, eliteAccent, variant = 0) }),
         EnemyVariantSpec(
-            title = "14. ELITE Cross-β", subtitle = "Chapter 4 · HP 225",
-            description = "Cross variant 1 — arm dài hơn + tip glow lớn.",
-            color = eliteColor, draw = { sc, c -> sc.drawCrossPreview(c, eliteColor, eliteAccent, variant = 1) }),
+            title = "14. ELITE UFO Saucer", subtitle = "Chapter 4 · HP 225",
+            description = "Đĩa bay alien — saucer + dome cockpit + 5 underside lights. Tàu bay alien class.",
+            color = eliteColor, draw = { sc, c -> sc.drawEnemyUFOPreview(c, eliteColor, eliteAccent) }),
         EnemyVariantSpec(
             title = "15. ELITE Orb-α", subtitle = "Chapter 4 · HP 225",
             description = "Orb variant 0 — single orbit ring. Floating attacker.",
             color = eliteColor, draw = { sc, c -> sc.drawOrbVariantPreview(c, eliteColor, eliteAccent, variant = 0) }),
         EnemyVariantSpec(
-            title = "16. ELITE Orb-β", subtitle = "Chapter 4 · HP 225",
-            description = "Orb variant 1 — double orbit ring. More complex visual.",
-            color = eliteColor, draw = { sc, c -> sc.drawOrbVariantPreview(c, eliteColor, eliteAccent, variant = 1) }),
+            title = "16. ELITE Drone Quad", subtitle = "Chapter 4 · HP 225",
+            description = "Drone 4 cánh quạt + cannon dưới + sensor mắt đỏ. Mech-style alien.",
+            color = eliteColor, draw = { sc, c -> sc.drawEnemyDronePreview(c, eliteColor, eliteAccent) }),
         // BERSERKER family — Chapter 5 (Lõi Thiên Hà)
         EnemyVariantSpec(
             title = "17. BERSERKER Chevron-α", subtitle = "Chapter 5 · HP 162 · ×1.4 dmg",
             description = "Chevron variant 0 — mũi tên đơn. Damage cao nhất game.",
             color = berserkerColor, draw = { sc, c -> sc.drawChevronPreview(c, berserkerColor, berserkerAccent, variant = 0) }),
         EnemyVariantSpec(
-            title = "18. BERSERKER Chevron-β", subtitle = "Chapter 5 · HP 162",
-            description = "Chevron variant 1 — mũi tên kép xếp chồng.",
-            color = berserkerColor, draw = { sc, c -> sc.drawChevronPreview(c, berserkerColor, berserkerAccent, variant = 1) }),
+            title = "18. BERSERKER Manta Ray", subtitle = "Chapter 5 · HP 162",
+            description = "Manta ray alien — delta-wing + 2 mắt + spine ridge. Tàu bay sinh học.",
+            color = berserkerColor, draw = { sc, c -> sc.drawEnemyMantaRayPreview(c, berserkerColor, berserkerAccent) }),
         EnemyVariantSpec(
             title = "19. BERSERKER Spike-α", subtitle = "Chapter 5 · HP 162",
             description = "Spike variant 0 — sao gai 8 cánh, spike ngắn.",
             color = berserkerColor, draw = { sc, c -> sc.drawSpikePreviewV(c, berserkerColor, berserkerAccent, variant = 0) }),
         EnemyVariantSpec(
-            title = "20. BERSERKER Spike-β", subtitle = "Chapter 5 · HP 162",
-            description = "Spike variant 1 — sao gai 8 cánh, spike dài hơn. Endgame menace.",
-            color = berserkerColor, draw = { sc, c -> sc.drawSpikePreviewV(c, berserkerColor, berserkerAccent, variant = 1) }),
+            title = "20. BERSERKER Battle Mech", subtitle = "Chapter 5 · HP 162",
+            description = "Mech chiến tranh — boxy hull + viewport + 2 cannon sides + sensor antenna. Tàu công nghiệp.",
+            color = berserkerColor, draw = { sc, c -> sc.drawEnemyMechPreview(c, berserkerColor, berserkerAccent) }),
+        // ── Round 81 — 10 new enemy roster (preview only; chapter wire R82) ──
+        EnemyVariantSpec(
+            title = "21. Spinning Saw", subtitle = "Trạm / Lõi · HP 200 · melee orbit",
+            description = "Lưỡi cưa 12 răng quay tròn. Tấn công melee qua orbit pattern. Highest contact damage.",
+            color = Color(0xFFCCCCCC),
+            draw = { sc, c -> sc.drawEnemySpinningSawPreview(c, Color(0xFFCCCCCC), Color(0xFFFF2D55)) }),
+        EnemyVariantSpec(
+            title = "22. Tentacle Squid", subtitle = "Trạm / Lõi · HP 350 · tracks player",
+            description = "Đầu mực + 6 tentacles wavy. Slow nhưng tracking nguyện vọng player position. Multi-arm grab.",
+            color = Color(0xFF60E0C0),
+            draw = { sc, c -> sc.drawEnemyTentacleSquidPreview(c, Color(0xFF60E0C0), Color(0xFFFFD040)) }),
+        EnemyVariantSpec(
+            title = "23. Mine Layer", subtitle = "Trạm / Lõi · HP 280 · drops mines behind",
+            description = "Tank vuông + turret + treads. Di chuyển chậm + drop mine khi pass. Area denial role.",
+            color = Color(0xFF707080),
+            draw = { sc, c -> sc.drawEnemyMineLayerPreview(c, Color(0xFF707080), Color(0xFFFF2D55)) }),
+        EnemyVariantSpec(
+            title = "24. Shield Drone", subtitle = "Trạm / Lõi · HP 180 · front shield",
+            description = "Hexagonal drone + shield arc phía trước. Shield block damage từ player bullets. Flank to kill.",
+            color = Color(0xFF40A0FF),
+            draw = { sc, c -> sc.drawEnemyShieldDronePreview(c, Color(0xFF40A0FF), Color(0xFF80E0FF)) }),
+        EnemyVariantSpec(
+            title = "25. Sniper", subtitle = "Trạm / Lõi · HP 220 · single high-damage shot",
+            description = "Long rifle barrel + scope + red dot. Bắn 1 phát precise high-damage từ xa. Aim line warns 0.5s before shot.",
+            color = Color(0xFF8B5C2E),
+            draw = { sc, c -> sc.drawEnemySniperPreview(c, Color(0xFF8B5C2E), Color(0xFF404040)) }),
+        EnemyVariantSpec(
+            title = "26. Bomber Crawler", subtitle = "Trạm / Lõi · HP 400 · arc mortar",
+            description = "Tank + mortar tube angled up + 4 wheels. Bắn shell với arc trajectory, AOE damage on landing.",
+            color = Color(0xFF606040),
+            draw = { sc, c -> sc.drawEnemyBomberCrawlerPreview(c, Color(0xFF606040), Color(0xFFFFE040)) }),
+        EnemyVariantSpec(
+            title = "27. Mirror Twin", subtitle = "Trạm / Lõi · HP 150 each · spawn-pair link",
+            description = "Spawn pair-link. Cả 2 phải die simultaneously, nếu kill 1 trước thì regenerate. Damage on both via shared HP pool.",
+            color = Color(0xFFFF60A0),
+            draw = { sc, c -> sc.drawEnemyMirrorTwinPreview(c, Color(0xFFFF60A0), Color.White) }),
+        EnemyVariantSpec(
+            title = "28. Phantom", subtitle = "Trạm / Lõi · HP 300 · 50% damage reduction",
+            description = "Ghost semi-transparent. 50% damage reduction (chỉ kill bằng ULTIMATE laser hoặc BURN status). Flicker every 2s.",
+            color = Color(0xFFB14CFF),
+            draw = { sc, c -> sc.drawEnemyPhantomPreview(c, Color(0xFFB14CFF), Color(0xFFE8E8F0)) }),
+        EnemyVariantSpec(
+            title = "29. Healer", subtitle = "Trạm / Lõi · HP 250 · heals other enemies",
+            description = "Healing orb + aura ring + + symbol + 4 healing particles. Heals 5hp/s cho enemies trong 100dp radius. Kill priority.",
+            color = Color(0xFF60FFAA),
+            draw = { sc, c -> sc.drawEnemyHealerPreview(c, Color(0xFF60FFAA), Color.White) }),
+        EnemyVariantSpec(
+            title = "30. Kamikaze", subtitle = "Trạm / Lõi · HP 100 · accelerates + explodes",
+            description = "Warning triangle + ! mark + trail. Tăng tốc khi gần player, explode on contact for high damage. Risk-reward kill quickly.",
+            color = Color(0xFFFFE040),
+            draw = { sc, c -> sc.drawEnemyKamikazePreview(c, Color(0xFFFFE040), Color(0xFFFF6020)) }),
     )
 }
 
@@ -1129,18 +1180,18 @@ private fun BossesTab() {
         InfoCard(
             color = violet,
             title = "Ch3 Mid — Haunted Kid (SWARM)",
-            subtitle = "Giữa Hành Tinh Băng · HP 1200 · HAUNTED_KID",
-            description = "Hồn ma trẻ em — hollow eyes + wavy bottom sheet. Round 79: visual riêng " +
-                "thay duplicate Atom của Ch2Mid. Pattern SWARM — spawn 4 drone con khi Phase 2.",
+            subtitle = "Giữa Hành Tinh Băng · HP 1200",
+            description = "Hồn ma trẻ em — hollow eyes + wavy bottom sheet. " +
+                "Pattern SWARM — spawn 4 drone con khi Phase 2.",
             iconDraw = { c -> drawBossHauntedKidPreview(c, violet, violetAcc) },
         )
         Spacer(modifier = Modifier.height(6.dp))
         InfoCard(
             color = red,
             title = "Ch3 End — Death Moon",
-            subtitle = "End Hành Tinh Băng · HP 3000 · DEATH_MOON",
+            subtitle = "End Hành Tinh Băng · HP 3000",
             description = "Mặt trăng tử thần — full moon disc + skull eye sockets + teeth row + crack fissures. " +
-                "Round 79: visual riêng thay duplicate Sun của Ch1End. Arena ICE_PATCHES — tàu trượt " +
+                "Arena ICE_PATCHES — tàu trượt " +
                 "→ dodge ring barrage khó hơn. Audio cue 0.75× pitch trầm.",
             iconDraw = { c -> drawBossDeathMoonPreview(c, red, redAcc) },
         )
@@ -1149,9 +1200,9 @@ private fun BossesTab() {
         InfoCard(
             color = gold,
             title = "Ch4 Mid — Hell Lord (OFFENSIVE-2)",
-            subtitle = "Giữa Trạm Thù Địch · HP 1200 · HELL_LORD",
+            subtitle = "Giữa Trạm Thù Địch · HP 1200",
             description = "Chúa tể địa ngục — devil head với 2 curved horns + glowing eyes + fangs. " +
-                "Round 79: visual riêng thay duplicate Killer Eye của Ch1Mid. ELITE enemies bay xung quanh hỗ trợ. " +
+                "ELITE enemies bay xung quanh hỗ trợ. " +
                 "Audio cue 0.55× pitch sâu nhất.",
             iconDraw = { c -> drawBossHellLordPreview(c, gold, goldAcc) },
         )
@@ -1159,9 +1210,9 @@ private fun BossesTab() {
         InfoCard(
             color = green,
             title = "Ch4 End — Satan Glyph",
-            subtitle = "End Trạm Thù Địch · HP 4000 · SATAN_GLYPH",
+            subtitle = "End Trạm Thù Địch · HP 4000",
             description = "Quỷ Satan — inverted pentagram + all-seeing eye trung tâm + 5 candle dots. " +
-                "Round 79: visual riêng thay duplicate Cross của Ch2End. ELITE enemy wave đồng hành " +
+                "ELITE enemy wave đồng hành " +
                 "(cross/orb violet) bay xung quanh boss → tổng pressure cao hơn.",
             iconDraw = { c -> drawBossSatanGlyphPreview(c, green, greenAcc) },
         )
@@ -1177,6 +1228,111 @@ private fun BossesTab() {
                 "Phase 3 (HP≤7500): ring barrage 360° + tracking lasers. " +
                 "Audio cue 0.65× pitch (sting trầm sâu). Victory ending khác theo difficulty.",
             iconDraw = { c -> drawBossSpiderPreview(c, magenta, redAcc) },
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        // 12 mid-bosses xuất hiện rải rác qua các chapter (game-stage 6/8/10/12).
+        Text(
+            text = "★ TRÙM MINI",
+            color = magenta,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Black,
+            modifier = Modifier.padding(vertical = 6.dp),
+        )
+        InfoCard(
+            color = Color(0xFFFFB048),
+            title = "Gà Mái Dầu",
+            subtitle = "Vành Đai · ném trứng loạn xà ngầu",
+            description = "Mái dầu khổng lồ — thân oval + đầu + mỏ + 3 mào đỏ + lông cánh. Ném trứng cluster.",
+            iconDraw = { c -> drawBossHenMotherPreview(c, Color(0xFFFFB048), gold) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = red,
+            title = "Trâu Hung Hẵn",
+            subtitle = "Vành Đai ·quăng sừng trâu",
+            description = "Đầu trâu khổng lồ — 2 sừng cong + vòng mũi vàng + mắt đỏ giận dữ. Quăng sừng spear.",
+            iconDraw = { c -> drawBossBuffaloPreview(c, red, redAcc) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = Color(0xFF888888),
+            title = "Chuột Ngu Si",
+            subtitle = "Mây Tinh Vân ·ném đạn laza",
+            description = "Đầu chuột — 2 tai tròn + 2 răng cửa to + ria mép + biểu cảm ngơ ngác. Bắn laser bullets.",
+            iconDraw = { c -> drawBossRatPreview(c, Color(0xFF888888), Color(0xFFFF80B0)) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = Color(0xFFFF9020),
+            title = "Cọp Hung Tợn",
+            subtitle = "Mây Tinh Vân ·gầm vang ra đạn lum la",
+            description = "Đầu hổ — bờm 8 tia + sọc đen + nanh trắng + mắt vàng. Gầm shockwave 360°.",
+            iconDraw = { c -> drawBossTigerPreview(c, Color(0xFFFF9020), Color(0xFF202020)) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = Color(0xFFFF60A0),
+            title = "Cô Gái Sexy",
+            subtitle = "Hành Tinh Băng ·ném tóc 4 phương 8 hướng",
+            description = "Silhouette nữ thần — đầu + tóc dài bay + vương miện ngọc + thân đồng hồ cát. Tóc tóc tua 8 hướng.",
+            iconDraw = { c -> drawBossDivaPreview(c, Color(0xFFFF60A0), Color(0xFFFFD700)) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = violet,
+            title = "Tháp Tinh Quỷ",
+            subtitle = "Hành Tinh Băng · bắn pearl projectile",
+            description = "Tháp obelisk cao — đỉnh sáng + vương miện ngọc + 3 vòng năng lượng quanh đỉnh. Bắn pearl projectile.",
+            iconDraw = { c -> drawBossTrollTowerPreview(c, violet, gold) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = Color(0xFFFFB0C0),
+            title = "Đôi Đỉnh Sinh Hoa",
+            subtitle = "Trạm Thù Địch · 2 tia sữa sát thương cao",
+            description = "Twin dome boss — 2 đỉnh cong + đầu vòi sáng + halo. Bắn 2 milk ray song song high-damage.",
+            iconDraw = { c -> drawBossTwinSummitsPreview(c, Color(0xFFFFB0C0), Color.White) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = Color(0xFF6B3010),
+            title = "Đôi Cầu Hư Vô",
+            subtitle = "Trạm Thù Địch · cluster sát thương chí mạng",
+            description = "2 quả cầu đen lớn + tâm cleft + 3 spit blob. Bắn cluster bullet brown sát thương cao.",
+            iconDraw = { c -> drawBossVoidGlobesPreview(c, Color(0xFF6B3010), Color(0xFF8B5C2E)) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = Color(0xFFE8E8F0),
+            title = "Bạch Long Mắt Lam",
+            subtitle = "Lõi Thiên Hà ·thét ra lửa",
+            description = "Rồng trắng dài sinuous — 2 sừng + mắt xanh lam + móng vuốt + 3 lửa phun. Fire breath cone.",
+            iconDraw = { c -> drawBossWhiteDragonPreview(c, Color(0xFFE8E8F0), Color(0xFF0080FF)) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = Color(0xFFCC0000),
+            title = "Cộng Sản Bịp Bợm",
+            subtitle = "Lõi Thiên Hà ·quăng búa liềm bịp bợm",
+            description = "Vòng đỏ + búa + liềm vàng + sao 5 cánh ở đầu. Throws hammer + sickle projectile pair.",
+            iconDraw = { c -> drawBossHammerSicklePreview(c, Color(0xFFCC0000), Color(0xFFFFD700)) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = Color(0xFF208040),
+            title = "Tư Bản Bóc Lột",
+            subtitle = "Lõi Thiên Hà ·quăng money",
+            description = "Tư bản béo + mũ chóp đen + monocle + ria mép + $ trên bụng + túi tiền. Throws money bills.",
+            iconDraw = { c -> drawBossMoneyTycoonPreview(c, Color(0xFF208040), Color(0xFFFFD700)) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = Color(0xFFFF9520),
+            title = "Tycoon Vàng",
+            subtitle = "Lõi Thiên Hà · quăng đô la",
+            description = "Tóc cam đặc trưng + cà vạt vàng + complexion da + monocle. 3 dollar bills float quanh. " +
+                "Throws dollar bills 360°.",
+            iconDraw = { c -> drawBossGoldenTycoonPreview(c, Color(0xFFFFB890), Color(0xFFFFC020)) },
         )
     }
 }
@@ -2078,4 +2234,694 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossSatanGlyphP
         size = androidx.compose.ui.geometry.Size(eyeRx * 2, eyeRy * 2))
     drawCircle(accent, eyeRy * 0.65f, androidx.compose.ui.geometry.Offset(cx, cy))
     drawCircle(Color.Black, eyeRy * 0.35f, androidx.compose.ui.geometry.Offset(cx, cy))
+}
+
+// Round 80 (#0) — 4 weird flying ship enemy preview helpers (mirror in-game).
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyUFOPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val saucerRx = w * 0.40f
+    val saucerRy = h * 0.14f
+    drawOval(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - saucerRx, cy + h * 0.08f - saucerRy),
+        size = androidx.compose.ui.geometry.Size(saucerRx * 2, saucerRy * 2))
+    val domeRx = saucerRx * 0.50f
+    val domeRy = h * 0.20f
+    drawArc(body, startAngle = 180f, sweepAngle = 180f, useCenter = true,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - domeRx, cy + h * 0.08f - saucerRy - domeRy),
+        size = androidx.compose.ui.geometry.Size(domeRx * 2, domeRy * 2))
+    drawCircle(Color.White.copy(alpha = 0.6f), domeRx * 0.40f,
+        androidx.compose.ui.geometry.Offset(cx, cy + h * 0.08f - saucerRy - domeRy * 0.40f))
+    val lightY = cy + h * 0.18f
+    for (i in 0 until 5) {
+        val lx = cx - saucerRx * 0.65f + i * saucerRx * 0.32f
+        drawCircle(accent, w * 0.022f, androidx.compose.ui.geometry.Offset(lx, lightY))
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyDronePreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val bodyW = w * 0.35f; val bodyH = h * 0.28f
+    drawRect(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - bodyW / 2f, cy - bodyH / 2f),
+        size = androidx.compose.ui.geometry.Size(bodyW, bodyH))
+    val armLen = w * 0.42f
+    for (sign in intArrayOf(-1, 1)) for (vsign in intArrayOf(-1, 1)) {
+        val ex = cx + sign * armLen * 0.85f
+        val ey = cy + vsign * armLen * 0.65f
+        drawLine(body,
+            androidx.compose.ui.geometry.Offset(cx + sign * bodyW * 0.35f, cy + vsign * bodyH * 0.30f),
+            androidx.compose.ui.geometry.Offset(ex, ey),
+            strokeWidth = w * 0.04f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        drawCircle(accent, w * 0.05f, androidx.compose.ui.geometry.Offset(ex, ey))
+    }
+    drawRect(accent,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.035f, cy + bodyH / 2f),
+        size = androidx.compose.ui.geometry.Size(w * 0.07f, h * 0.15f))
+    drawCircle(Color(0xFFFF2D55), w * 0.045f, androidx.compose.ui.geometry.Offset(cx, cy))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyMantaRayPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val wingPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx, cy + h * 0.40f)
+        cubicTo(cx + w * 0.18f, cy + h * 0.18f, cx + w * 0.40f, cy, cx + w * 0.45f, cy - h * 0.15f)
+        cubicTo(cx + w * 0.28f, cy - h * 0.28f, cx + w * 0.10f, cy - h * 0.28f, cx, cy - h * 0.17f)
+        cubicTo(cx - w * 0.10f, cy - h * 0.28f, cx - w * 0.28f, cy - h * 0.28f, cx - w * 0.45f, cy - h * 0.15f)
+        cubicTo(cx - w * 0.40f, cy, cx - w * 0.18f, cy + h * 0.18f, cx, cy + h * 0.40f)
+        close()
+    }
+    drawPath(wingPath, body)
+    drawCircle(accent, w * 0.045f, androidx.compose.ui.geometry.Offset(cx - w * 0.07f, cy - h * 0.18f))
+    drawCircle(accent, w * 0.045f, androidx.compose.ui.geometry.Offset(cx + w * 0.07f, cy - h * 0.18f))
+    drawCircle(Color.White, w * 0.018f, androidx.compose.ui.geometry.Offset(cx - w * 0.07f, cy - h * 0.18f))
+    drawCircle(Color.White, w * 0.018f, androidx.compose.ui.geometry.Offset(cx + w * 0.07f, cy - h * 0.18f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyMechPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val bodyW = w * 0.45f; val bodyH = h * 0.50f
+    val hullPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - bodyW * 0.40f, cy - bodyH / 2f)
+        lineTo(cx + bodyW * 0.40f, cy - bodyH / 2f)
+        lineTo(cx + bodyW / 2f, cy + bodyH / 2f)
+        lineTo(cx - bodyW / 2f, cy + bodyH / 2f)
+        close()
+    }
+    drawPath(hullPath, body)
+    drawRect(accent,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - bodyW * 0.25f, cy - bodyH * 0.30f),
+        size = androidx.compose.ui.geometry.Size(bodyW * 0.50f, bodyH * 0.15f))
+    for (sign in intArrayOf(-1, 1)) {
+        val cannonX = cx + sign * bodyW * 0.50f
+        drawRect(body,
+            topLeft = androidx.compose.ui.geometry.Offset(cannonX - w * 0.035f, cy - bodyH * 0.20f),
+            size = androidx.compose.ui.geometry.Size(w * 0.07f, bodyH * 0.45f))
+    }
+    drawCircle(Color(0xFFFF2D55), w * 0.03f, androidx.compose.ui.geometry.Offset(cx, cy - bodyH * 0.70f))
+}
+
+// Round 81 — 12 new boss preview helpers (simplified InfoScreen icons).
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossHenMotherPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val bodyRx = w * 0.30f; val bodyRy = h * 0.25f
+    drawOval(body, topLeft = androidx.compose.ui.geometry.Offset(cx - bodyRx, cy - bodyRy * 0.5f),
+        size = androidx.compose.ui.geometry.Size(bodyRx * 2, bodyRy * 2))
+    val headR = w * 0.13f
+    drawCircle(body, headR, androidx.compose.ui.geometry.Offset(cx - bodyRx * 0.85f, cy - bodyRy * 0.85f))
+    for (i in 0 until 3) {
+        drawCircle(Color(0xFFFF2D55), headR * 0.18f,
+            androidx.compose.ui.geometry.Offset(cx - bodyRx * 0.95f + i * headR * 0.20f, cy - bodyRy * 1.05f - i * headR * 0.10f))
+    }
+    drawCircle(Color.Black, headR * 0.18f, androidx.compose.ui.geometry.Offset(cx - bodyRx * 0.95f, cy - bodyRy * 0.95f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossBuffaloPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val headRx = w * 0.30f; val headRy = h * 0.28f
+    drawOval(body, topLeft = androidx.compose.ui.geometry.Offset(cx - headRx, cy - headRy),
+        size = androidx.compose.ui.geometry.Size(headRx * 2, headRy * 2))
+    for (side in intArrayOf(-1, 1)) {
+        val baseX = cx + side * headRx * 0.85f
+        val tipX = cx + side * headRx * 1.45f
+        val hornPath = androidx.compose.ui.graphics.Path().apply {
+            moveTo(baseX, cy - headRy * 0.50f)
+            cubicTo(cx + side * headRx * 1.20f, cy - headRy * 0.80f,
+                cx + side * headRx * 1.45f, cy - headRy * 0.90f, tipX, cy - headRy * 1.05f)
+            cubicTo(cx + side * headRx * 1.25f, cy - headRy * 0.70f,
+                cx + side * headRx * 1.05f, cy - headRy * 0.40f, baseX, cy - headRy * 0.50f)
+            close()
+        }
+        drawPath(hornPath, body)
+    }
+    drawCircle(Color(0xFFFF2D55), headRx * 0.12f, androidx.compose.ui.geometry.Offset(cx - headRx * 0.35f, cy - headRy * 0.15f))
+    drawCircle(Color(0xFFFF2D55), headRx * 0.12f, androidx.compose.ui.geometry.Offset(cx + headRx * 0.35f, cy - headRy * 0.15f))
+    drawCircle(Color(0xFFFFC020), headRx * 0.12f, androidx.compose.ui.geometry.Offset(cx, cy + headRy * 0.50f),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.03f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossRatPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val headR = w * 0.28f
+    drawCircle(body, headR, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(body, headR * 0.55f, androidx.compose.ui.geometry.Offset(cx - headR * 0.85f, cy - headR * 0.85f))
+    drawCircle(body, headR * 0.55f, androidx.compose.ui.geometry.Offset(cx + headR * 0.85f, cy - headR * 0.85f))
+    drawCircle(accent.copy(alpha = 0.7f), headR * 0.35f, androidx.compose.ui.geometry.Offset(cx - headR * 0.85f, cy - headR * 0.85f))
+    drawCircle(accent.copy(alpha = 0.7f), headR * 0.35f, androidx.compose.ui.geometry.Offset(cx + headR * 0.85f, cy - headR * 0.85f))
+    drawCircle(Color(0xFFFF80B0), headR * 0.10f, androidx.compose.ui.geometry.Offset(cx, cy + headR * 0.30f))
+    // Eyes white + black
+    drawCircle(Color.White, headR * 0.18f, androidx.compose.ui.geometry.Offset(cx - headR * 0.28f, cy - headR * 0.10f))
+    drawCircle(Color.White, headR * 0.18f, androidx.compose.ui.geometry.Offset(cx + headR * 0.28f, cy - headR * 0.10f))
+    drawCircle(Color.Black, headR * 0.10f, androidx.compose.ui.geometry.Offset(cx - headR * 0.26f, cy - headR * 0.05f))
+    drawCircle(Color.Black, headR * 0.10f, androidx.compose.ui.geometry.Offset(cx + headR * 0.30f, cy - headR * 0.05f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossTigerPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val headR = w * 0.32f
+    // Mane
+    for (i in 0 until 8) {
+        val a = i * 2.0 * Math.PI / 8
+        drawLine(body,
+            androidx.compose.ui.geometry.Offset(cx + (headR * 0.95f * kotlin.math.cos(a)).toFloat(),
+                cy + (headR * 0.95f * kotlin.math.sin(a)).toFloat()),
+            androidx.compose.ui.geometry.Offset(cx + (headR * 1.20f * kotlin.math.cos(a)).toFloat(),
+                cy + (headR * 1.20f * kotlin.math.sin(a)).toFloat()),
+            strokeWidth = w * 0.035f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+    drawCircle(body, headR, androidx.compose.ui.geometry.Offset(cx, cy))
+    // Stripes
+    for (i in 0 until 3) {
+        drawArc(accent,
+            startAngle = (50f + i * 30f), sweepAngle = 25f,
+            useCenter = false,
+            topLeft = androidx.compose.ui.geometry.Offset(cx - headR * 0.85f, cy - headR * 0.55f),
+            size = androidx.compose.ui.geometry.Size(headR * 1.7f, headR * 1.5f),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.025f))
+    }
+    drawCircle(Color(0xFFFFE040), headR * 0.16f, androidx.compose.ui.geometry.Offset(cx - headR * 0.30f, cy - headR * 0.05f))
+    drawCircle(Color(0xFFFFE040), headR * 0.16f, androidx.compose.ui.geometry.Offset(cx + headR * 0.30f, cy - headR * 0.05f))
+    drawCircle(Color.Black, headR * 0.06f, androidx.compose.ui.geometry.Offset(cx - headR * 0.30f, cy - headR * 0.05f))
+    drawCircle(Color.Black, headR * 0.06f, androidx.compose.ui.geometry.Offset(cx + headR * 0.30f, cy - headR * 0.05f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossDivaPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    // Hair sweeps
+    for (side in intArrayOf(-1, 1)) {
+        val hp = androidx.compose.ui.graphics.Path().apply {
+            moveTo(cx + side * w * 0.10f, cy - h * 0.35f)
+            cubicTo(cx + side * w * 0.35f, cy - h * 0.20f,
+                cx + side * w * 0.40f, cy + h * 0.10f,
+                cx + side * w * 0.35f, cy + h * 0.30f)
+            lineTo(cx + side * w * 0.20f, cy)
+            close()
+        }
+        drawPath(hp, body)
+    }
+    // Head
+    drawCircle(body, w * 0.15f, androidx.compose.ui.geometry.Offset(cx, cy - h * 0.20f))
+    // Crown gem
+    val gemPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx, cy - h * 0.42f)
+        lineTo(cx + w * 0.06f, cy - h * 0.34f)
+        lineTo(cx, cy - h * 0.28f)
+        lineTo(cx - w * 0.06f, cy - h * 0.34f)
+        close()
+    }
+    drawPath(gemPath, accent)
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossTrollTowerPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val spirePath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx, cy - h * 0.40f)
+        lineTo(cx + w * 0.10f, cy - h * 0.25f)
+        lineTo(cx + w * 0.15f, cy + h * 0.30f)
+        lineTo(cx + w * 0.22f, cy + h * 0.42f)
+        lineTo(cx - w * 0.22f, cy + h * 0.42f)
+        lineTo(cx - w * 0.15f, cy + h * 0.30f)
+        lineTo(cx - w * 0.10f, cy - h * 0.25f)
+        close()
+    }
+    drawPath(spirePath, body)
+    // Crown gems
+    for (i in 0 until 4) {
+        drawCircle(accent, w * 0.025f, androidx.compose.ui.geometry.Offset(cx - w * 0.07f + i * w * 0.045f, cy - h * 0.38f))
+    }
+    // Tip glow
+    drawCircle(Color.White, w * 0.05f, androidx.compose.ui.geometry.Offset(cx, cy - h * 0.40f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossTwinSummitsPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val domeRx = w * 0.22f; val domeRy = h * 0.28f
+    for (side in intArrayOf(-1, 1)) {
+        val px = cx + side * w * 0.20f
+        drawArc(body, startAngle = 180f, sweepAngle = 180f, useCenter = true,
+            topLeft = androidx.compose.ui.geometry.Offset(px - domeRx, cy - domeRy * 0.5f),
+            size = androidx.compose.ui.geometry.Size(domeRx * 2, domeRy * 2))
+        drawCircle(accent, domeRx * 0.18f, androidx.compose.ui.geometry.Offset(px, cy - domeRy * 0.25f))
+    }
+    drawRect(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.40f, cy + domeRy * 0.30f),
+        size = androidx.compose.ui.geometry.Size(w * 0.80f, h * 0.12f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossVoidGlobesPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val globeR = w * 0.24f
+    drawCircle(body, globeR, androidx.compose.ui.geometry.Offset(cx - w * 0.18f, cy))
+    drawCircle(body, globeR, androidx.compose.ui.geometry.Offset(cx + w * 0.18f, cy))
+    drawCircle(Color.White.copy(alpha = 0.25f), globeR * 0.3f, androidx.compose.ui.geometry.Offset(cx - w * 0.25f, cy - h * 0.05f))
+    drawCircle(Color.White.copy(alpha = 0.25f), globeR * 0.3f, androidx.compose.ui.geometry.Offset(cx + w * 0.11f, cy - h * 0.05f))
+    for (i in 0 until 3) {
+        drawCircle(accent, w * 0.035f - i * w * 0.008f, androidx.compose.ui.geometry.Offset(cx, cy + h * 0.20f + i * h * 0.08f))
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossWhiteDragonPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val bodyPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx + w * 0.30f, cy + h * 0.40f)
+        cubicTo(cx + w * 0.10f, cy + h * 0.25f, cx - w * 0.20f, cy + h * 0.10f, cx - w * 0.10f, cy - h * 0.10f)
+        cubicTo(cx + w * 0.05f, cy - h * 0.25f, cx + w * 0.15f, cy - h * 0.30f, cx + w * 0.05f, cy - h * 0.38f)
+        cubicTo(cx - w * 0.05f, cy - h * 0.28f, cx - w * 0.20f, cy - h * 0.18f, cx - w * 0.20f, cy + h * 0.05f)
+        cubicTo(cx - w * 0.05f, cy + h * 0.20f, cx + w * 0.20f, cy + h * 0.35f, cx + w * 0.30f, cy + h * 0.40f)
+        close()
+    }
+    drawPath(bodyPath, body)
+    drawCircle(accent, w * 0.025f, androidx.compose.ui.geometry.Offset(cx + w * 0.02f, cy - h * 0.34f))
+    drawCircle(accent, w * 0.025f, androidx.compose.ui.geometry.Offset(cx + w * 0.10f, cy - h * 0.34f))
+    // Fire breath
+    for (i in 0 until 3) {
+        val a = (-120.0 + i * 12) * Math.PI / 180.0
+        drawLine(Color(0xFFFF6020),
+            androidx.compose.ui.geometry.Offset(cx + w * 0.05f, cy - h * 0.28f),
+            androidx.compose.ui.geometry.Offset(cx + w * 0.05f + (w * 0.20f * kotlin.math.cos(a)).toFloat(),
+                cy - h * 0.28f + (w * 0.20f * kotlin.math.sin(a)).toFloat()),
+            strokeWidth = w * 0.03f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossHammerSicklePreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    drawCircle(body, w * 0.40f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, w * 0.40f, androidx.compose.ui.geometry.Offset(cx, cy),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.025f))
+    // Sickle blade (simplified)
+    drawArc(accent, startAngle = 200f, sweepAngle = 140f, useCenter = false,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.25f, cy - h * 0.20f),
+        size = androidx.compose.ui.geometry.Size(w * 0.30f, h * 0.30f),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.06f))
+    // Hammer head
+    drawRect(accent,
+        topLeft = androidx.compose.ui.geometry.Offset(cx + w * 0.05f, cy - h * 0.05f),
+        size = androidx.compose.ui.geometry.Size(w * 0.20f, h * 0.10f))
+    // Star top
+    val starOuter = w * 0.08f; val starInner = starOuter * 0.42f
+    val starCy = cy - h * 0.30f
+    val starPath = androidx.compose.ui.graphics.Path().apply {
+        val rot = -Math.PI / 2.0
+        for (i in 0 until 10) {
+            val a = rot + i * Math.PI / 5
+            val r = if (i % 2 == 0) starOuter else starInner
+            val x = cx + (r * kotlin.math.cos(a)).toFloat()
+            val y = starCy + (r * kotlin.math.sin(a)).toFloat()
+            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
+    drawPath(starPath, accent)
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossMoneyTycoonPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    drawCircle(body, w * 0.32f, androidx.compose.ui.geometry.Offset(cx, cy + h * 0.05f))
+    drawCircle(body, w * 0.15f, androidx.compose.ui.geometry.Offset(cx, cy - h * 0.28f))
+    // Top hat
+    drawRect(Color.Black,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.11f, cy - h * 0.48f),
+        size = androidx.compose.ui.geometry.Size(w * 0.22f, h * 0.14f))
+    drawRect(Color.Black,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.18f, cy - h * 0.38f),
+        size = androidx.compose.ui.geometry.Size(w * 0.36f, h * 0.04f))
+    // $ on belly
+    drawLine(accent,
+        androidx.compose.ui.geometry.Offset(cx, cy - h * 0.05f),
+        androidx.compose.ui.geometry.Offset(cx, cy + h * 0.18f),
+        strokeWidth = w * 0.04f)
+    drawArc(accent, startAngle = 60f, sweepAngle = 240f, useCenter = false,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.10f, cy - h * 0.02f),
+        size = androidx.compose.ui.geometry.Size(w * 0.20f, h * 0.10f),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossGoldenTycoonPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    // Head flesh
+    drawCircle(body, w * 0.20f, androidx.compose.ui.geometry.Offset(cx, cy - h * 0.10f))
+    // Orange hair sweep
+    val hairPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - w * 0.22f, cy - h * 0.20f)
+        cubicTo(cx - w * 0.28f, cy - h * 0.38f, cx + w * 0.08f, cy - h * 0.48f, cx + w * 0.28f, cy - h * 0.30f)
+        cubicTo(cx + w * 0.20f, cy - h * 0.26f, cx, cy - h * 0.25f, cx - w * 0.05f, cy - h * 0.22f)
+        cubicTo(cx - w * 0.15f, cy - h * 0.25f, cx - w * 0.20f, cy - h * 0.22f, cx - w * 0.22f, cy - h * 0.20f)
+        close()
+    }
+    drawPath(hairPath, Color(0xFFFF9520))
+    // Golden tie
+    val tiePath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - w * 0.04f, cy + h * 0.10f)
+        lineTo(cx + w * 0.04f, cy + h * 0.10f)
+        lineTo(cx + w * 0.05f, cy + h * 0.32f)
+        lineTo(cx, cy + h * 0.45f)
+        lineTo(cx - w * 0.05f, cy + h * 0.32f)
+        close()
+    }
+    drawPath(tiePath, accent)
+    // Suit body
+    val suitPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - w * 0.15f, cy + h * 0.05f)
+        lineTo(cx + w * 0.15f, cy + h * 0.05f)
+        lineTo(cx + w * 0.30f, cy + h * 0.50f)
+        lineTo(cx - w * 0.30f, cy + h * 0.50f)
+        close()
+    }
+    drawPath(suitPath, Color(0xFF202040))
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Round 81 — 10 new enemy preview helpers (InfoScreen roster). Gameplay wire
+// (new RegularEnemyType + drawable XMLs + Chapter spawn) defer R82.
+// ─────────────────────────────────────────────────────────────────────────
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemySpinningSawPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val outerR = minOf(w, h) * 0.42f
+    val toothCount = 12
+    val toothPath = androidx.compose.ui.graphics.Path().apply {
+        for (i in 0 until toothCount * 2) {
+            val a = -Math.PI / 2 + i * Math.PI / toothCount
+            val r = if (i % 2 == 0) outerR else outerR * 0.78f
+            val x = cx + (r * kotlin.math.cos(a)).toFloat()
+            val y = cy + (r * kotlin.math.sin(a)).toFloat()
+            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
+    drawPath(toothPath, body)
+    drawCircle(accent, outerR * 0.40f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(Color.Black, outerR * 0.15f, androidx.compose.ui.geometry.Offset(cx, cy))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyTentacleSquidPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2 - h * 0.10f
+    val headR = w * 0.28f
+    drawCircle(body, headR, androidx.compose.ui.geometry.Offset(cx, cy))
+    // 6 tentacles wavy down
+    for (i in 0 until 6) {
+        val baseAngle = -90.0 + (i - 2.5) * 22.0
+        val a = baseAngle * Math.PI / 180.0
+        val bx = cx + (headR * kotlin.math.cos(a)).toFloat()
+        val by = cy + (headR * kotlin.math.sin(a)).toFloat()
+        val ex = bx + (headR * 0.85f * kotlin.math.cos(a)).toFloat()
+        val ey = by + (headR * 1.20f).toFloat()
+        val tPath = androidx.compose.ui.graphics.Path().apply {
+            moveTo(bx, by)
+            cubicTo(bx + (i - 2.5).toFloat() * w * 0.05f, by + h * 0.10f,
+                ex - (i - 2.5).toFloat() * w * 0.03f, ey - h * 0.05f, ex, ey)
+        }
+        drawPath(tPath, body, style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.035f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round))
+    }
+    drawCircle(accent, headR * 0.18f, androidx.compose.ui.geometry.Offset(cx - headR * 0.30f, cy))
+    drawCircle(accent, headR * 0.18f, androidx.compose.ui.geometry.Offset(cx + headR * 0.30f, cy))
+    drawCircle(Color.Black, headR * 0.08f, androidx.compose.ui.geometry.Offset(cx - headR * 0.30f, cy))
+    drawCircle(Color.Black, headR * 0.08f, androidx.compose.ui.geometry.Offset(cx + headR * 0.30f, cy))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyMineLayerPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val bodyW = w * 0.60f; val bodyH = h * 0.35f
+    drawRect(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - bodyW / 2f, cy - bodyH / 2f),
+        size = androidx.compose.ui.geometry.Size(bodyW, bodyH))
+    drawRect(accent,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - bodyW / 2f, cy - bodyH / 2f),
+        size = androidx.compose.ui.geometry.Size(bodyW, bodyH),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.03f))
+    // Tank turret
+    drawCircle(body, w * 0.10f, androidx.compose.ui.geometry.Offset(cx, cy - bodyH * 0.40f))
+    // Treads (2 rectangles below body)
+    drawRect(Color(0xFF404040),
+        topLeft = androidx.compose.ui.geometry.Offset(cx - bodyW * 0.55f, cy + bodyH * 0.45f),
+        size = androidx.compose.ui.geometry.Size(bodyW * 1.10f, h * 0.10f))
+    // Mines below (3 small circles)
+    for (i in 0 until 3) {
+        drawCircle(Color(0xFFFF2D55), w * 0.04f,
+            androidx.compose.ui.geometry.Offset(cx - w * 0.20f + i * w * 0.20f, cy + h * 0.40f))
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyShieldDronePreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    // Drone body (small hex)
+    val bodyR = w * 0.18f
+    val hexPath = androidx.compose.ui.graphics.Path().apply {
+        for (i in 0 until 6) {
+            val a = i * Math.PI / 3
+            val x = cx + (bodyR * kotlin.math.cos(a)).toFloat()
+            val y = cy + (bodyR * kotlin.math.sin(a)).toFloat()
+            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
+    drawPath(hexPath, body)
+    // Front shield arc (large semicircle in front)
+    drawArc(accent.copy(alpha = 0.55f),
+        startAngle = 30f, sweepAngle = 120f,
+        useCenter = false,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.38f, cy - h * 0.05f),
+        size = androidx.compose.ui.geometry.Size(w * 0.76f, h * 0.40f),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
+    drawArc(Color.White.copy(alpha = 0.30f),
+        startAngle = 30f, sweepAngle = 120f, useCenter = true,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.38f, cy - h * 0.05f),
+        size = androidx.compose.ui.geometry.Size(w * 0.76f, h * 0.40f))
+    // Center eye
+    drawCircle(Color(0xFFFF2D55), bodyR * 0.4f, androidx.compose.ui.geometry.Offset(cx, cy))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemySniperPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    // Long rifle barrel (vertical, points down)
+    drawRect(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.05f, cy - h * 0.40f),
+        size = androidx.compose.ui.geometry.Size(w * 0.10f, h * 0.80f))
+    // Scope (rectangle attached to top)
+    drawRect(accent,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.10f, cy - h * 0.20f),
+        size = androidx.compose.ui.geometry.Size(w * 0.20f, h * 0.10f))
+    drawCircle(Color.Red, w * 0.025f, androidx.compose.ui.geometry.Offset(cx + w * 0.07f, cy - h * 0.15f))
+    // Stock (horizontal rectangle at top)
+    drawRect(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.15f, cy + h * 0.30f),
+        size = androidx.compose.ui.geometry.Size(w * 0.30f, h * 0.10f))
+    // Muzzle flash (bottom)
+    drawCircle(Color(0xFFFFE040), w * 0.06f, androidx.compose.ui.geometry.Offset(cx, cy - h * 0.42f))
+    drawCircle(Color.White, w * 0.025f, androidx.compose.ui.geometry.Offset(cx, cy - h * 0.42f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyBomberCrawlerPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    // Wide tank body
+    drawRect(body,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.40f, cy - h * 0.20f),
+        size = androidx.compose.ui.geometry.Size(w * 0.80f, h * 0.30f))
+    drawRect(accent,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.40f, cy - h * 0.20f),
+        size = androidx.compose.ui.geometry.Size(w * 0.80f, h * 0.30f),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.025f))
+    // Mortar tube (angled up-right)
+    drawLine(body,
+        androidx.compose.ui.geometry.Offset(cx, cy - h * 0.05f),
+        androidx.compose.ui.geometry.Offset(cx + w * 0.20f, cy - h * 0.35f),
+        strokeWidth = w * 0.06f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    // Wheels (4 small circles)
+    for (i in 0 until 4) {
+        drawCircle(Color(0xFF404040), h * 0.06f,
+            androidx.compose.ui.geometry.Offset(cx - w * 0.30f + i * w * 0.20f, cy + h * 0.18f))
+    }
+    // Shell trajectory dot
+    drawCircle(Color(0xFFFFE040), w * 0.03f, androidx.compose.ui.geometry.Offset(cx + w * 0.22f, cy - h * 0.38f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyMirrorTwinPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    // 2 identical small ships side-by-side
+    for (sign in intArrayOf(-1, 1)) {
+        val px = cx + sign * w * 0.18f
+        val triPath = androidx.compose.ui.graphics.Path().apply {
+            moveTo(px, cy - h * 0.20f)
+            lineTo(px + w * 0.10f, cy + h * 0.20f)
+            lineTo(px - w * 0.10f, cy + h * 0.20f)
+            close()
+        }
+        drawPath(triPath, body)
+        drawCircle(accent, w * 0.04f, androidx.compose.ui.geometry.Offset(px, cy))
+    }
+    // Connecting energy line between
+    drawLine(accent,
+        androidx.compose.ui.geometry.Offset(cx - w * 0.10f, cy),
+        androidx.compose.ui.geometry.Offset(cx + w * 0.10f, cy),
+        strokeWidth = w * 0.015f)
+    // Equals sign indicating linkage
+    drawLine(accent, androidx.compose.ui.geometry.Offset(cx - w * 0.05f, cy - h * 0.05f),
+        androidx.compose.ui.geometry.Offset(cx + w * 0.05f, cy - h * 0.05f), strokeWidth = w * 0.01f)
+    drawLine(accent, androidx.compose.ui.geometry.Offset(cx - w * 0.05f, cy + h * 0.05f),
+        androidx.compose.ui.geometry.Offset(cx + w * 0.05f, cy + h * 0.05f), strokeWidth = w * 0.01f)
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyPhantomPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    // Ghost body (bell shape with wavy bottom)
+    val ghostPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - w * 0.30f, cy - h * 0.20f)
+        cubicTo(cx - w * 0.35f, cy - h * 0.45f, cx + w * 0.35f, cy - h * 0.45f, cx + w * 0.30f, cy - h * 0.20f)
+        lineTo(cx + w * 0.30f, cy + h * 0.30f)
+        // Wavy bottom
+        val waveCount = 5
+        val waveStep = w * 0.60f / waveCount
+        for (i in 0..waveCount) {
+            val wx = cx + w * 0.30f - i * waveStep
+            val wy = if (i % 2 == 0) cy + h * 0.40f else cy + h * 0.30f
+            lineTo(wx, wy)
+        }
+        close()
+    }
+    // Semi-transparent ghost
+    drawPath(ghostPath, body.copy(alpha = 0.55f))
+    drawPath(ghostPath, accent.copy(alpha = 0.85f),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.025f))
+    // Eyes (2 dark sockets)
+    drawCircle(Color.Black.copy(alpha = 0.8f), w * 0.05f, androidx.compose.ui.geometry.Offset(cx - w * 0.10f, cy - h * 0.15f))
+    drawCircle(Color.Black.copy(alpha = 0.8f), w * 0.05f, androidx.compose.ui.geometry.Offset(cx + w * 0.10f, cy - h * 0.15f))
+    // O-shaped mouth
+    drawCircle(Color.Black.copy(alpha = 0.8f), w * 0.04f, androidx.compose.ui.geometry.Offset(cx, cy + h * 0.05f),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.015f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyHealerPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    // Healing aura ring (large)
+    drawCircle(Color(0xFF60FFAA).copy(alpha = 0.25f), w * 0.42f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(Color(0xFF60FFAA), w * 0.42f, androidx.compose.ui.geometry.Offset(cx, cy),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.02f))
+    // Inner orb
+    drawCircle(body, w * 0.18f, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(Color.White.copy(alpha = 0.8f), w * 0.10f, androidx.compose.ui.geometry.Offset(cx, cy))
+    // Plus symbol (healing)
+    val armW = w * 0.04f
+    val armL = w * 0.20f
+    drawRect(Color(0xFF60FFAA),
+        topLeft = androidx.compose.ui.geometry.Offset(cx - armW / 2f, cy - armL / 2f),
+        size = androidx.compose.ui.geometry.Size(armW, armL))
+    drawRect(Color(0xFF60FFAA),
+        topLeft = androidx.compose.ui.geometry.Offset(cx - armL / 2f, cy - armW / 2f),
+        size = androidx.compose.ui.geometry.Size(armL, armW))
+    // 4 small healing particles around
+    for (i in 0 until 4) {
+        val a = i * Math.PI / 2
+        drawCircle(Color(0xFF60FFAA), w * 0.025f,
+            androidx.compose.ui.geometry.Offset(
+                cx + (w * 0.32f * kotlin.math.cos(a)).toFloat(),
+                cy + (w * 0.32f * kotlin.math.sin(a)).toFloat()))
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyKamikazePreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    // Triangular body (warning pointed)
+    val bodyPath = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx, cy - h * 0.30f)
+        lineTo(cx + w * 0.30f, cy + h * 0.30f)
+        lineTo(cx - w * 0.30f, cy + h * 0.30f)
+        close()
+    }
+    drawPath(bodyPath, Color(0xFFFFE040))
+    drawPath(bodyPath, Color.Black, style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
+    // Warning exclamation in center
+    drawRect(Color.Black,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.02f, cy - h * 0.10f),
+        size = androidx.compose.ui.geometry.Size(w * 0.04f, h * 0.20f))
+    drawCircle(Color.Black, w * 0.025f, androidx.compose.ui.geometry.Offset(cx, cy + h * 0.18f))
+    // Trail behind (explosion warning lines)
+    for (i in 0 until 3) {
+        val sy = cy + h * 0.35f + i * h * 0.05f
+        drawLine(Color(0xFFFF6020),
+            androidx.compose.ui.geometry.Offset(cx - w * 0.20f + i * w * 0.05f, sy),
+            androidx.compose.ui.geometry.Offset(cx + w * 0.20f - i * w * 0.05f, sy),
+            strokeWidth = w * 0.02f)
+    }
 }

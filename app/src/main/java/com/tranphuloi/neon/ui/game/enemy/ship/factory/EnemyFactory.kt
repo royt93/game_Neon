@@ -48,7 +48,8 @@ class EnemyFactory(
      */
     var currentChapterId: Int = 1
 
-    private fun resolveBossKindForChapter(type: EnemyType): BossKind? = when {
+    // Round 81 audit — internal visibility cho EnemyFactoryBossKindTest.
+    internal fun resolveBossKindForChapter(type: EnemyType): BossKind? = when {
         type is LevelOneBossType && currentChapterId == 3 -> BossKind.DEATH_MOON
         type is LevelTwoBossType && currentChapterId == 4 -> BossKind.SATAN_GLYPH
         type == MidBossType.OFFENSIVE && currentChapterId == 4 -> BossKind.HELL_LORD

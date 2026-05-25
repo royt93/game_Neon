@@ -272,7 +272,16 @@ class LasersController(
         // wiped the previous in-flight batch when a new fire (ChargeShot auto + booster
         // pickup) triggered within ~10s of each other. Caused beams to "disappear at
         // halfway height" visually. Now both batches coexist until they fly off-screen.
-        ultimateLasers = ultimateLasers + ultimateLaserList
+        // Round 80 (#2 fix from user log) — cap ultimate laser pool. Trước fix:
+        // chuỗi pickup ULTIMATE_WEAPON_BOOSTER liên tiếp → existing=10 + 9 new = 19
+        // beams in flight → 19×N enemies collision checks/frame → FPS rớt xuống 31.
+        // Cap pool: nếu len mới vượt MAX_ULTIMATE_POOL, drop oldest (front of list).
+        val combined = ultimateLasers + ultimateLaserList
+        ultimateLasers = if (combined.size > MAX_ULTIMATE_POOL) {
+            combined.takeLast(MAX_ULTIMATE_POOL)
+        } else {
+            combined
+        }
         updateUltimateLasers()
     }
 
@@ -420,5 +429,12 @@ class LasersController(
         const val ULTIMATE_LASERS_COUNT = 9
         /** Round 47 — max in-flight ship lasers. New shots beyond this are dropped. */
         const val MAX_SHIP_LASERS = 25
+        /**
+         * Round 80 (#2 perf from user log) — cap ultimate laser pool. Per-frame
+         * cost ~O(N×enemies); pickup chains rapidly stacked 19-27 beams → FPS
+         * drops to 31 under combat pressure. Cap at 18 = 2 stacked batches.
+         * New batches push out oldest beams (FIFO).
+         */
+        const val MAX_ULTIMATE_POOL = 18
     }
 }

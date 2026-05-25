@@ -59,8 +59,12 @@ class BoosterToBoosterUIMapper {
      * Exhaustive `when` so the compiler flags any new BoosterType that doesn't
      * pick a shape. Round 78 #3 spec follow-up: every BoosterType gets a
      * distinct shape; no more shared silhouettes.
+     *
+     * Visibility `internal` so unit tests (`BoosterShapeUniquenessTest`) can
+     * verify the mapping without constructing real [Booster] instances (whose
+     * type is RNG-rolled).
      */
-    private fun shapeFor(type: BoosterType): BoosterShape = when (type) {
+    internal fun shapeFor(type: BoosterType): BoosterShape = when (type) {
         // Base 6 (legacy drawableId dispatch equivalents)
         BoosterType.HEALTH_BOOSTER -> BoosterShape.CROSS
         BoosterType.SHIELD_BOOSTER -> BoosterShape.OCTAGON
