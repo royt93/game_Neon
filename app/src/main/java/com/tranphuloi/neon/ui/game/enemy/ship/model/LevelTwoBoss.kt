@@ -34,7 +34,8 @@ data class LevelTwoBoss(
     // Round 71 (Issue 4d) — CROSS silhouette (4-arm spinner, green). Round 79
     // (#1): cho phép override (Ch4End → SATAN_GLYPH).
     override val bossKind: BossKind = bossKindOverride ?: BossKind.CROSS
-    override val displayName: String = "LEVEL 2 BOSS"
+    // Round 84 audit — read displayName from bossKind enum.
+    override val displayName: String = bossKind.displayName
     private val bossMovementSpeed = 0.5f
 
     private val maxXOffset = screenWidth - width

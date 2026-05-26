@@ -1,6 +1,7 @@
 package com.tranphuloi.neon.ui.game.enemy.ship.model
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -61,6 +62,34 @@ class BossKindTest {
         val names = BossKind.values().map { it.name }
         assertEquals(
             "BossKind enum has duplicate names",
+            names.size, names.toSet().size,
+        )
+    }
+
+    @Test
+    fun `every BossKind has a non-blank Vietnamese displayName`() {
+        for (kind in BossKind.values()) {
+            assertTrue(
+                "BossKind.$kind has blank displayName",
+                kind.displayName.isNotBlank(),
+            )
+            // No dev-jargon leakage (LEVEL 1 BOSS / TIỂU BOSS / OFFENSIVE / etc.).
+            assertFalse(
+                "BossKind.$kind has dev-jargon displayName='${kind.displayName}'",
+                kind.displayName.contains("LEVEL") ||
+                    kind.displayName.contains("TIỂU BOSS") ||
+                    kind.displayName.contains("OFFENSIVE") ||
+                    kind.displayName.contains("DEFENSIVE") ||
+                    kind.displayName.contains("SWARM"),
+            )
+        }
+    }
+
+    @Test
+    fun `all BossKind displayNames are unique`() {
+        val names = BossKind.values().map { it.displayName }
+        assertEquals(
+            "BossKind displayNames have duplicates",
             names.size, names.toSet().size,
         )
     }

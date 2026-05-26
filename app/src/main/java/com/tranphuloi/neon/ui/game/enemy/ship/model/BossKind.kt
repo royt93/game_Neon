@@ -11,31 +11,38 @@ package com.tranphuloi.neon.ui.game.enemy.ship.model
  * Attack patterns + audio cue defer Round 72+ (cần EnemyLasersController
  * refactor + audio asset). Visual silhouette done Round 71.
  */
-enum class BossKind {
-    STAR,
-    CROSS,
-    ORB,
-    FRACTAL,
-    SPIDER,
+/**
+ * Round 84 audit — added `displayName` field. Used by boss classes' intro
+ * banner (LevelOneBoss/LevelTwoBoss/MidBoss) thay generic "LEVEL 1 BOSS" /
+ * "TIỂU BOSS TẤN CÔNG" hardcoded. Khi `bossKindOverride` đã set ở factory
+ * resolve (Ch4 OFFENSIVE → HELL_LORD), boss banner sẽ hiện đúng tên Vietnamese
+ * khớp với InfoScreen entry.
+ */
+enum class BossKind(val displayName: String) {
+    STAR(displayName = "Mặt Trời Đỏ Máu"),
+    CROSS(displayName = "Thập Tự Ngọc Lục Bảo"),
+    ORB(displayName = "Lính Gác Mắt Sát Thủ"),
+    FRACTAL(displayName = "Hộ Vệ Nguyên Tử"),
+    SPIDER(displayName = "Bá Vương Thiên Hà"),
 
     // Round 79 (#1) — 4 new shapes to eliminate visual duplicates across the
     // 9 chapter encounters (Ch3End/Ch3Mid/Ch4Mid/Ch4End previously reused).
-    DEATH_MOON,      // mặt trăng tử thần — full moon + skull cracks
-    HAUNTED_KID,     // kid ma ám — ghost child silhouette
-    HELL_LORD,       // chúa tể địa ngục — devil head + horns
-    SATAN_GLYPH,     // quỷ satan — inverted pentagram + center eye
+    DEATH_MOON(displayName = "Mặt Trăng Tử Thần"),
+    HAUNTED_KID(displayName = "Hồn Ma Trẻ Em"),
+    HELL_LORD(displayName = "Chúa Tể Địa Ngục"),
+    SATAN_GLYPH(displayName = "Quỷ Satan"),
 
     // ── Round 81 — 12 new boss kinds per user roster ──
-    HEN_MOTHER,      // con gà mái dầu — throws eggs
-    BUFFALO_RAGE,    // con trâu hung hẵn — throws horns
-    DUMB_RAT,        // con chuột ngu si — laser bullets
-    FIERCE_TIGER,    // con cọp hung tợn — roar bullet pattern
-    SEXY_DIVA,       // cô gái sexy — throws hair 4 directions (feminine silhouette)
-    TROLL_TOWER,     // tháp tinh quỷ (dương vật tinh nghịch → tasteful tower)
-    TWIN_SUMMITS,    // đôi đỉnh sinh hoa (nhũ hoa → tasteful twin domes)
-    VOID_GLOBES,     // đôi cầu hư vô (cặp mông → tasteful twin spheres)
-    WHITE_DRAGON,    // bạch long mắt lam — fire breath
-    HAMMER_SICKLE,   // cộng sản — hammer+sickle symbol throws
-    MONEY_TYCOON,    // tư bản bóc lột — throws money bags
-    GOLDEN_TYCOON,   // (trump caricature, no real name) — orange hair tycoon + dollar throws
+    HEN_MOTHER(displayName = "Gà Mái Dầu"),
+    BUFFALO_RAGE(displayName = "Trâu Hung Hẵn"),
+    DUMB_RAT(displayName = "Chuột Ngu Si"),
+    FIERCE_TIGER(displayName = "Cọp Hung Tợn"),
+    SEXY_DIVA(displayName = "Cô Gái Sexy"),
+    TROLL_TOWER(displayName = "Tháp Tinh Quỷ"),
+    TWIN_SUMMITS(displayName = "Đôi Đỉnh Sinh Hoa"),
+    VOID_GLOBES(displayName = "Đôi Cầu Hư Vô"),
+    WHITE_DRAGON(displayName = "Bạch Long Mắt Lam"),
+    HAMMER_SICKLE(displayName = "Cộng Sản Bịp Bợm"),
+    MONEY_TYCOON(displayName = "Tư Bản Bóc Lột"),
+    GOLDEN_TYCOON(displayName = "Tycoon Vàng"),
 }

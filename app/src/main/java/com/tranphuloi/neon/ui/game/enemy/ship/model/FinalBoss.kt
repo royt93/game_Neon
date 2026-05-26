@@ -49,7 +49,8 @@ data class FinalBoss(
     override val isBoss: Boolean = true
     // Round 71 (Issue 4d) — SPIDER silhouette (8 legs, FinalBoss).
     override val bossKind: BossKind = BossKind.SPIDER
-    override val displayName: String = "GALAXY OVERLORD"
+    // Round 84 audit — Vietnamese name via BossKind.displayName.
+    override val displayName: String = bossKind.displayName
 
     override var xOffset: Float = (screenWidth - width) / 2f
     override var yOffset: Float = -height

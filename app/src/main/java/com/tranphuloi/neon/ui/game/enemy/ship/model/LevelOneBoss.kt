@@ -36,7 +36,9 @@ data class LevelOneBoss(
     // Round 71 (Issue 4d) — STAR silhouette (8-point baseline, red). Round 79
     // (#1): cho phép override (Ch3End → DEATH_MOON).
     override val bossKind: BossKind = bossKindOverride ?: BossKind.STAR
-    override val displayName: String = "LEVEL 1 BOSS"
+    // Round 84 audit — read displayName from bossKind enum (Vietnamese name)
+    // thay hardcoded "LEVEL 1 BOSS" dev-jargon.
+    override val displayName: String = bossKind.displayName
     private val bossMovementSpeed = 0.5f
 
     private val minXOffset = width

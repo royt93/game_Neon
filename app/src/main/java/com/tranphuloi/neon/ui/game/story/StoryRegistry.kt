@@ -1,5 +1,6 @@
 package com.tranphuloi.neon.ui.game.story
 
+import com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind
 import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyType
 import com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBossType
 import com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBossType
@@ -41,42 +42,56 @@ object StoryRegistry {
         else -> emptyList()
     }
 
-    /** Boss type → taunt shown at boss-spawn. */
-    fun bossTaunt(type: EnemyType): StoryLine? = when (type) {
-        LevelOneBossType -> StoryLine(
-            speaker = "BOSS CẤP 1",
-            text = "Tiểu tốt vô danh. Không trụ nổi 1 phút đâu.",
-        )
-        LevelTwoBossType -> StoryLine(
-            speaker = "BOSS CẤP 2",
-            text = "Đã nghiền nát phi công mạnh hơn ngươi nhiều.",
-        )
-        FinalBossType -> StoryLine(
-            speaker = "BÁ VƯƠNG THIÊN HÀ",
-            text = "Ngươi không nên đi xa đến vậy. Kết thúc ở đây.",
-            durationMs = 4500,
-        )
-        is MidBossType -> StoryLine(
-            speaker = type.displayName,
-            text = when (type) {
-                MidBossType.OFFENSIVE -> "Hàng hay là chết."
-                MidBossType.DEFENSIVE -> "Phá khiên ta đi. Thách đó."
-                MidBossType.SWARM -> "Không bắt được, không bắn được."
-                // Round 82 — 12 R81 boss taunts (Vietnamese, in-character).
-                MidBossType.HEN_MOTHER -> "Cục tác! Ta đẻ trứng cho ngươi đó!"
-                MidBossType.BUFFALO_RAGE -> "Sừng ta sẽ xuyên qua tàu ngươi!"
-                MidBossType.DUMB_RAT -> "Phô-mai... à không, laser! Ta bắn đây!"
-                MidBossType.FIERCE_TIGER -> "Gầm! Hú vang khắp dải Ngân Hà!"
-                MidBossType.SEXY_DIVA -> "Tóc ta lấp lánh, đẹp lắm. Cẩn thận nhé."
-                MidBossType.TROLL_TOWER -> "Cao chót vót, ánh sáng từ đỉnh thần thánh."
-                MidBossType.TWIN_SUMMITS -> "Hai đỉnh kép, hai tia sữa song hành."
-                MidBossType.VOID_GLOBES -> "Vô tận hư vô, hứng đòn của ta đi!"
-                MidBossType.WHITE_DRAGON -> "Bạch Long Mắt Lam — thét ra lửa!"
-                MidBossType.HAMMER_SICKLE -> "Búa liềm bịp bợm — vinh quang giai cấp!"
-                MidBossType.MONEY_TYCOON -> "Money makes the world go round, tàu trẻ con."
-                MidBossType.GOLDEN_TYCOON -> "Believe me, tàu ngươi sẽ chết tuyệt vời nhất."
-            },
-        )
+    /**
+     * Boss type + chapter → taunt shown at boss-spawn.
+     * Round 85 audit — chapter-aware. Resolves the actual BossKind for the
+     * (type, chapter) combo so speaker name khớp với boss visual + banner.
+     * Trước fix: Ch4 OFFENSIVE reuse → banner "Chúa Tể Địa Ngục" nhưng story
+     * speaker = "TIỂU BOSS TẤN CÔNG" (mismatch). Sau fix: cả 2 đều "Chúa Tể
+     * Địa Ngục".
+     */
+    fun bossTaunt(type: EnemyType, chapterId: Int = 1): StoryLine? {
+        val kind = resolveBossKind(type, chapterId) ?: return null
+        val text = tauntText(kind)
+        val duration = if (kind == BossKind.SPIDER) 4500 else 3500
+        return StoryLine(speaker = kind.displayName, text = text, durationMs = duration)
+    }
+
+    /** Mirror of EnemyFactory.resolveBossKindForChapter — keep in sync. */
+    private fun resolveBossKind(type: EnemyType, chapterId: Int): BossKind? = when {
+        type is LevelOneBossType && chapterId == 3 -> BossKind.DEATH_MOON
+        type is LevelOneBossType -> BossKind.STAR
+        type is LevelTwoBossType && chapterId == 4 -> BossKind.SATAN_GLYPH
+        type is LevelTwoBossType -> BossKind.CROSS
+        type is FinalBossType -> BossKind.SPIDER
+        type == MidBossType.OFFENSIVE && chapterId == 4 -> BossKind.HELL_LORD
+        type == MidBossType.SWARM -> BossKind.HAUNTED_KID
+        type is MidBossType -> type.defaultBossKind
         else -> null
+    }
+
+    /** BossKind-specific taunt (in-character voice, Vietnamese). */
+    private fun tauntText(kind: BossKind): String = when (kind) {
+        BossKind.STAR -> "Tiểu tốt vô danh. Không trụ nổi 1 phút đâu."
+        BossKind.CROSS -> "Đã nghiền nát phi công mạnh hơn ngươi nhiều."
+        BossKind.ORB -> "Mắt ta dõi theo mọi cử động của ngươi."
+        BossKind.FRACTAL -> "Phá khiên ta đi. Thách đó."
+        BossKind.SPIDER -> "Ngươi không nên đi xa đến vậy. Kết thúc ở đây."
+        BossKind.DEATH_MOON -> "Mặt trăng tử thần đã đến. Hết đường rồi."
+        BossKind.HAUNTED_KID -> "Hi hi... chơi với em không?"
+        BossKind.HELL_LORD -> "Địa ngục chào đón linh hồn ngươi."
+        BossKind.SATAN_GLYPH -> "Ngũ giác đã được vẽ. Linh hồn ngươi là vật tế."
+        BossKind.HEN_MOTHER -> "Cục tác! Ta đẻ trứng cho ngươi đó!"
+        BossKind.BUFFALO_RAGE -> "Sừng ta sẽ xuyên qua tàu ngươi!"
+        BossKind.DUMB_RAT -> "Phô-mai... à không, laser! Ta bắn đây!"
+        BossKind.FIERCE_TIGER -> "Gầm! Hú vang khắp dải Ngân Hà!"
+        BossKind.SEXY_DIVA -> "Tóc ta lấp lánh, đẹp lắm. Cẩn thận nhé."
+        BossKind.TROLL_TOWER -> "Cao chót vót, ánh sáng từ đỉnh thần thánh."
+        BossKind.TWIN_SUMMITS -> "Hai đỉnh kép, hai tia sữa song hành."
+        BossKind.VOID_GLOBES -> "Vô tận hư vô, hứng đòn của ta đi!"
+        BossKind.WHITE_DRAGON -> "Bạch Long Mắt Lam — thét ra lửa!"
+        BossKind.HAMMER_SICKLE -> "Búa liềm bịp bợm — vinh quang giai cấp!"
+        BossKind.MONEY_TYCOON -> "Tiền là sức mạnh, tàu trẻ con."
+        BossKind.GOLDEN_TYCOON -> "Tin ta đi, tàu ngươi sẽ chết tuyệt vời nhất."
     }
 }

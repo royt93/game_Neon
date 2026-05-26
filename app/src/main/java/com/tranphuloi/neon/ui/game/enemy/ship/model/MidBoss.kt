@@ -53,7 +53,10 @@ data class MidBoss(
     // mang BossKind riêng → KHÔNG cần hardcode dispatch. bossKindOverride vẫn
     // ưu tiên cao nhất cho chapter-aware reuse (Ch4 OFFENSIVE→HELL_LORD, etc.).
     override val bossKind: BossKind = bossKindOverride ?: variant.defaultBossKind
-    override val displayName: String = variant.displayName
+    // Round 84 audit — read displayName from resolved bossKind (Vietnamese name).
+    // Khi factory override (Ch4 OFFENSIVE → HELL_LORD), banner hiển "Chúa Tể
+    // Địa Ngục" thay generic "TIỂU BOSS TẤN CÔNG". Khớp visual với InfoScreen.
+    override val displayName: String = bossKind.displayName
 
     override var xOffset: Float = (screenWidth - width) / 2f
     override var yOffset: Float = -height

@@ -582,24 +582,36 @@ private fun DrawScope.drawDollarShape(cx: Float, cy: Float, size: Float, color: 
 // drawPlusDoubleShape removed Round 79 audit — PLUS_DOUBLE BoosterShape value
 // no longer referenced (QUICK_HEAL maps to HEALING_FLASK instead).
 
-/** Shard — crystal shard (vertical elongated rhombus, faceted). */
+/**
+ * Mineral Supercharge — audit redesign: GEM_CLUSTER (3 small clustered gems)
+ * thay single vertical shard (dup vertical-pointed cluster). Reads như "ore
+ * vein" / mineral deposit — match MINERAL_SUPERCHARGE function.
+ */
 private fun DrawScope.drawShardShape(cx: Float, cy: Float, size: Float, color: Color) {
-    val halfW = size * 0.22f
-    val halfH = size * 0.45f
-    val outer = Path().apply {
-        moveTo(cx, cy - halfH)
-        lineTo(cx + halfW, cy - halfH * 0.20f)
-        lineTo(cx + halfW * 0.7f, cy + halfH)
-        lineTo(cx - halfW * 0.7f, cy + halfH)
-        lineTo(cx - halfW, cy - halfH * 0.20f)
-        close()
+    // 3 small diamonds clustered: 1 large center + 2 smaller flanking
+    val gems = listOf(
+        Triple(cx, cy - size * 0.05f, size * 0.18f),                  // center large
+        Triple(cx - size * 0.22f, cy + size * 0.10f, size * 0.13f),   // left small
+        Triple(cx + size * 0.22f, cy + size * 0.10f, size * 0.13f),   // right small
+    )
+    for ((gx, gy, gr) in gems) {
+        val gem = Path().apply {
+            moveTo(gx, gy - gr)
+            lineTo(gx + gr * 0.7f, gy)
+            lineTo(gx, gy + gr)
+            lineTo(gx - gr * 0.7f, gy)
+            close()
+        }
+        drawPath(gem, color)
+        drawPath(gem, Color.White.copy(alpha = 0.7f), style = Stroke(width = size * 0.015f))
+        // Diagonal facet highlight
+        drawLine(Color.White.copy(alpha = 0.6f),
+            Offset(gx - gr * 0.3f, gy - gr * 0.4f),
+            Offset(gx + gr * 0.3f, gy + gr * 0.4f),
+            strokeWidth = size * 0.012f)
+        // Center sparkle
+        drawCircle(Color.White, gr * 0.18f, Offset(gx - gr * 0.15f, gy - gr * 0.2f))
     }
-    drawPath(outer, color)
-    drawPath(outer, Color.White.copy(alpha = 0.8f), style = Stroke(width = size * 0.04f))
-    // Inner facet line
-    drawLine(Color.White.copy(alpha = 0.65f),
-        Offset(cx, cy - halfH), Offset(cx, cy + halfH),
-        strokeWidth = size * 0.03f)
 }
 
 /**
@@ -699,44 +711,66 @@ private fun DrawScope.drawSpreadFanShape(cx: Float, cy: Float, size: Float, colo
 }
 
 /**
- * Crit Surge — Round 81 audit fix: redesigned thành DAGGER (sharp pointed
- * dagger silhouette) thay 4-point star (dup motif với STAR). Reads as
- * "critical strike" — match CRIT_SURGE function.
+ * Crit Surge — audit redesign: KATANA (curved blade + handle + tsuba guard)
+ * thay dagger (dup vertical-pointed cluster với SHARD/LANCE/TRIDENT). Reads
+ * như "critical strike samurai-style" — match CRIT_SURGE function.
  */
 private fun DrawScope.drawCrystalSparkShape(cx: Float, cy: Float, size: Float, color: Color) {
-    val bladeW = size * 0.12f
-    val bladeH = size * 0.65f
-    val guardW = size * 0.40f
-    val guardH = size * 0.06f
-    val handleH = size * 0.20f
-    // Blade (long thin pointed)
+    // Curved katana blade (top-right diagonal arc)
+    val bladeStartX = cx - size * 0.30f
+    val bladeStartY = cy + size * 0.25f
+    val bladeEndX = cx + size * 0.35f
+    val bladeEndY = cy - size * 0.30f
+    // Spine path (curved)
+    val spinePath = Path().apply {
+        moveTo(bladeStartX, bladeStartY)
+        cubicTo(bladeStartX + size * 0.20f, bladeStartY - size * 0.15f,
+            bladeEndX - size * 0.20f, bladeEndY + size * 0.05f,
+            bladeEndX, bladeEndY)
+    }
+    // Edge path (parallel curve below spine)
+    val edgePath = Path().apply {
+        moveTo(bladeStartX + size * 0.05f, bladeStartY + size * 0.08f)
+        cubicTo(bladeStartX + size * 0.25f, bladeStartY - size * 0.05f,
+            bladeEndX - size * 0.15f, bladeEndY + size * 0.13f,
+            bladeEndX + size * 0.08f, bladeEndY + size * 0.05f)
+    }
+    // Blade fill (filled region between spine and edge)
     val bladePath = Path().apply {
-        moveTo(cx, cy - bladeH * 0.55f)               // tip
-        lineTo(cx + bladeW / 2f, cy - bladeH * 0.30f)
-        lineTo(cx + bladeW * 0.40f, cy + bladeH * 0.30f)  // shoulder
-        lineTo(cx - bladeW * 0.40f, cy + bladeH * 0.30f)
-        lineTo(cx - bladeW / 2f, cy - bladeH * 0.30f)
+        moveTo(bladeStartX, bladeStartY)
+        cubicTo(bladeStartX + size * 0.20f, bladeStartY - size * 0.15f,
+            bladeEndX - size * 0.20f, bladeEndY + size * 0.05f,
+            bladeEndX, bladeEndY)
+        lineTo(bladeEndX + size * 0.08f, bladeEndY + size * 0.05f)
+        cubicTo(bladeEndX - size * 0.15f, bladeEndY + size * 0.13f,
+            bladeStartX + size * 0.25f, bladeStartY - size * 0.05f,
+            bladeStartX + size * 0.05f, bladeStartY + size * 0.08f)
         close()
     }
     drawPath(bladePath, color)
-    drawPath(bladePath, Color.White.copy(alpha = 0.7f), style = Stroke(width = size * 0.018f))
-    // Crossguard (horizontal bar)
-    drawRoundRect(color,
-        topLeft = Offset(cx - guardW / 2f, cy + bladeH * 0.28f),
-        size = Size(guardW, guardH),
-        cornerRadius = androidx.compose.ui.geometry.CornerRadius(guardH * 0.4f))
-    // Handle (thicker grip)
-    drawRoundRect(color,
-        topLeft = Offset(cx - bladeW * 0.45f, cy + bladeH * 0.34f),
-        size = Size(bladeW * 0.90f, handleH),
-        cornerRadius = androidx.compose.ui.geometry.CornerRadius(bladeW * 0.25f))
-    // Pommel (round end)
-    drawCircle(color, size * 0.07f, Offset(cx, cy + bladeH * 0.34f + handleH + size * 0.05f))
-    // Blade highlight (diagonal white line)
-    drawLine(Color.White,
-        Offset(cx - bladeW * 0.20f, cy - bladeH * 0.40f),
-        Offset(cx + bladeW * 0.10f, cy + bladeH * 0.20f),
-        strokeWidth = size * 0.012f)
+    drawPath(spinePath, Color.White.copy(alpha = 0.75f),
+        style = Stroke(width = size * 0.015f))
+    // Tsuba (round guard at handle base)
+    drawCircle(color, size * 0.06f, Offset(bladeStartX - size * 0.04f, bladeStartY + size * 0.05f))
+    // Handle (short rect bottom-left, wrapped grip pattern)
+    val handleW = size * 0.05f
+    val handleLen = size * 0.18f
+    val handleAngle = kotlin.math.atan2((bladeStartY + size * 0.05f) - (cy + size * 0.42f),
+        (bladeStartX - size * 0.04f) - (cx - size * 0.38f))
+    val hex = cx - size * 0.38f
+    val hey = cy + size * 0.42f
+    drawLine(color,
+        Offset(hex, hey),
+        Offset(bladeStartX - size * 0.04f, bladeStartY + size * 0.05f),
+        strokeWidth = handleW,
+        cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    // Grip wraps (3 white perpendicular ticks on handle)
+    for (i in 0 until 3) {
+        val t = (i + 1) / 4f
+        val px = hex + ((bladeStartX - size * 0.04f) - hex) * t
+        val py = hey + ((bladeStartY + size * 0.05f) - hey) * t
+        drawCircle(Color.White.copy(alpha = 0.65f), size * 0.012f, Offset(px, py))
+    }
 }
 
 /**

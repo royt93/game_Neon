@@ -783,137 +783,137 @@ private fun enemyVariantSpecs(): List<EnemyVariantSpec> {
         // SCOUT family — Chapter 3 (Hành Tinh Băng). Round 78: variant 0 + 1
         // đổi sang HEART + TRIANGLE để mỗi enemy trong family trông khác nhau.
         EnemyVariantSpec(
-            title = "1. SCOUT Mark-I", subtitle = "Chapter 3 · HP 126 · Tốc độ nhanh",
+            title = "Trinh Sát Sơ Cấp", subtitle = "Hành Tinh Băng · HP 126 · Tốc độ nhanh",
             description = "Hình trái tim cyan — variant chuyên trị melee. Thấy đầu tiên ở Hành Tinh Băng.",
             color = scoutColor, draw = { sc, c -> sc.drawEnemyHeart(c, scoutColor, scoutAccent) }),
         EnemyVariantSpec(
-            title = "2. SCOUT Mark-II", subtitle = "Chapter 3 · HP 126",
+            title = "Trinh Sát Cảnh Giới", subtitle = "Hành Tinh Băng · HP 126",
             description = "Tam giác đơn giản — alien glyph với center pip + side dots. Spawn formation Row.",
             color = scoutColor, draw = { sc, c -> sc.drawEnemyTriangle(c, scoutColor, scoutAccent) }),
         EnemyVariantSpec(
-            title = "3. SCOUT Mark-III ♣", subtitle = "Chapter 3 · HP 126",
+            title = "Trinh Sát Tẩy Chuồn", subtitle = "Hành Tinh Băng · HP 126",
             description = "Bài chuồn — cluster 3 hình tròn + thân. Spawn formation ZigZag.",
             color = scoutColor, draw = { sc, c -> sc.drawEnemyClub(c, scoutColor, scoutAccent) }),
         EnemyVariantSpec(
-            title = "4. SCOUT Mark-IV ●", subtitle = "Chapter 3 · HP 126",
+            title = "Trinh Sát Đĩa Tròn", subtitle = "Hành Tinh Băng · HP 126",
             description = "Hình tròn — đĩa cyan với ring viền + center pip. Spawn formation V.",
             color = scoutColor, draw = { sc, c -> sc.drawEnemyCircle(c, scoutColor, scoutAccent) }),
         EnemyVariantSpec(
-            title = "5. SCOUT Mark-V ♠", subtitle = "Chapter 3 + Chapter 4 + 5",
+            title = "Trinh Sát Bóng Đêm", subtitle = "Hành Tinh Băng + Trạm + Lõi",
             description = "Bài bích — heart ngược + thân stem. Outro variant.",
             color = scoutColor, draw = { sc, c -> sc.drawEnemySpade(c, scoutColor, scoutAccent) }),
         // FIGHTER family — Chapter 2 (Mây Tinh Vân)
         EnemyVariantSpec(
-            title = "6. FIGHTER Alpha", subtitle = "Chapter 2 · HP 180",
+            title = "Chiến Đấu Cơ Alpha", subtitle = "Mây Tinh Vân · HP 180",
             description = "Hexagon variant 0 — baseline cân bằng. Stats tham chiếu cho mọi family.",
             color = fighterColor, draw = { sc, c -> sc.drawEnemyHexagon(c, fighterColor, fighterAccent, variant = 0) }),
         EnemyVariantSpec(
-            title = "7. FIGHTER Bravo", subtitle = "Chapter 2 · HP 180",
+            title = "Chiến Đấu Cơ Bravo", subtitle = "Mây Tinh Vân · HP 180",
             description = "Virus xanh — 8 gai radiating + nhân RNA. Biological/alien aesthetic.",
             color = fighterColor, draw = { sc, c -> sc.drawEnemyVirus(c, fighterColor, fighterAccent) }),
         EnemyVariantSpec(
-            title = "8. FIGHTER Charlie", subtitle = "Chapter 2 · HP 180",
+            title = "Chiến Đấu Cơ Charlie", subtitle = "Mây Tinh Vân · HP 180",
             description = "Mắt nhìn — oval body + iris + pupil. Cảm giác bị quan sát.",
             color = fighterColor, draw = { sc, c -> sc.drawEnemyEye(c, fighterColor, fighterAccent) }),
         EnemyVariantSpec(
-            title = "9. FIGHTER Delta ♦", subtitle = "Chapter 2 + 4 + 5 · HP 180",
+            title = "Chiến Đấu Cơ Delta", subtitle = "Mây Tinh Vân + Trạm + Lõi · HP 180",
             description = "Bài rô — kim cương dọc (vertical rhombus) xanh. Outro variant lặp Ch4+5.",
             color = fighterColor, draw = { sc, c -> sc.drawEnemyCardDiamond(c, fighterColor, fighterAccent) }),
         // HEAVY family — Chapter 1 (Vành Đai Tiểu Hành Tinh)
         EnemyVariantSpec(
-            title = "10. HEAVY Tonk-A", subtitle = "Chapter 1 · HP 288 · Tốc độ chậm",
+            title = "Tăng Thiết Giáp", subtitle = "Vành Đai · HP 288 · Tốc độ chậm",
             description = "Diamond variant 0 — heavy hitter, ×1.3 damage. Bắt đầu Vành Đai.",
             color = heavyColor, draw = { sc, c -> sc.drawEnemyDiamond(c, heavyColor, heavyAccent, variant = 0) }),
         EnemyVariantSpec(
-            title = "11. HEAVY Tonk-B", subtitle = "Chapter 1 + 4 · HP 288",
+            title = "Tăng Cận Vệ", subtitle = "Vành Đai + Trạm Thù Địch · HP 288",
             description = "Trái tim đỏ — heart shape đỏ chính danh. Tank-class hạng nặng.",
             color = heavyColor, draw = { sc, c -> sc.drawEnemyHeart(c, heavyColor, heavyAccent) }),
         EnemyVariantSpec(
-            title = "12. HEAVY Tonk-C ●", subtitle = "Chapter 1 + 4 + 5 · HP 288",
+            title = "Tăng Phản Lực", subtitle = "Vành Đai + Trạm + Lõi · HP 288",
             description = "Hình tròn đỏ — đĩa đỏ với ring viền dày. Endgame anchor.",
             color = heavyColor, draw = { sc, c -> sc.drawEnemyCircle(c, heavyColor, heavyAccent) }),
         // ELITE family — Chapter 4 (Trạm Thù Địch)
         EnemyVariantSpec(
-            title = "13. ELITE Cross-α", subtitle = "Chapter 4 · HP 225 · ×1.1 dmg",
+            title = "Tinh Nhuệ Thập Tự", subtitle = "Trạm Thù Địch · HP 225 · ×1.1 dmg",
             description = "Cross variant 0 — 4 cánh + tip glow nhỏ. Arm spinner spread.",
             color = eliteColor, draw = { sc, c -> sc.drawCrossPreview(c, eliteColor, eliteAccent, variant = 0) }),
         EnemyVariantSpec(
-            title = "14. ELITE UFO Saucer", subtitle = "Chapter 4 · HP 225",
+            title = "Đĩa Bay Alien", subtitle = "Trạm Thù Địch · HP 225",
             description = "Đĩa bay alien — saucer + dome cockpit + 5 underside lights. Tàu bay alien class.",
             color = eliteColor, draw = { sc, c -> sc.drawEnemyUFOPreview(c, eliteColor, eliteAccent) }),
         EnemyVariantSpec(
-            title = "15. ELITE Orb-α", subtitle = "Chapter 4 · HP 225",
+            title = "Quả Cầu Bay", subtitle = "Trạm Thù Địch · HP 225",
             description = "Orb variant 0 — single orbit ring. Floating attacker.",
             color = eliteColor, draw = { sc, c -> sc.drawOrbVariantPreview(c, eliteColor, eliteAccent, variant = 0) }),
         EnemyVariantSpec(
-            title = "16. ELITE Drone Quad", subtitle = "Chapter 4 · HP 225",
+            title = "Drone Bốn Cánh", subtitle = "Trạm Thù Địch · HP 225",
             description = "Drone 4 cánh quạt + cannon dưới + sensor mắt đỏ. Mech-style alien.",
             color = eliteColor, draw = { sc, c -> sc.drawEnemyDronePreview(c, eliteColor, eliteAccent) }),
         // BERSERKER family — Chapter 5 (Lõi Thiên Hà)
         EnemyVariantSpec(
-            title = "17. BERSERKER Chevron-α", subtitle = "Chapter 5 · HP 162 · ×1.4 dmg",
+            title = "Cuồng Loạn Mũi Tên", subtitle = "Lõi Thiên Hà · HP 162 · ×1.4 dmg",
             description = "Chevron variant 0 — mũi tên đơn. Damage cao nhất game.",
             color = berserkerColor, draw = { sc, c -> sc.drawChevronPreview(c, berserkerColor, berserkerAccent, variant = 0) }),
         EnemyVariantSpec(
-            title = "18. BERSERKER Manta Ray", subtitle = "Chapter 5 · HP 162",
+            title = "Cá Đuối Vũ Trụ", subtitle = "Lõi Thiên Hà · HP 162",
             description = "Manta ray alien — delta-wing + 2 mắt + spine ridge. Tàu bay sinh học.",
             color = berserkerColor, draw = { sc, c -> sc.drawEnemyMantaRayPreview(c, berserkerColor, berserkerAccent) }),
         EnemyVariantSpec(
-            title = "19. BERSERKER Spike-α", subtitle = "Chapter 5 · HP 162",
+            title = "Cuồng Loạn Gai", subtitle = "Lõi Thiên Hà · HP 162",
             description = "Spike variant 0 — sao gai 8 cánh, spike ngắn.",
             color = berserkerColor, draw = { sc, c -> sc.drawSpikePreviewV(c, berserkerColor, berserkerAccent, variant = 0) }),
         EnemyVariantSpec(
-            title = "20. BERSERKER Battle Mech", subtitle = "Chapter 5 · HP 162",
+            title = "Robot Chiến Đấu", subtitle = "Lõi Thiên Hà · HP 162",
             description = "Mech chiến tranh — boxy hull + viewport + 2 cannon sides + sensor antenna. Tàu công nghiệp.",
             color = berserkerColor, draw = { sc, c -> sc.drawEnemyMechPreview(c, berserkerColor, berserkerAccent) }),
         // ── Round 81 — 10 new enemy roster (preview only; chapter wire R82) ──
         EnemyVariantSpec(
-            title = "21. Spinning Saw", subtitle = "Trạm / Lõi · HP 200 · melee orbit",
+            title = "Lưỡi Cưa Quay Tròn", subtitle = "Trạm Thù Địch / Lõi · HP 200 · melee orbit",
             description = "Lưỡi cưa 12 răng quay tròn. Tấn công melee qua orbit pattern. Highest contact damage.",
             color = Color(0xFFCCCCCC),
             draw = { sc, c -> sc.drawEnemySpinningSawPreview(c, Color(0xFFCCCCCC), Color(0xFFFF2D55)) }),
         EnemyVariantSpec(
-            title = "22. Tentacle Squid", subtitle = "Trạm / Lõi · HP 350 · tracks player",
+            title = "Bạch Tuộc Vũ Trụ", subtitle = "Trạm Thù Địch / Lõi · HP 350 · tracks player",
             description = "Đầu mực + 6 tentacles wavy. Slow nhưng tracking nguyện vọng player position. Multi-arm grab.",
             color = Color(0xFF60E0C0),
             draw = { sc, c -> sc.drawEnemyTentacleSquidPreview(c, Color(0xFF60E0C0), Color(0xFFFFD040)) }),
         EnemyVariantSpec(
-            title = "23. Mine Layer", subtitle = "Trạm / Lõi · HP 280 · drops mines behind",
+            title = "Đặt Mìn", subtitle = "Trạm Thù Địch / Lõi · HP 280 · drops mines behind",
             description = "Tank vuông + turret + treads. Di chuyển chậm + drop mine khi pass. Area denial role.",
             color = Color(0xFF707080),
             draw = { sc, c -> sc.drawEnemyMineLayerPreview(c, Color(0xFF707080), Color(0xFFFF2D55)) }),
         EnemyVariantSpec(
-            title = "24. Shield Drone", subtitle = "Trạm / Lõi · HP 180 · front shield",
+            title = "Drone Khiên", subtitle = "Trạm Thù Địch / Lõi · HP 180 · front shield",
             description = "Hexagonal drone + shield arc phía trước. Shield block damage từ player bullets. Flank to kill.",
             color = Color(0xFF40A0FF),
             draw = { sc, c -> sc.drawEnemyShieldDronePreview(c, Color(0xFF40A0FF), Color(0xFF80E0FF)) }),
         EnemyVariantSpec(
-            title = "25. Sniper", subtitle = "Trạm / Lõi · HP 220 · single high-damage shot",
+            title = "Bắn Tỉa Xa", subtitle = "Trạm Thù Địch / Lõi · HP 220 · single high-damage shot",
             description = "Long rifle barrel + scope + red dot. Bắn 1 phát precise high-damage từ xa. Aim line warns 0.5s before shot.",
             color = Color(0xFF8B5C2E),
             draw = { sc, c -> sc.drawEnemySniperPreview(c, Color(0xFF8B5C2E), Color(0xFF404040)) }),
         EnemyVariantSpec(
-            title = "26. Bomber Crawler", subtitle = "Trạm / Lõi · HP 400 · arc mortar",
+            title = "Tăng Pháo Mortar", subtitle = "Trạm Thù Địch / Lõi · HP 400 · arc mortar",
             description = "Tank + mortar tube angled up + 4 wheels. Bắn shell với arc trajectory, AOE damage on landing.",
             color = Color(0xFF606040),
             draw = { sc, c -> sc.drawEnemyBomberCrawlerPreview(c, Color(0xFF606040), Color(0xFFFFE040)) }),
         EnemyVariantSpec(
-            title = "27. Mirror Twin", subtitle = "Trạm / Lõi · HP 150 each · spawn-pair link",
+            title = "Cặp Sinh Đôi", subtitle = "Trạm Thù Địch / Lõi · HP 150 each · spawn-pair link",
             description = "Spawn pair-link. Cả 2 phải die simultaneously, nếu kill 1 trước thì regenerate. Damage on both via shared HP pool.",
             color = Color(0xFFFF60A0),
             draw = { sc, c -> sc.drawEnemyMirrorTwinPreview(c, Color(0xFFFF60A0), Color.White) }),
         EnemyVariantSpec(
-            title = "28. Phantom", subtitle = "Trạm / Lõi · HP 300 · 50% damage reduction",
+            title = "Bóng Ma Mờ Ảo", subtitle = "Trạm Thù Địch / Lõi · HP 300 · 50% damage reduction",
             description = "Ghost semi-transparent. 50% damage reduction (chỉ kill bằng ULTIMATE laser hoặc BURN status). Flicker every 2s.",
             color = Color(0xFFB14CFF),
             draw = { sc, c -> sc.drawEnemyPhantomPreview(c, Color(0xFFB14CFF), Color(0xFFE8E8F0)) }),
         EnemyVariantSpec(
-            title = "29. Healer", subtitle = "Trạm / Lõi · HP 250 · heals other enemies",
+            title = "Pháp Sư Hồi Phục", subtitle = "Trạm Thù Địch / Lõi · HP 250 · heals other enemies",
             description = "Healing orb + aura ring + + symbol + 4 healing particles. Heals 5hp/s cho enemies trong 100dp radius. Kill priority.",
             color = Color(0xFF60FFAA),
             draw = { sc, c -> sc.drawEnemyHealerPreview(c, Color(0xFF60FFAA), Color.White) }),
         EnemyVariantSpec(
-            title = "30. Kamikaze", subtitle = "Trạm / Lõi · HP 100 · accelerates + explodes",
+            title = "Cảm Tử Quân", subtitle = "Trạm Thù Địch / Lõi · HP 100 · accelerates + explodes",
             description = "Warning triangle + ! mark + trail. Tăng tốc khi gần player, explode on contact for high damage. Risk-reward kill quickly.",
             color = Color(0xFFFFE040),
             draw = { sc, c -> sc.drawEnemyKamikazePreview(c, Color(0xFFFFE040), Color(0xFFFF6020)) }),
@@ -1141,8 +1141,8 @@ private fun BossesTab() {
         // Ch 1 — Vành Đai Tiểu Hành Tinh
         InfoCard(
             color = gold,
-            title = "Ch1 Mid — Killer Eye Sentinel (OFFENSIVE)",
-            subtitle = "Giữa Vành Đai Tiểu Hành Tinh · HP 1200 · EYE",
+            title = "Lính Gác Mắt Sát Thủ",
+            subtitle = "Giữa Vành Đai · HP 1200",
             description = "Mắt sát thủ khổng lồ — sclera + iris + pupil + 6 mi mắt eldritch. Spray 360° spread + radial barrage. " +
                 "Phase 2 (HP<50%) tăng fire rate. Defeat reward: buff picker post-kill.",
             iconDraw = { c -> drawBossEyePreview(c, gold, goldAcc) },
@@ -1150,8 +1150,8 @@ private fun BossesTab() {
         Spacer(modifier = Modifier.height(6.dp))
         InfoCard(
             color = red,
-            title = "Ch1 End — Crimson Sun",
-            subtitle = "End Vành Đai · HP 3000 · SUN (8-laser ring barrage)",
+            title = "Mặt Trời Đỏ Máu",
+            subtitle = "Cuối Vành Đai · HP 3000",
             description = "Mặt trời đỏ rực — corona ring + 12 radial flares + hot disc center. Pattern Round 74 wired: " +
                 "8-laser ring radial mỗi tick. Audio cue 1.4× pitch (sting cao chói tai). HP bar full-width.",
             iconDraw = { c -> drawBossStar(c, red, redAcc) },
@@ -1160,8 +1160,8 @@ private fun BossesTab() {
         // Ch 2 — Mây Tinh Vân
         InfoCard(
             color = violet,
-            title = "Ch2 Mid — Atom Sentinel (DEFENSIVE)",
-            subtitle = "Giữa Mây Tinh Vân · HP 1200 · ATOM",
+            title = "Hộ Vệ Nguyên Tử",
+            subtitle = "Giữa Mây Tinh Vân · HP 1200",
             description = "Mô hình nguyên tử — 3 quỹ đạo điện tử quay quanh hạt nhân tím. " +
                 "Orbit + counter pattern. Phase 2 phá quỹ đạo thành 3 sub-pattern.",
             iconDraw = { c -> drawBossFractalPreview(c, violet, violetAcc) },
@@ -1169,8 +1169,8 @@ private fun BossesTab() {
         Spacer(modifier = Modifier.height(6.dp))
         InfoCard(
             color = green,
-            title = "Ch2 End — Emerald Cross",
-            subtitle = "End Mây Tinh Vân · HP 4000 · CROSS",
+            title = "Thập Tự Ngọc Lục Bảo",
+            subtitle = "Cuối Mây Tinh Vân · HP 4000",
             description = "Cross spinner 4 cánh xanh + 4 tip glow. Quay liên tục. " +
                 "Pattern Round 74 wired: alternating axis sweep (vertical wall ↔ 4-diagonal). Audio 1.15× pitch.",
             iconDraw = { c -> drawBossCrossPreview(c, green, greenAcc) },
@@ -1179,7 +1179,7 @@ private fun BossesTab() {
         // Ch 3 — Hành Tinh Băng
         InfoCard(
             color = violet,
-            title = "Ch3 Mid — Haunted Kid (SWARM)",
+            title = "Hồn Ma Trẻ Em",
             subtitle = "Giữa Hành Tinh Băng · HP 1200",
             description = "Hồn ma trẻ em — hollow eyes + wavy bottom sheet. " +
                 "Pattern SWARM — spawn 4 drone con khi Phase 2.",
@@ -1188,8 +1188,8 @@ private fun BossesTab() {
         Spacer(modifier = Modifier.height(6.dp))
         InfoCard(
             color = red,
-            title = "Ch3 End — Death Moon",
-            subtitle = "End Hành Tinh Băng · HP 3000",
+            title = "Mặt Trăng Tử Thần",
+            subtitle = "Cuối Hành Tinh Băng · HP 3000",
             description = "Mặt trăng tử thần — full moon disc + skull eye sockets + teeth row + crack fissures. " +
                 "Arena ICE_PATCHES — tàu trượt " +
                 "→ dodge ring barrage khó hơn. Audio cue 0.75× pitch trầm.",
@@ -1199,7 +1199,7 @@ private fun BossesTab() {
         // Ch 4 — Trạm Thù Địch
         InfoCard(
             color = gold,
-            title = "Ch4 Mid — Hell Lord (OFFENSIVE-2)",
+            title = "Chúa Tể Địa Ngục",
             subtitle = "Giữa Trạm Thù Địch · HP 1200",
             description = "Chúa tể địa ngục — devil head với 2 curved horns + glowing eyes + fangs. " +
                 "ELITE enemies bay xung quanh hỗ trợ. " +
@@ -1209,8 +1209,8 @@ private fun BossesTab() {
         Spacer(modifier = Modifier.height(6.dp))
         InfoCard(
             color = green,
-            title = "Ch4 End — Satan Glyph",
-            subtitle = "End Trạm Thù Địch · HP 4000",
+            title = "Quỷ Satan",
+            subtitle = "Cuối Trạm Thù Địch · HP 4000",
             description = "Quỷ Satan — inverted pentagram + all-seeing eye trung tâm + 5 candle dots. " +
                 "ELITE enemy wave đồng hành " +
                 "(cross/orb violet) bay xung quanh boss → tổng pressure cao hơn.",
@@ -1220,8 +1220,8 @@ private fun BossesTab() {
         // Ch 5 — Lõi Thiên Hà
         InfoCard(
             color = magenta,
-            title = "Ch5 Final — Galaxy Overlord (SPIDER)",
-            subtitle = "End Lõi Thiên Hà · HP 22500 · 3-phase · SPIDER",
+            title = "Bá Vương Thiên Hà",
+            subtitle = "Cuối Lõi Thiên Hà · HP 22500 · 3-pha",
             description = "Boss cuối game. 8 chân + thân + 2 mắt sáng. " +
                 "Phase 1 (HP>15000): fire pattern thông thường. " +
                 "Phase 2 (HP≤15000): tăng tốc độ + spawn BERSERKER wave. " +
