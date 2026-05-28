@@ -91,7 +91,10 @@
       "Bash(awk '-F\"' '{ for \\(i=1;i<=NF;i++\\) if \\($i ~ /tests=/\\) t+=$\\(i+1\\); if \\($i ~ /failures=/\\) f+=$\\(i+1\\) } END { print \"tests=\" t \" failures=\" f }')",
       "Bash(xargs basename *)",
       "Bash(./gradlew :app:testDevDebugUnitTest --rerun-tasks)",
-      "Bash(./gradlew :app:compileDevDebugKotlin :app:compileProductionReleaseKotlin)"
+      "Bash(./gradlew :app:compileDevDebugKotlin :app:compileProductionReleaseKotlin)",
+      "Bash(./gradlew testDevDebugUnitTest --tests \"com.tranphuloi.neon.ui.game.booster.*\")",
+      "Bash(./gradlew testDevDebugUnitTest --rerun-tasks)",
+      "Bash(./gradlew compileDevDebugKotlin --rerun-tasks)"
     ]
   }
 }

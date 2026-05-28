@@ -2131,7 +2131,7 @@ private fun DrawScope.drawEnemyTentacleSquid(cx: Float, cy: Float, w: Float, h: 
         val bx = cxLocal + (headR * kotlin.math.cos(a)).toFloat()
         val by = cyLocal + (headR * kotlin.math.sin(a)).toFloat()
         val ex = bx + (headR * 0.85f * kotlin.math.cos(a)).toFloat()
-        val ey = by + (headR * 1.20f).toFloat()
+        val ey = by + headR * 1.20f
         val tPath = Path().apply {
             moveTo(bx, by)
             cubicTo(bx + (i - 2.5).toFloat() * w * 0.05f, by + h * 0.10f,

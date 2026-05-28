@@ -75,38 +75,51 @@ private fun DrawScope.drawBooster(booster: BoosterUI, density: Density) {
         // Round 78 (#6 perf) — drawSoftHalo replaces Brush.radialGradient.
         drawSoftHalo(glowColor, 0.85f, glowR, Offset(cx, cy))
 
-        // Round 78 spec follow-up — single dispatch on the type-safe shape
-        // enum. `when` is exhaustive → compiler flags any new BoosterShape that
-        // isn't handled here. No more drawableId/shapeKey two-tier lookup.
-        when (booster.shape) {
-            BoosterShape.CROSS -> drawCross(cx, cy, sizePx, glowColor)
-            BoosterShape.OCTAGON -> drawOctagon(cx, cy, sizePx, glowColor)
-            BoosterShape.TRIANGLE_UP -> drawTriangleUp(cx, cy, sizePx, glowColor)
-            BoosterShape.TRIPLE_BARS -> drawTripleBars(cx, cy, sizePx, glowColor)
-            BoosterShape.STAR -> drawStar(cx, cy, sizePx, glowColor)
-            BoosterShape.HEART -> drawHeart(cx, cy, sizePx, glowColor)
-            BoosterShape.ATOM -> drawAtomShape(cx, cy, sizePx, glowColor)
-            BoosterShape.FLAME -> drawFlameShape(cx, cy, sizePx, glowColor)
-            BoosterShape.MAGNET -> drawMagnetShape(cx, cy, sizePx, glowColor)
-            BoosterShape.LIGHTNING -> drawLightningShape(cx, cy, sizePx, glowColor)
-            BoosterShape.CROSSHAIR -> drawCrosshairShape(cx, cy, sizePx, glowColor)
-            BoosterShape.BEAM -> drawBeamShape(cx, cy, sizePx, glowColor)
-            BoosterShape.SPLIT_FORK -> drawSplitShape(cx, cy, sizePx, glowColor)
-            BoosterShape.ARROW_RIGHT -> drawArrowRightShape(cx, cy, sizePx, glowColor)
-            BoosterShape.RING_PULSE -> drawRingPulseShape(cx, cy, sizePx, glowColor)
-            BoosterShape.DOLLAR -> drawDollarShape(cx, cy, sizePx, glowColor)
-            BoosterShape.SHARD -> drawShardShape(cx, cy, sizePx, glowColor)
-            BoosterShape.AURA_RING -> drawAuraRingShape(cx, cy, sizePx, glowColor)
-            BoosterShape.PHASE_DIAMOND -> drawPhaseDiamondShape(cx, cy, sizePx, glowColor)
-            BoosterShape.CLOUD_PUFF -> drawCloudPuffShape(cx, cy, sizePx, glowColor)
-            BoosterShape.SPREAD_FAN -> drawSpreadFanShape(cx, cy, sizePx, glowColor)
-            BoosterShape.CRYSTAL_SPARK -> drawCrystalSparkShape(cx, cy, sizePx, glowColor)
-            BoosterShape.DOUBLE_ARROW -> drawDoubleArrowShape(cx, cy, sizePx, glowColor)
-            BoosterShape.ARROW_CYCLE -> drawArrowCycleShape(cx, cy, sizePx, glowColor)
-            BoosterShape.BIG_DOT -> drawBigDotShape(cx, cy, sizePx, glowColor)
-            BoosterShape.RAGE_FANG -> drawRageFangShape(cx, cy, sizePx, glowColor)
-            BoosterShape.HEALING_FLASK -> drawHealingFlaskShape(cx, cy, sizePx, glowColor)
-        }
+        drawBoosterShape(booster.shape, cx, cy, sizePx, glowColor)
+    }
+}
+
+/**
+ * Shared booster shape dispatcher — used by both [BoosterCanvas] (in-game
+ * render) and InfoScreen.drawBoosterPreview (Bách Khoa Vật phẩm tab) so the
+ * silhouette stays identical across both surfaces. Exhaustive `when` over
+ * [BoosterShape] — compiler flags new values.
+ */
+internal fun DrawScope.drawBoosterShape(
+    shape: BoosterShape,
+    cx: Float,
+    cy: Float,
+    size: Float,
+    color: Color,
+) {
+    when (shape) {
+        BoosterShape.CROSS -> drawCross(cx, cy, size, color)
+        BoosterShape.OCTAGON -> drawOctagon(cx, cy, size, color)
+        BoosterShape.TRIANGLE_UP -> drawTriangleUp(cx, cy, size, color)
+        BoosterShape.TRIPLE_BARS -> drawTripleBars(cx, cy, size, color)
+        BoosterShape.STAR -> drawStar(cx, cy, size, color)
+        BoosterShape.HEART -> drawHeart(cx, cy, size, color)
+        BoosterShape.ATOM -> drawAtomShape(cx, cy, size, color)
+        BoosterShape.FLAME -> drawFlameShape(cx, cy, size, color)
+        BoosterShape.MAGNET -> drawMagnetShape(cx, cy, size, color)
+        BoosterShape.LIGHTNING -> drawLightningShape(cx, cy, size, color)
+        BoosterShape.CROSSHAIR -> drawCrosshairShape(cx, cy, size, color)
+        BoosterShape.BEAM -> drawBeamShape(cx, cy, size, color)
+        BoosterShape.SPLIT_FORK -> drawSplitShape(cx, cy, size, color)
+        BoosterShape.ARROW_RIGHT -> drawArrowRightShape(cx, cy, size, color)
+        BoosterShape.RING_PULSE -> drawRingPulseShape(cx, cy, size, color)
+        BoosterShape.DOLLAR -> drawDollarShape(cx, cy, size, color)
+        BoosterShape.SHARD -> drawShardShape(cx, cy, size, color)
+        BoosterShape.AURA_RING -> drawAuraRingShape(cx, cy, size, color)
+        BoosterShape.PHASE_DIAMOND -> drawPhaseDiamondShape(cx, cy, size, color)
+        BoosterShape.CLOUD_PUFF -> drawCloudPuffShape(cx, cy, size, color)
+        BoosterShape.SPREAD_FAN -> drawSpreadFanShape(cx, cy, size, color)
+        BoosterShape.CRYSTAL_SPARK -> drawCrystalSparkShape(cx, cy, size, color)
+        BoosterShape.DOUBLE_ARROW -> drawDoubleArrowShape(cx, cy, size, color)
+        BoosterShape.ARROW_CYCLE -> drawArrowCycleShape(cx, cy, size, color)
+        BoosterShape.BIG_DOT -> drawBigDotShape(cx, cy, size, color)
+        BoosterShape.RAGE_FANG -> drawRageFangShape(cx, cy, size, color)
+        BoosterShape.HEALING_FLASK -> drawHealingFlaskShape(cx, cy, size, color)
     }
 }
 

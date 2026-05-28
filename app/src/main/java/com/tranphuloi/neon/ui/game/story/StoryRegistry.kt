@@ -1,6 +1,7 @@
 package com.tranphuloi.neon.ui.game.story
 
 import com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind
+import com.tranphuloi.neon.ui.game.enemy.ship.model.BossKindResolver
 import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyType
 import com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBossType
 import com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBossType
@@ -51,23 +52,10 @@ object StoryRegistry {
      * Địa Ngục".
      */
     fun bossTaunt(type: EnemyType, chapterId: Int = 1): StoryLine? {
-        val kind = resolveBossKind(type, chapterId) ?: return null
+        val kind = BossKindResolver.resolve(type, chapterId) ?: return null
         val text = tauntText(kind)
         val duration = if (kind == BossKind.SPIDER) 4500 else 3500
         return StoryLine(speaker = kind.displayName, text = text, durationMs = duration)
-    }
-
-    /** Mirror of EnemyFactory.resolveBossKindForChapter — keep in sync. */
-    private fun resolveBossKind(type: EnemyType, chapterId: Int): BossKind? = when {
-        type is LevelOneBossType && chapterId == 3 -> BossKind.DEATH_MOON
-        type is LevelOneBossType -> BossKind.STAR
-        type is LevelTwoBossType && chapterId == 4 -> BossKind.SATAN_GLYPH
-        type is LevelTwoBossType -> BossKind.CROSS
-        type is FinalBossType -> BossKind.SPIDER
-        type == MidBossType.OFFENSIVE && chapterId == 4 -> BossKind.HELL_LORD
-        type == MidBossType.SWARM -> BossKind.HAUNTED_KID
-        type is MidBossType -> type.defaultBossKind
-        else -> null
     }
 
     /** BossKind-specific taunt (in-character voice, Vietnamese). */

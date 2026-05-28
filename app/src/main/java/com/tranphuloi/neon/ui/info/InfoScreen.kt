@@ -3,6 +3,7 @@ package com.tranphuloi.neon.ui.info
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.graphics.drawscope.withTransform
+import com.tranphuloi.neon.ui.game.world.drawBoosterShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.TextStyle
 import com.tranphuloi.neon.ui.game.world.drawShipVector
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -44,7 +46,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tranphuloi.neon.R
 import com.tranphuloi.neon.common.NeonBgDeep
 import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonGold
@@ -52,8 +53,10 @@ import com.tranphuloi.neon.common.NeonMagenta
 import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.NeonViolet
 import com.tranphuloi.neon.common.neonGlow
+import com.tranphuloi.neon.ui.game.booster.BoosterToBoosterUIMapper
 import com.tranphuloi.neon.ui.game.booster.BoosterType
 import com.tranphuloi.neon.ui.game.ship.laser.BulletType
+import com.tranphuloi.neon.ui.game.ship.laser.BulletTypeColorMap
 
 private enum class InfoTab(val label: String, val color: Color) {
     BULLETS("ĐẠN", NeonCyan),
@@ -210,20 +213,10 @@ private fun BulletsTab() {
     }
 }
 
-private fun bulletColor(b: BulletType): Color = when (b) {
-    BulletType.NORMAL -> NeonCyan
-    BulletType.PIERCING -> Color(0xFFFF2DE0)               // magenta
-    BulletType.PLASMA -> Color(0xFF00F0FF)                  // cyan
-    BulletType.FIRE -> Color(0xFFFF6020)                    // orange
-    BulletType.HOMING -> Color(0xFFFF40A0)                  // hot pink
-    BulletType.BOUNCE -> Color(0xFF40FFD0)                  // mint
-    BulletType.GIANT -> Color(0xFFFFD040)                   // gold
-    BulletType.SMOKE -> Color(0xFFA0A0B0)                   // gray-blue
-    BulletType.ZIGZAG -> Color(0xFFFFE040)                  // electric yellow
-    BulletType.KAMEHAMEHA -> Color(0xFF60E0FF)              // sky cyan
-    BulletType.ATOMIC -> Color(0xFF80FF80)                  // radioactive green
-    BulletType.SPLIT -> Color(0xFFB060FF)                   // purple
-}
+// Delegates to [BulletTypeColorMap] so the Bullet preview tab, in-game bullet
+// activation popup, and Booster preview tab share one color source. Inline
+// hex literals here would silently drift when a tint constant shifts.
+private fun bulletColor(b: BulletType): Color = Color(BulletTypeColorMap.argbFor(b))
 
 private fun bulletDescription(b: BulletType): String = when (b) {
     BulletType.NORMAL -> "Đạn cơ bản. Tốc độ 7 px/tick. Không buff khởi đầu."
@@ -655,32 +648,9 @@ private fun SectionLabel(label: String, color: Color) {
 
 @Composable
 private fun ShipShapeCard(shape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape) {
-    val color = when (shape) {
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.FIGHTER -> NeonCyan
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.BOMBER -> NeonGold
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.STEALTH -> NeonViolet
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.TANK -> Color(0xFFFF6020)
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.INTERCEPTOR -> NeonMagenta
-        // Round 79 (#3) — 12 new ships' InfoScreen accent colors.
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.NGOI_SAO -> Color(0xFFFFD700)
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.CAU_VONG -> Color(0xFFFF80E0)
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.PHU_THUY -> Color(0xFFB14CFF)
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.AURA_GLOW -> Color(0xFF60FFAA)
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.SUNG_3_NONG -> Color(0xFFFF3030)
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.OBELISK_SPIRE -> Color(0xFFE0E0E0)
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.VIETNAM -> Color(0xFFDA251D)
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.DIVA -> Color(0xFFFF80B0)
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.CHET_CHOC -> Color(0xFF808080)
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.TU_THAN -> Color(0xFF404040)
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.MANG_NHEN_ACE -> Color(0xFFCC2030)
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.AO_GIAP_THIET -> Color(0xFFCC2020)
-        // Round 79 audit follow-up — 5 new ships.
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.TWIN_DOMES -> Color(0xFFFFA0C0)
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.NHAT_BAN -> Color(0xFFBC002D)
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.HAN_QUOC -> Color(0xFF0047A0)
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.MY -> Color(0xFF3C3B6E)
-        com.tranphuloi.neon.ui.game.ship.shape.ShipShape.PHAP -> Color(0xFF002654)
-    }
+    // Delegates to ShipShapeColorMap so the accent here matches the ship
+    // picker grid 1:1. Inline hex literals would drift over time.
+    val color = Color(com.tranphuloi.neon.ui.game.ship.shape.ShipShapeColorMap.argbFor(shape))
     val unlockText = if (shape.unlockMinerals == 0) "Mở khoá: Có sẵn"
         else "Mở khoá: ${shape.unlockMinerals} khoáng tích luỹ"
     InfoCard(
@@ -1731,22 +1701,29 @@ private fun ItemsTab() {
                 description = boosterDescription(booster),
                 tip = boosterTip(booster),
                 duration = boosterDuration(booster),
+                glyph = boosterPreviewMapper.glyphFor(booster),
                 iconDraw = { c -> drawBoosterPreview(c, booster) },
             )
         }
     }
 }
 
-private fun boosterColor(b: BoosterType): Color = when (b.drawableId) {
-    R.drawable.booster_health -> Color(0xFFA8FF60)
-    R.drawable.booster_shield -> Color(0xFF00F0FF)
-    R.drawable.booster_red_lasers -> Color(0xFFFF5555)
-    R.drawable.booster_triple_laser -> Color(0xFFFFA040)
-    R.drawable.booster_ultimate_weapon -> Color(0xFFFFD040)
-    R.drawable.booster_revive -> Color(0xFF60FFAA)
-    else -> NeonViolet
-}
+// Stateless mapper hoisted to file scope so the 27 LazyColumn rows share a
+// single instance instead of allocating per-recomposition. No fields means
+// no leak surface.
+private val boosterPreviewMapper = BoosterToBoosterUIMapper()
 
+private fun boosterColor(b: BoosterType): Color =
+    Color(boosterPreviewMapper.previewColorArgb(b))
+
+/**
+ * Bách Khoa Vật phẩm row icon. Delegates to the shared
+ * [com.tranphuloi.neon.ui.game.world.drawBoosterShape] dispatcher so the
+ * preview silhouette stays identical to the in-game pickup. The mapper
+ * provides shape + color + glyph as a single source of truth — without it,
+ * a dispatch on `drawableId` here would collapse 27 BoosterTypes onto the
+ * 6 sprite shapes and ship visual duplicates.
+ */
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBoosterPreview(
     canvasSize: androidx.compose.ui.geometry.Size,
     b: BoosterType,
@@ -1756,91 +1733,15 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBoosterPreview(
     val cx = w / 2
     val cy = h / 2
     val size = minOf(w, h) * 0.7f
-    // Tint color from booster
     val color = boosterColor(b)
-    // Glow
+    // Soft halo background
     drawCircle(
         color = color.copy(alpha = 0.3f),
         radius = size * 0.7f,
         center = androidx.compose.ui.geometry.Offset(cx, cy),
     )
-    // Shape per drawableId — same recipes as BoosterCanvas.kt (Round 66b).
-    when (b.drawableId) {
-        R.drawable.booster_health -> {
-            val armWide = size * 0.30f; val armLong = size * 0.85f
-            drawRoundRect(color, androidx.compose.ui.geometry.Offset(cx - armLong / 2, cy - armWide / 2),
-                androidx.compose.ui.geometry.Size(armLong, armWide),
-                androidx.compose.ui.geometry.CornerRadius(armWide / 2))
-            drawRoundRect(color, androidx.compose.ui.geometry.Offset(cx - armWide / 2, cy - armLong / 2),
-                androidx.compose.ui.geometry.Size(armWide, armLong),
-                androidx.compose.ui.geometry.CornerRadius(armWide / 2))
-        }
-        R.drawable.booster_shield -> {
-            val r = size * 0.42f
-            val path = androidx.compose.ui.graphics.Path().apply {
-                val start = -Math.PI / 8
-                for (i in 0 until 8) {
-                    val a = start + i * Math.PI / 4
-                    val x = cx + (r * kotlin.math.cos(a)).toFloat()
-                    val y = cy + (r * kotlin.math.sin(a)).toFloat()
-                    if (i == 0) moveTo(x, y) else lineTo(x, y)
-                }
-                close()
-            }
-            drawPath(path, color)
-        }
-        R.drawable.booster_red_lasers -> {
-            val halfW = size * 0.40f; val halfH = size * 0.42f
-            val path = androidx.compose.ui.graphics.Path().apply {
-                moveTo(cx, cy - halfH)
-                lineTo(cx + halfW, cy + halfH)
-                lineTo(cx - halfW, cy + halfH)
-                close()
-            }
-            drawPath(path, color)
-        }
-        R.drawable.booster_triple_laser -> {
-            val bw = size * 0.18f; val bh = size * 0.80f
-            val gap = size * 0.12f
-            listOf(cx - bw - gap, cx, cx + bw + gap).forEach { x ->
-                drawRoundRect(color,
-                    androidx.compose.ui.geometry.Offset(x - bw / 2, cy - bh / 2),
-                    androidx.compose.ui.geometry.Size(bw, bh),
-                    androidx.compose.ui.geometry.CornerRadius(bw / 2))
-            }
-        }
-        R.drawable.booster_ultimate_weapon -> {
-            // 5-point star
-            val outerR = size * 0.45f
-            val innerR = outerR * 0.45f
-            val path = androidx.compose.ui.graphics.Path().apply {
-                val step = Math.PI / 5
-                for (i in 0 until 10) {
-                    val a = -Math.PI / 2 + i * step
-                    val rr = if (i % 2 == 0) outerR else innerR
-                    val x = cx + (rr * kotlin.math.cos(a)).toFloat()
-                    val y = cy + (rr * kotlin.math.sin(a)).toFloat()
-                    if (i == 0) moveTo(x, y) else lineTo(x, y)
-                }
-                close()
-            }
-            drawPath(path, color)
-        }
-        R.drawable.booster_revive -> {
-            // Heart: 2 circles + triangle
-            val lobeR = size * 0.20f
-            val lobeY = cy - size * 0.10f
-            drawCircle(color, lobeR, androidx.compose.ui.geometry.Offset(cx - lobeR * 0.85f, lobeY))
-            drawCircle(color, lobeR, androidx.compose.ui.geometry.Offset(cx + lobeR * 0.85f, lobeY))
-            val tri = androidx.compose.ui.graphics.Path().apply {
-                moveTo(cx - lobeR * 1.85f, lobeY)
-                lineTo(cx, cy + size * 0.42f)
-                lineTo(cx + lobeR * 1.85f, lobeY)
-                close()
-            }
-            drawPath(tri, color)
-        }
-    }
+    val shape = boosterPreviewMapper.shapeFor(b)
+    drawBoosterShape(shape, cx, cy, size, color)
 }
 
 // Round 71 (Issue 4e) — Friendly Vietnamese title cho người chơi thường.
@@ -2010,6 +1911,7 @@ private fun BoosterCard(
     description: String,
     tip: String,
     duration: String,
+    glyph: String?,
     iconDraw: androidx.compose.ui.graphics.drawscope.DrawScope.(
         canvasSize: androidx.compose.ui.geometry.Size,
     ) -> Unit,
@@ -2030,6 +1932,19 @@ private fun BoosterCard(
                 contentAlignment = Alignment.Center,
             ) {
                 Canvas(modifier = Modifier.size(48.dp)) { iconDraw(size) }
+                // Mirror in-game's TopEnd glyph badge (GameWorld renders the
+                // same overlay) so the preview matches gameplay 1:1.
+                if (glyph != null) {
+                    Text(
+                        text = glyph,
+                        color = color,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 4.dp, y = (-4).dp),
+                    )
+                }
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -2682,7 +2597,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyTentacleSq
         val bx = cx + (headR * kotlin.math.cos(a)).toFloat()
         val by = cy + (headR * kotlin.math.sin(a)).toFloat()
         val ex = bx + (headR * 0.85f * kotlin.math.cos(a)).toFloat()
-        val ey = by + (headR * 1.20f).toFloat()
+        val ey = by + headR * 1.20f
         val tPath = androidx.compose.ui.graphics.Path().apply {
             moveTo(bx, by)
             cubicTo(bx + (i - 2.5).toFloat() * w * 0.05f, by + h * 0.10f,

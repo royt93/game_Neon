@@ -34,14 +34,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.common.LocalNeonPalette
 import com.tranphuloi.neon.common.NeonBottomSheet
-import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonGold
-import com.tranphuloi.neon.common.NeonMagenta
-import com.tranphuloi.neon.common.NeonViolet
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.data.LocalMetaProgression
 import com.tranphuloi.neon.data.LocalSettings
 import com.tranphuloi.neon.ui.game.ship.shape.ShipShape
+import com.tranphuloi.neon.ui.game.ship.shape.ShipShapeColorMap
 import com.tranphuloi.neon.ui.game.world.drawShipVector
 import com.tranphuloi.neon.utils.Logger
 import kotlinx.coroutines.launch
@@ -139,32 +136,10 @@ fun DialogShipPicker(onDismiss: () -> Unit) {
     }
 }
 
-private fun colorForShape(shape: ShipShape): Color = when (shape) {
-    ShipShape.FIGHTER -> NeonCyan
-    ShipShape.BOMBER -> NeonGold
-    ShipShape.STEALTH -> NeonViolet
-    ShipShape.TANK -> Color(0xFFFF6020)
-    ShipShape.INTERCEPTOR -> NeonMagenta
-    // Round 79 (#3) — accent colors for 12 new ships, each thematic.
-    ShipShape.NGOI_SAO -> Color(0xFFFFD700)              // gold star
-    ShipShape.CAU_VONG -> Color(0xFFFF80E0)              // pink rainbow accent
-    ShipShape.PHU_THUY -> Color(0xFFB14CFF)              // violet witch
-    ShipShape.AURA_GLOW -> Color(0xFF60FFAA)             // mint aura
-    ShipShape.SUNG_3_NONG -> Color(0xFFFF3030)           // crimson gun
-    ShipShape.OBELISK_SPIRE -> Color(0xFFE0E0E0)         // pale stone
-    ShipShape.VIETNAM -> Color(0xFFDA251D)               // VN red
-    ShipShape.DIVA -> Color(0xFFFF80B0)                  // diva pink
-    ShipShape.CHET_CHOC -> Color(0xFF606060)             // gray reaper steel
-    ShipShape.TU_THAN -> Color(0xFF000000)               // black void
-    ShipShape.MANG_NHEN_ACE -> Color(0xFFCC2030)         // spider red
-    ShipShape.AO_GIAP_THIET -> Color(0xFFCC2020)         // iron red
-    // Round 79 audit follow-up — 5 new ships.
-    ShipShape.TWIN_DOMES -> Color(0xFFFFA0C0)            // soft pink
-    ShipShape.NHAT_BAN -> Color(0xFFBC002D)              // Hinomaru red
-    ShipShape.HAN_QUOC -> Color(0xFF0047A0)              // Korea blue
-    ShipShape.MY -> Color(0xFF3C3B6E)                    // USA blue
-    ShipShape.PHAP -> Color(0xFF002654)                  // France blue
-}
+// Delegates to [ShipShapeColorMap] (single source of truth shared with
+// InfoScreen.ShipShapeCard). Inline hex literals here would silently drift
+// from the InfoScreen mirror — happened to CHET_CHOC + TU_THAN until fixed.
+private fun colorForShape(shape: ShipShape): Color = Color(ShipShapeColorMap.argbFor(shape))
 
 @Composable
 private fun ShipShapeRow(

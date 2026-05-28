@@ -61,39 +61,6 @@ import kotlinx.coroutines.yield
 import java.util.Locale
 import java.util.UUID
 
-@SuppressLint("ConfigurationScreenWidthHeight")
-/**
- * Round 85 audit — single source for boss banner BossKind resolve.
- * Mirror of [com.tranphuloi.neon.ui.game.enemy.ship.factory.EnemyFactory.resolveBossKindForChapter]
- * + StoryRegistry resolver. Keep in sync 3 places.
- *
- * Why duplicated: factory + story + banner all need the same logic but live in
- * different layers (enemy factory, story, state). A future refactor could
- * extract to a `BossKindResolver` object — defer.
- */
-private fun resolveBossKindForBanner(
-    type: com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyType,
-    chapterId: Int,
-): com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind? = when {
-    type is com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBossType && chapterId == 3 ->
-        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.DEATH_MOON
-    type is com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBossType ->
-        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.STAR
-    type is com.tranphuloi.neon.ui.game.enemy.ship.model.LevelTwoBossType && chapterId == 4 ->
-        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SATAN_GLYPH
-    type is com.tranphuloi.neon.ui.game.enemy.ship.model.LevelTwoBossType ->
-        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.CROSS
-    type is com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBossType ->
-        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SPIDER
-    type == com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType.OFFENSIVE && chapterId == 4 ->
-        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HELL_LORD
-    type == com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType.SWARM ->
-        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HAUNTED_KID
-    type is com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType ->
-        type.defaultBossKind
-    else -> null
-}
-
 @Composable
 fun rememberGameState(): GameState {
     // Round 37 — was Logger.d("rememberGameState: composing — entry point") here, but
@@ -1021,10 +988,11 @@ fun rememberGameState(): GameState {
                     // → use bossKind.displayName as banner. Khớp với in-game visual
                     // + InfoScreen + story speaker. Eliminate ALL dev-jargon banner
                     // ("BOSS CẤP 1" / "TIỂU BOSS TẤN CÔNG"). Single source of truth.
-                    val resolvedKind = resolveBossKindForBanner(
-                        newStage.enemyType,
-                        newStage.chapterId,
-                    )
+                    val resolvedKind =
+                        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKindResolver.resolve(
+                            newStage.enemyType,
+                            newStage.chapterId,
+                        )
                     bossIntroName = resolvedKind?.displayName ?: "BOSS"
                     bossIntroBossKind = resolvedKind
                     bossIntroShownAtMillis = System.currentTimeMillis()

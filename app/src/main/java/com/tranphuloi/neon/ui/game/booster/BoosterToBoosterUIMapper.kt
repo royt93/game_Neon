@@ -1,44 +1,34 @@
 package com.tranphuloi.neon.ui.game.booster
 
+/**
+ * Per-type visual identity for a [BoosterType] — the three signals players
+ * use to disambiguate boosters: silhouette, color, and TopEnd badge glyph.
+ *
+ * Single source of truth so InfoScreen preview (Bách Khoa Vật phẩm) and
+ * in-game booster pickup render the same identity for each type. Was
+ * 3 separate `when` tables (shapeFor / previewColorArgb / glyphFor) that
+ * had to be kept in sync manually — replaced by [BoosterToBoosterUIMapper.previewSpecFor].
+ */
+data class BoosterPreviewSpec(
+    val shape: BoosterShape,
+    val colorArgb: Long,
+    val glyph: String?,
+) {
+    /**
+     * In-game sprite tint: 0L for base-6 (the raw drawable already has its
+     * identity hue baked in — no re-tint needed). Non-base 21 use [colorArgb]
+     * so the pickup glow matches the InfoScreen preview color.
+     *
+     * Base-6 ⇔ no glyph (their iconic shape/sprite self-identifies), so we
+     * use glyph nullity as the discriminator.
+     */
+    val gameTintArgb: Long get() = if (glyph == null) 0L else colorArgb
+}
+
 class BoosterToBoosterUIMapper {
 
     operator fun invoke(booster: Booster): BoosterUI {
-        // Round 54 — PIERCING + PLASMA reuse existing drawables (booster_red_lasers /
-        // booster_ultimate_weapon) and were visually indistinguishable from
-        // LASER_BOOSTER / ULTIMATE_WEAPON_BOOSTER. Apply a discriminating tint
-        // (modulated against the raw icon) + glyph badge so the player can tell
-        // them apart without dedicated art assets.
-        val (tintHex, glyph) = when (booster.type) {
-            BoosterType.PIERCING_BOOSTER -> PIERCING_TINT_ARGB to "→"
-            BoosterType.PLASMA_BOOSTER -> PLASMA_TINT_ARGB to "◯"
-            // Round 60 (38x) — 10 new boosters reuse 6 base drawables. Each
-            // gets a distinct glyph + tint so player can identify the effect
-            // even though the sprite is recycled. Glyph is rendered top-right
-            // of the icon (12-14sp) via existing overlay; tint modulates the
-            // sprite + glow color.
-            BoosterType.MAGNET_BOOST -> MAGNET_BOOST_TINT_ARGB to "⊕"
-            BoosterType.CRIT_SURGE -> CRIT_SURGE_TINT_ARGB to "✱"
-            BoosterType.SPREAD_SHOT -> SPREAD_SHOT_TINT_ARGB to "☆"
-            BoosterType.BERSERK -> BERSERK_TINT_ARGB to "⚡"
-            BoosterType.PHASE_SHIELD -> PHASE_SHIELD_TINT_ARGB to "◇"
-            BoosterType.SCORE_X3 -> SCORE_X3_TINT_ARGB to "$"
-            BoosterType.QUICK_HEAL -> QUICK_HEAL_TINT_ARGB to "✚"
-            BoosterType.MINERAL_SUPERCHARGE -> MINERAL_SUPERCHARGE_TINT_ARGB to "✦"
-            BoosterType.HEALING_AURA -> HEALING_AURA_TINT_ARGB to "+"
-            BoosterType.DOUBLE_FIRE -> DOUBLE_FIRE_TINT_ARGB to "⚯"
-            // Round 67 (Wave 10a) — 3 bullet-type boosters with full behaviors.
-            // Unicode-only glyphs (no emoji) to match neon vector aesthetic.
-            BoosterType.FIRE_BOOSTER -> FIRE_TINT_ARGB to "♨"
-            BoosterType.HOMING_BOOSTER -> HOMING_TINT_ARGB to "◎"
-            BoosterType.BOUNCE_BOOSTER -> BOUNCE_TINT_ARGB to "⇄"
-            BoosterType.GIANT_BOOSTER -> GIANT_TINT_ARGB to "⬤"
-            BoosterType.SMOKE_BOOSTER -> SMOKE_TINT_ARGB to "❍"
-            BoosterType.ZIGZAG_BOOSTER -> ZIGZAG_TINT_ARGB to "⌇"
-            BoosterType.KAMEHAMEHA_BOOSTER -> KAMEHAMEHA_TINT_ARGB to "⊛"
-            BoosterType.ATOMIC_BOOSTER -> ATOMIC_TINT_ARGB to "⊙"
-            BoosterType.SPLIT_BOOSTER -> SPLIT_TINT_ARGB to "Ѱ"
-            else -> 0L to null
-        }
+        val spec = previewSpecFor(booster.type)
         return with(booster) {
             BoosterUI(
                 xOffset = xOffset,
@@ -47,89 +37,121 @@ class BoosterToBoosterUIMapper {
                 drawableId = type.drawableId,
                 rarityRingColorHex = rarity.ringColorHex,
                 isEliteRarity = rarity != BoosterRarity.COMMON,
-                tintColorHex = tintHex,
-                glyph = glyph,
-                shape = shapeFor(type),
+                tintColorHex = spec.gameTintArgb,
+                glyph = spec.glyph,
+                shape = spec.shape,
             )
         }
     }
 
     /**
-     * Single source of truth — `BoosterType` → [BoosterShape] mapping.
-     * Exhaustive `when` so the compiler flags any new BoosterType that doesn't
-     * pick a shape. Round 78 #3 spec follow-up: every BoosterType gets a
-     * distinct shape; no more shared silhouettes.
+     * Single source of truth — exhaustive `when` over [BoosterType] returns
+     * the full visual identity (shape + color + glyph). Compiler flags any
+     * new BoosterType that doesn't declare its preview spec.
      *
-     * Visibility `internal` so unit tests (`BoosterShapeUniquenessTest`) can
-     * verify the mapping without constructing real [Booster] instances (whose
-     * type is RNG-rolled).
+     * Color invariant: all 27 ARGB values must be distinct (verified by
+     * [com.tranphuloi.neon.ui.game.booster.BoosterPreviewColorDistinctTest]).
+     * Shape invariant: all 27 BoosterShapes must be distinct (verified by
+     * [com.tranphuloi.neon.ui.game.booster.BoosterShapeUniquenessTest]).
+     * Glyph invariant: base-6 null, 21 non-base distinct (verified by
+     * [com.tranphuloi.neon.ui.game.booster.BoosterGlyphTest]).
      */
-    internal fun shapeFor(type: BoosterType): BoosterShape = when (type) {
-        // Base 6 (legacy drawableId dispatch equivalents)
-        BoosterType.HEALTH_BOOSTER -> BoosterShape.CROSS
-        BoosterType.SHIELD_BOOSTER -> BoosterShape.OCTAGON
-        BoosterType.LASER_BOOSTER -> BoosterShape.TRIANGLE_UP
-        BoosterType.TRIPLE_LASER_BOOSTER -> BoosterShape.TRIPLE_BARS
-        BoosterType.ULTIMATE_WEAPON_BOOSTER -> BoosterShape.STAR
-        BoosterType.REVIVE_TOKEN -> BoosterShape.HEART
-        // Bullet-type boosters (distinct silhouettes)
-        BoosterType.PIERCING_BOOSTER -> BoosterShape.ARROW_RIGHT
-        BoosterType.PLASMA_BOOSTER -> BoosterShape.RING_PULSE
-        BoosterType.FIRE_BOOSTER -> BoosterShape.FLAME
-        BoosterType.HOMING_BOOSTER -> BoosterShape.CROSSHAIR
-        BoosterType.BOUNCE_BOOSTER -> BoosterShape.ARROW_CYCLE
-        BoosterType.GIANT_BOOSTER -> BoosterShape.BIG_DOT
-        BoosterType.SMOKE_BOOSTER -> BoosterShape.CLOUD_PUFF
-        BoosterType.ZIGZAG_BOOSTER -> BoosterShape.LIGHTNING
-        BoosterType.KAMEHAMEHA_BOOSTER -> BoosterShape.BEAM
-        BoosterType.ATOMIC_BOOSTER -> BoosterShape.ATOM
-        BoosterType.SPLIT_BOOSTER -> BoosterShape.SPLIT_FORK
-        // Support boosters
-        BoosterType.MAGNET_BOOST -> BoosterShape.MAGNET
-        BoosterType.CRIT_SURGE -> BoosterShape.CRYSTAL_SPARK
-        BoosterType.SPREAD_SHOT -> BoosterShape.SPREAD_FAN
-        BoosterType.BERSERK -> BoosterShape.RAGE_FANG
-        BoosterType.PHASE_SHIELD -> BoosterShape.PHASE_DIAMOND
-        BoosterType.SCORE_X3 -> BoosterShape.DOLLAR
-        BoosterType.QUICK_HEAL -> BoosterShape.HEALING_FLASK
-        BoosterType.MINERAL_SUPERCHARGE -> BoosterShape.SHARD
-        BoosterType.HEALING_AURA -> BoosterShape.AURA_RING
-        BoosterType.DOUBLE_FIRE -> BoosterShape.DOUBLE_ARROW
+    internal fun previewSpecFor(type: BoosterType): BoosterPreviewSpec = when (type) {
+        // Base 6 — iconic shape + drawable natural hue, no badge (sprite self-identifies)
+        BoosterType.HEALTH_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.CROSS, 0xFFA8FF60L, null)
+        BoosterType.SHIELD_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.OCTAGON, 0xFF00F0FFL, null)
+        BoosterType.LASER_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.TRIANGLE_UP, 0xFFFF5555L, null)
+        BoosterType.TRIPLE_LASER_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.TRIPLE_BARS, 0xFFFFA040L, null)
+        BoosterType.ULTIMATE_WEAPON_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.STAR, 0xFFFFD040L, null)
+        BoosterType.REVIVE_TOKEN ->
+            BoosterPreviewSpec(BoosterShape.HEART, 0xFF60FFAAL, null)
+        // Bullet-family non-base
+        BoosterType.PIERCING_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.ARROW_RIGHT, PIERCING_TINT_ARGB, "→")
+        BoosterType.PLASMA_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.RING_PULSE, PLASMA_TINT_ARGB, "◯")
+        BoosterType.FIRE_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.FLAME, FIRE_TINT_ARGB, "♨")
+        BoosterType.HOMING_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.CROSSHAIR, HOMING_TINT_ARGB, "◎")
+        BoosterType.BOUNCE_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.ARROW_CYCLE, BOUNCE_TINT_ARGB, "⇄")
+        BoosterType.GIANT_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.BIG_DOT, GIANT_TINT_ARGB, "⬤")
+        BoosterType.SMOKE_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.CLOUD_PUFF, SMOKE_TINT_ARGB, "❍")
+        BoosterType.ZIGZAG_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.LIGHTNING, ZIGZAG_TINT_ARGB, "⌇")
+        BoosterType.KAMEHAMEHA_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.BEAM, KAMEHAMEHA_TINT_ARGB, "⊛")
+        BoosterType.ATOMIC_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.ATOM, ATOMIC_TINT_ARGB, "⊙")
+        BoosterType.SPLIT_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.SPLIT_FORK, SPLIT_TINT_ARGB, "Ѱ")
+        // Support-family non-base
+        BoosterType.MAGNET_BOOST ->
+            BoosterPreviewSpec(BoosterShape.MAGNET, MAGNET_BOOST_TINT_ARGB, "⊕")
+        BoosterType.CRIT_SURGE ->
+            BoosterPreviewSpec(BoosterShape.CRYSTAL_SPARK, CRIT_SURGE_TINT_ARGB, "✱")
+        BoosterType.SPREAD_SHOT ->
+            BoosterPreviewSpec(BoosterShape.SPREAD_FAN, SPREAD_SHOT_TINT_ARGB, "☆")
+        BoosterType.BERSERK ->
+            BoosterPreviewSpec(BoosterShape.RAGE_FANG, BERSERK_TINT_ARGB, "⚡")
+        BoosterType.PHASE_SHIELD ->
+            BoosterPreviewSpec(BoosterShape.PHASE_DIAMOND, PHASE_SHIELD_TINT_ARGB, "◇")
+        BoosterType.SCORE_X3 ->
+            BoosterPreviewSpec(BoosterShape.DOLLAR, SCORE_X3_TINT_ARGB, "$")
+        BoosterType.QUICK_HEAL ->
+            BoosterPreviewSpec(BoosterShape.HEALING_FLASK, QUICK_HEAL_TINT_ARGB, "✚")
+        BoosterType.MINERAL_SUPERCHARGE ->
+            BoosterPreviewSpec(BoosterShape.SHARD, MINERAL_SUPERCHARGE_TINT_ARGB, "✦")
+        BoosterType.HEALING_AURA ->
+            BoosterPreviewSpec(BoosterShape.AURA_RING, HEALING_AURA_TINT_ARGB, "+")
+        BoosterType.DOUBLE_FIRE ->
+            BoosterPreviewSpec(BoosterShape.DOUBLE_ARROW, DOUBLE_FIRE_TINT_ARGB, "⚯")
     }
 
+    // ─── 1-line delegates (kept for back-compat with existing call sites + tests) ───
+
+    internal fun shapeFor(type: BoosterType): BoosterShape = previewSpecFor(type).shape
+    internal fun previewColorArgb(type: BoosterType): Long = previewSpecFor(type).colorArgb
+    internal fun glyphFor(type: BoosterType): String? = previewSpecFor(type).glyph
+
     companion object {
-        // ARGB long values — kept here (not in Color.kt) because they're a
-        // gameplay-discriminator concern, not a theme palette concern. Picked
-        // to maximise contrast against the icons' base hues:
-        //   NeonMagenta (0xFFFF2DE0) over red booster_red_lasers → magenta wins
-        //   NeonCyan    (0xFF00F0FF) over yellow booster_ultimate_weapon → cyan wins
-        const val PIERCING_TINT_ARGB: Long = 0xFFFF2DE0L
-        const val PLASMA_TINT_ARGB: Long = 0xFF00F0FFL
+        // ARGB tints — used both for in-game booster glow (BoosterCanvas) and
+        // pickup-popup activation text (GameState.onBulletTypeActivated). Each
+        // is fully opaque (alpha=FF). Hues picked to stay distinct from base-6
+        // sprite hues so InfoScreen preview can render all 27 BoosterTypes with
+        // unique color identity (the four labeled "non-base disambig" sit in
+        // hue ranges that would otherwise collide with HEALTH/SHIELD/REVIVE/
+        // ULTIMATE sprite hues).
+        const val PIERCING_TINT_ARGB: Long = 0xFFFF2DE0L                  // magenta (piercing arrow)
+        const val PLASMA_TINT_ARGB: Long = 0xFF2050FFL                    // deep electric blue — non-base disambig (avoids SHIELD cyan and enemy_shield_drone sky blue)
 
-        // Round 60 (38x) — distinct tints for 10 new boosters. Hue picked for
-        // contrast against the reused base drawable's hue (red/yellow/green/
-        // gold heart). All fully opaque (alpha=FF).
-        const val MAGNET_BOOST_TINT_ARGB: Long = 0xFF8A2BE2L            // violet (magnet field)
-        const val CRIT_SURGE_TINT_ARGB: Long = 0xFFFFC020L              // amber (critical strike)
-        const val SPREAD_SHOT_TINT_ARGB: Long = 0xFF00E5A0L             // teal-green (fan spread)
-        const val BERSERK_TINT_ARGB: Long = 0xFFFF3030L                 // blood red (rage)
-        const val PHASE_SHIELD_TINT_ARGB: Long = 0xFFB0E8FFL            // pale-cyan (phase ghost)
-        const val SCORE_X3_TINT_ARGB: Long = 0xFFFFD700L                // gold (score)
-        const val QUICK_HEAL_TINT_ARGB: Long = 0xFFA8FF60L              // bright green (instant heal)
-        const val MINERAL_SUPERCHARGE_TINT_ARGB: Long = 0xFFFF9050L     // orange (energy flash)
-        const val HEALING_AURA_TINT_ARGB: Long = 0xFF60FFAAL            // mint (continuous heal)
-        const val DOUBLE_FIRE_TINT_ARGB: Long = 0xFFFF80E0L             // pink (double rate)
+        const val MAGNET_BOOST_TINT_ARGB: Long = 0xFF8A2BE2L              // violet (magnet field)
+        const val CRIT_SURGE_TINT_ARGB: Long = 0xFFFFC020L                // amber (critical strike)
+        const val SPREAD_SHOT_TINT_ARGB: Long = 0xFF00E5A0L               // teal-green (fan spread)
+        const val BERSERK_TINT_ARGB: Long = 0xFFFF3030L                   // blood red (rage)
+        const val PHASE_SHIELD_TINT_ARGB: Long = 0xFFB0E8FFL              // pale-cyan (phase ghost)
+        const val SCORE_X3_TINT_ARGB: Long = 0xFFFFD700L                  // gold (score)
+        const val QUICK_HEAL_TINT_ARGB: Long = 0xFFCCFF40L                // lime-yellow urgency — non-base disambig (avoids HEALTH bright green)
+        const val MINERAL_SUPERCHARGE_TINT_ARGB: Long = 0xFFFF9050L       // orange (energy flash)
+        const val HEALING_AURA_TINT_ARGB: Long = 0xFF20D090L              // sea-green continuous heal — non-base disambig (avoids REVIVE mint)
+        const val DOUBLE_FIRE_TINT_ARGB: Long = 0xFFFF80E0L               // pink (double rate)
 
-        // Round 67 (Wave 10a) — 3 bullet-type tints.
-        const val FIRE_TINT_ARGB: Long = 0xFFFF6020L                    // bright orange (fire)
-        const val HOMING_TINT_ARGB: Long = 0xFFFF40A0L                  // hot pink (lock-on)
-        const val BOUNCE_TINT_ARGB: Long = 0xFF40FFD0L                  // mint (rubber bounce)
-        const val GIANT_TINT_ARGB: Long = 0xFFFFD040L                   // gold (heavyweight)
-        // Round 68 (Wave 10 finish) — 5 tints cho 5 bullets còn lại.
-        const val SMOKE_TINT_ARGB: Long = 0xFFA0A0B0L                   // gray-blue smoke
-        const val ZIGZAG_TINT_ARGB: Long = 0xFFFFE040L                  // electric yellow
-        const val KAMEHAMEHA_TINT_ARGB: Long = 0xFF60E0FFL              // sky cyan beam
-        const val ATOMIC_TINT_ARGB: Long = 0xFF80FF80L                  // radioactive green
-        const val SPLIT_TINT_ARGB: Long = 0xFFB060FFL                   // purple multi-shard
+        const val FIRE_TINT_ARGB: Long = 0xFFFF6020L                      // bright orange (fire)
+        const val HOMING_TINT_ARGB: Long = 0xFFFF40A0L                    // hot pink (lock-on)
+        const val BOUNCE_TINT_ARGB: Long = 0xFF40FFD0L                    // mint (rubber bounce)
+        const val GIANT_TINT_ARGB: Long = 0xFFE8A040L                     // amber-bronze heavyweight — non-base disambig (avoids ULTIMATE gold)
+        const val SMOKE_TINT_ARGB: Long = 0xFFA0A0B0L                     // gray-blue smoke
+        const val ZIGZAG_TINT_ARGB: Long = 0xFFFFE040L                    // electric yellow
+        const val KAMEHAMEHA_TINT_ARGB: Long = 0xFF60E0FFL                // sky cyan beam
+        const val ATOMIC_TINT_ARGB: Long = 0xFF80FF80L                    // radioactive green
+        const val SPLIT_TINT_ARGB: Long = 0xFFB060FFL                     // purple multi-shard
     }
 }

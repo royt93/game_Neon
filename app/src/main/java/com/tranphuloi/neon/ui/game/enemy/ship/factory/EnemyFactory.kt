@@ -1,6 +1,7 @@
 package com.tranphuloi.neon.ui.game.enemy.ship.factory
 
 import com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind
+import com.tranphuloi.neon.ui.game.enemy.ship.model.BossKindResolver
 import com.tranphuloi.neon.ui.game.enemy.ship.model.Enemy
 import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyType
 import com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBoss
@@ -48,14 +49,12 @@ class EnemyFactory(
      */
     var currentChapterId: Int = 1
 
-    // Round 81 audit — internal visibility cho EnemyFactoryBossKindTest.
-    internal fun resolveBossKindForChapter(type: EnemyType): BossKind? = when {
-        type is LevelOneBossType && currentChapterId == 3 -> BossKind.DEATH_MOON
-        type is LevelTwoBossType && currentChapterId == 4 -> BossKind.SATAN_GLYPH
-        type == MidBossType.OFFENSIVE && currentChapterId == 4 -> BossKind.HELL_LORD
-        type == MidBossType.SWARM -> BossKind.HAUNTED_KID
-        else -> null
-    }
+    // Delegates to [BossKindResolver] (single source of truth shared with
+    // GameState banner + StoryRegistry taunt). MidBoss/LevelOneBoss/LevelTwoBoss
+    // classes now receive the canonical kind directly via `bossKindOverride`
+    // instead of relying on their null-fallback default — same in-game outcome.
+    internal fun resolveBossKind(type: EnemyType): BossKind? =
+        BossKindResolver.resolve(type, currentChapterId)
 
     operator fun invoke(type: EnemyType, getShip: () -> Ship): List<Enemy> {
         val enemies: MutableList<Enemy> = mutableListOf()
@@ -140,7 +139,7 @@ class EnemyFactory(
                 screenWidth = screenWidth,
                 screenHeight = screenHeight,
                 getShip = getShip,
-                bossKindOverride = resolveBossKindForChapter(type),
+                bossKindOverride = resolveBossKind(type),
             )
             enemies += boss
             Logger.w("EnemyFactory: LevelOneBoss SPAWNED hp=${boss.hp.toInt()} impactPower=${boss.impactPower} kind=${boss.bossKind}")
@@ -148,7 +147,7 @@ class EnemyFactory(
             val boss = LevelTwoBoss(
                 screenWidth = screenWidth,
                 screenHeight = screenHeight,
-                bossKindOverride = resolveBossKindForChapter(type),
+                bossKindOverride = resolveBossKind(type),
             )
             enemies += boss
             Logger.w("EnemyFactory: LevelTwoBoss SPAWNED hp=${boss.hp.toInt()} impactPower=${boss.impactPower} kind=${boss.bossKind}")
@@ -158,7 +157,7 @@ class EnemyFactory(
                 screenHeight = screenHeight,
                 variant = type,
                 getShip = getShip,
-                bossKindOverride = resolveBossKindForChapter(type),
+                bossKindOverride = resolveBossKind(type),
             )
             enemies += mid
             Logger.w("EnemyFactory: MidBoss SPAWNED variant=${type::class.simpleName} hp=${mid.hp.toInt()} kind=${mid.bossKind}")
