@@ -47,4 +47,21 @@ enum class BoosterShape {
     // ── Round 79 audit fix (dup elimination) ──
     RAGE_FANG,       // jagged fang/teeth — BERSERK (was LIGHTNING dup w/ ZIGZAG)
     HEALING_FLASK,   // potion bottle — QUICK_HEAL (was PLUS_DOUBLE dup w/ CROSS)
+
+    // ── Wave 11a — 3 new shapes ──
+    REGEN_PULSE,     // pulsing pill — REGEN_BOOSTER (slow passive heal)
+    FREEZE_FLAKE,    // 6-arm snowflake — TIME_FREEZE_BOOSTER
+    MINI_RING,       // small ring + arrow — MINI_BOOSTER (shrink+speed)
+
+    // ── Wave 11a Phase 2 — 2 more shapes ──
+    VAMPIRE_FANG,    // 2 downward fangs + drop — VAMPIRE_BOOSTER (lifesteal)
+    GHOST_TRAIL,     // dashed circle + trailing dots — GHOST_BOOSTER (intangible)
+
+    // ── Wave 11a Phase 3 — 3 more shapes ──
+    GRAVITY_WELL,    // concentric spiraling arrows pointing in — GRAVITY_BOOSTER
+    REFLECT_BUMPER,  // shield arc + bounce arrow — REFLECT_BOOSTER
+    CHAIN_BOLT,      // 3-node lightning chain — CHAIN_LIGHTNING_BOOSTER
+
+    // ── Wave 11a Phase 4 ──
+    CLONE_PAIR,      // 2 small ship silhouettes side-by-side — CLONE_BOOSTER
 }

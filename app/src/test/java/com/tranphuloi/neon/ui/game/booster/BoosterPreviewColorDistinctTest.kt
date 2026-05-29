@@ -22,7 +22,7 @@ class BoosterPreviewColorDistinctTest {
     private val mapper = BoosterToBoosterUIMapper()
 
     @Test
-    fun `27 BoosterTypes map to 27 distinct preview colors`() {
+    fun `all BoosterTypes map to distinct preview colors (no duplicate)`() {
         val colorOf = BoosterType.values().associateWith { mapper.previewColorArgb(it) }
         val byColor = colorOf.entries.groupBy({ it.value }) { it.key }
         val dups = byColor.filter { it.value.size > 1 }
@@ -31,8 +31,8 @@ class BoosterPreviewColorDistinctTest {
             dups.isEmpty(),
         )
         assertEquals(
-            "Expected 27 distinct preview colors (one per BoosterType)",
-            27, byColor.size,
+            "Expected one distinct preview color per BoosterType",
+            BoosterType.values().size, byColor.size,
         )
     }
 

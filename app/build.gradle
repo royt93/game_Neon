@@ -102,6 +102,16 @@ dependencies {
     debugImplementation "com.squareup.leakcanary:leakcanary-android:2.14"
     /*Unit tests (JVM, no Android runtime). Run via `./gradlew test`.*/
     testImplementation "junit:junit:4.13.2"
+    /* Wave 11a Phase 5 — widget test infra HALF-SET-UP (compile works, runtime
+       fails). Compose UI test needs Robolectric ComponentActivity wired via
+       custom test manifest + @Config(application = ...). Future round:
+       finalize manifest/config so `runComposeUiTest` resolves Build.FINGERPRINT
+       from Robolectric environment. Deps below resolve cleanly — only test
+       runtime config is missing. */
+    testImplementation "androidx.compose.ui:ui-test-junit4"
+    debugImplementation "androidx.compose.ui:ui-test-manifest"
+    testImplementation "org.robolectric:robolectric:4.13"
+    testImplementation "androidx.test:core-ktx:1.6.1"
 }
 
 kotlin {

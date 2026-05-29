@@ -68,8 +68,21 @@ class LasersController(
         }
         val yShifts: List<Float> = if (ship.doubleFireEnabled) listOf(0f, 22f) else listOf(0f)
 
+        // Wave 11a Phase 4 — CLONE_BOOSTER spawns phantom-twin ship at +50dp
+        // offset firing alongside main. Each laser column duplicates at the
+        // clone offset. Compound with SPREAD_SHOT + TRIPLE_LASER + DOUBLE_FIRE
+        // so a fully-buffed player can output 2 × 5 × 2 = 20 lasers/shot.
+        // MAX_SHIP_LASERS cap (line 47) prevents in-flight bloat.
+        val cloneActive = ship.cloneEndMillis > System.currentTimeMillis()
+        val cloneOffset = 50f
+        val effectiveXShifts: List<Float> = if (cloneActive) {
+            xShifts.flatMap { x -> listOf(x, x + cloneOffset) }
+        } else {
+            xShifts
+        }
+
         val newLasers = buildList {
-            for (dy in yShifts) for (dx in xShifts) {
+            for (dy in yShifts) for (dx in effectiveXShifts) {
                 add(buildOneLaser(ship, dx, dy))
             }
         }

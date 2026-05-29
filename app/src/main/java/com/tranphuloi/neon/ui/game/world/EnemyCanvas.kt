@@ -8,6 +8,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import com.tranphuloi.neon.common.PathPool
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
@@ -118,7 +119,7 @@ private fun DrawScope.drawEnemy(
                 val ang = (45.0 + i * 90.0) * Math.PI / 180.0
                 val mx = cx + (markerR * kotlin.math.cos(ang)).toFloat()
                 val my = cy + (markerR * kotlin.math.sin(ang)).toFloat()
-                val path = androidx.compose.ui.graphics.Path().apply {
+                val path = PathPool.acquire().apply {
                     moveTo(mx, my - markerSize)
                     lineTo(mx + markerSize, my)
                     lineTo(mx, my + markerSize)
@@ -126,6 +127,7 @@ private fun DrawScope.drawEnemy(
                     close()
                 }
                 drawPath(path, haloColor.copy(alpha = 0.85f))
+                PathPool.release(path)
             }
         }
 
@@ -444,7 +446,7 @@ private fun DrawScope.drawChevron(
 ) {
     val halfW = wPx * 0.42f
     val drawOne: (Float) -> Unit = { yShift ->
-        val path = androidx.compose.ui.graphics.Path().apply {
+        val path = PathPool.acquire().apply {
             moveTo(cx - halfW, cy - hPx * 0.25f + yShift)
             lineTo(cx, cy + hPx * 0.20f + yShift)
             lineTo(cx + halfW, cy - hPx * 0.25f + yShift)
@@ -468,7 +470,7 @@ private fun DrawScope.drawSpike(
     val outerR = minOf(wPx, hPx) * (0.42f + variant * 0.05f)
     val innerR = outerR * 0.40f
     val spikes = 8
-    val path = androidx.compose.ui.graphics.Path().apply {
+    val path = PathPool.acquire().apply {
         for (i in 0 until spikes * 2) {
             val angle = -Math.PI / 2 + i * Math.PI / spikes
             val r = if (i % 2 == 0) outerR else innerR
@@ -481,6 +483,8 @@ private fun DrawScope.drawSpike(
     drawPath(path, body)
     drawPath(path, accent,
         style = androidx.compose.ui.graphics.drawscope.Stroke(width = wPx * 0.04f))
+    PathPool.release(path)
+        PathPool.release(path)
     drawCircle(accent, innerR * 0.55f, androidx.compose.ui.geometry.Offset(cx, cy))
 }
 
@@ -543,7 +547,7 @@ private fun DrawScope.drawBossFractal(
     // Recursive triangle (MidBoss DEFENSIVE / SWARM).
     val r = minOf(wPx, hPx) * 0.45f
     // Outer triangle pointing DOWN (toward player)
-    val outer = androidx.compose.ui.graphics.Path().apply {
+    val outer = PathPool.acquire().apply {
         moveTo(cx, cy + r)
         lineTo(cx - r * 0.866f, cy - r * 0.5f)
         lineTo(cx + r * 0.866f, cy - r * 0.5f)
@@ -551,15 +555,17 @@ private fun DrawScope.drawBossFractal(
     }
     drawPath(outer, body)
     drawPath(outer, accent, style = androidx.compose.ui.graphics.drawscope.Stroke(width = r * 0.08f))
+    PathPool.release(outer)
     // Inner upward triangle (Sierpinski child)
     val innerR = r * 0.5f
-    val inner = androidx.compose.ui.graphics.Path().apply {
+    val inner = PathPool.acquire().apply {
         moveTo(cx, cy - innerR)
         lineTo(cx - innerR * 0.866f, cy + innerR * 0.5f)
         lineTo(cx + innerR * 0.866f, cy + innerR * 0.5f)
         close()
     }
     drawPath(inner, accent)
+    PathPool.release(inner)
     // Center dot
     drawCircle(body, r * 0.15f, androidx.compose.ui.geometry.Offset(cx, cy))
 }
@@ -610,7 +616,7 @@ private fun DrawScope.drawDart(
     val tipY = cy + halfH
     val baseY = cy - halfH
     val notch = h * (0.10f + variant * 0.04f)
-    val path = Path().apply {
+    val path = PathPool.acquire().apply {
         moveTo(cx, tipY)
         lineTo(cx + halfW, baseY)
         lineTo(cx, baseY + notch)
@@ -619,6 +625,7 @@ private fun DrawScope.drawDart(
     }
     drawPath(path = path, color = body)
     drawPath(path = path, color = accent, style = Stroke(width = w * 0.06f))
+    PathPool.release(path)
     drawCircle(accent, w * 0.10f, Offset(cx, cy + h * 0.10f))
     // Round 77 — additive modifier per variant.
     when (variant) {
@@ -638,25 +645,27 @@ private fun DrawScope.drawDart(
             // Swept-wings — extra triangle nhỏ phía mép cánh
             val sweepW = w * 0.18f
             val sweepH = h * 0.18f
-            val swp = Path().apply {
+            val swp = PathPool.acquire().apply {
                 moveTo(cx + halfW, baseY)
                 lineTo(cx + halfW + sweepW, baseY + sweepH * 0.5f)
                 lineTo(cx + halfW, baseY + sweepH)
                 close()
             }
             drawPath(swp, accent)
-            val swpL = Path().apply {
+            PathPool.release(swp)
+            val swpL = PathPool.acquire().apply {
                 moveTo(cx - halfW, baseY)
                 lineTo(cx - halfW - sweepW, baseY + sweepH * 0.5f)
                 lineTo(cx - halfW, baseY + sweepH)
                 close()
             }
             drawPath(swpL, accent)
+            PathPool.release(swpL)
         }
         4 -> {
             // Heavy armor pip — extra inner triangle layer
             val innerScale = 0.6f
-            val innerPath = Path().apply {
+            val innerPath = PathPool.acquire().apply {
                 moveTo(cx, tipY - h * 0.05f)
                 lineTo(cx + halfW * innerScale, baseY + h * 0.05f)
                 lineTo(cx, baseY + notch + h * 0.05f)
@@ -664,6 +673,7 @@ private fun DrawScope.drawDart(
                 close()
             }
             drawPath(innerPath, accent.copy(alpha = 0.65f))
+            PathPool.release(innerPath)
             // Center heavy pip
             drawCircle(Color.White.copy(alpha = 0.65f), w * 0.07f, Offset(cx, cy))
         }
@@ -681,7 +691,7 @@ private fun DrawScope.drawHexagon(
     val rx = w * 0.45f
     val ry = h * 0.50f
     val baseAngle = Math.toRadians((variant * 10).toDouble())
-    val path = Path().apply {
+    val path = PathPool.acquire().apply {
         for (i in 0 until 6) {
             val a = baseAngle + 2.0 * Math.PI * i / 6.0
             val x = cx + (rx * cos(a)).toFloat()
@@ -692,12 +702,13 @@ private fun DrawScope.drawHexagon(
     }
     drawPath(path = path, color = body)
     drawPath(path = path, color = accent, style = Stroke(width = w * 0.06f))
+    PathPool.release(path)
     drawCircle(accent, w * 0.12f, Offset(cx, cy))
     when (variant) {
         1 -> {
             // Inner hex shell
             val ix = rx * 0.55f; val iy = ry * 0.55f
-            val ip = Path().apply {
+            val ip = PathPool.acquire().apply {
                 for (i in 0 until 6) {
                     val a = baseAngle + 2.0 * Math.PI * i / 6.0
                     val x = cx + (ix * cos(a)).toFloat()
@@ -707,6 +718,7 @@ private fun DrawScope.drawHexagon(
                 close()
             }
             drawPath(ip, accent, style = Stroke(width = w * 0.04f))
+            PathPool.release(ip)
         }
         2 -> {
             // 6 corner orbs
@@ -737,7 +749,7 @@ private fun DrawScope.drawDiamond(
 ) {
     val halfW = w * 0.45f
     val halfH = h * 0.50f
-    val path = Path().apply {
+    val path = PathPool.acquire().apply {
         moveTo(cx, cy - halfH)
         lineTo(cx + halfW, cy)
         lineTo(cx, cy + halfH)
@@ -746,6 +758,7 @@ private fun DrawScope.drawDiamond(
     }
     drawPath(path = path, color = body)
     drawPath(path = path, color = accent, style = Stroke(width = w * 0.07f))
+    PathPool.release(path)
     val spikeR = w * 0.10f
     drawCircle(color = accent, radius = spikeR, center = Offset(cx, cy))
     when (variant) {
@@ -763,7 +776,7 @@ private fun DrawScope.drawDiamond(
                 val a = i * 90.0 * Math.PI / 180.0
                 val mx = cx + (halfW * 0.75f * kotlin.math.cos(a)).toFloat()
                 val my = cy + (halfH * 0.75f * kotlin.math.sin(a)).toFloat()
-                val mini = Path().apply {
+                val mini = PathPool.acquire().apply {
                     moveTo(mx, my - miniR)
                     lineTo(mx + miniR, my)
                     lineTo(mx, my + miniR)
@@ -771,6 +784,7 @@ private fun DrawScope.drawDiamond(
                     close()
                 }
                 drawPath(mini, accent)
+                PathPool.release(mini)
             }
         }
     }
@@ -782,7 +796,7 @@ private fun DrawScope.drawBossStar(
 ) {
     val outerR = minOf(w, h) * 0.50f
     val innerR = outerR * 0.55f
-    val path = Path().apply {
+    val path = PathPool.acquire().apply {
         val step = Math.PI / 8.0                                       // 16 vertices, 8-pointed star
         for (i in 0 until 16) {
             val a = -Math.PI / 2.0 + i * step
@@ -795,9 +809,10 @@ private fun DrawScope.drawBossStar(
     }
     drawPath(path = path, color = body)
     drawPath(path = path, color = accent, style = Stroke(width = w * 0.05f))
+    PathPool.release(path)
     // Inner hexagon core
     val coreR = outerR * 0.40f
-    val core = Path().apply {
+    val core = PathPool.acquire().apply {
         for (i in 0 until 6) {
             val a = 2.0 * Math.PI * i / 6.0
             val x = cx + (coreR * cos(a)).toFloat()
@@ -807,6 +822,7 @@ private fun DrawScope.drawBossStar(
         close()
     }
     drawPath(path = core, color = accent)
+    PathPool.release(core)
     drawCircle(color = Color.White.copy(alpha = 0.75f), radius = coreR * 0.30f, center = Offset(cx, cy))
 }
 
@@ -826,13 +842,14 @@ private fun DrawScope.drawHeart(
     val lobeR = halfW * 0.55f
     drawCircle(body, lobeR, Offset(cx - halfW * 0.45f, cy - halfH * 0.30f))
     drawCircle(body, lobeR, Offset(cx + halfW * 0.45f, cy - halfH * 0.30f))
-    val triPath = Path().apply {
+    val triPath = PathPool.acquire().apply {
         moveTo(cx - halfW, cy - halfH * 0.18f)
         lineTo(cx + halfW, cy - halfH * 0.18f)
         lineTo(cx, cy + halfH)
         close()
     }
     drawPath(triPath, body)
+    PathPool.release(triPath)
     // Accent outline (stroke approximation: redraw rim accents)
     drawCircle(accent, lobeR * 0.35f, Offset(cx - halfW * 0.45f, cy - halfH * 0.30f))
     drawCircle(accent, lobeR * 0.35f, Offset(cx + halfW * 0.45f, cy - halfH * 0.30f))
@@ -845,7 +862,7 @@ private fun DrawScope.drawTriangle(
 ) {
     val halfW = w * 0.45f
     val halfH = h * 0.48f
-    val path = Path().apply {
+    val path = PathPool.acquire().apply {
         moveTo(cx - halfW, cy - halfH)
         lineTo(cx + halfW, cy - halfH)
         lineTo(cx, cy + halfH)
@@ -853,6 +870,7 @@ private fun DrawScope.drawTriangle(
     }
     drawPath(path, body)
     drawPath(path, accent, style = Stroke(width = w * 0.06f))
+    PathPool.release(path)
     // Center pip + 2 side dots for "alien glyph" feel.
     drawCircle(accent, w * 0.08f, Offset(cx, cy - halfH * 0.30f))
     drawCircle(accent, w * 0.05f, Offset(cx - halfW * 0.30f, cy + halfH * 0.20f))
@@ -938,19 +956,20 @@ private fun DrawScope.drawCardSpade(
     // Inverted heart (point up, lobes down) + stem
     drawCircle(body, lobeR, Offset(cx - halfW * 0.45f, cy + halfH * 0.20f))
     drawCircle(body, lobeR, Offset(cx + halfW * 0.45f, cy + halfH * 0.20f))
-    val triPath = Path().apply {
+    val triPath = PathPool.acquire().apply {
         moveTo(cx - halfW, cy + halfH * 0.30f)
         lineTo(cx + halfW, cy + halfH * 0.30f)
         lineTo(cx, cy - halfH)
         close()
     }
     drawPath(triPath, body)
+    PathPool.release(triPath)
     // Stem at bottom
     drawRect(body,
         topLeft = Offset(cx - w * 0.05f, cy + halfH * 0.30f),
         size = Size(w * 0.10f, h * 0.20f))
     // Triangle stem base
-    val baseTri = Path().apply {
+    val baseTri = PathPool.acquire().apply {
         moveTo(cx - w * 0.15f, cy + halfH * 0.50f)
         lineTo(cx + w * 0.15f, cy + halfH * 0.50f)
         lineTo(cx, cy + halfH * 0.30f)
@@ -974,13 +993,15 @@ private fun DrawScope.drawCardClub(
     drawRect(body,
         topLeft = Offset(cx - w * 0.05f, cy + offsetD * 0.30f),
         size = Size(w * 0.10f, h * 0.25f))
-    val baseTri = Path().apply {
+    val baseTri = PathPool.acquire().apply {
         moveTo(cx - w * 0.15f, cy + h * 0.45f)
         lineTo(cx + w * 0.15f, cy + h * 0.45f)
         lineTo(cx, cy + offsetD * 0.30f)
         close()
     }
     drawPath(baseTri, body)
+    PathPool.release(baseTri)
+    PathPool.release(baseTri)
     // Accent in center
     drawCircle(accent, lobeR * 0.40f, Offset(cx, cy - offsetD))
     drawCircle(accent, lobeR * 0.40f, Offset(cx - offsetD, cy + offsetD * 0.55f))
@@ -994,7 +1015,7 @@ private fun DrawScope.drawCardDiamond(
 ) {
     val halfW = w * 0.32f
     val halfH = h * 0.48f
-    val path = Path().apply {
+    val path = PathPool.acquire().apply {
         moveTo(cx, cy - halfH)
         lineTo(cx + halfW, cy)
         lineTo(cx, cy + halfH)
@@ -1003,6 +1024,7 @@ private fun DrawScope.drawCardDiamond(
     }
     drawPath(path, body)
     drawPath(path, accent, style = Stroke(width = w * 0.07f))
+    PathPool.release(path)
     drawCircle(Color.White.copy(alpha = 0.85f), w * 0.08f, Offset(cx, cy))
 }
 
@@ -1126,13 +1148,14 @@ private fun DrawScope.drawBossDeathMoon(
     drawCircle(Color.Black.copy(alpha = 0.75f), socketR,
         Offset(cx + r * 0.30f, cy - r * 0.15f))
     // Nose (triangular dark)
-    val nosePath = Path().apply {
+    val nosePath = PathPool.acquire().apply {
         moveTo(cx, cy + r * 0.05f)
         lineTo(cx - r * 0.10f, cy + r * 0.20f)
         lineTo(cx + r * 0.10f, cy + r * 0.20f)
         close()
     }
     drawPath(nosePath, Color.Black.copy(alpha = 0.70f))
+    PathPool.release(nosePath)
     // Teeth row (mouth grin)
     val teethCount = 5
     val teethY = cy + r * 0.40f
@@ -1168,7 +1191,7 @@ private fun DrawScope.drawBossHauntedKid(
     val bodyW = w * 0.55f
     val bodyH = h * 0.50f
     // Body — bell-shape sheet from top-rounded to wavy bottom
-    val bodyPath = Path().apply {
+    val bodyPath = PathPool.acquire().apply {
         // Top arc (head connects)
         moveTo(cx - bodyW / 2f, cy - bodyH * 0.10f)
         // Left side down
@@ -1188,6 +1211,7 @@ private fun DrawScope.drawBossHauntedKid(
         close()
     }
     drawPath(bodyPath, body.copy(alpha = 0.85f))
+    PathPool.release(bodyPath)
     // Head — circle on top
     drawCircle(body.copy(alpha = 0.85f), headR, Offset(cx, cy - bodyH * 0.30f))
     // Hollow eyes (2 dark sockets)
@@ -1230,7 +1254,7 @@ private fun DrawScope.drawBossHellLord(
         val midY = cy - headR * 1.30f
         val tipX = cx + sign * headR * 0.85f
         val tipY = cy - headR * 1.70f
-        val hornPath = Path().apply {
+        val hornPath = PathPool.acquire().apply {
             moveTo(baseX, baseY)
             cubicTo(midX, midY, midX * 1.05f, midY, tipX, tipY)
             // Inner curve back
@@ -1239,6 +1263,7 @@ private fun DrawScope.drawBossHellLord(
         }
         drawPath(hornPath, body)
         drawPath(hornPath, accent, style = Stroke(width = w * 0.03f))
+        PathPool.release(hornPath)
     }
     // Glowing eyes (2 red slits)
     val eyeY = cy - headR * 0.10f
@@ -1263,13 +1288,14 @@ private fun DrawScope.drawBossHellLord(
     // 4 fangs (white triangles dropping from upper lip)
     for (i in 0 until 4) {
         val fx = cx - headR * 0.30f + i * headR * 0.20f
-        val fpath = Path().apply {
+        val fpath = PathPool.acquire().apply {
             moveTo(fx - headR * 0.05f, mouthY)
             lineTo(fx + headR * 0.05f, mouthY)
             lineTo(fx, mouthY + headR * 0.15f)
             close()
         }
         drawPath(fpath, Color.White.copy(alpha = 0.85f))
+        PathPool.release(fpath)
     }
 }
 
@@ -1284,7 +1310,7 @@ private fun DrawScope.drawBossSatanGlyph(
         style = Stroke(width = w * 0.045f))
     drawCircle(accent.copy(alpha = 0.55f), outerR * 1.10f, Offset(cx, cy))
     // Inverted pentagram (5-point star, point DOWN)
-    val starPath = Path().apply {
+    val starPath = PathPool.acquire().apply {
         val rotation = Math.PI / 2.0  // start pointing down
         for (i in 0 until 10) {
             val a = rotation + i * Math.PI / 5
@@ -1298,6 +1324,7 @@ private fun DrawScope.drawBossSatanGlyph(
     drawPath(starPath, body)
     drawPath(starPath, Color.White.copy(alpha = 0.65f),
         style = Stroke(width = w * 0.025f))
+    PathPool.release(starPath)
     // Central all-seeing eye (oval body + iris + pupil)
     val eyeRx = innerR * 0.85f
     val eyeRy = innerR * 0.55f
@@ -1404,7 +1431,7 @@ private fun DrawScope.drawEnemyMantaRay(
     cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color,
 ) {
     // Wide delta-wing body
-    val wingPath = Path().apply {
+    val wingPath = PathPool.acquire().apply {
         moveTo(cx, cy + h * 0.45f)              // tail tip (rear)
         cubicTo(cx + w * 0.20f, cy + h * 0.20f,
             cx + w * 0.45f, cy + h * 0.05f,
@@ -1422,6 +1449,7 @@ private fun DrawScope.drawEnemyMantaRay(
     }
     drawPath(wingPath, body)
     drawPath(wingPath, accent, style = Stroke(width = w * 0.025f))
+    PathPool.release(wingPath)
     // 2 dorsal eyes (top of head)
     drawCircle(accent, w * 0.05f, Offset(cx - w * 0.07f, cy - h * 0.20f))
     drawCircle(accent, w * 0.05f, Offset(cx + w * 0.07f, cy - h * 0.20f))
@@ -1441,7 +1469,7 @@ private fun DrawScope.drawEnemyMech(
     val bodyW = w * 0.50f
     val bodyH = h * 0.55f
     // Main hull (slightly trapezoidal)
-    val hullPath = Path().apply {
+    val hullPath = PathPool.acquire().apply {
         moveTo(cx - bodyW * 0.40f, cy - bodyH / 2f)
         lineTo(cx + bodyW * 0.40f, cy - bodyH / 2f)
         lineTo(cx + bodyW / 2f, cy + bodyH / 2f)
@@ -1450,6 +1478,7 @@ private fun DrawScope.drawEnemyMech(
     }
     drawPath(hullPath, body)
     drawPath(hullPath, accent, style = Stroke(width = w * 0.03f))
+    PathPool.release(hullPath)
     // Viewport (top-front of hull) — face DOWN reading direction
     drawRect(accent,
         topLeft = Offset(cx - bodyW * 0.25f, cy - bodyH * 0.30f),
@@ -1496,13 +1525,14 @@ private fun DrawScope.drawBossHenMother(cx: Float, cy: Float, w: Float, h: Float
     val headR = w * 0.13f
     drawCircle(body, headR, Offset(cx - bodyRx * 0.85f, cy - bodyRy * 0.85f))
     // Beak (yellow triangle)
-    val beakPath = Path().apply {
+    val beakPath = PathPool.acquire().apply {
         moveTo(cx - bodyRx * 1.20f, cy - bodyRy * 0.85f)
         lineTo(cx - bodyRx * 1.50f, cy - bodyRy * 0.95f)
         lineTo(cx - bodyRx * 1.20f, cy - bodyRy * 0.65f)
         close()
     }
     drawPath(beakPath, Color(0xFFFFC020))
+    PathPool.release(beakPath)
     // Comb (red 3-prong on top of head)
     for (i in 0 until 3) {
         val cx2 = cx - bodyRx * 0.85f - headR * 0.20f + i * headR * 0.20f
@@ -1552,7 +1582,7 @@ private fun DrawScope.drawBossBuffalo(cx: Float, cy: Float, w: Float, h: Float, 
         val baseY = cy - headRy * 0.50f
         val tipX = cx + side * headRx * 1.50f
         val tipY = cy - headRy * 1.10f
-        val hornPath = Path().apply {
+        val hornPath = PathPool.acquire().apply {
             moveTo(baseX, baseY)
             cubicTo(cx + side * headRx * 1.20f, cy - headRy * 0.85f,
                 cx + side * headRx * 1.50f, cy - headRy * 0.95f,
@@ -1564,6 +1594,7 @@ private fun DrawScope.drawBossBuffalo(cx: Float, cy: Float, w: Float, h: Float, 
         }
         drawPath(hornPath, body)
         drawPath(hornPath, Color.White.copy(alpha = 0.5f), style = Stroke(width = w * 0.02f))
+        PathPool.release(hornPath)
     }
     // Snout (lighter front)
     drawOval(accent.copy(alpha = 0.7f),
@@ -1649,13 +1680,14 @@ private fun DrawScope.drawBossTiger(cx: Float, cy: Float, w: Float, h: Float, bo
     }
     // 2 ears (triangular)
     for (side in intArrayOf(-1, 1)) {
-        val earPath = Path().apply {
+        val earPath = PathPool.acquire().apply {
             moveTo(cx + side * headR * 0.60f, cy - headR * 0.95f)
             lineTo(cx + side * headR * 0.40f, cy - headR * 0.40f)
             lineTo(cx + side * headR * 0.85f, cy - headR * 0.55f)
             close()
         }
         drawPath(earPath, tigerOrange)
+        PathPool.release(earPath)
     }
     // Eyes (fierce yellow)
     drawCircle(Color(0xFFFFE040), headR * 0.18f, Offset(cx - headR * 0.32f, cy - headR * 0.05f))
@@ -1667,13 +1699,14 @@ private fun DrawScope.drawBossTiger(cx: Float, cy: Float, w: Float, h: Float, bo
     drawCircle(Color.Black, headR * 0.08f, Offset(cx, cy + headR * 0.25f))
     // 2 fangs (white triangles going down from mouth)
     for (side in intArrayOf(-1, 1)) {
-        val fpath = Path().apply {
+        val fpath = PathPool.acquire().apply {
             moveTo(cx + side * headR * 0.12f, cy + headR * 0.40f)
             lineTo(cx + side * headR * 0.04f, cy + headR * 0.40f)
             lineTo(cx + side * headR * 0.08f, cy + headR * 0.65f)
             close()
         }
         drawPath(fpath, Color.White)
+        PathPool.release(fpath)
     }
 }
 
@@ -1682,7 +1715,7 @@ private fun DrawScope.drawBossDiva(cx: Float, cy: Float, w: Float, h: Float, bod
     val divaPink = Color(0xFFFF60A0)
     // Hair (long flowing on sides)
     for (side in intArrayOf(-1, 1)) {
-        val hairPath = Path().apply {
+        val hairPath = PathPool.acquire().apply {
             moveTo(cx + side * w * 0.10f, cy - h * 0.40f)
             cubicTo(cx + side * w * 0.40f, cy - h * 0.30f,
                 cx + side * w * 0.45f, cy - h * 0.10f,
@@ -1694,11 +1727,12 @@ private fun DrawScope.drawBossDiva(cx: Float, cy: Float, w: Float, h: Float, bod
             close()
         }
         drawPath(hairPath, body)
+        PathPool.release(hairPath)
     }
     // Head (round)
     drawCircle(divaPink, w * 0.15f, Offset(cx, cy - h * 0.25f))
     // Crown gem (top of head)
-    val gemPath = Path().apply {
+    val gemPath = PathPool.acquire().apply {
         moveTo(cx, cy - h * 0.48f)
         lineTo(cx + w * 0.06f, cy - h * 0.38f)
         lineTo(cx, cy - h * 0.30f)
@@ -1707,6 +1741,7 @@ private fun DrawScope.drawBossDiva(cx: Float, cy: Float, w: Float, h: Float, bod
     }
     drawPath(gemPath, Color(0xFFFFD700))
     drawPath(gemPath, Color.White.copy(alpha = 0.7f), style = Stroke(width = w * 0.015f))
+    PathPool.release(gemPath)
     // Eyes (closed/sultry — 2 curved lines)
     drawArc(Color.Black, startAngle = 200f, sweepAngle = 140f, useCenter = false,
         topLeft = Offset(cx - w * 0.10f, cy - h * 0.30f),
@@ -1719,14 +1754,16 @@ private fun DrawScope.drawBossDiva(cx: Float, cy: Float, w: Float, h: Float, bod
     // Lips (heart-shape red)
     drawCircle(Color(0xFFCC2030), w * 0.018f, Offset(cx - w * 0.025f, cy - h * 0.20f))
     drawCircle(Color(0xFFCC2030), w * 0.018f, Offset(cx + w * 0.025f, cy - h * 0.20f))
-    drawPath(Path().apply {
+    val lipsTri = PathPool.acquire().apply {
         moveTo(cx - w * 0.04f, cy - h * 0.18f)
         lineTo(cx + w * 0.04f, cy - h * 0.18f)
         lineTo(cx, cy - h * 0.13f)
         close()
-    }, Color(0xFFCC2030))
+    }
+    drawPath(lipsTri, Color(0xFFCC2030))
+    PathPool.release(lipsTri)
     // Body (hourglass — neck + shoulders + waist + hips)
-    val bodyPath = Path().apply {
+    val bodyPath = PathPool.acquire().apply {
         moveTo(cx - w * 0.06f, cy - h * 0.12f)
         cubicTo(cx - w * 0.25f, cy - h * 0.05f, cx - w * 0.30f, cy + h * 0.05f, cx - w * 0.10f, cy + h * 0.15f)
         cubicTo(cx - w * 0.25f, cy + h * 0.30f, cx - w * 0.28f, cy + h * 0.40f, cx - w * 0.10f, cy + h * 0.50f)
@@ -1736,12 +1773,13 @@ private fun DrawScope.drawBossDiva(cx: Float, cy: Float, w: Float, h: Float, bod
         close()
     }
     drawPath(bodyPath, body)
+    PathPool.release(bodyPath)
 }
 
 /** Troll Tower — tall pointed obelisk tower with crown + glowing tip (tasteful phallic). */
 private fun DrawScope.drawBossTrollTower(cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color) {
     // Tall tapered spire (very tall, narrow)
-    val spirePath = Path().apply {
+    val spirePath = PathPool.acquire().apply {
         moveTo(cx, cy - h * 0.45f)
         lineTo(cx + w * 0.10f, cy - h * 0.30f)
         lineTo(cx + w * 0.15f, cy + h * 0.30f)
@@ -1753,6 +1791,7 @@ private fun DrawScope.drawBossTrollTower(cx: Float, cy: Float, w: Float, h: Floa
     }
     drawPath(spirePath, body)
     drawPath(spirePath, accent, style = Stroke(width = w * 0.025f))
+    PathPool.release(spirePath)
     // Crown of jewels at top
     for (i in 0 until 5) {
         val px = cx - w * 0.10f + i * w * 0.05f
@@ -1849,7 +1888,7 @@ private fun DrawScope.drawBossWhiteDragon(cx: Float, cy: Float, w: Float, h: Flo
     val blueEye = Color(0xFF0080FF)
     val flameColor = Color(0xFFFF6020)
     // Sinuous body (S-shape using cubic)
-    val bodyPath = Path().apply {
+    val bodyPath = PathPool.acquire().apply {
         moveTo(cx + w * 0.30f, cy + h * 0.45f)              // tail tip
         cubicTo(cx + w * 0.10f, cy + h * 0.30f,
             cx - w * 0.20f, cy + h * 0.10f,
@@ -1867,6 +1906,7 @@ private fun DrawScope.drawBossWhiteDragon(cx: Float, cy: Float, w: Float, h: Flo
     }
     drawPath(bodyPath, white)
     drawPath(bodyPath, accent, style = Stroke(width = w * 0.02f))
+    PathPool.release(bodyPath)
     // Head detail at top
     drawCircle(white, w * 0.10f, Offset(cx + w * 0.05f, cy - h * 0.35f))
     // 2 horns
@@ -1895,13 +1935,14 @@ private fun DrawScope.drawBossWhiteDragon(cx: Float, cy: Float, w: Float, h: Flo
     }
     // 2 claws (small triangles)
     for ((x, y) in listOf(cx - w * 0.10f to cy + h * 0.15f, cx + w * 0.20f to cy + h * 0.20f)) {
-        val cpath = Path().apply {
+        val cpath = PathPool.acquire().apply {
             moveTo(x, y)
             lineTo(x - w * 0.03f, y + h * 0.05f)
             lineTo(x - w * 0.06f, y - h * 0.02f)
             close()
         }
         drawPath(cpath, accent)
+        PathPool.release(cpath)
     }
 }
 
@@ -1913,7 +1954,7 @@ private fun DrawScope.drawBossHammerSickle(cx: Float, cy: Float, w: Float, h: Fl
     drawCircle(red, w * 0.42f, Offset(cx, cy))
     drawCircle(gold, w * 0.42f, Offset(cx, cy), style = Stroke(width = w * 0.025f))
     // Sickle (curved blade left)
-    val sicklePath = Path().apply {
+    val sicklePath = PathPool.acquire().apply {
         moveTo(cx - w * 0.25f, cy - h * 0.05f)
         cubicTo(cx - w * 0.30f, cy - h * 0.20f,
             cx - w * 0.10f, cy - h * 0.32f,
@@ -1924,6 +1965,7 @@ private fun DrawScope.drawBossHammerSickle(cx: Float, cy: Float, w: Float, h: Fl
         close()
     }
     drawPath(sicklePath, gold)
+    PathPool.release(sicklePath)
     // Sickle handle (curved line)
     drawArc(gold,
         startAngle = 90f, sweepAngle = 140f,
@@ -1946,7 +1988,7 @@ private fun DrawScope.drawBossHammerSickle(cx: Float, cy: Float, w: Float, h: Fl
     val starOuter = w * 0.10f
     val starInner = starOuter * 0.42f
     val starCx = cx; val starCy = cy - h * 0.32f
-    val starPath = Path().apply {
+    val starPath = PathPool.acquire().apply {
         val rotation = -Math.PI / 2.0
         for (i in 0 until 10) {
             val a = rotation + i * Math.PI / 5
@@ -1958,6 +2000,7 @@ private fun DrawScope.drawBossHammerSickle(cx: Float, cy: Float, w: Float, h: Fl
         close()
     }
     drawPath(starPath, gold)
+    PathPool.release(starPath)
 }
 
 /** Money Tycoon — fat boss in suit + money bag + dollar signs (tư bản). */
@@ -2023,7 +2066,7 @@ private fun DrawScope.drawBossGoldenTycoon(cx: Float, cy: Float, w: Float, h: Fl
     // Head (round, flesh)
     drawCircle(flesh, w * 0.22f, Offset(cx, cy - h * 0.15f))
     // Distinctive orange hair (swept forward — caricature)
-    val hairPath = Path().apply {
+    val hairPath = PathPool.acquire().apply {
         moveTo(cx - w * 0.25f, cy - h * 0.25f)
         cubicTo(cx - w * 0.30f, cy - h * 0.40f,
             cx + w * 0.10f, cy - h * 0.50f,
@@ -2037,6 +2080,7 @@ private fun DrawScope.drawBossGoldenTycoon(cx: Float, cy: Float, w: Float, h: Fl
         close()
     }
     drawPath(hairPath, orangeHair)
+    PathPool.release(hairPath)
     // Hair detail strokes (sweep lines)
     for (i in 0 until 4) {
         val sx = cx - w * 0.15f + i * w * 0.10f
@@ -2057,7 +2101,7 @@ private fun DrawScope.drawBossGoldenTycoon(cx: Float, cy: Float, w: Float, h: Fl
     // Mouth (pursed/pouty)
     drawCircle(Color(0xFFCC2020), w * 0.04f, Offset(cx, cy - h * 0.02f))
     // Suit (dark body)
-    val suitPath = Path().apply {
+    val suitPath = PathPool.acquire().apply {
         moveTo(cx - w * 0.18f, cy + h * 0.05f)
         lineTo(cx + w * 0.18f, cy + h * 0.05f)
         lineTo(cx + w * 0.35f, cy + h * 0.50f)
@@ -2065,16 +2109,18 @@ private fun DrawScope.drawBossGoldenTycoon(cx: Float, cy: Float, w: Float, h: Fl
         close()
     }
     drawPath(suitPath, Color(0xFF202040))
+    PathPool.release(suitPath)
     // White shirt collar
-    val collarPath = Path().apply {
+    val collarPath = PathPool.acquire().apply {
         moveTo(cx - w * 0.08f, cy + h * 0.05f)
         lineTo(cx + w * 0.08f, cy + h * 0.05f)
         lineTo(cx, cy + h * 0.18f)
         close()
     }
     drawPath(collarPath, Color.White)
+    PathPool.release(collarPath)
     // Golden tie (long, distinctive)
-    val tiePath = Path().apply {
+    val tiePath = PathPool.acquire().apply {
         moveTo(cx - w * 0.04f, cy + h * 0.08f)
         lineTo(cx + w * 0.04f, cy + h * 0.08f)
         lineTo(cx + w * 0.05f, cy + h * 0.30f)
@@ -2084,6 +2130,7 @@ private fun DrawScope.drawBossGoldenTycoon(cx: Float, cy: Float, w: Float, h: Fl
     }
     drawPath(tiePath, gold)
     drawPath(tiePath, Color(0xFFCC9000), style = Stroke(width = w * 0.012f))
+    PathPool.release(tiePath)
     // 3 dollar bills floating (visual hint at attack pattern)
     for (i in 0 until 3) {
         val bx = cx - w * 0.45f + i * w * 0.45f
@@ -2106,7 +2153,7 @@ private fun DrawScope.drawBossGoldenTycoon(cx: Float, cy: Float, w: Float, h: Fl
 private fun DrawScope.drawEnemySpinningSaw(cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color) {
     val outerR = minOf(w, h) * 0.42f
     val toothCount = 12
-    val toothPath = Path().apply {
+    val toothPath = PathPool.acquire().apply {
         for (i in 0 until toothCount * 2) {
             val a = -Math.PI / 2 + i * Math.PI / toothCount
             val r = if (i % 2 == 0) outerR else outerR * 0.78f
@@ -2117,6 +2164,7 @@ private fun DrawScope.drawEnemySpinningSaw(cx: Float, cy: Float, w: Float, h: Fl
         close()
     }
     drawPath(toothPath, body)
+    PathPool.release(toothPath)
     drawCircle(accent, outerR * 0.40f, Offset(cx, cy))
     drawCircle(Color.Black, outerR * 0.15f, Offset(cx, cy))
 }
@@ -2132,13 +2180,14 @@ private fun DrawScope.drawEnemyTentacleSquid(cx: Float, cy: Float, w: Float, h: 
         val by = cyLocal + (headR * kotlin.math.sin(a)).toFloat()
         val ex = bx + (headR * 0.85f * kotlin.math.cos(a)).toFloat()
         val ey = by + headR * 1.20f
-        val tPath = Path().apply {
+        val tPath = PathPool.acquire().apply {
             moveTo(bx, by)
             cubicTo(bx + (i - 2.5).toFloat() * w * 0.05f, by + h * 0.10f,
                 ex - (i - 2.5).toFloat() * w * 0.03f, ey - h * 0.05f, ex, ey)
         }
         drawPath(tPath, body,
             style = Stroke(width = w * 0.035f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+        PathPool.release(tPath)
     }
     drawCircle(accent, headR * 0.18f, Offset(cxLocal - headR * 0.30f, cyLocal))
     drawCircle(accent, headR * 0.18f, Offset(cxLocal + headR * 0.30f, cyLocal))
@@ -2162,7 +2211,7 @@ private fun DrawScope.drawEnemyMineLayer(cx: Float, cy: Float, w: Float, h: Floa
 
 private fun DrawScope.drawEnemyShieldDrone(cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color) {
     val bodyR = w * 0.18f
-    val hexPath = Path().apply {
+    val hexPath = PathPool.acquire().apply {
         for (i in 0 until 6) {
             val a = i * Math.PI / 3
             val x = cx + (bodyR * kotlin.math.cos(a)).toFloat()
@@ -2172,6 +2221,7 @@ private fun DrawScope.drawEnemyShieldDrone(cx: Float, cy: Float, w: Float, h: Fl
         close()
     }
     drawPath(hexPath, body)
+    PathPool.release(hexPath)
     drawArc(accent.copy(alpha = 0.55f),
         startAngle = 30f, sweepAngle = 120f, useCenter = false,
         topLeft = Offset(cx - w * 0.38f, cy - h * 0.05f),
@@ -2219,13 +2269,14 @@ private fun DrawScope.drawEnemyBomberCrawler(cx: Float, cy: Float, w: Float, h: 
 private fun DrawScope.drawEnemyMirrorTwin(cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color) {
     for (sign in intArrayOf(-1, 1)) {
         val px = cx + sign * w * 0.18f
-        val triPath = Path().apply {
+        val triPath = PathPool.acquire().apply {
             moveTo(px, cy - h * 0.20f)
             lineTo(px + w * 0.10f, cy + h * 0.20f)
             lineTo(px - w * 0.10f, cy + h * 0.20f)
             close()
         }
         drawPath(triPath, body)
+        PathPool.release(triPath)
         drawCircle(accent, w * 0.04f, Offset(px, cy))
     }
     drawLine(accent, Offset(cx - w * 0.10f, cy), Offset(cx + w * 0.10f, cy),
@@ -2237,7 +2288,7 @@ private fun DrawScope.drawEnemyMirrorTwin(cx: Float, cy: Float, w: Float, h: Flo
 }
 
 private fun DrawScope.drawEnemyPhantom(cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color) {
-    val ghostPath = Path().apply {
+    val ghostPath = PathPool.acquire().apply {
         moveTo(cx - w * 0.30f, cy - h * 0.20f)
         cubicTo(cx - w * 0.35f, cy - h * 0.45f, cx + w * 0.35f, cy - h * 0.45f, cx + w * 0.30f, cy - h * 0.20f)
         lineTo(cx + w * 0.30f, cy + h * 0.30f)
@@ -2252,6 +2303,7 @@ private fun DrawScope.drawEnemyPhantom(cx: Float, cy: Float, w: Float, h: Float,
     }
     drawPath(ghostPath, body.copy(alpha = 0.55f))
     drawPath(ghostPath, accent.copy(alpha = 0.85f), style = Stroke(width = w * 0.025f))
+    PathPool.release(ghostPath)
     drawCircle(Color.Black.copy(alpha = 0.8f), w * 0.05f, Offset(cx - w * 0.10f, cy - h * 0.15f))
     drawCircle(Color.Black.copy(alpha = 0.8f), w * 0.05f, Offset(cx + w * 0.10f, cy - h * 0.15f))
     drawCircle(Color.Black.copy(alpha = 0.8f), w * 0.04f, Offset(cx, cy + h * 0.05f),
@@ -2279,7 +2331,7 @@ private fun DrawScope.drawEnemyHealer(cx: Float, cy: Float, w: Float, h: Float, 
 }
 
 private fun DrawScope.drawEnemyKamikaze(cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color) {
-    val bodyPath = Path().apply {
+    val bodyPath = PathPool.acquire().apply {
         moveTo(cx, cy - h * 0.30f)
         lineTo(cx + w * 0.30f, cy + h * 0.30f)
         lineTo(cx - w * 0.30f, cy + h * 0.30f)
@@ -2287,6 +2339,7 @@ private fun DrawScope.drawEnemyKamikaze(cx: Float, cy: Float, w: Float, h: Float
     }
     drawPath(bodyPath, Color(0xFFFFE040))
     drawPath(bodyPath, Color.Black, style = Stroke(width = w * 0.04f))
+    PathPool.release(bodyPath)
     drawRect(Color.Black,
         topLeft = Offset(cx - w * 0.02f, cy - h * 0.10f),
         size = Size(w * 0.04f, h * 0.20f))

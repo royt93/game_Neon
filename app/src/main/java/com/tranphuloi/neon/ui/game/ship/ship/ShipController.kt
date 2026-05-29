@@ -71,6 +71,13 @@ class ShipController(
      */
     private val shieldBurstRank: () -> Int = { 0 },
     private val onShieldExpireBurst: (xOffset: Float, yOffset: Float, rank: Int) -> Unit = { _, _, _ -> },
+    /**
+     * Wave 11a Phase 3 — REFLECT_BOOSTER retaliation. Fired when an enemy laser
+     * overlaps ship while reflect is active. GameState binds this to find the
+     * nearest enemy and apply 30 damage (visualized via existing damage number
+     * + impact spark). x/y = enemy laser impact position (used for VFX origin).
+     */
+    private val onReflectAbsorb: (xOffset: Float, yOffset: Float) -> Unit = { _, _ -> },
 ) {
 
     init {
@@ -207,7 +214,9 @@ class ShipController(
             setShip(ship)
             return
         }
-        val effSpeed = movementSpeed * speedMultiplier()
+        // Wave 11a — MINI buff multiplies speed × 1.3 while active.
+        val miniSpeedMul = if (ship.miniEndMillis > System.currentTimeMillis()) 1.3f else 1f
+        val effSpeed = movementSpeed * speedMultiplier() * miniSpeedMul
         // Settle to play position bi-directionally. Activity recreate (config change,
         // theme switch, etc.) preserves Ship.yOffset via rememberSaveable but resets
         // ShipController.spawnStartMillis. If user pauses mid-spawn then resumes
@@ -524,6 +533,135 @@ class ShipController(
         Logger.d("Booster: double-fire ${if (enable) "ON (+${newEnd - now}ms)" else "OFF"}")
     }
 
+    // ── Wave 11a — 3 new timed buffs ──
+
+    /** REGEN: passive +1 HP/sec for 30s. Slower + longer than HEALING_AURA. */
+    private val regenTimeMillis: Long = 30_000
+    private var regenEndDurationMillis: Long = 0L
+    private var regenLastTickMillis: Long = 0L
+    private fun enableRegen(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
+        val newEnd = if (enable) now + (regenTimeMillis * multiplier).toLong() else 0L
+        if (enable) regenEndDurationMillis = maxOf(regenEndDurationMillis, newEnd)
+        else regenEndDurationMillis = 0L
+        Logger.d("Booster: regen ${if (enable) "ON (+${newEnd - now}ms, +1HP/sec)" else "OFF"}")
+    }
+
+    /** TIME_FREEZE: 3s. GameState reads ship.timeFreezeEndMillis to gate enemy ticks. */
+    private val timeFreezeTimeMillis: Long = 3_000
+    private fun enableTimeFreeze(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
+        val newEnd = if (enable) now + (timeFreezeTimeMillis * multiplier).toLong() else 0L
+        ship = ship.copy(timeFreezeEndMillis = if (enable) maxOf(ship.timeFreezeEndMillis, newEnd) else 0L)
+        setShip(ship)
+        Logger.d("Booster: time-freeze ${if (enable) "ON (+${newEnd - now}ms)" else "OFF"}")
+    }
+
+    /** MINI: ship 0.6× scale + 1.3× speed for 12s. GameWorld + moveShip read ship.miniEndMillis. */
+    private val miniTimeMillis: Long = 12_000
+    private fun enableMini(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
+        val newEnd = if (enable) now + (miniTimeMillis * multiplier).toLong() else 0L
+        ship = ship.copy(miniEndMillis = if (enable) maxOf(ship.miniEndMillis, newEnd) else 0L)
+        setShip(ship)
+        Logger.d("Booster: mini ${if (enable) "ON (+${newEnd - now}ms, scale=0.6 speed=1.3)" else "OFF"}")
+    }
+
+    /** VAMPIRE: 50% lifesteal for 10s. LasersController callback queries ship.vampireEndMillis. */
+    private val vampireTimeMillis: Long = 10_000
+    private fun enableVampire(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
+        val newEnd = if (enable) now + (vampireTimeMillis * multiplier).toLong() else 0L
+        ship = ship.copy(vampireEndMillis = if (enable) maxOf(ship.vampireEndMillis, newEnd) else 0L)
+        setShip(ship)
+        Logger.d("Booster: vampire ${if (enable) "ON (+${newEnd - now}ms, 50% lifesteal)" else "OFF"}")
+    }
+
+    /** GHOST: pass through enemies for 5s. ShipController collision check reads ship.ghostEndMillis. */
+    private val ghostTimeMillis: Long = 5_000
+    private fun enableGhost(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
+        val newEnd = if (enable) now + (ghostTimeMillis * multiplier).toLong() else 0L
+        ship = ship.copy(ghostEndMillis = if (enable) maxOf(ship.ghostEndMillis, newEnd) else 0L)
+        setShip(ship)
+        Logger.d("Booster: ghost ${if (enable) "ON (+${newEnd - now}ms, enemy collision bypass)" else "OFF"}")
+    }
+
+    /**
+     * VAMPIRE callback hook: called from LasersController.onLaserHit lambda
+     * (wired in GameState) with damage dealt. While ship.vampireEndMillis > now,
+     * heals ship by `damage * 0.5` (silent — no log spam per hit).
+     */
+    fun applyVampireHeal(damageDealt: Int) {
+        if (ship.vampireEndMillis <= System.currentTimeMillis() || damageDealt <= 0) return
+        val heal = (damageDealt * 0.5f).toInt().coerceAtLeast(1)
+        updateHp(heal, silent = true)
+    }
+
+    /** Public read for GameWorld + collision gates. True when ghost active. */
+    fun isGhostActive(): Boolean = ship.ghostEndMillis > System.currentTimeMillis()
+
+    /** GRAVITY: ALL minerals auto-collect for 10s. GameState magnet lambda × 100 while active. */
+    private val gravityTimeMillis: Long = 10_000
+    private fun enableGravity(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
+        val newEnd = if (enable) now + (gravityTimeMillis * multiplier).toLong() else 0L
+        ship = ship.copy(gravityEndMillis = if (enable) maxOf(ship.gravityEndMillis, newEnd) else 0L)
+        setShip(ship)
+        Logger.d("Booster: gravity ${if (enable) "ON (+${newEnd - now}ms, magnet ×100)" else "OFF"}")
+    }
+
+    /** Public read for GameState magnet lambda. */
+    fun isGravityActive(): Boolean = ship.gravityEndMillis > System.currentTimeMillis()
+
+    /** REFLECT: absorb enemy lasers + retaliate 30 dmg × rarity for 8s. */
+    private val reflectTimeMillis: Long = 8_000
+    private var reflectDamageMul: Float = 1f
+    private fun enableReflect(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
+        val newEnd = if (enable) now + (reflectTimeMillis * multiplier).toLong() else 0L
+        ship = ship.copy(reflectEndMillis = if (enable) maxOf(ship.reflectEndMillis, newEnd) else 0L)
+        // P2 audit fix — REFLECT downgrade asymmetry: timer uses max(old, new)
+        // (never downgrades), so damage mul should also never downgrade. Was:
+        // Epic active → Common pickup kept Epic timer but dropped damage 60→30.
+        if (enable) reflectDamageMul = maxOf(reflectDamageMul, multiplier)
+        else reflectDamageMul = 1f  // reset on expiry so next pickup starts clean
+        setShip(ship)
+        Logger.d("Booster: reflect ${if (enable) "ON (+${newEnd - now}ms, ${(30 * reflectDamageMul).toInt()}dmg back)" else "OFF"}")
+    }
+
+    /** Public read for collision gate. */
+    fun isReflectActive(): Boolean = ship.reflectEndMillis > System.currentTimeMillis()
+
+    /** Rarity-scaled retaliation damage (30 base × Common/Rare/Epic mul). */
+    fun reflectRetaliationDamage(): Int = (30 * reflectDamageMul).toInt().coerceAtLeast(30)
+
+    /** CHAIN_LIGHTNING: each laser hit chains to 2 more nearest enemies (50% dmg) for 10s. */
+    private val chainLightningTimeMillis: Long = 10_000
+    private fun enableChainLightning(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
+        val newEnd = if (enable) now + (chainLightningTimeMillis * multiplier).toLong() else 0L
+        ship = ship.copy(chainLightningEndMillis = if (enable) maxOf(ship.chainLightningEndMillis, newEnd) else 0L)
+        setShip(ship)
+        Logger.d("Booster: chain-lightning ${if (enable) "ON (+${newEnd - now}ms, 3-target chain)" else "OFF"}")
+    }
+
+    /** Public read for GameState onLaserHit chain dispatch. */
+    fun isChainLightningActive(): Boolean = ship.chainLightningEndMillis > System.currentTimeMillis()
+
+    /** CLONE: phantom-twin ship firing alongside for 8s. LasersController + GameWorld read ship.cloneEndMillis. */
+    private val cloneTimeMillis: Long = 8_000
+    private fun enableClone(enable: Boolean, multiplier: Float = 1f) {
+        val now = System.currentTimeMillis()
+        val newEnd = if (enable) now + (cloneTimeMillis * multiplier).toLong() else 0L
+        ship = ship.copy(cloneEndMillis = if (enable) maxOf(ship.cloneEndMillis, newEnd) else 0L)
+        setShip(ship)
+        Logger.d("Booster: clone ${if (enable) "ON (+${newEnd - now}ms, phantom firing)" else "OFF"}")
+    }
+
+    /** Public read for LasersController + GameWorld. */
+    fun isCloneActive(): Boolean = ship.cloneEndMillis > System.currentTimeMillis()
+
     // Updaters for the 4 boosters that surface a Boolean on Ship.
     private fun updateSpreadShotEnabled(enable: Boolean) {
         ship = ship.copy(spreadShotEnabled = enable); setShip(ship)
@@ -584,19 +722,31 @@ class ShipController(
         enemyLasers: List<Laser>,
         fileUltimateLaser: () -> Unit,
     ) {
+        // Wave 11a Phase 1 — MINI_BOOSTER hitbox audit fix. Visual ship scales
+        // 0.6× via graphicsLayer in GameWorld; hitbox now also scales toward
+        // center so spec "hitbox bé hơn, né dễ hơn" delivers. Pivot 0.5/0.5 →
+        // offset shifted by half the shrink amount.
+        val miniMul = if (ship.miniEndMillis > System.currentTimeMillis()) 0.6f else 1f
         val shipRect by lazy {
+            val w = ship.width * miniMul
+            val h = ship.height * miniMul
+            val dx = (ship.width - w) / 2f
+            val dy = (ship.height - h) / 2f
             Rect(
-                offset = Offset(x = ship.xOffset, y = ship.yOffset),
-                size = Size(width = ship.width, height = ship.height)
+                offset = Offset(x = ship.xOffset + dx, y = ship.yOffset + dy),
+                size = Size(width = w, height = h),
             )
         }
+        // Audit follow-up: shield rect now also scales with MINI so the
+        // SHIELD+MINI combo respects spec ("smaller hitbox") instead of full-
+        // size shield silently overriding mini scale.
         val shipShieldRect by lazy {
             Rect(
                 center = Offset(
                     x = ship.xOffset + ship.width / 2,
                     y = ship.yOffset + ship.height / 2
                 ),
-                radius = ship.shieldRadius
+                radius = ship.shieldRadius * miniMul
             )
         }
 
@@ -753,9 +903,26 @@ class ShipController(
                         healingAuraLastTickMillis = System.currentTimeMillis()
                     }
                     BoosterType.DOUBLE_FIRE -> enableDoubleFire(enable = true, multiplier = mul)
+                    // Wave 11a — 3 new timed buffs.
+                    BoosterType.REGEN_BOOSTER -> {
+                        enableRegen(enable = true, multiplier = mul)
+                        regenLastTickMillis = System.currentTimeMillis()
+                    }
+                    BoosterType.TIME_FREEZE_BOOSTER -> enableTimeFreeze(enable = true, multiplier = mul)
+                    BoosterType.MINI_BOOSTER -> enableMini(enable = true, multiplier = mul)
+                    BoosterType.VAMPIRE_BOOSTER -> enableVampire(enable = true, multiplier = mul)
+                    BoosterType.GHOST_BOOSTER -> enableGhost(enable = true, multiplier = mul)
+                    BoosterType.GRAVITY_BOOSTER -> enableGravity(enable = true, multiplier = mul)
+                    BoosterType.REFLECT_BOOSTER -> enableReflect(enable = true, multiplier = mul)
+                    BoosterType.CHAIN_LIGHTNING_BOOSTER -> enableChainLightning(enable = true, multiplier = mul)
+                    BoosterType.CLONE_BOOSTER -> enableClone(enable = true, multiplier = mul)
                 }
             }
         }
+        // Wave 11a Phase 2 — GHOST_BOOSTER skips enemy collisions while active.
+        // Player can drift through enemy ships unscathed. Enemy lasers still hit
+        // (intentional balance — ghost ≠ invulnerable).
+        val ghostActive = isGhostActive()
         enemies.forEachIndexed { enemyIndex, enemy ->
             val enemyRect by lazy {
                 Rect(
@@ -763,7 +930,11 @@ class ShipController(
                     size = Size(width = enemy.width, height = enemy.height)
                 )
             }
-            if (enemyRect.overlaps(if (ship.shieldEnabled) shipShieldRect else shipRect)) {
+            // P0 audit fix — TIME_FREEZE_BOOSTER now also skips ship↔enemy ram
+            // collision (was only gating enemy.process tick). Spec "đóng băng
+            // thời gian" = world halt, ship phases through frozen bodies.
+            val timeFrozen = ship.timeFreezeEndMillis > System.currentTimeMillis()
+            if (!ghostActive && !timeFrozen && enemyRect.overlaps(if (ship.shieldEnabled) shipShieldRect else shipRect)) {
                 Logger.d("Collision: ship ↔ enemy id=${enemy.enemyId.take(6)} (shield=${ship.shieldEnabled})")
                 enemies[enemyIndex].onObjectImpact(spaceShipCollidePower)
 
@@ -782,9 +953,17 @@ class ShipController(
                 )
             }
             if (enemyLaserRect.overlaps(if (ship.shieldEnabled) shipShieldRect else shipRect)) {
-                Logger.d("Collision: ship ↔ enemyLaser (shield=${ship.shieldEnabled}, impactPower=${enemyLaser.impactPower.toInt()})")
                 enemyLasers[enemyIndex].destroyed = true
-
+                // Wave 11a Phase 3 — REFLECT_BOOSTER absorbs the laser + retaliates.
+                // Reflect takes priority over normal damage path (still respects
+                // shield-no-damage rule via the same conditional below).
+                if (isReflectActive()) {
+                    Logger.v { "Collision: ship ↔ enemyLaser ABSORBED by reflect → retaliate" }
+                    onReflectAbsorb(enemyLaser.xOffset + enemyLaser.width / 2f,
+                                    enemyLaser.yOffset + enemyLaser.height / 2f)
+                    return@forEachIndexed
+                }
+                Logger.d("Collision: ship ↔ enemyLaser (shield=${ship.shieldEnabled}, impactPower=${enemyLaser.impactPower.toInt()})")
                 val hpImpact: Float = when (ship.shieldEnabled && enemyLaser.impactPower > 0) {
                     true -> 0f
                     false -> enemyLaser.impactPower
@@ -844,6 +1023,64 @@ class ShipController(
                     healingAuraLastTickMillis = currentTime
                 }
             }
+        }
+        // Wave 11a — REGEN +1 HP/sec passive while active (200ms-chunk like
+        // HEALING_AURA but slower rate). Silent log to avoid 30 lines/pickup.
+        if (regenEndDurationMillis in 1..currentTime) enableRegen(enable = false)
+        if (currentTime < regenEndDurationMillis) {
+            val sinceTick = currentTime - regenLastTickMillis
+            if (sinceTick >= 1000L) {                              // heal in 1s chunks (1 hp/sec)
+                val heal = (sinceTick / 1000L).toInt()
+                if (heal > 0 && ship.hp > 0) {
+                    updateHp(heal, silent = true)
+                    regenLastTickMillis = currentTime
+                }
+            }
+        }
+        // Wave 11a — TIME_FREEZE expiry: clear flag on Ship state.
+        if (ship.timeFreezeEndMillis in 1..currentTime) {
+            ship = ship.copy(timeFreezeEndMillis = 0L)
+            setShip(ship)
+            Logger.d("Booster: time-freeze OFF")
+        }
+        // Wave 11a — MINI expiry: clear flag on Ship state (GameWorld scale + speed mul revert).
+        if (ship.miniEndMillis in 1..currentTime) {
+            ship = ship.copy(miniEndMillis = 0L)
+            setShip(ship)
+            Logger.d("Booster: mini OFF")
+        }
+        // Wave 11a Phase 2 — VAMPIRE expiry.
+        if (ship.vampireEndMillis in 1..currentTime) {
+            ship = ship.copy(vampireEndMillis = 0L)
+            setShip(ship)
+            Logger.d("Booster: vampire OFF")
+        }
+        // Wave 11a Phase 2 — GHOST expiry.
+        if (ship.ghostEndMillis in 1..currentTime) {
+            ship = ship.copy(ghostEndMillis = 0L)
+            setShip(ship)
+            Logger.d("Booster: ghost OFF")
+        }
+        // Wave 11a Phase 3 — GRAVITY / REFLECT / CHAIN_LIGHTNING expiries.
+        if (ship.gravityEndMillis in 1..currentTime) {
+            ship = ship.copy(gravityEndMillis = 0L)
+            setShip(ship)
+            Logger.d("Booster: gravity OFF")
+        }
+        if (ship.reflectEndMillis in 1..currentTime) {
+            ship = ship.copy(reflectEndMillis = 0L)
+            setShip(ship)
+            Logger.d("Booster: reflect OFF")
+        }
+        if (ship.chainLightningEndMillis in 1..currentTime) {
+            ship = ship.copy(chainLightningEndMillis = 0L)
+            setShip(ship)
+            Logger.d("Booster: chain-lightning OFF")
+        }
+        if (ship.cloneEndMillis in 1..currentTime) {
+            ship = ship.copy(cloneEndMillis = 0L)
+            setShip(ship)
+            Logger.d("Booster: clone OFF")
         }
         // Round 35 (35x) — expire active bullet type.
         if (ship.bulletTypeEndMillis > 0L && currentTime >= ship.bulletTypeEndMillis) {

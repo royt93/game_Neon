@@ -23,7 +23,7 @@ class BoosterShapeRenderConsistencyTest {
     private val mapper = BoosterToBoosterUIMapper()
 
     @Test
-    fun `27 BoosterTypes map to 27 distinct BoosterShapes (no preview-side dup)`() {
+    fun `all BoosterTypes map to distinct BoosterShapes (no preview-side dup)`() {
         val shapeOf = BoosterType.values().associateWith { mapper.shapeFor(it) }
         val byShape = shapeOf.entries.groupBy({ it.value }) { it.key }
         val dups = byShape.filter { it.value.size > 1 }
@@ -32,8 +32,8 @@ class BoosterShapeRenderConsistencyTest {
             dups.isEmpty(),
         )
         assertEquals(
-            "Expected 27 distinct shapes used (one per BoosterType)",
-            27, byShape.size,
+            "Expected one distinct shape per BoosterType",
+            BoosterType.values().size, byShape.size,
         )
     }
 

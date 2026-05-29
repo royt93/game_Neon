@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import com.tranphuloi.neon.common.PathPool
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -60,7 +61,7 @@ private fun DrawScope.drawMineral(
         // Diamond/rhombus path
         val halfW = sizePx * 0.42f
         val halfH = sizePx * 0.46f
-        val path = Path().apply {
+        val path = PathPool.acquire().apply {
             moveTo(cx, cy - halfH)
             lineTo(cx + halfW, cy)
             lineTo(cx, cy + halfH)
@@ -68,6 +69,7 @@ private fun DrawScope.drawMineral(
             close()
         }
         drawPath(path, NeonGold.copy(alpha = alpha))
+        PathPool.release(path)
         drawPath(
             path,
             NeonCyan.copy(alpha = alpha),

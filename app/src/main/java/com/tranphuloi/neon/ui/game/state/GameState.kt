@@ -337,6 +337,18 @@ fun rememberGameState(): GameState {
             updateState = { impactSparks = it }
         )
     }
+    // Wave 11a Phase 4 (audit follow-up) — real bounce arc + chain bolt visuals
+    // replacing 3-point impactSpark clusters that read as "3 explosions" not
+    // "line traveled". TrailLineController spawns connected lines on REFLECT
+    // absorb + CHAIN_LIGHTNING chain hops; TrailLineOverlay renders + fades.
+    var trailLines: List<com.tranphuloi.neon.ui.game.spark.TrailLine> by remember {
+        mutableStateOf(emptyList())
+    }
+    val trailLineController = remember {
+        com.tranphuloi.neon.ui.game.spark.TrailLineController(
+            updateState = { trailLines = it }
+        )
+    }
     // 15c Stats counters for end-of-run breakdown.
     var enemiesKilledTotal by remember { mutableIntStateOf(0) }
     var bossesDefeatedTotal by remember { mutableIntStateOf(0) }
@@ -404,6 +416,16 @@ fun rememberGameState(): GameState {
     // Round 75 (R75c) — deferred ref cho SHIELD_BURST (cần explosions + enemies declared sau).
     val shieldBurstRef = remember {
         object { var run: (x: Float, y: Float, rank: Int) -> Unit = { _, _, _ -> } }
+    }
+    // Wave 11a Phase 3 — deferred ref cho REFLECT retaliation (cần enemies + lasersController declared sau).
+    // P1 audit fix — @Volatile so IO loop (caller) sees Main-thread (composition) assignment.
+    val reflectRetaliateRef = remember {
+        object { @Volatile var run: (x: Float, y: Float) -> Unit = { _, _ -> } }
+    }
+    // Wave 11a Phase 3 — deferred ref cho CHAIN_LIGHTNING (cần enemies declared sau).
+    // primaryTargetId excluded so the chain doesn't re-hit the original target.
+    val chainLightningRef = remember {
+        object { @Volatile var run: (primaryTargetId: String, primaryDamage: Int, hitX: Float, hitY: Float) -> Unit = { _, _, _, _ -> } }
     }
     val shipController = remember {
         Logger.d("rememberGameState: building ShipController (initial hp=${ship.hp})")
@@ -556,6 +578,11 @@ fun rememberGameState(): GameState {
             // bán kính + spawn explosion VFX khi shield expires. Damage scale theo rank.
             shieldBurstRank = { runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_SHIELD_BURST] ?: 0 },
             onShieldExpireBurst = { x, y, rank -> shieldBurstRef.run(x, y, rank) },
+            // Wave 11a Phase 3 — REFLECT_BOOSTER retaliation. When enemy laser
+            // absorbed, find the nearest enemy and deal 30 damage. Visualized
+            // via existing damageNumberController + impactSparkController so
+            // player sees feedback identical to a real laser hit.
+            onReflectAbsorb = { absorbX, absorbY -> reflectRetaliateRef.run(absorbX, absorbY) },
         )
     }
 
@@ -584,6 +611,15 @@ fun rememberGameState(): GameState {
             onLaserHit = { targetId, damage, x, y, isBoss ->
                 damageNumberController.report(targetId, damage, x, y, isBoss)
                 impactSparkController.spawnBurst(x, y)
+                // Wave 11a Phase 2 — VAMPIRE_BOOSTER lifesteal: heal ship 50% of
+                // damage dealt while active. Silent (no per-hit log spam).
+                shipController.applyVampireHeal(damage)
+                // Wave 11a Phase 3 — CHAIN_LIGHTNING_BOOSTER chains to 2 more
+                // nearest enemies (excluding the primary target) at 50% damage.
+                // Deferred ref because `enemies` is declared after lasersController.
+                if (shipController.isChainLightningActive() && damage > 0) {
+                    chainLightningRef.run(targetId, damage, x, y)
+                }
                 // Round 79 (#4 fix) — full-screen lightning when bullet hits boss.
                 if (isBoss) {
                     lastBossHitMillis = System.currentTimeMillis()
@@ -748,7 +784,10 @@ fun rememberGameState(): GameState {
             // 25x apply RunModifier magnetMul to magnet radius (e.g. SUPER_MAGNET ×2).
             // Round 60 (38x) — MAGNET_BOOST stacks ×2 multiplicatively (15s window).
             getMagnetRadius = {
-                magnetRadiusState.floatValue * effectiveStats.magnetMul * shipController.magnetBoostMul()
+                val base = magnetRadiusState.floatValue * effectiveStats.magnetMul * shipController.magnetBoostMul()
+                // Wave 11a Phase 3 — GRAVITY_BOOSTER multiplies radius × 100 while
+                // active → effectively pulls every on-screen mineral into ship.
+                if (shipController.isGravityActive()) base * 100f else base
             },
         )
     }
@@ -774,6 +813,67 @@ fun rememberGameState(): GameState {
                 enemy.onObjectImpact(damage)
                 Logger.v { "SHIELD_BURST: enemy ${enemy.enemyId.take(6)} hit for $damage at dist=${dist.toInt()}" }
             }
+        }
+    }
+    // Wave 11a Phase 3 — REFLECT retaliation: find nearest enemy + 30 damage.
+    // Audit follow-up: also spawn impact spark + extra burst at ABSORB point
+    // (ship side) so player visually sees the laser being eaten, then the
+    // retaliation at the enemy. Two-stage VFX = "absorb → bounce" feel.
+    reflectRetaliateRef.run = { absorbX, absorbY ->
+        // Stage 1: VFX at ship absorb point (the laser dies here)
+        impactSparkController.spawnBurst(absorbX, absorbY)
+        val nearestEnemy = enemies.minByOrNull { enemy ->
+            val ex = enemy.xOffset + enemy.width / 2
+            val ey = enemy.yOffset + enemy.height / 2
+            val dx = ex - absorbX
+            val dy = ey - absorbY
+            dx * dx + dy * dy
+        }
+        if (nearestEnemy != null) {
+            // Audit follow-up: REFLECT damage now scales × rarity. Common/Rare/
+            // Epic = 30/45/60 damage via ShipController.reflectRetaliationDamage().
+            val damage = shipController.reflectRetaliationDamage()
+            nearestEnemy.onObjectImpact(damage.toFloat())
+            val nx = nearestEnemy.xOffset + nearestEnemy.width / 2
+            val ny = nearestEnemy.yOffset + nearestEnemy.height / 2
+            damageNumberController.report(nearestEnemy.enemyId, damage, nx, ny, nearestEnemy.isBoss)
+            impactSparkController.spawnBurst(nx, ny)
+            // Audit follow-up round 2: real connected bounce arc visual
+            // (TrailLineOverlay drawLine 300ms fade) replacing prior 3-point
+            // impactSpark band-aid. Player now sees actual line travel.
+            trailLineController.addBounceArc(absorbX, absorbY, nx, ny)
+            Logger.v { "REFLECT: retaliate enemy=${nearestEnemy.enemyId.take(6)} dmg=$damage absorbAt=($absorbX,$absorbY)" }
+        }
+    }
+    // Wave 11a Phase 3 — CHAIN_LIGHTNING chain to 2 more nearest enemies at 50%
+    // damage. Audit follow-up: spawn impact sparks along the chain path so
+    // player sees the lightning travel (3 sparks per hop = "bolt segment").
+    chainLightningRef.run = { primaryTargetId, primaryDamage, hitX, hitY ->
+        val chainDmg = (primaryDamage * 0.5f).toInt().coerceAtLeast(1)
+        val candidates = enemies
+            .filter { it.enemyId != primaryTargetId && it.hp > 0f }
+            .sortedBy {
+                val ex = it.xOffset + it.width / 2
+                val ey = it.yOffset + it.height / 2
+                val dx = ex - hitX
+                val dy = ey - hitY
+                dx * dx + dy * dy
+            }
+            .take(2)
+        var prevX = hitX
+        var prevY = hitY
+        for (chainTarget in candidates) {
+            chainTarget.onObjectImpact(chainDmg.toFloat())
+            val cx2 = chainTarget.xOffset + chainTarget.width / 2
+            val cy2 = chainTarget.yOffset + chainTarget.height / 2
+            damageNumberController.report(chainTarget.enemyId, chainDmg, cx2, cy2, chainTarget.isBoss)
+            impactSparkController.spawnBurst(cx2, cy2)
+            // Audit follow-up round 2: real jagged lightning bolt visual
+            // (TrailLineOverlay drawPath with deterministic zigzag offsets)
+            // replacing prior 3-spark trail band-aid.
+            trailLineController.addChainBolt(prevX, prevY, cx2, cy2)
+            prevX = cx2
+            prevY = cy2
         }
     }
     val enemyController = remember {
@@ -1273,7 +1373,11 @@ fun rememberGameState(): GameState {
                                 )
                             }
                         )
-                        tinker(
+                        // Wave 11a — TIME_FREEZE_BOOSTER gates enemy AI: firing,
+                        // laser movement, and enemy movement all pause while
+                        // ship.timeFreezeEndMillis is in the future.
+                        val isTimeFrozen = ship.timeFreezeEndMillis > System.currentTimeMillis()
+                        if (!isTimeFrozen) tinker(
                             id = enemyLaserController.fireEnemyLaserId,
                             repeatTime = enemyLaserController.fireEnemyLaserRepeatTime,
                             doWork = { enemyLaserController.fireEnemyLasers(enemies = enemies) }
@@ -1292,6 +1396,12 @@ fun rememberGameState(): GameState {
                             id = impactSparkController.tickId,
                             repeatTime = impactSparkController.tickRepeatTime,
                             doWork = { impactSparkController.tick() }
+                        )
+                        // Wave 11a Phase 4 — TrailLine expiry tick (REFLECT bounce arcs + CHAIN_LIGHTNING bolts).
+                        tinker(
+                            id = trailLineController.tickId,
+                            repeatTime = trailLineController.tickRepeatTime,
+                            doWork = { trailLineController.tickExpiry() }
                         )
                         tinker(
                             id = pickupBurstController.tickId,
@@ -1337,14 +1447,14 @@ fun rememberGameState(): GameState {
                                 doWork = { spaceObjectsController.processSpaceObjects() }
                             )
                         }
-                        if (enemyLaserController.hasEnemyLasers()) {
+                        if (!isTimeFrozen && enemyLaserController.hasEnemyLasers()) {
                             tinker(
                                 id = enemyLaserController.processLasersId,
                                 repeatTime = enemyLaserController.processLasersRepeatTime,
                                 doWork = { enemyLaserController.processLasers() }
                             )
                         }
-                        if (enemyController.hasEnemies()) {
+                        if (!isTimeFrozen && enemyController.hasEnemies()) {
                             tinker(
                                 id = enemyController.processEnemiesId,
                                 repeatTime = enemyController.processEnemiesRepeatTime,
@@ -1574,6 +1684,7 @@ fun rememberGameState(): GameState {
         magnetRadius = magnetRadiusState.floatValue,
         damageNumbers = damageNumbers,
         impactSparks = impactSparks,
+        trailLines = trailLines,
         pickupBursts = pickupBursts,
         pickupPopups = pickupPopups,
         bossKillFlashMillis = bossKillFlashMillis,
@@ -1769,6 +1880,7 @@ data class GameState(
     val magnetRadius: Float,
     val damageNumbers: List<DamageNumber>,
     val impactSparks: List<com.tranphuloi.neon.ui.game.spark.ImpactSpark>,
+    val trailLines: List<com.tranphuloi.neon.ui.game.spark.TrailLine>,
     val pickupBursts: List<com.tranphuloi.neon.ui.game.spark.PickupBurst>,
     val pickupPopups: List<PickupPopup>,
     val bossKillFlashMillis: Long,

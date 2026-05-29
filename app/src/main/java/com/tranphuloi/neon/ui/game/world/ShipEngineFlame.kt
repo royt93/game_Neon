@@ -22,6 +22,7 @@ import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.ui.game.ship.ship.Ship
 import kotlin.math.cos
 import kotlin.math.sin
+import com.tranphuloi.neon.common.PathPool
 
 /**
  * 3b: Ship engine flame trail — flickering cone of cyan/orange fire below the ship.
@@ -84,7 +85,7 @@ fun ShipEngineFlame(
             // per user "thô, nhiều góc cạnh"). Two cubics: top-left → bulge-left →
             // tip → bulge-right → top-right. Each cubic uses two control points to
             // shape an S-curve through the bulge.
-            val outerPath = Path().apply {
+            val outerPath = PathPool.acquire().apply {
                 moveTo(cxPx - outerTopHalf, topY)
                 cubicTo(
                     cxPx - outerBulgeHalf - 2f, topY + outerLen * 0.18f,
@@ -111,9 +112,10 @@ fun ShipEngineFlame(
                     endY = topY + outerLen,
                 ),
             )
+            PathPool.release(outerPath)
 
             // Layer 2: mid gold cone — bezier teardrop.
-            val midPath = Path().apply {
+            val midPath = PathPool.acquire().apply {
                 moveTo(cxPx - midTopHalf, topY)
                 cubicTo(
                     cxPx - midBulgeHalf - 1f, topY + midLen * 0.18f,
@@ -140,9 +142,10 @@ fun ShipEngineFlame(
                     endY = topY + midLen,
                 ),
             )
+            PathPool.release(midPath)
 
             // Layer 3: bright white core — bezier teardrop.
-            val corePath = Path().apply {
+            val corePath = PathPool.acquire().apply {
                 moveTo(cxPx - coreTopHalf, topY)
                 cubicTo(
                     cxPx - coreBulgeHalf, topY + coreLen * 0.18f,
@@ -168,6 +171,7 @@ fun ShipEngineFlame(
                     endY = topY + coreLen,
                 ),
             )
+            PathPool.release(corePath)
 
             // Ember trail — 6 fading sparkle dots extending past the cone tip,
             // mimicking a shooting-star/meteor tail. Sizes shrink, alpha fades.

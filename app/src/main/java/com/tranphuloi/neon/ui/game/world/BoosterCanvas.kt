@@ -8,6 +8,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import com.tranphuloi.neon.common.PathPool
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
@@ -120,7 +121,259 @@ internal fun DrawScope.drawBoosterShape(
         BoosterShape.BIG_DOT -> drawBigDotShape(cx, cy, size, color)
         BoosterShape.RAGE_FANG -> drawRageFangShape(cx, cy, size, color)
         BoosterShape.HEALING_FLASK -> drawHealingFlaskShape(cx, cy, size, color)
+        BoosterShape.REGEN_PULSE -> drawRegenPulseShape(cx, cy, size, color)
+        BoosterShape.FREEZE_FLAKE -> drawFreezeFlakeShape(cx, cy, size, color)
+        BoosterShape.MINI_RING -> drawMiniRingShape(cx, cy, size, color)
+        BoosterShape.VAMPIRE_FANG -> drawVampireFangShape(cx, cy, size, color)
+        BoosterShape.GHOST_TRAIL -> drawGhostTrailShape(cx, cy, size, color)
+        BoosterShape.GRAVITY_WELL -> drawGravityWellShape(cx, cy, size, color)
+        BoosterShape.REFLECT_BUMPER -> drawReflectBumperShape(cx, cy, size, color)
+        BoosterShape.CHAIN_BOLT -> drawChainBoltShape(cx, cy, size, color)
+        BoosterShape.CLONE_PAIR -> drawClonePairShape(cx, cy, size, color)
     }
+}
+
+/** Two small ship silhouettes side-by-side — CLONE_BOOSTER (phantom twin firing alongside). */
+private fun DrawScope.drawClonePairShape(cx: Float, cy: Float, size: Float, color: Color) {
+    val shipW = size * 0.22f
+    val shipH = size * 0.32f
+    val gap = size * 0.08f
+    // Left ship (solid)
+    val leftCx = cx - shipW / 2f - gap / 2f
+    drawShipSilhouette(leftCx, cy, shipW, shipH, color, alpha = 1f)
+    // Right ship (translucent phantom)
+    val rightCx = cx + shipW / 2f + gap / 2f
+    drawShipSilhouette(rightCx, cy, shipW, shipH, color, alpha = 0.55f)
+    // Linking arrow between them (suggests "twin firing")
+    drawLine(color.copy(alpha = 0.4f),
+        Offset(leftCx + shipW * 0.5f, cy + shipH * 0.6f),
+        Offset(rightCx - shipW * 0.5f, cy + shipH * 0.6f),
+        strokeWidth = size * 0.03f,
+        cap = androidx.compose.ui.graphics.StrokeCap.Round,
+    )
+}
+
+/** Pentagon ship silhouette (arrow up). Used by drawClonePairShape. */
+private fun DrawScope.drawShipSilhouette(
+    cx: Float, cy: Float, w: Float, h: Float, color: Color, alpha: Float = 1f,
+) {
+    // R80 perf — Path pooled to avoid GC churn (this recipe is in CLONE_PAIR
+    // preview which renders per-frame for every CLONE_BOOSTER on screen).
+    val path = PathPool.acquire().apply {
+        moveTo(cx, cy - h / 2f)                       // nose
+        lineTo(cx + w / 2f, cy + h / 4f)              // right wing
+        lineTo(cx + w / 4f, cy + h / 2f)              // right tail
+        lineTo(cx - w / 4f, cy + h / 2f)              // left tail
+        lineTo(cx - w / 2f, cy + h / 4f)              // left wing
+        close()
+    }
+    drawPath(path, color.copy(alpha = alpha))
+    PathPool.release(path)
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// Wave 11a — 3 new shape recipes for new boosters
+// ──────────────────────────────────────────────────────────────────────────
+
+/** Pulsing pill (3 nested rings) — REGEN_BOOSTER, hints "slow continuous heal". */
+private fun DrawScope.drawRegenPulseShape(cx: Float, cy: Float, size: Float, color: Color) {
+    val rOuter = size * 0.45f
+    val rMid = size * 0.30f
+    val rInner = size * 0.15f
+    drawCircle(color.copy(alpha = 0.30f), rOuter, Offset(cx, cy),
+        style = Stroke(width = size * 0.06f))
+    drawCircle(color.copy(alpha = 0.55f), rMid, Offset(cx, cy),
+        style = Stroke(width = size * 0.05f))
+    drawCircle(color, rInner, Offset(cx, cy))
+}
+
+/** 6-arm snowflake — TIME_FREEZE_BOOSTER. Each arm has 1 short side-branch. */
+private fun DrawScope.drawFreezeFlakeShape(cx: Float, cy: Float, size: Float, color: Color) {
+    val armLen = size * 0.45f
+    val sideLen = size * 0.15f
+    val stroke = size * 0.06f
+    for (i in 0 until 6) {
+        val angle = i * (Math.PI / 3.0)
+        val ax = (kotlin.math.cos(angle) * armLen).toFloat()
+        val ay = (kotlin.math.sin(angle) * armLen).toFloat()
+        drawLine(color, Offset(cx, cy), Offset(cx + ax, cy + ay),
+            strokeWidth = stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        // 2 side-branches at 60% along the arm
+        val bx = cx + ax * 0.6f
+        val by = cy + ay * 0.6f
+        val sideAngle1 = angle + Math.PI / 3.0
+        val sideAngle2 = angle - Math.PI / 3.0
+        drawLine(color,
+            Offset(bx, by),
+            Offset(bx + (kotlin.math.cos(sideAngle1) * sideLen).toFloat(),
+                   by + (kotlin.math.sin(sideAngle1) * sideLen).toFloat()),
+            strokeWidth = stroke * 0.7f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        drawLine(color,
+            Offset(bx, by),
+            Offset(bx + (kotlin.math.cos(sideAngle2) * sideLen).toFloat(),
+                   by + (kotlin.math.sin(sideAngle2) * sideLen).toFloat()),
+            strokeWidth = stroke * 0.7f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+    // Center dot
+    drawCircle(color, size * 0.06f, Offset(cx, cy))
+}
+
+/** Small ring with right-arrow inside — MINI_BOOSTER (shrink + speed up). */
+private fun DrawScope.drawMiniRingShape(cx: Float, cy: Float, size: Float, color: Color) {
+    val r = size * 0.30f
+    drawCircle(color, r, Offset(cx, cy),
+        style = Stroke(width = size * 0.08f))
+    // Right-pointing arrow inside (speed indicator)
+    val arrowSize = size * 0.18f
+    val path = PathPool.acquire().apply {
+        moveTo(cx - arrowSize * 0.5f, cy - arrowSize * 0.5f)
+        lineTo(cx + arrowSize * 0.5f, cy)
+        lineTo(cx - arrowSize * 0.5f, cy + arrowSize * 0.5f)
+        close()
+    }
+    drawPath(path, color)
+    PathPool.release(path)
+}
+
+/** Two downward fangs + blood drop — VAMPIRE_BOOSTER (lifesteal). */
+private fun DrawScope.drawVampireFangShape(cx: Float, cy: Float, size: Float, color: Color) {
+    val fangW = size * 0.10f
+    val fangH = size * 0.35f
+    val gap = size * 0.10f
+    // Left fang (triangle pointing down)
+    val leftFang = PathPool.acquire().apply {
+        moveTo(cx - gap - fangW, cy - fangH * 0.4f)
+        lineTo(cx - gap, cy - fangH * 0.4f)
+        lineTo(cx - gap - fangW * 0.5f, cy + fangH * 0.6f)
+        close()
+    }
+    val rightFang = PathPool.acquire().apply {
+        moveTo(cx + gap, cy - fangH * 0.4f)
+        lineTo(cx + gap + fangW, cy - fangH * 0.4f)
+        lineTo(cx + gap + fangW * 0.5f, cy + fangH * 0.6f)
+        close()
+    }
+    drawPath(leftFang, color)
+    drawPath(rightFang, color)
+    PathPool.release(leftFang)
+    PathPool.release(rightFang)
+    // Blood drop below center
+    drawCircle(color, size * 0.07f, Offset(cx, cy + fangH * 0.85f))
+    // Mouth arc above fangs (suggests vampire grin)
+    drawArc(
+        color = color,
+        startAngle = 0f,
+        sweepAngle = 180f,
+        useCenter = false,
+        topLeft = Offset(cx - size * 0.25f, cy - size * 0.42f),
+        size = androidx.compose.ui.geometry.Size(size * 0.50f, size * 0.20f),
+        style = Stroke(width = size * 0.05f),
+    )
+}
+
+/** 3 concentric rings + center dot pulled inward — GRAVITY_BOOSTER (mineral auto-collect). */
+private fun DrawScope.drawGravityWellShape(cx: Float, cy: Float, size: Float, color: Color) {
+    val rOuter = size * 0.45f
+    val rMid = size * 0.30f
+    val rInner = size * 0.15f
+    drawCircle(color.copy(alpha = 0.30f), rOuter, Offset(cx, cy),
+        style = Stroke(width = size * 0.04f))
+    drawCircle(color.copy(alpha = 0.60f), rMid, Offset(cx, cy),
+        style = Stroke(width = size * 0.05f))
+    drawCircle(color, rInner, Offset(cx, cy))
+    // 4 inward arrows at cardinal directions (suggests "pulling in")
+    val arrowLen = size * 0.10f
+    val arrowGap = size * 0.06f
+    for (i in 0 until 4) {
+        val angle = i * (Math.PI / 2.0)
+        val ax = (kotlin.math.cos(angle) * (rOuter + arrowGap)).toFloat()
+        val ay = (kotlin.math.sin(angle) * (rOuter + arrowGap)).toFloat()
+        val tx = (kotlin.math.cos(angle) * (rOuter + arrowGap + arrowLen)).toFloat()
+        val ty = (kotlin.math.sin(angle) * (rOuter + arrowGap + arrowLen)).toFloat()
+        drawLine(color, Offset(cx + tx, cy + ty), Offset(cx + ax, cy + ay),
+            strokeWidth = size * 0.04f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+}
+
+/** Shield arc + outward bounce arrow — REFLECT_BOOSTER (deflect enemy lasers). */
+private fun DrawScope.drawReflectBumperShape(cx: Float, cy: Float, size: Float, color: Color) {
+    val r = size * 0.38f
+    // Upper shield arc
+    drawArc(
+        color = color,
+        startAngle = 200f,
+        sweepAngle = 140f,
+        useCenter = false,
+        topLeft = Offset(cx - r, cy - r),
+        size = androidx.compose.ui.geometry.Size(r * 2, r * 2),
+        style = Stroke(width = size * 0.08f, cap = androidx.compose.ui.graphics.StrokeCap.Round),
+    )
+    // Two outward chevrons (bounce indicators) — up-left + up-right
+    val chevLen = size * 0.12f
+    for (sign in listOf(-1, 1)) {
+        val baseX = cx + sign * r * 0.55f
+        val baseY = cy - r * 0.10f
+        val tipX = baseX + sign * chevLen * 0.7f
+        val tipY = baseY - chevLen
+        drawLine(color, Offset(baseX, baseY), Offset(tipX, tipY),
+            strokeWidth = size * 0.05f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        drawLine(color, Offset(tipX, tipY), Offset(tipX + sign * chevLen * 0.4f, tipY + chevLen * 0.5f),
+            strokeWidth = size * 0.05f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+    // Center dot
+    drawCircle(color, size * 0.06f, Offset(cx, cy))
+}
+
+/** 3-node zigzag bolt — CHAIN_LIGHTNING_BOOSTER (laser chains to 2 more enemies). */
+private fun DrawScope.drawChainBoltShape(cx: Float, cy: Float, size: Float, color: Color) {
+    val r = size * 0.10f
+    // 3 nodes arranged in lightning Z pattern
+    val nodes = listOf(
+        Offset(cx - size * 0.30f, cy - size * 0.30f),
+        Offset(cx + size * 0.15f, cy - size * 0.05f),
+        Offset(cx - size * 0.10f, cy + size * 0.30f),
+    )
+    // Connecting bolts (zigzag stroke)
+    for (i in 0 until nodes.size - 1) {
+        drawLine(color, nodes[i], nodes[i + 1],
+            strokeWidth = size * 0.05f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+    // Node circles (chain targets)
+    for (node in nodes) {
+        drawCircle(color, r, node)
+        drawCircle(color.copy(alpha = 0.5f), r * 1.5f, node,
+            style = Stroke(width = size * 0.02f))
+    }
+}
+
+/** Dashed circle + 3 trailing dots — GHOST_BOOSTER (intangible/pass-through). */
+private fun DrawScope.drawGhostTrailShape(cx: Float, cy: Float, size: Float, color: Color) {
+    val r = size * 0.32f
+    val dashCount = 10
+    val sweepPerDash = 360f / dashCount
+    val dashSweep = sweepPerDash * 0.55f
+    // Dashed circle outline (translucent body)
+    for (i in 0 until dashCount) {
+        drawArc(
+            color = color,
+            startAngle = i * sweepPerDash,
+            sweepAngle = dashSweep,
+            useCenter = false,
+            topLeft = Offset(cx - r, cy - r),
+            size = androidx.compose.ui.geometry.Size(r * 2, r * 2),
+            style = Stroke(width = size * 0.06f, cap = androidx.compose.ui.graphics.StrokeCap.Round),
+        )
+    }
+    // 3 trailing dots fading right (motion trail / phantom afterimage)
+    drawCircle(color.copy(alpha = 0.85f), size * 0.05f, Offset(cx + r + size * 0.10f, cy))
+    drawCircle(color.copy(alpha = 0.55f), size * 0.04f, Offset(cx + r + size * 0.22f, cy))
+    drawCircle(color.copy(alpha = 0.30f), size * 0.03f, Offset(cx + r + size * 0.32f, cy))
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -146,11 +399,11 @@ private fun DrawScope.drawAtomShape(cx: Float, cy: Float, size: Float, color: Co
     }
 }
 
-/** Flame — 3 petal "fire" shape pointing up. */
+/** Flame — 3 petal "fire" shape pointing up. R80 — Path pooled. */
 private fun DrawScope.drawFlameShape(cx: Float, cy: Float, size: Float, color: Color) {
     val h = size * 0.85f
     val w = size * 0.55f
-    val outer = Path().apply {
+    val outer = PathPool.acquire().apply {
         moveTo(cx, cy - h / 2f)                      // top tip
         cubicTo(
             cx + w / 2f, cy - h * 0.10f,             // right curve out
@@ -166,8 +419,9 @@ private fun DrawScope.drawFlameShape(cx: Float, cy: Float, size: Float, color: C
         close()
     }
     drawPath(outer, color)
+    PathPool.release(outer)
     // Inner flame (lighter)
-    val inner = Path().apply {
+    val inner = PathPool.acquire().apply {
         val ih = h * 0.55f
         val iw = w * 0.50f
         moveTo(cx, cy - ih / 2f)
@@ -176,15 +430,16 @@ private fun DrawScope.drawFlameShape(cx: Float, cy: Float, size: Float, color: C
         close()
     }
     drawPath(inner, Color.White.copy(alpha = 0.8f))
+    PathPool.release(inner)
 }
 
-/** Magnet — U-shape horseshoe with 2 pole tips. */
+/** Magnet — U-shape horseshoe with 2 pole tips. R80 — Path pooled. */
 private fun DrawScope.drawMagnetShape(cx: Float, cy: Float, size: Float, color: Color) {
     val w = size * 0.75f
     val h = size * 0.80f
     val thick = size * 0.18f
     // U-shape path
-    val path = Path().apply {
+    val path = PathPool.acquire().apply {
         // Outer left arm down → bottom arc → right arm up → inner right down → inner bottom → inner left up
         moveTo(cx - w / 2f, cy - h / 2f)
         lineTo(cx - w / 2f, cy + h * 0.20f)
@@ -206,6 +461,7 @@ private fun DrawScope.drawMagnetShape(cx: Float, cy: Float, size: Float, color: 
         close()
     }
     drawPath(path, color)
+    PathPool.release(path)
     // Pole tips (red top-left & top-right caps)
     drawRoundRect(
         color = Color.White.copy(alpha = 0.85f),
@@ -225,7 +481,7 @@ private fun DrawScope.drawMagnetShape(cx: Float, cy: Float, size: Float, color: 
 private fun DrawScope.drawLightningShape(cx: Float, cy: Float, size: Float, color: Color) {
     val h = size * 0.85f
     val w = size * 0.55f
-    val path = Path().apply {
+    val path = PathPool.acquire().apply {
         moveTo(cx + w * 0.20f, cy - h / 2f)
         lineTo(cx - w * 0.10f, cy - h * 0.10f)
         lineTo(cx + w * 0.05f, cy)
@@ -236,6 +492,7 @@ private fun DrawScope.drawLightningShape(cx: Float, cy: Float, size: Float, colo
     }
     drawPath(path, color)
     drawPath(path, Color.White.copy(alpha = 0.85f), style = Stroke(width = size * 0.03f))
+    PathPool.release(path)
 }
 
 /** Crosshair — concentric circles + 4-direction cross marker. */
@@ -260,7 +517,7 @@ private fun DrawScope.drawCrosshairShape(cx: Float, cy: Float, size: Float, colo
 private fun DrawScope.drawBeamShape(cx: Float, cy: Float, size: Float, color: Color) {
     val w = size * 0.85f
     val amp = size * 0.20f
-    val path = Path().apply {
+    val path = PathPool.acquire().apply {
         val steps = 24
         for (i in 0..steps) {
             val t = i.toFloat() / steps
@@ -276,6 +533,7 @@ private fun DrawScope.drawBeamShape(cx: Float, cy: Float, size: Float, color: Co
         style = Stroke(width = size * 0.06f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
     drawPath(path, Color.White,
         style = Stroke(width = size * 0.025f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+    PathPool.release(path)
     // Origin emitter (left dot)
     drawCircle(color, size * 0.07f, Offset(cx - w / 2f, cy))
     drawCircle(Color.White, size * 0.03f, Offset(cx - w / 2f, cy))
@@ -318,7 +576,7 @@ private fun DrawScope.drawArrowRightShape(cx: Float, cy: Float, size: Float, col
     val halfH = h / 2f
     val w = size * 0.18f
     // Long thin diamond pointing UP (lance tip)
-    val lance = Path().apply {
+    val lance = PathPool.acquire().apply {
         moveTo(cx, cy - halfH)              // tip top
         lineTo(cx + w / 2f, cy - halfH * 0.20f)
         lineTo(cx + w * 0.30f, cy + halfH * 0.85f)  // base right
@@ -328,6 +586,7 @@ private fun DrawScope.drawArrowRightShape(cx: Float, cy: Float, size: Float, col
     }
     drawPath(lance, color)
     drawPath(lance, Color.White.copy(alpha = 0.65f), style = Stroke(width = size * 0.025f))
+    PathPool.release(lance)
     // Motion streak — 3 horizontal lines behind lance (tail) suggesting speed
     for (i in 0 until 3) {
         val ty = cy + halfH * 0.50f + i * size * 0.10f
@@ -346,7 +605,7 @@ private fun DrawScope.drawRingPulseShape(cx: Float, cy: Float, size: Float, colo
     val halfW = size * 0.32f
     val halfH = size * 0.42f
     // Hexagonal gem outline
-    val gemPath = Path().apply {
+    val gemPath = PathPool.acquire().apply {
         moveTo(cx, cy - halfH)
         lineTo(cx + halfW, cy - halfH * 0.45f)
         lineTo(cx + halfW, cy + halfH * 0.45f)
@@ -357,6 +616,7 @@ private fun DrawScope.drawRingPulseShape(cx: Float, cy: Float, size: Float, colo
     }
     drawPath(gemPath, color)
     drawPath(gemPath, Color.White.copy(alpha = 0.6f), style = Stroke(width = size * 0.025f))
+    PathPool.release(gemPath)
     // Internal facet lines (4 lines splitting top half + bottom into facets)
     drawLine(Color.White.copy(alpha = 0.55f),
         Offset(cx, cy - halfH), Offset(cx + halfW, cy - halfH * 0.45f),
@@ -374,13 +634,14 @@ private fun DrawScope.drawRingPulseShape(cx: Float, cy: Float, size: Float, colo
         Offset(cx, cy + halfH), Offset(cx - halfW, cy + halfH * 0.45f),
         strokeWidth = size * 0.015f)
     // Bright highlight upper facet
-    val hlPath = Path().apply {
+    val hlPath = PathPool.acquire().apply {
         moveTo(cx, cy - halfH + size * 0.04f)
         lineTo(cx + halfW * 0.65f, cy - halfH * 0.40f)
         lineTo(cx + halfW * 0.30f, cy - halfH * 0.18f)
         close()
     }
     drawPath(hlPath, Color.White.copy(alpha = 0.45f))
+    PathPool.release(hlPath)
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -416,7 +677,7 @@ private fun DrawScope.drawCross(cx: Float, cy: Float, size: Float, color: Color)
 
 private fun DrawScope.drawOctagon(cx: Float, cy: Float, size: Float, color: Color) {
     val r = size * 0.42f
-    val path = Path().apply {
+    val path = PathPool.acquire().apply {
         // 8-vertex polygon, regular, rotated 22.5° so flat edges point cardinal.
         val angleStep = 2.0 * Math.PI / 8.0
         val startAngle = -Math.PI / 8.0                               // -22.5°
@@ -429,6 +690,7 @@ private fun DrawScope.drawOctagon(cx: Float, cy: Float, size: Float, color: Colo
         close()
     }
     drawPath(path = path, color = color)
+    PathPool.release(path)
     // Inner ring (white stroke) for shield-look detail
     drawCircle(
         color = Color.White.copy(alpha = 0.75f),
@@ -480,13 +742,14 @@ private fun DrawScope.drawTripleBars(cx: Float, cy: Float, size: Float, color: C
     // 3 prong spikes
     for (i in -1..1) {
         val tipX = cx + i * (barW + gap * 0.8f)
-        val prong = Path().apply {
+        val prong = PathPool.acquire().apply {
             moveTo(tipX, tipY)
             lineTo(tipX + barW * 0.55f, baseY)
             lineTo(tipX - barW * 0.55f, baseY)
             close()
         }
         drawPath(prong, color)
+        PathPool.release(prong)
     }
     // Cross-bar connecting prongs
     drawRect(color,
@@ -505,7 +768,7 @@ private fun DrawScope.drawTripleBars(cx: Float, cy: Float, size: Float, color: C
 private fun DrawScope.drawStar(cx: Float, cy: Float, size: Float, color: Color) {
     val outerR = size * 0.45f
     val innerR = outerR * 0.45f
-    val path = Path().apply {
+    val path = PathPool.acquire().apply {
         // 10-vertex alternating outer/inner radii, 5-point star, rotated so
         // one point faces up (-90°).
         val startAngle = -Math.PI / 2.0
@@ -520,6 +783,7 @@ private fun DrawScope.drawStar(cx: Float, cy: Float, size: Float, color: Color) 
         close()
     }
     drawPath(path = path, color = color)
+    PathPool.release(path)
     // Center dot — bright white core
     drawCircle(
         color = Color.White.copy(alpha = 0.80f),
@@ -536,7 +800,7 @@ private fun DrawScope.drawHeart(cx: Float, cy: Float, size: Float, color: Color)
     val rightLobeX = cx + lobeR * 0.85f
     val tip = Offset(cx, cy + size * 0.42f)
     // Triangle connecting lobes' bottoms to tip
-    val path = Path().apply {
+    val path = PathPool.acquire().apply {
         // Start at left lobe outer edge
         val leftEdge = Offset(leftLobeX - lobeR, lobeY)
         moveTo(leftEdge.x, leftEdge.y)
@@ -549,6 +813,7 @@ private fun DrawScope.drawHeart(cx: Float, cy: Float, size: Float, color: Color)
         close()
     }
     drawPath(path = path, color = color)
+    PathPool.release(path)
     // Two filled lobes (circles) to ROUND the top edges of the polygon.
     drawCircle(color = color, radius = lobeR, center = Offset(leftLobeX, lobeY))
     drawCircle(color = color, radius = lobeR, center = Offset(rightLobeX, lobeY))
@@ -608,7 +873,7 @@ private fun DrawScope.drawShardShape(cx: Float, cy: Float, size: Float, color: C
         Triple(cx + size * 0.22f, cy + size * 0.10f, size * 0.13f),   // right small
     )
     for ((gx, gy, gr) in gems) {
-        val gem = Path().apply {
+        val gem = PathPool.acquire().apply {
             moveTo(gx, gy - gr)
             lineTo(gx + gr * 0.7f, gy)
             lineTo(gx, gy + gr)
@@ -617,6 +882,7 @@ private fun DrawScope.drawShardShape(cx: Float, cy: Float, size: Float, color: C
         }
         drawPath(gem, color)
         drawPath(gem, Color.White.copy(alpha = 0.7f), style = Stroke(width = size * 0.015f))
+        PathPool.release(gem)
         // Diagonal facet highlight
         drawLine(Color.White.copy(alpha = 0.6f),
             Offset(gx - gr * 0.3f, gy - gr * 0.4f),
@@ -648,7 +914,7 @@ private fun DrawScope.drawAuraRingShape(cx: Float, cy: Float, size: Float, color
     drawCircle(Color.White.copy(alpha = 0.70f), lobeR * 0.30f,
         Offset(cx + offsetD * 0.95f - lobeR * 0.25f, centerY + offsetD * 0.65f - lobeR * 0.20f))
     // Stem curving down
-    val stemPath = Path().apply {
+    val stemPath = PathPool.acquire().apply {
         moveTo(cx, centerY + offsetD * 0.50f)
         cubicTo(cx + size * 0.05f, cy + size * 0.30f,
             cx + size * 0.08f, cy + size * 0.40f,
@@ -656,6 +922,7 @@ private fun DrawScope.drawAuraRingShape(cx: Float, cy: Float, size: Float, color
     }
     drawPath(stemPath, color, style = Stroke(width = size * 0.05f,
         cap = androidx.compose.ui.graphics.StrokeCap.Round))
+    PathPool.release(stemPath)
 }
 
 /** Phase diamond — diamond outline with ghost stutter (double offset). */
@@ -663,7 +930,7 @@ private fun DrawScope.drawPhaseDiamondShape(cx: Float, cy: Float, size: Float, c
     val halfW = size * 0.35f
     val halfH = size * 0.42f
     fun makeDiamond(ox: Float, oy: Float, alpha: Float) {
-        val p = Path().apply {
+        val p = PathPool.acquire().apply {
             moveTo(cx + ox, cy + oy - halfH)
             lineTo(cx + ox + halfW, cy + oy)
             lineTo(cx + ox, cy + oy + halfH)
@@ -671,6 +938,7 @@ private fun DrawScope.drawPhaseDiamondShape(cx: Float, cy: Float, size: Float, c
             close()
         }
         drawPath(p, color.copy(alpha = alpha), style = Stroke(width = size * 0.06f))
+        PathPool.release(p)
     }
     // Ghost copy offset top-right
     makeDiamond(size * 0.08f, -size * 0.05f, 0.40f)
@@ -702,7 +970,7 @@ private fun DrawScope.drawSpreadFanShape(cx: Float, cy: Float, size: Float, colo
         val rad = angle * Math.PI / 180.0
         val ax = cx + dx
         // Use simple chevron
-        val path = Path().apply {
+        val path = PathPool.acquire().apply {
             val tx = (ax + h * kotlin.math.sin(rad)).toFloat()
             val ty = (cy - h * kotlin.math.cos(rad)).toFloat()
             val bx1 = (ax + w * 0.5f * kotlin.math.cos(rad)).toFloat()
@@ -716,6 +984,7 @@ private fun DrawScope.drawSpreadFanShape(cx: Float, cy: Float, size: Float, colo
             close()
         }
         drawPath(path, color)
+        PathPool.release(path)
     }
     drawArrow(0f, 0f)
     drawArrow(-size * 0.25f, -25f)
@@ -735,21 +1004,21 @@ private fun DrawScope.drawCrystalSparkShape(cx: Float, cy: Float, size: Float, c
     val bladeEndX = cx + size * 0.35f
     val bladeEndY = cy - size * 0.30f
     // Spine path (curved)
-    val spinePath = Path().apply {
+    val spinePath = PathPool.acquire().apply {
         moveTo(bladeStartX, bladeStartY)
         cubicTo(bladeStartX + size * 0.20f, bladeStartY - size * 0.15f,
             bladeEndX - size * 0.20f, bladeEndY + size * 0.05f,
             bladeEndX, bladeEndY)
     }
     // Edge path (parallel curve below spine)
-    val edgePath = Path().apply {
+    val edgePath = PathPool.acquire().apply {
         moveTo(bladeStartX + size * 0.05f, bladeStartY + size * 0.08f)
         cubicTo(bladeStartX + size * 0.25f, bladeStartY - size * 0.05f,
             bladeEndX - size * 0.15f, bladeEndY + size * 0.13f,
             bladeEndX + size * 0.08f, bladeEndY + size * 0.05f)
     }
     // Blade fill (filled region between spine and edge)
-    val bladePath = Path().apply {
+    val bladePath = PathPool.acquire().apply {
         moveTo(bladeStartX, bladeStartY)
         cubicTo(bladeStartX + size * 0.20f, bladeStartY - size * 0.15f,
             bladeEndX - size * 0.20f, bladeEndY + size * 0.05f,
@@ -763,6 +1032,9 @@ private fun DrawScope.drawCrystalSparkShape(cx: Float, cy: Float, size: Float, c
     drawPath(bladePath, color)
     drawPath(spinePath, Color.White.copy(alpha = 0.75f),
         style = Stroke(width = size * 0.015f))
+    PathPool.release(bladePath)
+    PathPool.release(spinePath)
+    PathPool.release(edgePath)
     // Tsuba (round guard at handle base)
     drawCircle(color, size * 0.06f, Offset(bladeStartX - size * 0.04f, bladeStartY + size * 0.05f))
     // Handle (short rect bottom-left, wrapped grip pattern)
@@ -828,13 +1100,14 @@ private fun DrawScope.drawArrowCycleShape(cx: Float, cy: Float, size: Float, col
     val ang0 = 30.0 * Math.PI / 180.0
     val ax = cx + (r * kotlin.math.cos(ang0)).toFloat()
     val ay = cy + (r * kotlin.math.sin(ang0)).toFloat()
-    val arr = Path().apply {
+    val arr = PathPool.acquire().apply {
         moveTo(ax + size * 0.10f, ay - size * 0.05f)
         lineTo(ax + size * 0.18f, ay + size * 0.08f)
         lineTo(ax - size * 0.05f, ay + size * 0.10f)
         close()
     }
     drawPath(arr, color)
+    PathPool.release(arr)
     drawCircle(Color.White.copy(alpha = 0.7f), size * 0.06f, Offset(cx, cy))
 }
 
@@ -843,7 +1116,7 @@ private fun DrawScope.drawBigDotShape(cx: Float, cy: Float, size: Float, color: 
     val r = size * 0.42f
     // Irregular rock outline (8-vertex with noise)
     val noise = floatArrayOf(1.0f, 0.92f, 1.05f, 0.88f, 1.0f, 0.95f, 1.02f, 0.9f)
-    val path = Path().apply {
+    val path = PathPool.acquire().apply {
         for (i in 0 until 8) {
             val a = i * Math.PI / 4.0
             val rr = r * noise[i]
@@ -855,6 +1128,7 @@ private fun DrawScope.drawBigDotShape(cx: Float, cy: Float, size: Float, color: 
     }
     drawPath(path, color)
     drawPath(path, Color.Black.copy(alpha = 0.45f), style = Stroke(width = size * 0.03f))
+    PathPool.release(path)
     // 3 craters (small darker circles)
     drawCircle(Color.Black.copy(alpha = 0.40f), size * 0.07f, Offset(cx - r * 0.30f, cy - r * 0.20f))
     drawCircle(Color.Black.copy(alpha = 0.40f), size * 0.05f, Offset(cx + r * 0.35f, cy + r * 0.05f))
@@ -876,7 +1150,7 @@ private fun DrawScope.drawRageFangShape(cx: Float, cy: Float, size: Float, color
     // 5 fang teeth pointing down
     val toothCount = 5
     val toothW = w / toothCount
-    val path = Path().apply {
+    val path = PathPool.acquire().apply {
         moveTo(cx - w / 2f, cy - h / 2f)
         // Top edge (lip)
         for (i in 0..toothCount) {
@@ -897,6 +1171,7 @@ private fun DrawScope.drawRageFangShape(cx: Float, cy: Float, size: Float, color
         close()
     }
     drawPath(path, color)
+    PathPool.release(path)
     // Inner highlight: white drip down center
     drawCircle(Color.White.copy(alpha = 0.7f), size * 0.05f,
         Offset(cx, cy - h * 0.10f))
@@ -932,13 +1207,14 @@ private fun DrawScope.drawHealingFlaskShape(cx: Float, cy: Float, size: Float, c
     val heartLobeR = size * 0.04f
     drawCircle(color, heartLobeR, Offset(cx - heartLobeR * 0.85f, cy + bottleH * 0.05f))
     drawCircle(color, heartLobeR, Offset(cx + heartLobeR * 0.85f, cy + bottleH * 0.05f))
-    val heartTri = Path().apply {
+    val heartTri = PathPool.acquire().apply {
         moveTo(cx - heartLobeR * 1.85f, cy + bottleH * 0.08f)
         lineTo(cx + heartLobeR * 1.85f, cy + bottleH * 0.08f)
         lineTo(cx, cy + bottleH * 0.20f)
         close()
     }
     drawPath(heartTri, color)
+    PathPool.release(heartTri)
     // Bubble dots inside liquid (3 small)
     for (i in 0 until 3) {
         drawCircle(Color.White.copy(alpha = 0.5f), size * 0.02f,

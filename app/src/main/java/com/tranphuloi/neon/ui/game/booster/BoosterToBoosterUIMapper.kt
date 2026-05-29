@@ -114,6 +114,25 @@ class BoosterToBoosterUIMapper {
             BoosterPreviewSpec(BoosterShape.AURA_RING, HEALING_AURA_TINT_ARGB, "+")
         BoosterType.DOUBLE_FIRE ->
             BoosterPreviewSpec(BoosterShape.DOUBLE_ARROW, DOUBLE_FIRE_TINT_ARGB, "⚯")
+        // Wave 11a — 3 new boosters
+        BoosterType.REGEN_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.REGEN_PULSE, REGEN_TINT_ARGB, "♻")
+        BoosterType.TIME_FREEZE_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.FREEZE_FLAKE, TIME_FREEZE_TINT_ARGB, "❄")
+        BoosterType.MINI_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.MINI_RING, MINI_TINT_ARGB, "◌")
+        BoosterType.VAMPIRE_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.VAMPIRE_FANG, VAMPIRE_TINT_ARGB, "Ѵ")
+        BoosterType.GHOST_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.GHOST_TRAIL, GHOST_TINT_ARGB, "ѻ")
+        BoosterType.GRAVITY_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.GRAVITY_WELL, GRAVITY_TINT_ARGB, "⊚")
+        BoosterType.REFLECT_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.REFLECT_BUMPER, REFLECT_TINT_ARGB, "⇋")
+        BoosterType.CHAIN_LIGHTNING_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.CHAIN_BOLT, CHAIN_LIGHTNING_TINT_ARGB, "⚜")
+        BoosterType.CLONE_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.CLONE_PAIR, CLONE_TINT_ARGB, "ǁ")
     }
 
     // ─── 1-line delegates (kept for back-compat with existing call sites + tests) ───
@@ -126,7 +145,7 @@ class BoosterToBoosterUIMapper {
         // ARGB tints — used both for in-game booster glow (BoosterCanvas) and
         // pickup-popup activation text (GameState.onBulletTypeActivated). Each
         // is fully opaque (alpha=FF). Hues picked to stay distinct from base-6
-        // sprite hues so InfoScreen preview can render all 27 BoosterTypes with
+        // sprite hues so InfoScreen preview can render all 35 BoosterTypes with
         // unique color identity (the four labeled "non-base disambig" sit in
         // hue ranges that would otherwise collide with HEALTH/SHIELD/REVIVE/
         // ULTIMATE sprite hues).
@@ -153,5 +172,16 @@ class BoosterToBoosterUIMapper {
         const val KAMEHAMEHA_TINT_ARGB: Long = 0xFF60E0FFL                // sky cyan beam
         const val ATOMIC_TINT_ARGB: Long = 0xFF80FF80L                    // radioactive green
         const val SPLIT_TINT_ARGB: Long = 0xFFB060FFL                     // purple multi-shard
+
+        // Wave 11a — 3 new booster tints
+        const val REGEN_TINT_ARGB: Long = 0xFF60E090L                     // soft pastel green (slow passive heal — distinct from HEALING_AURA sea-green 0x20D090)
+        const val TIME_FREEZE_TINT_ARGB: Long = 0xFFA0F0FFL               // ice white-cyan (frozen world)
+        const val MINI_TINT_ARGB: Long = 0xFFD0A0FFL                      // pale lavender (small + quick)
+        const val VAMPIRE_TINT_ARGB: Long = 0xFF8B0028L                   // dark blood crimson (distinct from BERSERK 0xFF3030 lighter red)
+        const val GHOST_TINT_ARGB: Long = 0xFFA0FFE0L                     // pale ghost-mint (intangible essence — distinct from PHASE_SHIELD pale-cyan + BOUNCE mint)
+        const val GRAVITY_TINT_ARGB: Long = 0xFF8060A0L                   // deep cosmic purple (gravity well — distinct from MAGNET violet which is more red-leaning)
+        const val REFLECT_TINT_ARGB: Long = 0xFFE0E060L                   // pale yellow bumper (distinct from SCORE_X3 gold 0xFFD700 + ZIGZAG yellow 0xFFE040)
+        const val CHAIN_LIGHTNING_TINT_ARGB: Long = 0xFF80B0FFL           // electric arc blue (chain bolt — distinct from PLASMA 0xFF2050FF deeper blue + KAMEHAMEHA 0xFF60E0FF sky cyan)
+        const val CLONE_TINT_ARGB: Long = 0xFFD8C870L                     // pale champagne gold (phantom-twin — distinct from SCORE_X3 0xFFFFD700 + ULTIMATE 0xFFFFD040)
     }
 }

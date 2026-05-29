@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.tranphuloi.neon.R
 import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.utils.Logger
+import com.tranphuloi.neon.common.PathPool
 
 @Composable
 fun ButtonsMovement(
@@ -168,7 +169,7 @@ private fun MovementButton(
             val w = size.width
             val h = size.height
             // 3-point chevron: left side has narrow tip pointing left, right side mirrored.
-            val path = Path().apply {
+            val path = PathPool.acquire().apply {
                 if (pointsLeft) {
                     moveTo(w * 0.7f, h * 0.18f)
                     lineTo(w * 0.32f, h * 0.5f)
@@ -188,6 +189,7 @@ private fun MovementButton(
                     join = StrokeJoin.Round,
                 ),
             )
+            PathPool.release(path)
         }
         // contentDescription via a hidden semantic — Canvas alone doesn't expose it.
         // Suppressed: gesture pointerInput on parent Box already provides accessibility.

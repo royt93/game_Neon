@@ -86,6 +86,7 @@ fun GameWorld(
     magnetRadius: Float,
     damageNumbers: List<DamageNumber>,
     impactSparks: List<com.tranphuloi.neon.ui.game.spark.ImpactSpark>,
+    trailLines: List<com.tranphuloi.neon.ui.game.spark.TrailLine>,
     pickupBursts: List<com.tranphuloi.neon.ui.game.spark.PickupBurst>,
     pickupPopups: List<PickupPopup>,
     bossIntroShownAtMillis: Long,
@@ -309,6 +310,12 @@ fun GameWorld(
         val implosionT = if (destroyElapsed in 0L..200L) destroyElapsed / 200f else -1f
         val shipImplodeScale = if (implosionT >= 0f) 1f - 0.7f * implosionT else 1f
         val shipImplodeAlpha = if (implosionT >= 0f) 1f - 0.3f * implosionT else 1f
+        // Wave 11a — MINI buff shrinks the ship to 0.6× while active. Multiplies
+        // with spawn + implosion scales so all 3 effects compose smoothly.
+        val miniScale = if (ship.miniEndMillis > System.currentTimeMillis()) 0.6f else 1f
+        // Wave 11a Phase 2 — GHOST buff renders ship at 0.5 alpha (translucent
+        // intangible). Multiplied into spawn + implosion alphas.
+        val ghostAlpha = if (ship.ghostEndMillis > System.currentTimeMillis()) 0.5f else 1f
         if (shipAlive) Box(
             modifier = Modifier
                 .size(ship.shieldSize.dp)
@@ -317,9 +324,9 @@ fun GameWorld(
                     // Spawn cinematic transforms — apply alpha + scale on the outer
                     // Box so shield aura scales together. Rotation is moved to the
                     // Image directly (below) so it pivots around the ship's center.
-                    alpha = ship.spawnAlpha * shipImplodeAlpha
-                    scaleX = ship.spawnScale * shipImplodeScale
-                    scaleY = ship.spawnScale * shipImplodeScale
+                    alpha = ship.spawnAlpha * shipImplodeAlpha * ghostAlpha
+                    scaleX = ship.spawnScale * shipImplodeScale * miniScale
+                    scaleY = ship.spawnScale * shipImplodeScale * miniScale
                 }
         ) {
             if (ship.shieldEnabled) {
@@ -421,6 +428,38 @@ fun GameWorld(
                 )
             }
         }
+        // Wave 11a Phase 4 — CLONE_BOOSTER phantom-twin sprite at +50dp offset.
+        // Renders translucent ship copy (alpha 0.55) alongside main ship.
+        // LasersController already fires duplicate column at this offset.
+        if (shipAlive && ship.cloneEndMillis > System.currentTimeMillis()) {
+            val cloneOffset = 50f
+            Box(
+                modifier = Modifier
+                    .size(ship.shieldSize.dp)
+                    .offset(x = (ship.xOffset + cloneOffset).dp, y = ship.yOffset.dp)
+                    .graphicsLayer {
+                        alpha = ship.spawnAlpha * shipImplodeAlpha * ghostAlpha * 0.55f
+                        scaleX = ship.spawnScale * shipImplodeScale * miniScale
+                        scaleY = ship.spawnScale * shipImplodeScale * miniScale
+                    },
+                contentAlignment = androidx.compose.ui.Alignment.Center,
+            ) {
+                Canvas(
+                    modifier = Modifier
+                        .width(ship.width.dp)
+                        .height(ship.height.dp)
+                        .graphicsLayer {
+                            rotationZ = ship.spawnRotation + ship.bankRotation
+                        }
+                ) {
+                    drawShipVector(
+                        color = shipGlowColor,
+                        laserBoosterEnabled = ship.laserBoosterEnabled,
+                        shape = selectedShipShape,
+                    )
+                }
+            }
+        }
         val nowMillis = System.currentTimeMillis()
         // Round 57 — single Canvas pass replaces the prior per-enemy Compose
         // subtree (Column + 1..N Images for sprite + flash + status-effect tints
@@ -488,6 +527,8 @@ fun GameWorld(
         }
         // Laser impact spark burst at every enemy hit point.
         ImpactSparkOverlay(sparks = impactSparks)
+        // Wave 11a Phase 4 — REFLECT bounce arcs + CHAIN_LIGHTNING bolts.
+        TrailLineOverlay(lines = trailLines)
         // Pickup burst (ring shockwave + 8 sparkles) on item collected.
         PickupBurstOverlay(bursts = pickupBursts)
         // Round 41 (29x.2) — active mines. Pulse alpha at ~2.5Hz so it reads as "armed".

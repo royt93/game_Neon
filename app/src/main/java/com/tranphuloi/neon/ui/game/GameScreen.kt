@@ -461,12 +461,14 @@ fun GameScreen(
                 .align(Alignment.TopStart)
                 .zIndex(300f)
         )
-        // Round 35 (42x) — show stacked roguelike buffs as small chip row
-        // below IndicatorStatus.
+        // Show stacked roguelike buffs as small chip row below IndicatorStatus.
+        // Top padding clears the IndicatorStatus Left column max height: top
+        // pad 16 + HP pill 60 + HP bar 12 + mineral row 28 + revive 28 + combo
+        // ≈ 170dp. Using 178dp gives a 4-8dp visual gap before the chip row.
         if (hudVisible) com.tranphuloi.neon.ui.game.controls.ActiveBuffsHud(
             modifier = Modifier
                 .align(Alignment.TopStart)
-                .padding(top = 90.dp)
+                .padding(top = 178.dp)
                 .zIndex(300f),
         )
         if (hudVisible) ButtonSettings(
@@ -589,6 +591,7 @@ fun GameScreen(
                 magnetRadius = gameState.magnetRadius,
                 damageNumbers = gameState.damageNumbers,
                 impactSparks = gameState.impactSparks,
+                trailLines = gameState.trailLines,
                 pickupBursts = gameState.pickupBursts,
                 pickupPopups = gameState.pickupPopups,
                 bossIntroShownAtMillis = gameState.bossIntroShownAtMillis,

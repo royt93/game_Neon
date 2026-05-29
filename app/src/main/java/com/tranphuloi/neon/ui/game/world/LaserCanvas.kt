@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.tranphuloi.neon.common.PathPool
 import com.tranphuloi.neon.common.drawSoftHalo
 import com.tranphuloi.neon.ui.game.ship.laser.BulletType
 import com.tranphuloi.neon.ui.game.ship.laser.LaserUI
@@ -174,20 +175,21 @@ private fun DrawScope.drawHomingBody(xPx: Float, yPx: Float, wPx: Float, hPx: Fl
 
 private fun DrawScope.drawNeedleBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {
     val cx = xPx + wPx / 2f
-    val path = androidx.compose.ui.graphics.Path().apply {
+    val path = PathPool.acquire().apply {
         moveTo(cx, yPx)                                  // pointed top
         lineTo(xPx + wPx, yPx + hPx)
         lineTo(xPx, yPx + hPx)
         close()
     }
     drawPath(path, glow)
-    val corePath = androidx.compose.ui.graphics.Path().apply {
+    val corePath = PathPool.acquire().apply {
         moveTo(cx, yPx + hPx * 0.15f)
         lineTo(cx + wPx * 0.25f, yPx + hPx * 0.95f)
         lineTo(cx - wPx * 0.25f, yPx + hPx * 0.95f)
         close()
     }
     drawPath(corePath, Color.White.copy(alpha = 0.85f))
+    PathPool.release(corePath)
 }
 
 private fun DrawScope.drawOrbBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {
@@ -202,13 +204,14 @@ private fun DrawScope.drawFireBody(xPx: Float, yPx: Float, wPx: Float, hPx: Floa
     drawCapsuleBody(xPx, yPx, wPx, hPx * 0.75f, wPx / 2f, glow)
     // Flame trail at bottom
     val cx = xPx + wPx / 2f
-    val path = androidx.compose.ui.graphics.Path().apply {
+    val path = PathPool.acquire().apply {
         moveTo(xPx, yPx + hPx * 0.75f)
         lineTo(cx, yPx + hPx)
         lineTo(xPx + wPx, yPx + hPx * 0.75f)
         close()
     }
     drawPath(path, Color(0xFFFFD040).copy(alpha = 0.9f))
+    PathPool.release(path)
 }
 
 private fun DrawScope.drawSmokeBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {
@@ -222,7 +225,7 @@ private fun DrawScope.drawZigzagBody(xPx: Float, yPx: Float, wPx: Float, hPx: Fl
     // Use wider stroke + zigzag path. wPx scaled wider for visibility.
     val widerW = wPx * 1.8f
     val cx = xPx + wPx / 2f
-    val path = androidx.compose.ui.graphics.Path().apply {
+    val path = PathPool.acquire().apply {
         val step = hPx / 4f
         moveTo(cx - widerW / 2, yPx)
         lineTo(cx + widerW / 2, yPx + step)
@@ -235,6 +238,8 @@ private fun DrawScope.drawZigzagBody(xPx: Float, yPx: Float, wPx: Float, hPx: Fl
         cap = androidx.compose.ui.graphics.StrokeCap.Round,
         join = androidx.compose.ui.graphics.StrokeJoin.Round,
     ))
+    PathPool.release(path)
+    PathPool.release(path)
 }
 
 private fun DrawScope.drawBeamBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {

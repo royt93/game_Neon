@@ -20,6 +20,7 @@ import com.tranphuloi.neon.common.drawSoftHalo
 import com.tranphuloi.neon.ui.game.spaceObject.SpaceObjectUI
 import kotlin.math.cos
 import kotlin.math.sin
+import com.tranphuloi.neon.common.PathPool
 
 /**
  * Round 66b — Pure-vector space-rock rendering. Replaces drawImage of
@@ -148,7 +149,7 @@ private fun DrawScope.drawAsteroidShape(
     val radii = FloatArray(vertexCount) {
         baseR * (1f - radiusVariance / 2f + rand.nextFloat() * radiusVariance)
     }
-    val outline = Path().apply {
+    val outline = PathPool.acquire().apply {
         for (i in 0 until vertexCount) {
             val x = cx + radii[i] * cos(angles[i])
             val y = cy + radii[i] * sin(angles[i])
@@ -162,6 +163,7 @@ private fun DrawScope.drawAsteroidShape(
         color = family.stroke,
         style = Stroke(width = baseR * 0.10f),
     )
+    PathPool.release(outline)
 
     // Crater style per family.
     when (family.craterStyle) {

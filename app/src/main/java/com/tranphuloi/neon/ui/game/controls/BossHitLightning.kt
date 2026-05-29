@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonGold
 import kotlinx.coroutines.delay
+import com.tranphuloi.neon.common.PathPool
 
 /**
  * Round 79 (#4 fix) — Full-screen lightning when player bullet hits boss.
@@ -86,7 +87,7 @@ fun BossHitLightning(
             }
 
             // 6-segment zigzag with perpendicular jitter.
-            val path = Path().apply {
+            val path = PathPool.acquire().apply {
                 moveTo(sx, sy)
                 val segments = 7
                 val jitterRange = 36f.dp.toPx()
@@ -120,6 +121,7 @@ fun BossHitLightning(
                 color = Color.White.copy(alpha = boltAlpha),
                 style = Stroke(width = 1.8.dp.toPx(), cap = StrokeCap.Round),
             )
+            PathPool.release(path)
         }
     }
 }

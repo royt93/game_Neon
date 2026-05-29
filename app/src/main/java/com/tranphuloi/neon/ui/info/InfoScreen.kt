@@ -57,6 +57,7 @@ import com.tranphuloi.neon.ui.game.booster.BoosterToBoosterUIMapper
 import com.tranphuloi.neon.ui.game.booster.BoosterType
 import com.tranphuloi.neon.ui.game.ship.laser.BulletType
 import com.tranphuloi.neon.ui.game.ship.laser.BulletTypeColorMap
+import com.tranphuloi.neon.common.PathPool
 
 private enum class InfoTab(val label: String, val color: Color) {
     BULLETS("ĐẠN", NeonCyan),
@@ -322,20 +323,22 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawCapsuleBullet(
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawNeedleBullet(
     cx: Float, cy: Float, w: Float, h: Float, color: Color,
 ) {
-    val path = androidx.compose.ui.graphics.Path().apply {
+    val path = PathPool.acquire().apply {
         moveTo(cx, cy - h / 2)               // top tip
         lineTo(cx + w / 2, cy + h / 2)       // bottom-right
         lineTo(cx - w / 2, cy + h / 2)       // bottom-left
         close()
     }
     drawPath(path, color)
-    val corePath = androidx.compose.ui.graphics.Path().apply {
+    PathPool.release(path)
+    val corePath = PathPool.acquire().apply {
         moveTo(cx, cy - h / 2 + h * 0.1f)
         lineTo(cx + w / 4, cy + h / 2 - h * 0.1f)
         lineTo(cx - w / 4, cy + h / 2 - h * 0.1f)
         close()
     }
     drawPath(corePath, Color.White.copy(alpha = 0.85f))
+    PathPool.release(corePath)
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawOrbBullet(
@@ -357,15 +360,16 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFireBullet(
 ) {
     drawCapsuleBullet(cx, cy - h * 0.1f, w, h * 0.85f, color)
     // Flame trail behind (below capsule)
-    val flamePath = androidx.compose.ui.graphics.Path().apply {
+    val flamePath = PathPool.acquire().apply {
         moveTo(cx - w / 2, cy + h / 2 - h * 0.1f)
         lineTo(cx, cy + h * 0.65f)
         lineTo(cx + w / 2, cy + h / 2 - h * 0.1f)
         close()
     }
     drawPath(flamePath, color.copy(alpha = 0.7f))
+    PathPool.release(flamePath)
     drawPath(
-        androidx.compose.ui.graphics.Path().apply {
+        PathPool.acquire().apply {
             moveTo(cx - w / 4, cy + h / 2 - h * 0.1f)
             lineTo(cx, cy + h * 0.5f)
             lineTo(cx + w / 4, cy + h / 2 - h * 0.1f)
@@ -428,7 +432,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSmokeBullet(
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawZigzagBullet(
     cx: Float, cy: Float, w: Float, h: Float, color: Color,
 ) {
-    val path = androidx.compose.ui.graphics.Path().apply {
+    val path = PathPool.acquire().apply {
         val step = h / 5f
         moveTo(cx - w / 2, cy - h / 2)
         for (i in 1..5) {
@@ -440,6 +444,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawZigzagBullet(
         width = w * 0.18f, cap = androidx.compose.ui.graphics.StrokeCap.Round,
         join = androidx.compose.ui.graphics.StrokeJoin.Round,
     ))
+    PathPool.release(path)
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBeamBullet(
@@ -597,7 +602,7 @@ private fun ShipTab(onOpenShipPicker: () -> Unit) {
                 "+ 10 cây nhánh + 2 cây tối thượng (legendary). " +
                 "Tất cả áp dụng vĩnh viễn cho mọi run.",
             iconDraw = { c ->
-                val path = androidx.compose.ui.graphics.Path().apply {
+                val path = PathPool.acquire().apply {
                     moveTo(c.width / 2, c.height * 0.15f)
                     lineTo(c.width * 0.78f, c.height / 2)
                     lineTo(c.width * 0.6f, c.height / 2)
@@ -608,6 +613,7 @@ private fun ShipTab(onOpenShipPicker: () -> Unit) {
                     close()
                 }
                 drawPath(path, NeonViolet)
+                PathPool.release(path)
             },
         )
         Spacer(modifier = Modifier.height(6.dp))
@@ -941,7 +947,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawChevronPreview(
     val cx = w / 2; val cy = h / 2
     val halfW = w * 0.40f
     val drawOne: (Float) -> Unit = { yShift ->
-        val path = androidx.compose.ui.graphics.Path().apply {
+        val path = PathPool.acquire().apply {
             moveTo(cx - halfW, cy - h * 0.20f + yShift)
             lineTo(cx, cy + h * 0.18f + yShift)
             lineTo(cx + halfW, cy - h * 0.20f + yShift)
@@ -951,6 +957,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawChevronPreview(
             close()
         }
         drawPath(path, body)
+        PathPool.release(path)
     }
     drawOne(0f)
     if (variant == 1) drawOne(h * 0.28f)
@@ -964,7 +971,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSpikePreviewV(
     val cx = w / 2; val cy = h / 2
     val outerR = minOf(w, h) * (0.40f + variant * 0.05f)
     val innerR = outerR * 0.40f
-    val path = androidx.compose.ui.graphics.Path().apply {
+    val path = PathPool.acquire().apply {
         for (i in 0 until 16) {
             val angle = -Math.PI / 2 + i * Math.PI / 8
             val r = if (i % 2 == 0) outerR else innerR
@@ -977,6 +984,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSpikePreviewV(
     drawPath(path, body)
     drawPath(path, accent,
         style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
+    PathPool.release(path)
     drawCircle(accent, innerR * 0.55f, androidx.compose.ui.geometry.Offset(cx, cy))
 }
 
@@ -987,7 +995,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSpikePreview(
     val cx = w / 2; val cy = h / 2
     val outerR = minOf(w, h) * 0.45f
     val innerR = outerR * 0.40f
-    val path = androidx.compose.ui.graphics.Path().apply {
+    val path = PathPool.acquire().apply {
         for (i in 0 until 16) {
             val angle = -Math.PI / 2 + i * Math.PI / 8
             val r = if (i % 2 == 0) outerR else innerR
@@ -1000,6 +1008,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSpikePreview(
     drawPath(path, body)
     drawPath(path, accent,
         style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
+        PathPool.release(path)
     drawCircle(accent, innerR * 0.55f, androidx.compose.ui.geometry.Offset(cx, cy))
 }
 
@@ -1013,7 +1022,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyDart(
     val halfW = w * 0.42f; val halfH = h * 0.45f
     // variant 0..4 — back notch depth tăng dần (matches in-game drawDart).
     val notch = h * (0.10f + variant * 0.04f)
-    val path = androidx.compose.ui.graphics.Path().apply {
+    val path = PathPool.acquire().apply {
         moveTo(cx, cy + halfH)                              // tip down
         lineTo(cx + halfW, cy - halfH)                      // top-right
         lineTo(cx, cy - halfH + notch)                      // back notch (chevron)
@@ -1023,6 +1032,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyDart(
     drawPath(path, body)
     drawPath(path, accent,
         style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.06f))
+    PathPool.release(path)
     drawCircle(accent, w * 0.10f, androidx.compose.ui.geometry.Offset(cx, cy + h * 0.10f))
 }
 
@@ -1034,7 +1044,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyHexagon(
     val rx = w * 0.45f; val ry = h * 0.50f
     // variant 0..3 — rotation 10° per step (matches in-game drawHexagon).
     val baseAngle = Math.toRadians((variant * 10).toDouble())
-    val path = androidx.compose.ui.graphics.Path().apply {
+    val path = PathPool.acquire().apply {
         for (i in 0 until 6) {
             val a = baseAngle + 2.0 * Math.PI * i / 6.0
             val x = cx + (rx * kotlin.math.cos(a)).toFloat()
@@ -1046,6 +1056,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyHexagon(
     drawPath(path, body)
     drawPath(path, accent,
         style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.06f))
+    PathPool.release(path)
     drawCircle(accent, w * 0.12f, androidx.compose.ui.geometry.Offset(cx, cy))
 }
 
@@ -1055,7 +1066,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyDiamond(
     val w = canvasSize.width; val h = canvasSize.height
     val cx = w / 2; val cy = h / 2
     val halfW = w * 0.45f; val halfH = h * 0.50f
-    val path = androidx.compose.ui.graphics.Path().apply {
+    val path = PathPool.acquire().apply {
         moveTo(cx, cy - halfH)
         lineTo(cx + halfW, cy)
         lineTo(cx, cy + halfH)
@@ -1065,6 +1076,9 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyDiamond(
     drawPath(path, body)
     drawPath(path, accent,
         style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.07f))
+    PathPool.release(path)
+    PathPool.release(path)
+    PathPool.release(path)
     val spikeR = w * 0.10f
     drawCircle(accent, spikeR, androidx.compose.ui.geometry.Offset(cx, cy))
     // Round 77 audit fix — match in-game drawDiamond variant modifiers.
@@ -1080,7 +1094,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyDiamond(
                 val a = i * 90.0 * Math.PI / 180.0
                 val mx = cx + (halfW * 0.75f * kotlin.math.cos(a)).toFloat()
                 val my = cy + (halfH * 0.75f * kotlin.math.sin(a)).toFloat()
-                val mini = androidx.compose.ui.graphics.Path().apply {
+                val mini = PathPool.acquire().apply {
                     moveTo(mx, my - miniR)
                     lineTo(mx + miniR, my)
                     lineTo(mx, my + miniR)
@@ -1088,6 +1102,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyDiamond(
                     close()
                 }
                 drawPath(mini, accent)
+                PathPool.release(mini)
             }
         }
     }
@@ -1338,13 +1353,14 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyClub(
     drawRect(body,
         topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.05f, cy + offsetD * 0.30f),
         size = androidx.compose.ui.geometry.Size(w * 0.10f, h * 0.25f))
-    val baseTri = androidx.compose.ui.graphics.Path().apply {
+    val baseTri = PathPool.acquire().apply {
         moveTo(cx - w * 0.15f, cy + h * 0.45f)
         lineTo(cx + w * 0.15f, cy + h * 0.45f)
         lineTo(cx, cy + offsetD * 0.30f)
         close()
     }
     drawPath(baseTri, body)
+    PathPool.release(baseTri)
     drawCircle(accent, lobeR * 0.40f, androidx.compose.ui.geometry.Offset(cx, cy - offsetD))
     drawCircle(accent, lobeR * 0.40f, androidx.compose.ui.geometry.Offset(cx - offsetD, cy + offsetD * 0.55f))
     drawCircle(accent, lobeR * 0.40f, androidx.compose.ui.geometry.Offset(cx + offsetD, cy + offsetD * 0.55f))
@@ -1359,23 +1375,25 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemySpade(
     val lobeR = halfW * 0.55f
     drawCircle(body, lobeR, androidx.compose.ui.geometry.Offset(cx - halfW * 0.45f, cy + halfH * 0.20f))
     drawCircle(body, lobeR, androidx.compose.ui.geometry.Offset(cx + halfW * 0.45f, cy + halfH * 0.20f))
-    val triPath = androidx.compose.ui.graphics.Path().apply {
+    val triPath = PathPool.acquire().apply {
         moveTo(cx - halfW, cy + halfH * 0.30f)
         lineTo(cx + halfW, cy + halfH * 0.30f)
         lineTo(cx, cy - halfH)
         close()
     }
     drawPath(triPath, body)
+    PathPool.release(triPath)
     drawRect(body,
         topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.05f, cy + halfH * 0.30f),
         size = androidx.compose.ui.geometry.Size(w * 0.10f, h * 0.20f))
-    val baseTri = androidx.compose.ui.graphics.Path().apply {
+    val baseTri = PathPool.acquire().apply {
         moveTo(cx - w * 0.15f, cy + halfH * 0.50f)
         lineTo(cx + w * 0.15f, cy + halfH * 0.50f)
         lineTo(cx, cy + halfH * 0.30f)
         close()
     }
     drawPath(baseTri, body)
+    PathPool.release(baseTri)
     drawCircle(accent, w * 0.06f, androidx.compose.ui.geometry.Offset(cx, cy + halfH * 0.05f))
 }
 
@@ -1385,7 +1403,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyCardDiamon
     val w = canvasSize.width; val h = canvasSize.height
     val cx = w / 2; val cy = h / 2
     val halfW = w * 0.32f; val halfH = h * 0.48f
-    val path = androidx.compose.ui.graphics.Path().apply {
+    val path = PathPool.acquire().apply {
         moveTo(cx, cy - halfH)
         lineTo(cx + halfW, cy)
         lineTo(cx, cy + halfH)
@@ -1395,6 +1413,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyCardDiamon
     drawPath(path, body)
     drawPath(path, accent,
         style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.07f))
+    PathPool.release(path)
     drawCircle(Color.White.copy(alpha = 0.85f), w * 0.08f, androidx.compose.ui.geometry.Offset(cx, cy))
 }
 
@@ -1407,13 +1426,15 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyHeart(
     val lobeR = halfW * 0.55f
     drawCircle(body, lobeR, androidx.compose.ui.geometry.Offset(cx - halfW * 0.45f, cy - halfH * 0.30f))
     drawCircle(body, lobeR, androidx.compose.ui.geometry.Offset(cx + halfW * 0.45f, cy - halfH * 0.30f))
-    val triPath = androidx.compose.ui.graphics.Path().apply {
+    val triPath = PathPool.acquire().apply {
         moveTo(cx - halfW, cy - halfH * 0.18f)
         lineTo(cx + halfW, cy - halfH * 0.18f)
         lineTo(cx, cy + halfH)
         close()
     }
     drawPath(triPath, body)
+    PathPool.release(triPath)
+    PathPool.release(triPath)
     drawCircle(accent, lobeR * 0.35f, androidx.compose.ui.geometry.Offset(cx - halfW * 0.45f, cy - halfH * 0.30f))
     drawCircle(accent, lobeR * 0.35f, androidx.compose.ui.geometry.Offset(cx + halfW * 0.45f, cy - halfH * 0.30f))
     drawCircle(accent, w * 0.07f, androidx.compose.ui.geometry.Offset(cx, cy + halfH * 0.5f))
@@ -1425,7 +1446,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyTriangle(
     val w = canvasSize.width; val h = canvasSize.height
     val cx = w / 2; val cy = h / 2
     val halfW = w * 0.45f; val halfH = h * 0.48f
-    val path = androidx.compose.ui.graphics.Path().apply {
+    val path = PathPool.acquire().apply {
         moveTo(cx - halfW, cy - halfH)
         lineTo(cx + halfW, cy - halfH)
         lineTo(cx, cy + halfH)
@@ -1434,6 +1455,8 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyTriangle(
     drawPath(path, body)
     drawPath(path, accent,
         style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.06f))
+    PathPool.release(path)
+    PathPool.release(path)
     drawCircle(accent, w * 0.08f, androidx.compose.ui.geometry.Offset(cx, cy - halfH * 0.30f))
     drawCircle(accent, w * 0.05f, androidx.compose.ui.geometry.Offset(cx - halfW * 0.30f, cy + halfH * 0.20f))
     drawCircle(accent, w * 0.05f, androidx.compose.ui.geometry.Offset(cx + halfW * 0.30f, cy + halfH * 0.20f))
@@ -1630,7 +1653,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMidBoss(
     val cx = w / 2; val cy = h / 2
     val r = minOf(w, h) * 0.40f
     // 5-pointed star
-    val path = androidx.compose.ui.graphics.Path().apply {
+    val path = PathPool.acquire().apply {
         val step = Math.PI / 5.0
         for (i in 0 until 10) {
             val a = -Math.PI / 2 + i * step
@@ -1644,6 +1667,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMidBoss(
     drawPath(path, body)
     drawPath(path, accent,
         style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
+    PathPool.release(path)
 }
 
 // Round 78 (#2 spec follow-up) — drawBossStar now renders as SUN to match in-game
@@ -1773,6 +1797,15 @@ private fun boosterTitle(b: BoosterType): String = when (b) {
     BoosterType.KAMEHAMEHA_BOOSTER -> "Đạn năng lượng"
     BoosterType.ATOMIC_BOOSTER -> "Đạn nguyên tử"
     BoosterType.SPLIT_BOOSTER -> "Đạn phân tách"
+    BoosterType.REGEN_BOOSTER -> "Hồi máu chậm"
+    BoosterType.TIME_FREEZE_BOOSTER -> "Đóng băng thời gian"
+    BoosterType.MINI_BOOSTER -> "Tàu nhỏ + nhanh"
+    BoosterType.VAMPIRE_BOOSTER -> "Hút máu"
+    BoosterType.GHOST_BOOSTER -> "Bóng ma"
+    BoosterType.GRAVITY_BOOSTER -> "Hấp dẫn khoáng"
+    BoosterType.REFLECT_BOOSTER -> "Phản xạ đạn"
+    BoosterType.CHAIN_LIGHTNING_BOOSTER -> "Sét dây chuyền"
+    BoosterType.CLONE_BOOSTER -> "Tàu phân thân"
 }
 
 // Round 71 (Issue 4e) — Multi-line WHAT it does, từ ngữ thân thiện thay
@@ -1835,6 +1868,24 @@ private fun boosterDescription(b: BoosterType): String = when (b) {
         "Đạn nguyên tử nổ tầm rộng.\nSát thương ×1.5, kéo dài 10 giây."
     BoosterType.SPLIT_BOOSTER ->
         "Đạn phân tách thành nhiều mảnh.\nSát thương 60% gốc, kéo dài 12 giây."
+    BoosterType.REGEN_BOOSTER ->
+        "Hồi máu thụ động chậm: +1 HP/giây trong 30 giây.\nTốt cho người chơi cẩn thận."
+    BoosterType.TIME_FREEZE_BOOSTER ->
+        "Đóng băng toàn bộ enemy + đạn enemy trong 3 giây.\nCơ hội vàng để xả damage."
+    BoosterType.MINI_BOOSTER ->
+        "Tàu thu nhỏ 60% + tăng tốc 30%.\nHitbox bé hơn, né dễ hơn, kéo dài 12 giây."
+    BoosterType.VAMPIRE_BOOSTER ->
+        "Mỗi đòn đánh enemy hồi 50% damage thành máu.\nKéo dài 10 giây."
+    BoosterType.GHOST_BOOSTER ->
+        "Xuyên qua enemy (bỏ va chạm thân).\nVẫn nhận damage từ đạn enemy. Kéo dài 5 giây."
+    BoosterType.GRAVITY_BOOSTER ->
+        "Toàn bộ khoáng trên màn hình tự bay vào ship.\nNam châm × 100 lần, kéo dài 10 giây."
+    BoosterType.REFLECT_BOOSTER ->
+        "Hấp thụ đạn enemy + đánh trả 30 dmg vào enemy gần nhất.\nKéo dài 8 giây."
+    BoosterType.CHAIN_LIGHTNING_BOOSTER ->
+        "Mỗi đòn đánh tự lan sang 2 enemy gần nhất (50% damage).\nKéo dài 10 giây."
+    BoosterType.CLONE_BOOSTER ->
+        "Spawn tàu phân thân bên cạnh tàu chính, bắn cùng nhịp.\nDPS tăng gấp đôi. Kéo dài 8 giây."
 }
 
 // Round 71 (Issue 4e) — "Khi nào nên nhặt" — gameplay tip 1-line.
@@ -1867,6 +1918,15 @@ private fun boosterTip(b: BoosterType): String = when (b) {
     BoosterType.KAMEHAMEHA_BOOSTER -> "Damage ×3 cực mạnh — luôn nhặt khi thấy."
     BoosterType.ATOMIC_BOOSTER -> "Damage ×1.5 + AoE — hợp khi enemy cụm."
     BoosterType.SPLIT_BOOSTER -> "Damage thấp nhưng phủ rộng — lo dọn enemy yếu."
+    BoosterType.REGEN_BOOSTER -> "Nhặt sớm — hồi máu dài, không stack."
+    BoosterType.TIME_FREEZE_BOOSTER -> "Hiếm — để dành cho boss hoặc combat dày."
+    BoosterType.MINI_BOOSTER -> "Combat dày — hitbox nhỏ hơn dễ né."
+    BoosterType.VAMPIRE_BOOSTER -> "Combo với damage cao — heal nhanh hơn."
+    BoosterType.GHOST_BOOSTER -> "Nhặt khi bị enemy bao vây — drift xuyên qua."
+    BoosterType.GRAVITY_BOOSTER -> "Stage có nhiều khoáng — bay vào trong tích tắc."
+    BoosterType.REFLECT_BOOSTER -> "Combat dày đạn — chuyển phòng thủ thành tấn công."
+    BoosterType.CHAIN_LIGHTNING_BOOSTER -> "Cụm enemy dày — clear nhanh bằng chain damage."
+    BoosterType.CLONE_BOOSTER -> "Boss fight — combo với damage buffs để DPS tối đa."
 }
 
 // Round 71 (Issue 4e) — Duration / stack rule badge text.
@@ -1890,6 +1950,15 @@ private fun boosterDuration(b: BoosterType): String = when (b) {
     BoosterType.SMOKE_BOOSTER, BoosterType.ATOMIC_BOOSTER -> "⏱ 10s · Stack reset"
     BoosterType.BOUNCE_BOOSTER, BoosterType.ZIGZAG_BOOSTER, BoosterType.SPLIT_BOOSTER -> "⏱ 12s · Stack reset"
     BoosterType.KAMEHAMEHA_BOOSTER -> "⏱ 8s · Stack reset"
+    BoosterType.REGEN_BOOSTER -> "⏱ 30s · Refresh"
+    BoosterType.TIME_FREEZE_BOOSTER -> "⏱ 3s · Refresh"
+    BoosterType.MINI_BOOSTER -> "⏱ 12s · Refresh"
+    BoosterType.VAMPIRE_BOOSTER -> "⏱ 10s · Refresh"
+    BoosterType.GHOST_BOOSTER -> "⏱ 5s · Refresh"
+    BoosterType.GRAVITY_BOOSTER -> "⏱ 10s · Refresh"
+    BoosterType.REFLECT_BOOSTER -> "⏱ 8s · Refresh"
+    BoosterType.CHAIN_LIGHTNING_BOOSTER -> "⏱ 10s · Refresh"
+    BoosterType.CLONE_BOOSTER -> "⏱ 8s · Refresh"
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2052,7 +2121,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossHauntedKidP
     val headR = minOf(w, h) * 0.22f
     val bodyW = w * 0.50f
     val bodyH = h * 0.40f
-    val bodyPath = androidx.compose.ui.graphics.Path().apply {
+    val bodyPath = PathPool.acquire().apply {
         moveTo(cx - bodyW / 2f, cy)
         lineTo(cx - bodyW / 2f, cy + bodyH * 0.45f)
         val waveCount = 4
@@ -2066,6 +2135,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossHauntedKidP
         close()
     }
     drawPath(bodyPath, body.copy(alpha = 0.85f))
+    PathPool.release(bodyPath)
     drawCircle(body.copy(alpha = 0.85f), headR, androidx.compose.ui.geometry.Offset(cx, cy - bodyH * 0.20f))
     val eyeR = headR * 0.28f
     drawCircle(Color.Black.copy(alpha = 0.85f), eyeR,
@@ -2094,13 +2164,14 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossHellLordPre
         val baseY = cy - headR * 0.60f
         val tipX = cx + sign * headR * 0.80f
         val tipY = cy - headR * 1.45f
-        val hornPath = androidx.compose.ui.graphics.Path().apply {
+        val hornPath = PathPool.acquire().apply {
             moveTo(baseX, baseY)
             cubicTo(cx + sign * headR * 1.0f, cy - headR * 1.20f, cx + sign * headR * 1.0f, cy - headR * 1.20f, tipX, tipY)
             cubicTo(cx + sign * headR * 0.85f, cy - headR * 1.10f, baseX + sign * headR * 0.10f, baseY - headR * 0.05f, baseX, baseY)
             close()
         }
         drawPath(hornPath, body)
+        PathPool.release(hornPath)
     }
     drawOval(accent.copy(alpha = 0.95f),
         topLeft = androidx.compose.ui.geometry.Offset(cx - headR * 0.50f, cy - headR * 0.18f),
@@ -2111,13 +2182,14 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossHellLordPre
     for (i in 0 until 3) {
         val fx = cx - headR * 0.20f + i * headR * 0.20f
         val mouthY = cy + headR * 0.35f
-        val fpath = androidx.compose.ui.graphics.Path().apply {
+        val fpath = PathPool.acquire().apply {
             moveTo(fx - headR * 0.05f, mouthY)
             lineTo(fx + headR * 0.05f, mouthY)
             lineTo(fx, mouthY + headR * 0.15f)
             close()
         }
         drawPath(fpath, Color.White.copy(alpha = 0.85f))
+        PathPool.release(fpath)
     }
 }
 
@@ -2130,7 +2202,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossSatanGlyphP
     val innerR = outerR * 0.40f
     drawCircle(body, outerR * 1.10f, androidx.compose.ui.geometry.Offset(cx, cy),
         style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
-    val starPath = androidx.compose.ui.graphics.Path().apply {
+    val starPath = PathPool.acquire().apply {
         val rotation = Math.PI / 2.0
         for (i in 0 until 10) {
             val a = rotation + i * Math.PI / 5
@@ -2142,6 +2214,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossSatanGlyphP
         close()
     }
     drawPath(starPath, body)
+    PathPool.release(starPath)
     val eyeRx = innerR * 0.85f
     val eyeRy = innerR * 0.55f
     drawOval(Color.White,
@@ -2208,7 +2281,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyMantaRayPr
 ) {
     val w = canvasSize.width; val h = canvasSize.height
     val cx = w / 2; val cy = h / 2
-    val wingPath = androidx.compose.ui.graphics.Path().apply {
+    val wingPath = PathPool.acquire().apply {
         moveTo(cx, cy + h * 0.40f)
         cubicTo(cx + w * 0.18f, cy + h * 0.18f, cx + w * 0.40f, cy, cx + w * 0.45f, cy - h * 0.15f)
         cubicTo(cx + w * 0.28f, cy - h * 0.28f, cx + w * 0.10f, cy - h * 0.28f, cx, cy - h * 0.17f)
@@ -2217,6 +2290,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyMantaRayPr
         close()
     }
     drawPath(wingPath, body)
+    PathPool.release(wingPath)
     drawCircle(accent, w * 0.045f, androidx.compose.ui.geometry.Offset(cx - w * 0.07f, cy - h * 0.18f))
     drawCircle(accent, w * 0.045f, androidx.compose.ui.geometry.Offset(cx + w * 0.07f, cy - h * 0.18f))
     drawCircle(Color.White, w * 0.018f, androidx.compose.ui.geometry.Offset(cx - w * 0.07f, cy - h * 0.18f))
@@ -2229,7 +2303,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyMechPrevie
     val w = canvasSize.width; val h = canvasSize.height
     val cx = w / 2; val cy = h / 2
     val bodyW = w * 0.45f; val bodyH = h * 0.50f
-    val hullPath = androidx.compose.ui.graphics.Path().apply {
+    val hullPath = PathPool.acquire().apply {
         moveTo(cx - bodyW * 0.40f, cy - bodyH / 2f)
         lineTo(cx + bodyW * 0.40f, cy - bodyH / 2f)
         lineTo(cx + bodyW / 2f, cy + bodyH / 2f)
@@ -2237,6 +2311,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyMechPrevie
         close()
     }
     drawPath(hullPath, body)
+    PathPool.release(hullPath)
     drawRect(accent,
         topLeft = androidx.compose.ui.geometry.Offset(cx - bodyW * 0.25f, cy - bodyH * 0.30f),
         size = androidx.compose.ui.geometry.Size(bodyW * 0.50f, bodyH * 0.15f))
@@ -2279,7 +2354,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossBuffaloPrev
     for (side in intArrayOf(-1, 1)) {
         val baseX = cx + side * headRx * 0.85f
         val tipX = cx + side * headRx * 1.45f
-        val hornPath = androidx.compose.ui.graphics.Path().apply {
+        val hornPath = PathPool.acquire().apply {
             moveTo(baseX, cy - headRy * 0.50f)
             cubicTo(cx + side * headRx * 1.20f, cy - headRy * 0.80f,
                 cx + side * headRx * 1.45f, cy - headRy * 0.90f, tipX, cy - headRy * 1.05f)
@@ -2288,6 +2363,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossBuffaloPrev
             close()
         }
         drawPath(hornPath, body)
+        PathPool.release(hornPath)
     }
     drawCircle(Color(0xFFFF2D55), headRx * 0.12f, androidx.compose.ui.geometry.Offset(cx - headRx * 0.35f, cy - headRy * 0.15f))
     drawCircle(Color(0xFFFF2D55), headRx * 0.12f, androidx.compose.ui.geometry.Offset(cx + headRx * 0.35f, cy - headRy * 0.15f))
@@ -2353,7 +2429,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossDivaPreview
     val cx = w / 2; val cy = h / 2
     // Hair sweeps
     for (side in intArrayOf(-1, 1)) {
-        val hp = androidx.compose.ui.graphics.Path().apply {
+        val hp = PathPool.acquire().apply {
             moveTo(cx + side * w * 0.10f, cy - h * 0.35f)
             cubicTo(cx + side * w * 0.35f, cy - h * 0.20f,
                 cx + side * w * 0.40f, cy + h * 0.10f,
@@ -2362,11 +2438,12 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossDivaPreview
             close()
         }
         drawPath(hp, body)
+        PathPool.release(hp)
     }
     // Head
     drawCircle(body, w * 0.15f, androidx.compose.ui.geometry.Offset(cx, cy - h * 0.20f))
     // Crown gem
-    val gemPath = androidx.compose.ui.graphics.Path().apply {
+    val gemPath = PathPool.acquire().apply {
         moveTo(cx, cy - h * 0.42f)
         lineTo(cx + w * 0.06f, cy - h * 0.34f)
         lineTo(cx, cy - h * 0.28f)
@@ -2374,6 +2451,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossDivaPreview
         close()
     }
     drawPath(gemPath, accent)
+    PathPool.release(gemPath)
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossTrollTowerPreview(
@@ -2381,7 +2459,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossTrollTowerP
 ) {
     val w = canvasSize.width; val h = canvasSize.height
     val cx = w / 2; val cy = h / 2
-    val spirePath = androidx.compose.ui.graphics.Path().apply {
+    val spirePath = PathPool.acquire().apply {
         moveTo(cx, cy - h * 0.40f)
         lineTo(cx + w * 0.10f, cy - h * 0.25f)
         lineTo(cx + w * 0.15f, cy + h * 0.30f)
@@ -2392,6 +2470,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossTrollTowerP
         close()
     }
     drawPath(spirePath, body)
+    PathPool.release(spirePath)
     // Crown gems
     for (i in 0 until 4) {
         drawCircle(accent, w * 0.025f, androidx.compose.ui.geometry.Offset(cx - w * 0.07f + i * w * 0.045f, cy - h * 0.38f))
@@ -2438,7 +2517,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossWhiteDragon
 ) {
     val w = canvasSize.width; val h = canvasSize.height
     val cx = w / 2; val cy = h / 2
-    val bodyPath = androidx.compose.ui.graphics.Path().apply {
+    val bodyPath = PathPool.acquire().apply {
         moveTo(cx + w * 0.30f, cy + h * 0.40f)
         cubicTo(cx + w * 0.10f, cy + h * 0.25f, cx - w * 0.20f, cy + h * 0.10f, cx - w * 0.10f, cy - h * 0.10f)
         cubicTo(cx + w * 0.05f, cy - h * 0.25f, cx + w * 0.15f, cy - h * 0.30f, cx + w * 0.05f, cy - h * 0.38f)
@@ -2447,6 +2526,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossWhiteDragon
         close()
     }
     drawPath(bodyPath, body)
+    PathPool.release(bodyPath)
     drawCircle(accent, w * 0.025f, androidx.compose.ui.geometry.Offset(cx + w * 0.02f, cy - h * 0.34f))
     drawCircle(accent, w * 0.025f, androidx.compose.ui.geometry.Offset(cx + w * 0.10f, cy - h * 0.34f))
     // Fire breath
@@ -2480,7 +2560,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossHammerSickl
     // Star top
     val starOuter = w * 0.08f; val starInner = starOuter * 0.42f
     val starCy = cy - h * 0.30f
-    val starPath = androidx.compose.ui.graphics.Path().apply {
+    val starPath = PathPool.acquire().apply {
         val rot = -Math.PI / 2.0
         for (i in 0 until 10) {
             val a = rot + i * Math.PI / 5
@@ -2492,6 +2572,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossHammerSickl
         close()
     }
     drawPath(starPath, accent)
+    PathPool.release(starPath)
 }
 
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossMoneyTycoonPreview(
@@ -2527,7 +2608,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossGoldenTycoo
     // Head flesh
     drawCircle(body, w * 0.20f, androidx.compose.ui.geometry.Offset(cx, cy - h * 0.10f))
     // Orange hair sweep
-    val hairPath = androidx.compose.ui.graphics.Path().apply {
+    val hairPath = PathPool.acquire().apply {
         moveTo(cx - w * 0.22f, cy - h * 0.20f)
         cubicTo(cx - w * 0.28f, cy - h * 0.38f, cx + w * 0.08f, cy - h * 0.48f, cx + w * 0.28f, cy - h * 0.30f)
         cubicTo(cx + w * 0.20f, cy - h * 0.26f, cx, cy - h * 0.25f, cx - w * 0.05f, cy - h * 0.22f)
@@ -2535,8 +2616,9 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossGoldenTycoo
         close()
     }
     drawPath(hairPath, Color(0xFFFF9520))
+    PathPool.release(hairPath)
     // Golden tie
-    val tiePath = androidx.compose.ui.graphics.Path().apply {
+    val tiePath = PathPool.acquire().apply {
         moveTo(cx - w * 0.04f, cy + h * 0.10f)
         lineTo(cx + w * 0.04f, cy + h * 0.10f)
         lineTo(cx + w * 0.05f, cy + h * 0.32f)
@@ -2545,8 +2627,9 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossGoldenTycoo
         close()
     }
     drawPath(tiePath, accent)
+    PathPool.release(tiePath)
     // Suit body
-    val suitPath = androidx.compose.ui.graphics.Path().apply {
+    val suitPath = PathPool.acquire().apply {
         moveTo(cx - w * 0.15f, cy + h * 0.05f)
         lineTo(cx + w * 0.15f, cy + h * 0.05f)
         lineTo(cx + w * 0.30f, cy + h * 0.50f)
@@ -2554,6 +2637,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossGoldenTycoo
         close()
     }
     drawPath(suitPath, Color(0xFF202040))
+    PathPool.release(suitPath)
 }
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -2568,7 +2652,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemySpinningSa
     val cx = w / 2; val cy = h / 2
     val outerR = minOf(w, h) * 0.42f
     val toothCount = 12
-    val toothPath = androidx.compose.ui.graphics.Path().apply {
+    val toothPath = PathPool.acquire().apply {
         for (i in 0 until toothCount * 2) {
             val a = -Math.PI / 2 + i * Math.PI / toothCount
             val r = if (i % 2 == 0) outerR else outerR * 0.78f
@@ -2579,6 +2663,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemySpinningSa
         close()
     }
     drawPath(toothPath, body)
+    PathPool.release(toothPath)
     drawCircle(accent, outerR * 0.40f, androidx.compose.ui.geometry.Offset(cx, cy))
     drawCircle(Color.Black, outerR * 0.15f, androidx.compose.ui.geometry.Offset(cx, cy))
 }
@@ -2598,13 +2683,14 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyTentacleSq
         val by = cy + (headR * kotlin.math.sin(a)).toFloat()
         val ex = bx + (headR * 0.85f * kotlin.math.cos(a)).toFloat()
         val ey = by + headR * 1.20f
-        val tPath = androidx.compose.ui.graphics.Path().apply {
+        val tPath = PathPool.acquire().apply {
             moveTo(bx, by)
             cubicTo(bx + (i - 2.5).toFloat() * w * 0.05f, by + h * 0.10f,
                 ex - (i - 2.5).toFloat() * w * 0.03f, ey - h * 0.05f, ex, ey)
         }
         drawPath(tPath, body, style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.035f,
             cap = androidx.compose.ui.graphics.StrokeCap.Round))
+        PathPool.release(tPath)
     }
     drawCircle(accent, headR * 0.18f, androidx.compose.ui.geometry.Offset(cx - headR * 0.30f, cy))
     drawCircle(accent, headR * 0.18f, androidx.compose.ui.geometry.Offset(cx + headR * 0.30f, cy))
@@ -2645,7 +2731,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyShieldDron
     val cx = w / 2; val cy = h / 2
     // Drone body (small hex)
     val bodyR = w * 0.18f
-    val hexPath = androidx.compose.ui.graphics.Path().apply {
+    val hexPath = PathPool.acquire().apply {
         for (i in 0 until 6) {
             val a = i * Math.PI / 3
             val x = cx + (bodyR * kotlin.math.cos(a)).toFloat()
@@ -2655,6 +2741,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyShieldDron
         close()
     }
     drawPath(hexPath, body)
+    PathPool.release(hexPath)
     // Front shield arc (large semicircle in front)
     drawArc(accent.copy(alpha = 0.55f),
         startAngle = 30f, sweepAngle = 120f,
@@ -2728,13 +2815,14 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyMirrorTwin
     // 2 identical small ships side-by-side
     for (sign in intArrayOf(-1, 1)) {
         val px = cx + sign * w * 0.18f
-        val triPath = androidx.compose.ui.graphics.Path().apply {
+        val triPath = PathPool.acquire().apply {
             moveTo(px, cy - h * 0.20f)
             lineTo(px + w * 0.10f, cy + h * 0.20f)
             lineTo(px - w * 0.10f, cy + h * 0.20f)
             close()
         }
         drawPath(triPath, body)
+        PathPool.release(triPath)
         drawCircle(accent, w * 0.04f, androidx.compose.ui.geometry.Offset(px, cy))
     }
     // Connecting energy line between
@@ -2755,7 +2843,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyPhantomPre
     val w = canvasSize.width; val h = canvasSize.height
     val cx = w / 2; val cy = h / 2
     // Ghost body (bell shape with wavy bottom)
-    val ghostPath = androidx.compose.ui.graphics.Path().apply {
+    val ghostPath = PathPool.acquire().apply {
         moveTo(cx - w * 0.30f, cy - h * 0.20f)
         cubicTo(cx - w * 0.35f, cy - h * 0.45f, cx + w * 0.35f, cy - h * 0.45f, cx + w * 0.30f, cy - h * 0.20f)
         lineTo(cx + w * 0.30f, cy + h * 0.30f)
@@ -2773,6 +2861,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyPhantomPre
     drawPath(ghostPath, body.copy(alpha = 0.55f))
     drawPath(ghostPath, accent.copy(alpha = 0.85f),
         style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.025f))
+    PathPool.release(ghostPath)
     // Eyes (2 dark sockets)
     drawCircle(Color.Black.copy(alpha = 0.8f), w * 0.05f, androidx.compose.ui.geometry.Offset(cx - w * 0.10f, cy - h * 0.15f))
     drawCircle(Color.Black.copy(alpha = 0.8f), w * 0.05f, androidx.compose.ui.geometry.Offset(cx + w * 0.10f, cy - h * 0.15f))
@@ -2818,7 +2907,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyKamikazePr
     val w = canvasSize.width; val h = canvasSize.height
     val cx = w / 2; val cy = h / 2
     // Triangular body (warning pointed)
-    val bodyPath = androidx.compose.ui.graphics.Path().apply {
+    val bodyPath = PathPool.acquire().apply {
         moveTo(cx, cy - h * 0.30f)
         lineTo(cx + w * 0.30f, cy + h * 0.30f)
         lineTo(cx - w * 0.30f, cy + h * 0.30f)
@@ -2826,6 +2915,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyKamikazePr
     }
     drawPath(bodyPath, Color(0xFFFFE040))
     drawPath(bodyPath, Color.Black, style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.04f))
+    PathPool.release(bodyPath)
     // Warning exclamation in center
     drawRect(Color.Black,
         topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.02f, cy - h * 0.10f),

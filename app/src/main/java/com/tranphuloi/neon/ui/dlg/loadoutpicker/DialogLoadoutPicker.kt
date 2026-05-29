@@ -47,6 +47,7 @@ import com.tranphuloi.neon.ui.game.ship.laser.BulletType
 import com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon
 import com.tranphuloi.neon.utils.Logger
 import kotlinx.coroutines.launch
+import com.tranphuloi.neon.common.PathPool
 
 /**
  * Wave 6 (36x) round 45 — pre-game loadout picker. Shown between MenuScreen
@@ -388,13 +389,14 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBulletPreview(
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(capsuleW / 4))
         }
         BulletType.PIERCING -> {
-            val path = androidx.compose.ui.graphics.Path().apply {
+            val path = PathPool.acquire().apply {
                 moveTo(cx, cy - w * 0.42f)
                 lineTo(cx + w * 0.18f, cy + w * 0.42f)
                 lineTo(cx - w * 0.18f, cy + w * 0.42f)
                 close()
             }
             drawPath(path, color)
+            PathPool.release(path)
         }
         BulletType.PLASMA -> {
             drawCircle(color, w * 0.32f, androidx.compose.ui.geometry.Offset(cx, cy))
@@ -407,13 +409,14 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBulletPreview(
                 topLeft = androidx.compose.ui.geometry.Offset(cx - capsuleW / 2, cy - capsuleH * 0.5f),
                 size = androidx.compose.ui.geometry.Size(capsuleW, capsuleH * 0.7f),
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(capsuleW / 2))
-            val flamePath = androidx.compose.ui.graphics.Path().apply {
+            val flamePath = PathPool.acquire().apply {
                 moveTo(cx - capsuleW / 2, cy + capsuleH * 0.2f)
                 lineTo(cx, cy + capsuleH * 0.5f)
                 lineTo(cx + capsuleW / 2, cy + capsuleH * 0.2f)
                 close()
             }
             drawPath(flamePath, Color(0xFFFFD040).copy(alpha = 0.9f))
+            PathPool.release(flamePath)
         }
         BulletType.HOMING -> {
             // Capsule + targeting ring
@@ -457,7 +460,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBulletPreview(
                 androidx.compose.ui.geometry.Offset(cx, cy + capsuleH * 0.3f))
         }
         BulletType.ZIGZAG -> {
-            val path = androidx.compose.ui.graphics.Path().apply {
+            val path = PathPool.acquire().apply {
                 val step = capsuleH / 4f
                 val widerW = capsuleW * 1.8f
                 moveTo(cx - widerW / 2, cy - capsuleH / 2)
@@ -471,6 +474,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBulletPreview(
                 cap = androidx.compose.ui.graphics.StrokeCap.Round,
                 join = androidx.compose.ui.graphics.StrokeJoin.Round,
             ))
+            PathPool.release(path)
         }
         BulletType.KAMEHAMEHA -> {
             drawRoundRect(color = color,

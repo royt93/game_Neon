@@ -253,6 +253,10 @@ class BoosterToBoosterUIMapperTest {
         // for PIERCING/PLASMA. 200 gives ~99.999...% confidence we hit at least once.
         // Round 60 — 10 new boosters at weight 6/184 = 3.3% each; 200 retries gives
         // ~99.87% (1 - 0.967^200) confidence per hit. Bump if flake observed.
-        private const val MAX_RETRY = 200
+        // Wave 11a Phase 4 — increased from 200 to 1000. With 36 BoosterTypes
+        // (Wave 11a complete), individual booster spawn probability dropped to
+        // ~2-6.5% per try. 200 attempts had 1-2% miss rate (occasional CI flake).
+        // 1000 attempts → ~0.0001% miss for the rarest type (REVIVE weight 5/292).
+        private const val MAX_RETRY = 1000
     }
 }

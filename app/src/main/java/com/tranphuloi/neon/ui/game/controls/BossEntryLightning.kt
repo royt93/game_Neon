@@ -18,6 +18,7 @@ import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyUI
 import kotlinx.coroutines.delay
+import com.tranphuloi.neon.common.PathPool
 
 /**
  * Boss entry lightning crackle: draws 5 zigzag neon bolts from random screen-edge
@@ -73,7 +74,7 @@ fun BossEntryLightning(
 
             // 5-segment zigzag: linearly interpolate from origin to boss with
             // perpendicular jitter at each waypoint.
-            val path = Path().apply {
+            val path = PathPool.acquire().apply {
                 moveTo(sx, sy)
                 val segments = 6
                 val jitterRange = 28f.dp.toPx()
@@ -107,6 +108,7 @@ fun BossEntryLightning(
                 color = Color.White.copy(alpha = coreAlpha),
                 style = Stroke(width = 1.5.dp.toPx(), cap = StrokeCap.Round),
             )
+            PathPool.release(path)
         }
     }
 }

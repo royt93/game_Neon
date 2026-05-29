@@ -62,4 +62,34 @@ enum class BoosterType(
     KAMEHAMEHA_BOOSTER(R.drawable.booster_ultimate_weapon, weight = 6),
     ATOMIC_BOOSTER(R.drawable.booster_ultimate_weapon, weight = 6),
     SPLIT_BOOSTER(R.drawable.booster_red_lasers, weight = 6),
+
+    // Wave 11a — 3 new boosters (data/timer pattern). Weight 6 each (REVIVE
+    // weight 5 stays rarest). +18 total weight, new total 256.
+    // REGEN: passive +1 HP/sec for 30s (lighter than HEALING_AURA's +5/sec/10s).
+    REGEN_BOOSTER(R.drawable.booster_health, weight = 6),
+    // TIME_FREEZE: gate enemy + enemy-laser processing for 3s. Weight 6 to
+    // preserve REVIVE_TOKEN (weight 5) as the rarest drop. Short duration (3s)
+    // is the balance lever for "rare strong effect" feel.
+    TIME_FREEZE_BOOSTER(R.drawable.booster_shield, weight = 6),
+    // MINI: ship 0.6× size + 1.3× speed for 12s. Smaller hitbox + dodge windows.
+    MINI_BOOSTER(R.drawable.booster_triple_laser, weight = 6),
+    // Wave 11a Phase 2 — 2 more boosters wired via LasersController callback (VAMPIRE) +
+    // ShipController collision bypass (GHOST). Weight 6 each (REVIVE invariant preserved).
+    // Total weight 256 → 268.
+    // VAMPIRE: 50% of damage dealt heals ship for 10s. Lifesteal mechanic.
+    VAMPIRE_BOOSTER(R.drawable.booster_red_lasers, weight = 6),
+    // GHOST: pass through enemies (skip enemy collision) for 5s. Ship renders at 0.5 alpha.
+    GHOST_BOOSTER(R.drawable.booster_shield, weight = 6),
+    // Wave 11a Phase 3 — 3 more boosters (CLONE deferred, needs new entity system).
+    // Total weight 268 → 286.
+    // GRAVITY: ALL minerals auto-collect 10s (magnet radius × 100 while active).
+    GRAVITY_BOOSTER(R.drawable.booster_health, weight = 6),
+    // REFLECT: absorb enemy lasers + spawn 30 damage at nearest enemy for 8s.
+    REFLECT_BOOSTER(R.drawable.booster_shield, weight = 6),
+    // CHAIN_LIGHTNING: each laser hit chains to 2 more nearest enemies (50% damage) for 10s.
+    CHAIN_LIGHTNING_BOOSTER(R.drawable.booster_red_lasers, weight = 6),
+    // Wave 11a Phase 4 — CLONE_BOOSTER: spawn phantom ship at +50dp offset that
+    // fires alongside main ship for 8s. Doubles effective DPS. Weight 6 keeps
+    // REVIVE_TOKEN (weight 5) rarest. Total weight 286 → 292.
+    CLONE_BOOSTER(R.drawable.booster_ultimate_weapon, weight = 6),
 }

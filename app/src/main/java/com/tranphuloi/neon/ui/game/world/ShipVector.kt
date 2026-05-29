@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import com.tranphuloi.neon.common.PathPool
 
 /**
  * Round 73 (Issue 2 user audit) — Dispatch theo ShipShape cho 5 silhouette
@@ -91,7 +92,7 @@ private fun DrawScope.drawFighterShape(
     val wingTopY = cy + h * 0.10f
     val wingBottomY = cy + h * 0.36f
     val wingNotchX = w * 0.18f
-    val wings = Path().apply {
+    val wings = PathPool.acquire().apply {
         moveTo(cx - wingHalfW, wingTopY)                          // outer-left top
         lineTo(cx - wingHalfW * 0.55f, wingBottomY)               // outer-left bottom
         lineTo(cx - wingNotchX, wingBottomY - h * 0.05f)          // inner-left
@@ -101,13 +102,14 @@ private fun DrawScope.drawFighterShape(
         close()
     }
     drawPath(path = wings, color = color)
+    PathPool.release(wings)
 
     // 2. Body — long pentagon (arrow). Tip up at y=h*0.05.
     val bodyHalfW = w * 0.18f
     val tipY = h * 0.05f
     val midY = cy - h * 0.05f
     val bodyBottomY = cy + h * 0.42f
-    val body = Path().apply {
+    val body = PathPool.acquire().apply {
         moveTo(cx, tipY)                                          // nose tip
         lineTo(cx + bodyHalfW, midY)                              // right shoulder
         lineTo(cx + bodyHalfW * 0.85f, bodyBottomY)               // right tail
@@ -116,10 +118,11 @@ private fun DrawScope.drawFighterShape(
         close()
     }
     drawPath(path = body, color = color)
+    PathPool.release(body)
 
     // 3. Inner highlight — narrower body, white-translucent for "molten core".
     val coreHalfW = bodyHalfW * 0.40f
-    val core = Path().apply {
+    val core = PathPool.acquire().apply {
         moveTo(cx, tipY + h * 0.04f)
         lineTo(cx + coreHalfW, midY + h * 0.02f)
         lineTo(cx + coreHalfW * 0.85f, bodyBottomY - h * 0.04f)
@@ -128,6 +131,7 @@ private fun DrawScope.drawFighterShape(
         close()
     }
     drawPath(path = core, color = Color.White.copy(alpha = 0.55f))
+    PathPool.release(core)
 
     // 4. Cockpit — small dark circle near the top of body for "pilot dome".
     drawCircle(
@@ -167,7 +171,7 @@ private fun DrawScope.drawBomberShape(color: Color, laserBoosterEnabled: Boolean
     val bodyHalfW = w * 0.30f
     val tipY = h * 0.10f
     val bodyBottomY = cy + h * 0.42f
-    val body = Path().apply {
+    val body = PathPool.acquire().apply {
         moveTo(cx - bodyHalfW * 0.6f, tipY)
         lineTo(cx + bodyHalfW * 0.6f, tipY)
         lineTo(cx + bodyHalfW, cy)
@@ -177,9 +181,10 @@ private fun DrawScope.drawBomberShape(color: Color, laserBoosterEnabled: Boolean
         close()
     }
     drawPath(body, color)
+    PathPool.release(body)
     // Cargo bay highlight
     drawPath(
-        Path().apply {
+        PathPool.acquire().apply {
             moveTo(cx - bodyHalfW * 0.4f, tipY + h * 0.08f)
             lineTo(cx + bodyHalfW * 0.4f, tipY + h * 0.08f)
             lineTo(cx + bodyHalfW * 0.6f, bodyBottomY - h * 0.08f)
@@ -205,7 +210,7 @@ private fun DrawScope.drawStealthShape(color: Color, laserBoosterEnabled: Boolea
     val cy = h / 2f
     // Delta wings (triangle pointing back-out)
     val wingHalfW = w * if (laserBoosterEnabled) 0.45f else 0.38f
-    val wings = Path().apply {
+    val wings = PathPool.acquire().apply {
         moveTo(cx - w * 0.10f, cy)                                // inner-top
         lineTo(cx - wingHalfW, cy + h * 0.40f)                    // outer-left tip
         lineTo(cx - w * 0.10f, cy + h * 0.34f)                    // inner-bot
@@ -215,11 +220,12 @@ private fun DrawScope.drawStealthShape(color: Color, laserBoosterEnabled: Boolea
         close()
     }
     drawPath(wings, color)
+    PathPool.release(wings)
     // Long thin body
     val bodyHalfW = w * 0.10f
     val tipY = h * 0.02f
     val bodyBottomY = cy + h * 0.45f
-    val body = Path().apply {
+    val body = PathPool.acquire().apply {
         moveTo(cx, tipY)
         lineTo(cx + bodyHalfW, cy + h * 0.10f)
         lineTo(cx + bodyHalfW * 0.7f, bodyBottomY)
@@ -228,9 +234,10 @@ private fun DrawScope.drawStealthShape(color: Color, laserBoosterEnabled: Boolea
         close()
     }
     drawPath(body, color)
+    PathPool.release(body)
     // Subtle highlight stripe (stealth = less bright)
     drawPath(
-        Path().apply {
+        PathPool.acquire().apply {
             moveTo(cx, tipY + h * 0.04f)
             lineTo(cx + bodyHalfW * 0.5f, bodyBottomY - h * 0.05f)
             lineTo(cx - bodyHalfW * 0.5f, bodyBottomY - h * 0.05f)
@@ -296,7 +303,7 @@ private fun DrawScope.drawInterceptorShape(color: Color, laserBoosterEnabled: Bo
     // Small side fins
     val finHalfW = w * if (laserBoosterEnabled) 0.40f else 0.32f
     val finY = cy + h * 0.20f
-    val finPath = Path().apply {
+    val finPath = PathPool.acquire().apply {
         moveTo(cx - w * 0.10f, finY)
         lineTo(cx - finHalfW, finY + h * 0.15f)
         lineTo(cx - w * 0.10f, finY + h * 0.15f)
@@ -306,11 +313,12 @@ private fun DrawScope.drawInterceptorShape(color: Color, laserBoosterEnabled: Bo
         close()
     }
     drawPath(finPath, color)
+    PathPool.release(finPath)
     // Long narrow missile body
     val bodyHalfW = w * 0.10f
     val tipY = h * 0.0f
     val bodyBottomY = cy + h * 0.45f
-    val body = Path().apply {
+    val body = PathPool.acquire().apply {
         moveTo(cx, tipY)
         lineTo(cx + bodyHalfW, cy - h * 0.18f)
         lineTo(cx + bodyHalfW, bodyBottomY - h * 0.06f)
@@ -321,9 +329,10 @@ private fun DrawScope.drawInterceptorShape(color: Color, laserBoosterEnabled: Bo
         close()
     }
     drawPath(body, color)
+    PathPool.release(body)
     // Bright core stripe (interceptor = high speed glow)
     drawPath(
-        Path().apply {
+        PathPool.acquire().apply {
             moveTo(cx, tipY + h * 0.04f)
             lineTo(cx + bodyHalfW * 0.5f, cy - h * 0.10f)
             lineTo(cx + bodyHalfW * 0.4f, bodyBottomY - h * 0.10f)
@@ -356,7 +365,7 @@ private fun DrawScope.drawNgoiSaoShape(color: Color, laserBoost: Boolean) {
     val cx = w / 2f; val cy = h / 2f
     val outerR = minOf(w, h) * 0.40f
     val innerR = outerR * 0.45f
-    val path = androidx.compose.ui.graphics.Path().apply {
+    val path = PathPool.acquire().apply {
         val rotation = -Math.PI / 2.0
         for (i in 0 until 10) {
             val a = rotation + i * Math.PI / 5
@@ -368,6 +377,7 @@ private fun DrawScope.drawNgoiSaoShape(color: Color, laserBoost: Boolean) {
         close()
     }
     drawPath(path, color)
+    PathPool.release(path)
     drawCircle(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
         innerR * 0.6f, androidx.compose.ui.geometry.Offset(cx, cy + h * 0.05f))
     // Engine trail at bottom
@@ -409,13 +419,14 @@ private fun DrawScope.drawPhuThuyShape(color: Color, laserBoost: Boolean) {
     // Witch hat (triangle with brim)
     val hatBrimY = h * 0.45f
     val hatTipY = h * 0.05f
-    val hatPath = androidx.compose.ui.graphics.Path().apply {
+    val hatPath = PathPool.acquire().apply {
         moveTo(cx, hatTipY)
         lineTo(cx + w * 0.20f, hatBrimY)
         lineTo(cx - w * 0.20f, hatBrimY)
         close()
     }
     drawPath(hatPath, color)
+    PathPool.release(hatPath)
     // Brim (wide ellipse)
     drawOval(color,
         topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.40f, hatBrimY - h * 0.02f),
@@ -456,7 +467,7 @@ private fun DrawScope.drawSung3NongShape(color: Color, laserBoost: Boolean) {
         size = androidx.compose.ui.geometry.Size(w * 0.10f, h * 0.50f),
         cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.03f))
     // Base body (trapezoid)
-    val bodyPath = androidx.compose.ui.graphics.Path().apply {
+    val bodyPath = PathPool.acquire().apply {
         moveTo(cx - w * 0.35f, h * 0.65f)
         lineTo(cx + w * 0.35f, h * 0.65f)
         lineTo(cx + w * 0.25f, h * 0.95f)
@@ -464,6 +475,7 @@ private fun DrawScope.drawSung3NongShape(color: Color, laserBoost: Boolean) {
         close()
     }
     drawPath(bodyPath, color)
+    PathPool.release(bodyPath)
     // Muzzle flash tips
     drawCircle(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.7f),
         w * 0.04f, androidx.compose.ui.geometry.Offset(cx, h * 0.06f))
@@ -491,7 +503,7 @@ private fun DrawScope.drawObeliskSpireShape(color: Color, laserBoost: Boolean) {
     val w = size.width; val h = size.height
     val cx = w / 2f
     // Tapered spire body
-    val spirePath = androidx.compose.ui.graphics.Path().apply {
+    val spirePath = PathPool.acquire().apply {
         moveTo(cx, h * 0.05f)
         lineTo(cx + w * 0.12f, h * 0.25f)
         lineTo(cx + w * 0.16f, h * 0.85f)
@@ -502,6 +514,7 @@ private fun DrawScope.drawObeliskSpireShape(color: Color, laserBoost: Boolean) {
         close()
     }
     drawPath(spirePath, color)
+    PathPool.release(spirePath)
     // Tip glow
     drawCircle(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
         w * 0.04f, androidx.compose.ui.geometry.Offset(cx, h * 0.08f))
@@ -522,7 +535,7 @@ private fun DrawScope.drawVietnamShape(color: Color, laserBoost: Boolean) {
     // Body (red flag-like rectangle with rounded fighter shape)
     val flagColor = androidx.compose.ui.graphics.Color(0xFFDA251D)
     val starColor = androidx.compose.ui.graphics.Color(0xFFFFD700)
-    val bodyPath = androidx.compose.ui.graphics.Path().apply {
+    val bodyPath = PathPool.acquire().apply {
         moveTo(cx, h * 0.10f)
         lineTo(cx + w * 0.35f, h * 0.50f)
         lineTo(cx + w * 0.30f, h * 0.90f)
@@ -531,10 +544,11 @@ private fun DrawScope.drawVietnamShape(color: Color, laserBoost: Boolean) {
         close()
     }
     drawPath(bodyPath, flagColor)
+    PathPool.release(bodyPath)
     // Yellow 5-point star
     val outerR = w * 0.18f
     val innerR = outerR * 0.45f
-    val starPath = androidx.compose.ui.graphics.Path().apply {
+    val starPath = PathPool.acquire().apply {
         val rotation = -Math.PI / 2.0
         for (i in 0 until 10) {
             val a = rotation + i * Math.PI / 5
@@ -546,6 +560,7 @@ private fun DrawScope.drawVietnamShape(color: Color, laserBoost: Boolean) {
         close()
     }
     drawPath(starPath, starColor)
+    PathPool.release(starPath)
 }
 
 /** Diva — feminine silhouette với hourglass curve + crown. */
@@ -553,7 +568,7 @@ private fun DrawScope.drawDivaShape(color: Color, laserBoost: Boolean) {
     val w = size.width; val h = size.height
     val cx = w / 2f
     // Hourglass body (curved silhouette)
-    val bodyPath = androidx.compose.ui.graphics.Path().apply {
+    val bodyPath = PathPool.acquire().apply {
         moveTo(cx - w * 0.22f, h * 0.15f)
         cubicTo(cx - w * 0.30f, h * 0.30f, cx - w * 0.15f, h * 0.45f, cx - w * 0.10f, h * 0.55f)
         cubicTo(cx - w * 0.25f, h * 0.70f, cx - w * 0.20f, h * 0.85f, cx - w * 0.30f, h * 0.95f)
@@ -563,8 +578,10 @@ private fun DrawScope.drawDivaShape(color: Color, laserBoost: Boolean) {
         close()
     }
     drawPath(bodyPath, color)
+    PathPool.release(bodyPath)
+    PathPool.release(bodyPath)
     // Crown (3 triangle peaks at top)
-    val crownPath = androidx.compose.ui.graphics.Path().apply {
+    val crownPath = PathPool.acquire().apply {
         moveTo(cx - w * 0.22f, h * 0.15f)
         lineTo(cx - w * 0.15f, h * 0.05f)
         lineTo(cx - w * 0.08f, h * 0.12f)
@@ -575,6 +592,7 @@ private fun DrawScope.drawDivaShape(color: Color, laserBoost: Boolean) {
         close()
     }
     drawPath(crownPath, color)
+    PathPool.release(crownPath)
     // Center gem
     drawCircle(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
         w * 0.04f, androidx.compose.ui.geometry.Offset(cx, h * 0.10f))
@@ -590,7 +608,7 @@ private fun DrawScope.drawChetChocShape(color: Color, laserBoost: Boolean) {
         androidx.compose.ui.geometry.Offset(cx - w * 0.05f, h * 0.95f),
         strokeWidth = w * 0.06f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
     // Scythe blade (curved arc top)
-    val bladePath = androidx.compose.ui.graphics.Path().apply {
+    val bladePath = PathPool.acquire().apply {
         moveTo(cx + w * 0.05f, h * 0.20f)
         cubicTo(cx + w * 0.35f, h * 0.10f, cx + w * 0.45f, h * 0.35f, cx + w * 0.20f, h * 0.30f)
         lineTo(cx + w * 0.05f, h * 0.20f)
@@ -599,6 +617,7 @@ private fun DrawScope.drawChetChocShape(color: Color, laserBoost: Boolean) {
     drawPath(bladePath, color)
     drawPath(bladePath, androidx.compose.ui.graphics.Color.White.copy(alpha = 0.6f),
         style = androidx.compose.ui.graphics.drawscope.Stroke(width = w * 0.02f))
+    PathPool.release(bladePath)
     // Skull at bottom
     drawCircle(color, w * 0.10f,
         androidx.compose.ui.geometry.Offset(cx - w * 0.05f, h * 0.95f))
@@ -613,7 +632,7 @@ private fun DrawScope.drawTuThanShape(color: Color, laserBoost: Boolean) {
     val w = size.width; val h = size.height
     val cx = w / 2f
     // Hood (curved trapezoid)
-    val hoodPath = androidx.compose.ui.graphics.Path().apply {
+    val hoodPath = PathPool.acquire().apply {
         moveTo(cx - w * 0.30f, h * 0.05f)
         cubicTo(cx - w * 0.40f, h * 0.30f, cx - w * 0.35f, h * 0.55f, cx - w * 0.40f, h * 0.95f)
         lineTo(cx + w * 0.40f, h * 0.95f)
@@ -623,14 +642,16 @@ private fun DrawScope.drawTuThanShape(color: Color, laserBoost: Boolean) {
         close()
     }
     drawPath(hoodPath, color)
+    PathPool.release(hoodPath)
     // Dark face void inside hood
-    val faceVoid = androidx.compose.ui.graphics.Path().apply {
+    val faceVoid = PathPool.acquire().apply {
         moveTo(cx - w * 0.20f, h * 0.10f)
         cubicTo(cx - w * 0.25f, h * 0.30f, cx - w * 0.20f, h * 0.50f, cx, h * 0.55f)
         cubicTo(cx + w * 0.20f, h * 0.50f, cx + w * 0.25f, h * 0.30f, cx + w * 0.20f, h * 0.10f)
         close()
     }
     drawPath(faceVoid, androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.85f))
+    PathPool.release(faceVoid)
     // 2 glowing red eyes
     drawCircle(androidx.compose.ui.graphics.Color(0xFFFF2D55),
         w * 0.04f, androidx.compose.ui.geometry.Offset(cx - w * 0.08f, h * 0.30f))
@@ -645,7 +666,7 @@ private fun DrawScope.drawMangNhenShape(color: Color, laserBoost: Boolean) {
     // Body (red-blue fighter shape — inspired by Spider hero costume colors)
     val redColor = androidx.compose.ui.graphics.Color(0xFFCC2030)
     val blueColor = androidx.compose.ui.graphics.Color(0xFF2050C0)
-    val bodyPath = androidx.compose.ui.graphics.Path().apply {
+    val bodyPath = PathPool.acquire().apply {
         moveTo(cx, h * 0.08f)
         lineTo(cx + w * 0.35f, h * 0.50f)
         lineTo(cx + w * 0.25f, h * 0.95f)
@@ -654,8 +675,9 @@ private fun DrawScope.drawMangNhenShape(color: Color, laserBoost: Boolean) {
         close()
     }
     drawPath(bodyPath, redColor)
+    PathPool.release(bodyPath)
     // Blue lower half
-    val lowerPath = androidx.compose.ui.graphics.Path().apply {
+    val lowerPath = PathPool.acquire().apply {
         moveTo(cx - w * 0.30f, h * 0.55f)
         lineTo(cx + w * 0.30f, h * 0.55f)
         lineTo(cx + w * 0.25f, h * 0.95f)
@@ -663,6 +685,7 @@ private fun DrawScope.drawMangNhenShape(color: Color, laserBoost: Boolean) {
         close()
     }
     drawPath(lowerPath, blueColor)
+    PathPool.release(lowerPath)
     // Web pattern (radial lines from center + 3 concentric arcs)
     for (i in 0 until 8) {
         val a = i * Math.PI / 4
@@ -686,7 +709,7 @@ private fun DrawScope.drawAoGiapThietShape(color: Color, laserBoost: Boolean) {
     val ironRed = androidx.compose.ui.graphics.Color(0xFFCC2020)
     val ironGold = androidx.compose.ui.graphics.Color(0xFFFFC020)
     // Helmet/body (rounded pentagon)
-    val helmetPath = androidx.compose.ui.graphics.Path().apply {
+    val helmetPath = PathPool.acquire().apply {
         moveTo(cx, h * 0.08f)
         lineTo(cx + w * 0.32f, h * 0.30f)
         lineTo(cx + w * 0.28f, h * 0.65f)
@@ -697,6 +720,7 @@ private fun DrawScope.drawAoGiapThietShape(color: Color, laserBoost: Boolean) {
         close()
     }
     drawPath(helmetPath, ironRed)
+    PathPool.release(helmetPath)
     // Mask eyes (gold slits)
     val eyeY = h * 0.30f
     drawRect(ironGold,
@@ -739,7 +763,7 @@ private fun DrawScope.drawTwinDomesShape(color: Color, laserBoost: Boolean) {
     drawCircle(Color.White.copy(alpha = 0.85f), w * 0.04f,
         Offset(cx + w * 0.22f, domeY - domeRy * 0.30f))
     // Connecting body (fighter base)
-    val bodyPath = Path().apply {
+    val bodyPath = PathPool.acquire().apply {
         moveTo(cx - w * 0.30f, domeY)
         lineTo(cx + w * 0.30f, domeY)
         lineTo(cx + w * 0.25f, h * 0.95f)
@@ -747,6 +771,7 @@ private fun DrawScope.drawTwinDomesShape(color: Color, laserBoost: Boolean) {
         close()
     }
     drawPath(bodyPath, color)
+    PathPool.release(bodyPath)
     // Cockpit dome center
     drawCircle(color, w * 0.07f, Offset(cx, h * 0.55f))
     drawCircle(Color.White.copy(alpha = 0.7f), w * 0.03f, Offset(cx, h * 0.55f))
@@ -759,7 +784,7 @@ private fun DrawScope.drawNhatBanShape(color: Color, laserBoost: Boolean) {
     val white = Color.White
     val red = Color(0xFFBC002D)                       // hinomaru red
     // Main body white pentagon
-    val bodyPath = Path().apply {
+    val bodyPath = PathPool.acquire().apply {
         moveTo(cx, h * 0.08f)
         lineTo(cx + w * 0.35f, h * 0.40f)
         lineTo(cx + w * 0.28f, h * 0.95f)
@@ -769,6 +794,7 @@ private fun DrawScope.drawNhatBanShape(color: Color, laserBoost: Boolean) {
     }
     drawPath(bodyPath, white)
     drawPath(bodyPath, color, style = Stroke(width = w * 0.025f))
+    PathPool.release(bodyPath)
     // Hinomaru red sun center
     drawCircle(red, w * 0.18f, Offset(cx, cy + h * 0.05f))
     // Sun-rays (16 small lines radiating)
@@ -790,7 +816,7 @@ private fun DrawScope.drawHanQuocShape(color: Color, laserBoost: Boolean) {
     val white = Color.White
     val red = Color(0xFFCD2E3A)
     val blue = Color(0xFF0047A0)
-    val bodyPath = Path().apply {
+    val bodyPath = PathPool.acquire().apply {
         moveTo(cx, h * 0.08f)
         lineTo(cx + w * 0.35f, h * 0.40f)
         lineTo(cx + w * 0.28f, h * 0.95f)
@@ -799,7 +825,9 @@ private fun DrawScope.drawHanQuocShape(color: Color, laserBoost: Boolean) {
         close()
     }
     drawPath(bodyPath, white)
+    PathPool.release(bodyPath)
     drawPath(bodyPath, color, style = Stroke(width = w * 0.025f))
+    PathPool.release(bodyPath)
     // Taegeuk (yin-yang split horizontally with curves)
     val symbolR = w * 0.20f
     val symbolCy = cy + h * 0.05f
@@ -825,7 +853,7 @@ private fun DrawScope.drawMyShape(color: Color, laserBoost: Boolean) {
     val white = Color.White
     val red = Color(0xFFB22234)
     val blue = Color(0xFF3C3B6E)
-    val bodyPath = Path().apply {
+    val bodyPath = PathPool.acquire().apply {
         moveTo(cx, h * 0.08f)
         lineTo(cx + w * 0.35f, h * 0.40f)
         lineTo(cx + w * 0.28f, h * 0.95f)
@@ -834,6 +862,7 @@ private fun DrawScope.drawMyShape(color: Color, laserBoost: Boolean) {
         close()
     }
     drawPath(bodyPath, white)
+    PathPool.release(bodyPath)
     // 5 red stripes
     val stripeStartY = h * 0.40f
     val stripeEndY = h * 0.95f
@@ -863,7 +892,7 @@ private fun DrawScope.drawPhapShape(color: Color, laserBoost: Boolean) {
     val blue = Color(0xFF002654)
     val white = Color.White
     val red = Color(0xFFCE1126)
-    val bodyPath = Path().apply {
+    val bodyPath = PathPool.acquire().apply {
         moveTo(cx, h * 0.08f)
         lineTo(cx + w * 0.35f, h * 0.40f)
         lineTo(cx + w * 0.28f, h * 0.95f)
@@ -883,12 +912,15 @@ private fun DrawScope.drawPhapShape(color: Color, laserBoost: Boolean) {
         topLeft = Offset(cx + w * 0.10f, bandTopY),
         size = androidx.compose.ui.geometry.Size(bandW, bandBottomY - bandTopY))
     drawPath(bodyPath, color, style = Stroke(width = w * 0.025f))
+    PathPool.release(bodyPath)
+    PathPool.release(bodyPath)
     // Eiffel Tower nose tip (small triangle)
-    val eiffel = Path().apply {
+    val eiffel = PathPool.acquire().apply {
         moveTo(cx, h * 0.08f)
         lineTo(cx + w * 0.06f, h * 0.20f)
         lineTo(cx - w * 0.06f, h * 0.20f)
         close()
     }
     drawPath(eiffel, Color(0xFF888888))
+    PathPool.release(eiffel)
 }

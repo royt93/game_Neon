@@ -70,6 +70,70 @@ data class Ship(
      * indistinguishable from the 600ms damage iframes that flash on every hit).
      */
     val phaseShieldEndMillis: Long = 0L,
+    /**
+     * Wave 11a — wall-clock millis when TIME_FREEZE buff expires. 0 = inactive.
+     * While active, enemies + enemy-lasers pause processing (gated in their
+     * controllers by reading this field via GameState).
+     */
+    val timeFreezeEndMillis: Long = 0L,
+    /**
+     * Wave 11a — wall-clock millis when MINI buff expires. 0 = inactive.
+     * GameWorld reads this to render ship at 0.6× scale; ShipController.moveShip
+     * multiplies movementSpeed by 1.3 when active.
+     */
+    val miniEndMillis: Long = 0L,
+    /**
+     * Wave 11a Phase 2 — wall-clock millis when VAMPIRE buff expires. 0 = inactive.
+     * LasersController.onLaserHit callback reads this; heals ship by 50% of
+     * damage dealt while active. Drives a faint blood-mist visual cue (TBD).
+     */
+    val vampireEndMillis: Long = 0L,
+    /**
+     * Wave 11a Phase 2 — wall-clock millis when GHOST buff expires. 0 = inactive.
+     * ShipController skips enemy + enemyLaser collision checks while active.
+     * GameWorld renders ship at 0.5 alpha (visually translucent).
+     */
+    val ghostEndMillis: Long = 0L,
+    /**
+     * Wave 11a Phase 3 — wall-clock millis when GRAVITY buff expires. 0 = inactive.
+     * GameState getMagnetRadius lambda multiplies radius × 100 while active —
+     * effectively pulls every on-screen mineral into the ship.
+     */
+    val gravityEndMillis: Long = 0L,
+    /**
+     * Wave 11a Phase 3 — wall-clock millis when REFLECT buff expires. 0 = inactive.
+     * When enemyLaser overlaps ship while active: laser absorbed (no damage to
+     * ship) + 30 dmg dealt to nearest enemy via callback in GameState.
+     */
+    val reflectEndMillis: Long = 0L,
+    /**
+     * Wave 11a Phase 3 — wall-clock millis when CHAIN_LIGHTNING buff expires.
+     * 0 = inactive. GameState.onLaserHit callback finds nearest 2 enemies to
+     * the hit point and deals 50% damage to each (3-target chain total).
+     *
+     * Cross-feature interactions (Wave 11a):
+     * - **MINI + GHOST + REFLECT** can all stack — each affects different
+     *   subsystem (visual scale / collision skip / laser absorb) so no clash.
+     * - **VAMPIRE + CHAIN_LIGHTNING**: VAMPIRE heals only from PRIMARY laser
+     *   hit (where damage is reported via onLaserHit). Chain damage is dealt
+     *   directly via onObjectImpact (no callback) → not lifesteal-eligible.
+     *   Intentional balance: lifesteal scope = direct laser hits only.
+     * - **MINI + SHIELD**: post-audit fix, shipShieldRect now also scales ×
+     *   miniMul so SHIELD doesn't bypass MINI's hitbox shrink.
+     * - **GRAVITY + MAGNET_BOOST**: both increase magnet radius (× 100 and ×
+     *   N respectively). They compound multiplicatively.
+     * - **TIME_FREEZE freezes enemies + their lasers** but ship lasers + ship
+     *   collision still run. Ship can dance through frozen enemy bodies
+     *   (taking damage from collision) but enemy AI is paused.
+     */
+    val chainLightningEndMillis: Long = 0L,
+    /**
+     * Wave 11a Phase 4 — wall-clock millis when CLONE buff expires. 0 = inactive.
+     * Spawns a phantom-twin ship sprite at +50dp offset that fires alongside the
+     * main ship (LasersController duplicates each laser column at clone offset).
+     * Visual: translucent 0.55 alpha ship sprite rendered next to main ship.
+     */
+    val cloneEndMillis: Long = 0L,
     @DrawableRes val drawableId: Int = R.drawable.ship_regular_laser,
 ) : Serializable {
     val shieldRadius: Float get() = shieldSize / 2

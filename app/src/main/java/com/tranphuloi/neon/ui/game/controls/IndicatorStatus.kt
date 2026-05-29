@@ -30,6 +30,7 @@ import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.ui.game.combo.ComboTier
 import kotlinx.coroutines.delay
+import com.tranphuloi.neon.common.PathPool
 
 private const val MAX_HP: Int = 1000
 
@@ -198,7 +199,7 @@ fun IndicatorStatus(
                 val cy = size.height / 2f
                 val halfW = size.width * 0.42f
                 val halfH = size.height * 0.46f
-                val path = androidx.compose.ui.graphics.Path().apply {
+                val path = PathPool.acquire().apply {
                     moveTo(cx, cy - halfH)
                     lineTo(cx + halfW, cy)
                     lineTo(cx, cy + halfH)
@@ -208,6 +209,7 @@ fun IndicatorStatus(
                 drawPath(path, NeonGold)
                 drawPath(path, NeonCyan,
                     style = androidx.compose.ui.graphics.drawscope.Stroke(width = size.width * 0.08f))
+                PathPool.release(path)
                 // Inner sparkle line
                 drawLine(
                     color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),

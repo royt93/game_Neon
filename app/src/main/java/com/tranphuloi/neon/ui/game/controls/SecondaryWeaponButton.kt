@@ -23,6 +23,7 @@ import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon
+import com.tranphuloi.neon.common.PathPool
 
 /**
  * Wave 6 (29x) round 40 — secondary-weapon fire button. Round 67.7 vector
@@ -108,7 +109,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawWeaponIcon(
             val tipY = h * 0.10f
             val baseY = h * 0.78f
             val halfW = w * 0.18f
-            val body = Path().apply {
+            val body = PathPool.acquire().apply {
                 moveTo(cx, tipY)
                 lineTo(cx + halfW, baseY - h * 0.10f)
                 lineTo(cx + halfW * 0.6f, baseY)
@@ -117,21 +118,24 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawWeaponIcon(
                 close()
             }
             drawPath(body, accent)
+            PathPool.release(body)
             // Side fins
-            val finPath = Path().apply {
+            val finPath = PathPool.acquire().apply {
                 moveTo(cx - halfW, baseY - h * 0.20f)
                 lineTo(cx - halfW * 1.8f, baseY)
                 lineTo(cx - halfW * 0.5f, baseY)
                 close()
             }
             drawPath(finPath, accent)
-            val finPath2 = Path().apply {
+            PathPool.release(finPath)
+            val finPath2 = PathPool.acquire().apply {
                 moveTo(cx + halfW, baseY - h * 0.20f)
                 lineTo(cx + halfW * 1.8f, baseY)
                 lineTo(cx + halfW * 0.5f, baseY)
                 close()
             }
             drawPath(finPath2, accent)
+            PathPool.release(finPath2)
             // Flame trail
             drawCircle(NeonGold, w * 0.06f, Offset(cx, baseY + h * 0.04f))
         }
@@ -140,7 +144,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawWeaponIcon(
             val rOuter = w * 0.42f
             val rInner = rOuter * 0.30f
             // Outer 4-pointed star (cardinal directions)
-            val star = Path().apply {
+            val star = PathPool.acquire().apply {
                 moveTo(cx, cy - rOuter)                       // N
                 lineTo(cx + rInner, cy - rInner)              // NE
                 lineTo(cx + rOuter, cy)                       // E
@@ -160,7 +164,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawWeaponIcon(
             val rOuter = w * 0.42f
             val rInner = rOuter * 0.25f
             // 16 vertices for 8-pointed star
-            val star = Path().apply {
+            val star = PathPool.acquire().apply {
                 val step = (Math.PI / 8.0).toFloat()
                 for (i in 0 until 16) {
                     val angle = -Math.PI.toFloat() / 2 + i * step
@@ -172,6 +176,8 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawWeaponIcon(
                 close()
             }
             drawPath(star, accent)
+            PathPool.release(star)
+            PathPool.release(star)
             // Bright center
             drawCircle(Color.White.copy(alpha = 0.85f), rOuter * 0.30f, Offset(cx, cy))
         }

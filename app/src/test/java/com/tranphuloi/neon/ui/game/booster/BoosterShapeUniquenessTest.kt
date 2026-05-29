@@ -43,8 +43,11 @@ class BoosterShapeUniquenessTest {
 
     @Test
     fun `BoosterType count matches expected R81 roster`() {
-        // 6 base (R66b) + 2 R54 + 11 R60 (with SCORE_X3) + 4 R67 + 5 R68 = 27
-        assertEquals(27, BoosterType.values().size)
+        // 6 base (R66b) + 2 R54 + 11 R60 + 4 R67 + 5 R68 = 27. Wave 11a:
+        // Phase 1 (+3 REGEN/TIME_FREEZE/MINI) → 30. Phase 2 (+2 VAMPIRE/GHOST)
+        // → 32. Phase 3 (+3 GRAVITY/REFLECT/CHAIN_LIGHTNING) → 35. Phase 4
+        // (+1 CLONE_BOOSTER) → 36. Wave 11a 9/9 complete.
+        assertEquals(36, BoosterType.values().size)
     }
 
     @Test
