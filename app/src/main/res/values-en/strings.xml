@@ -23,13 +23,28 @@
     <string name="daily_best_today">Today\'s best: %1$s</string>
 
     <!-- Round 62 — VoiceAnnouncer (TTS) phrases. -->
+    <!-- Wave 11d Bug #3 fix — 3 variants per event reduce repetition. -->
     <string name="voice_combo_double">Double kill!</string>
+    <string name="voice_combo_double_2">Two down!</string>
+    <string name="voice_combo_double_3">Twin strike!</string>
     <string name="voice_combo_triple">Triple kill!</string>
+    <string name="voice_combo_triple_2">Three down!</string>
+    <string name="voice_combo_triple_3">Trifecta!</string>
     <string name="voice_combo_rampage">Rampage!</string>
+    <string name="voice_combo_rampage_2">Massacre!</string>
+    <string name="voice_combo_rampage_3">Frenzy!</string>
     <string name="voice_combo_unstoppable">Unstoppable!</string>
+    <string name="voice_combo_unstoppable_2">Firestorm!</string>
+    <string name="voice_combo_unstoppable_3">Relentless!</string>
     <string name="voice_combo_godlike">Godlike!</string>
+    <string name="voice_combo_godlike_2">Immortal!</string>
+    <string name="voice_combo_godlike_3">Legendary!</string>
     <string name="voice_boss_down">Boss down!</string>
+    <string name="voice_boss_down_2">Boss defeated!</string>
+    <string name="voice_boss_down_3">Annihilated!</string>
     <string name="voice_achievement_unlocked">Achievement unlocked: %1$s</string>
     <string name="voice_new_best">New record!</string>
+    <string name="voice_new_best_2">Record shattered!</string>
+    <string name="voice_new_best_3">New peak!</string>
     <string name="settings_voice_announcer">Voice announcer</string>
 </resources>

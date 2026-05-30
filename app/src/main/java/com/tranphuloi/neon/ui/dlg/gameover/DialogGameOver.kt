@@ -124,7 +124,15 @@ fun DialogGameOver(
     // (b) entries.isNotEmpty() (Flow has settled with real data), (c) one-shot
     // guard via announcedNewBest so future entries updates don't re-fire.
     val voiceAnnouncer = com.tranphuloi.neon.ui.game.audio.LocalVoiceAnnouncer.current
-    val voiceNewBest = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_new_best)
+    // Wave 11d Bug #3 audit-bonus fix — wire new-best variants. Prior code
+    // resolved only the singular `voice_new_best` string while the variant
+    // pair `_2`/`_3` shipped as dead resources. Now uses announceVariants
+    // for true rotation.
+    val voiceNewBestList = listOf(
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_new_best),
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_new_best_2),
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_new_best_3),
+    )
     var announcedNewBest by remember { mutableStateOf(false) }
     LaunchedEffect(submitted, entries) {
         if (!submitted || currentScore <= 0 || announcedNewBest) {
@@ -144,8 +152,9 @@ fun DialogGameOver(
             .filter { it.score != currentScore }
             .maxByOrNull { it.score }?.score ?: 0
         if (currentScore > priorHighest) {
-            voiceAnnouncer.announce(
-                voiceNewBest,
+            voiceAnnouncer.announceVariants(
+                eventKey = "new_best",
+                phrases = voiceNewBestList,
                 personality = com.tranphuloi.neon.ui.game.audio.VoicePersonality.TRIUMPH,
             )
             announcedNewBest = true

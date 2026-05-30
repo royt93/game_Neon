@@ -42,6 +42,15 @@ class VoiceAnnouncer(private val appContext: Context) {
     private var enabled: Boolean = true
     private var volume: Float = 1.0f
     private var lastUtteranceMillis: Long = 0L
+    // Wave 11d Bug #3 fix — per-event throttle. Prior single global throttle
+    // let the same event re-fire its single phrase 6+ times in 2 minutes
+    // (device log evidence). Now each event key has its own cooldown window
+    // ("same event suppress") + the global throttle still gates burst rate.
+    private val lastEventMillis = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    // Wave 11d Bug #3 fix — track last variant index per event so the random
+    // picker avoids back-to-back repeats of the same phrase within the same
+    // event key.
+    private val lastVariantIndex = java.util.concurrent.ConcurrentHashMap<String, Int>()
 
     init {
         Logger.d("VoiceAnnouncer init: loading TTS engine")
@@ -148,18 +157,97 @@ class VoiceAnnouncer(private val appContext: Context) {
         personality: VoicePersonality = VoicePersonality.NORMAL,
         throttleMillis: Long = 1500L,
     ) {
-        if (!enabled) return
-        val now = System.currentTimeMillis()
-        if (now - lastUtteranceMillis < throttleMillis) {
-            Logger.v { "VoiceAnnouncer.announce SKIPPED (throttle): '$text'" }
-            return
+        // Single-phrase entry point (preserved for back-compat — boss kill +
+        // achievement use specific phrases). New variant entry point is
+        // [announceVariants] below.
+        announceInternal(
+            text = text,
+            eventKey = "_singleton",
+            personality = personality,
+            burstThrottleMillis = throttleMillis,
+            sameEventCooldownMillis = 0L,
+        )
+    }
+
+    /**
+     * Wave 11d Bug #3 — pick a random phrase from [phrases] (avoiding the
+     * back-to-back repeat) and speak it under a per-event cooldown so the
+     * same event doesn't re-fire its phrase rapidly.
+     *
+     * [eventKey] keys the per-event throttle map. Pick a stable string per
+     * logical event ("combo_double", "boss_down", etc.). [sameEventCooldownMillis]
+     * is the soft suppression window for the SAME event firing again — burst
+     * throttle still applies globally to avoid two different events stepping
+     * on each other.
+     */
+    fun announceVariants(
+        eventKey: String,
+        phrases: List<String>,
+        personality: VoicePersonality = VoicePersonality.NORMAL,
+        burstThrottleMillis: Long = 1500L,
+        sameEventCooldownMillis: Long = 8000L,
+    ) {
+        if (phrases.isEmpty()) return
+        val pickIndex = pickNonRepeating(eventKey, phrases.size)
+        // Audit P3 fix — record `lastVariantIndex` ONLY when the announcement
+        // actually spoke (announceInternal returns true). Previously we always
+        // recorded; if the global burst throttle suppressed the speak, the
+        // user never heard the pick, but the picker still avoided it next
+        // time → users could miss the same variant for two consecutive events.
+        if (announceInternal(
+                text = phrases[pickIndex],
+                eventKey = eventKey,
+                personality = personality,
+                burstThrottleMillis = burstThrottleMillis,
+                sameEventCooldownMillis = sameEventCooldownMillis,
+            )
+        ) {
+            lastVariantIndex[eventKey] = pickIndex
         }
-        val engine = tts ?: return
+    }
+
+    private fun pickNonRepeating(eventKey: String, size: Int): Int {
+        return pickNonRepeatingFor(
+            last = lastVariantIndex[eventKey] ?: -1,
+            size = size,
+            rng = kotlin.random.Random.Default,
+        )
+    }
+
+    /**
+     * Returns true iff the announcement actually spoke. Callers use this to
+     * gate side effects (e.g., variant-index bookkeeping) so suppressed
+     * announcements don't leave stale state.
+     */
+    private fun announceInternal(
+        text: String,
+        eventKey: String,
+        personality: VoicePersonality,
+        burstThrottleMillis: Long,
+        sameEventCooldownMillis: Long,
+    ): Boolean {
+        if (!enabled) return false
+        val now = System.currentTimeMillis()
+        // Global burst throttle (different events back-to-back).
+        if (now - lastUtteranceMillis < burstThrottleMillis) {
+            Logger.v { "VoiceAnnouncer SKIPPED (burst throttle): '$text' event=$eventKey" }
+            return false
+        }
+        // Per-event cooldown (same event re-firing). Skipped when cooldown = 0.
+        if (sameEventCooldownMillis > 0L) {
+            val lastSameEvent = lastEventMillis[eventKey] ?: 0L
+            if (now - lastSameEvent < sameEventCooldownMillis) {
+                Logger.v { "VoiceAnnouncer SKIPPED (same-event cooldown): '$text' event=$eventKey" }
+                return false
+            }
+        }
+        val engine = tts ?: return false
         if (!initialized) {
-            Logger.v { "VoiceAnnouncer.announce SKIPPED (not init): '$text'" }
-            return
+            Logger.v { "VoiceAnnouncer SKIPPED (not init): '$text'" }
+            return false
         }
         lastUtteranceMillis = now
+        lastEventMillis[eventKey] = now
         // Per-personality prosody. Engine call is cheap (no allocation), takes
         // effect on the very next speak() call. Coerce to safe range so we
         // don't push beyond what the synthesizer can render cleanly.
@@ -175,6 +263,7 @@ class VoiceAnnouncer(private val appContext: Context) {
             "VoiceAnnouncer.announce '$text' personality=$personality " +
                 "pitch=$pitch rate=$rate result=$result vol=$volume"
         )
+        return result == TextToSpeech.SUCCESS
     }
 
     fun release() {
@@ -208,6 +297,41 @@ class VoiceAnnouncer(private val appContext: Context) {
         // on Google TTS. Coerced inside [announce] to [0.5, 1.5] for safety.
         const val BASE_PITCH: Float = 0.65f
         const val BASE_RATE: Float = 0.85f
+
+        // ── Audit-2 Risk #1 fix — pure, injectable picker ──
+        //
+        // Pulled out of the private instance method so unit tests can drive it
+        // directly with a seeded `Random` (deterministic) and so coverage
+        // applies to the production code path, not a duplicated test helper.
+        //
+        // Algorithm contract:
+        //  - `size <= 1`               → returns 0 (only one valid pick).
+        //  - `last < 0 || last >= size` → plain uniform pick over [0, size).
+        //  - Otherwise                  → uniform pick over [0, size) \ {last}.
+        //  - Result NEVER equals `last` when `size > 1`.
+        //
+        // Why this matters: prior impl did
+        //   `var pick = rng.nextInt(size); if (pick == last) pick = (pick + 1) % size`
+        // which biased `(last + 1) % size` to ~2× the other indices (probability
+        // = 1/size + 1/size = 2/size for that index, 1/size for the rest). The
+        // user perceived a "A B B B A B B" rhythm. New impl uses the textbook
+        // skip-index trick — `rng.nextInt(size - 1)` then shift past `last` —
+        // for true 1/(size-1) uniformity.
+        // Audit-3 #2 fix — `@VisibleForTesting internal` so Android Lint flags
+        // any future production caller bypassing `pickNonRepeating(eventKey, size)`
+        // (which is the only public entry point gating the per-event-key state
+        // tracking). Removed unused `@JvmStatic` (no Java consumer).
+        @androidx.annotation.VisibleForTesting
+        internal fun pickNonRepeatingFor(
+            last: Int,
+            size: Int,
+            rng: kotlin.random.Random = kotlin.random.Random.Default,
+        ): Int {
+            if (size <= 1) return 0
+            if (last < 0 || last >= size) return rng.nextInt(size)
+            val raw = rng.nextInt(size - 1)
+            return if (raw >= last) raw + 1 else raw
+        }
     }
 }
 

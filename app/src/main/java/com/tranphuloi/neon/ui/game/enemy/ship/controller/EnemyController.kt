@@ -88,14 +88,97 @@ class EnemyController(
             }
             clamped
         }
-        this.enemies += toAdd
-        Logger.v { "EnemyController.addEnemy: type=${type::class.simpleName} spawned ${toAdd.size} (active=${this.enemies.size})" }
+        // Wave 11d Bug #4 fix — reject candidate enemies that would spawn on top
+        // of an EXISTING enemy. Within-batch overlap (members of the same
+        // formation) is NOT checked here: Row/V/SineWave formations are
+        // designed with their own spacing rules (FormationXOffset.rowXOffset
+        // distanceBetween, V xStep = w*1.4, SineWave yStep = h*1.4) so a Row
+        // of 5 wide enemies must already be non-overlapping by construction.
+        //
+        // Audit P2 fix — earlier the check included `accepted.asSequence()`
+        // for batch-internal overlap; that risked silently nuking wide-Row
+        // formations where intra-row spacing approaches the enemy width.
+        // Multiplier relaxed 0.5 → 0.45 so candidates just touching edges
+        // pass — only true overlaps (centers within ~90% of width sum) reject.
+        //
+        // Audit-2 Risk #2 note (multi-formation same-tick bunching) — earlier
+        // a "skip if other.yOffset < candidate.height" guard was added here
+        // to prevent the hypothetical case of two formations firing in the
+        // same loop tick where SineWave's i=0 at (centerX, 0) gets rejected
+        // by a Row's middle member at (~centerX, 0). That guard had a fatal
+        // arithmetic side effect: for same-height enemies the y-threshold
+        // (= h) always exceeds yLimit (= 0.9·h), so the X-axis collision
+        // check never fires once Y was clamped — effectively disabling Bug
+        // #4 overlap rejection entirely. Reverted.
+        //
+        // Current state: original Bug #4 fix kept. Risk #2 stays a known
+        // theoretical edge case — Stage.kt fires exactly ONE formation per
+        // tick (one of ZigZag/Row/V/SineWave), so two formations don't
+        // share a tick in production. If a future stage script adds
+        // simultaneous multi-formation spawning, revisit with a proper
+        // spawn-timestamp on Enemy interface instead of a y-threshold hack.
+        //
+        // Bosses bypass entirely.
+        val finalToAdd = if (isBossSpawn) {
+            toAdd
+        } else {
+            val accepted = mutableListOf<Enemy>()
+            val existingSnapshot = this.enemies
+            for (candidate in toAdd) {
+                val collides = existingSnapshot.any { other ->
+                    bboxOverlaps(
+                        ax = candidate.xOffset, ay = candidate.yOffset,
+                        aw = candidate.width, ah = candidate.height,
+                        bx = other.xOffset, by = other.yOffset,
+                        bw = other.width, bh = other.height,
+                    )
+                }
+                if (collides) {
+                    Logger.v {
+                        "EnemyController.addEnemy: SKIPPED overlap candidate at (${candidate.xOffset},${candidate.yOffset})"
+                    }
+                } else {
+                    accepted.add(candidate)
+                }
+            }
+            accepted
+        }
+        this.enemies += finalToAdd
+        Logger.v { "EnemyController.addEnemy: type=${type::class.simpleName} spawned ${finalToAdd.size}/${toAdd.size} (active=${this.enemies.size})" }
         updateEnemies()
     }
 
     companion object {
         /** Round 47 — soft cap for non-boss enemies. Bosses bypass this gate. */
         const val MAX_REGULAR_ENEMIES = 30
+
+        /**
+         * Audit-3 #1 fix — overlap predicate extracted to a pure helper so
+         * tests can drive the production code directly instead of mirroring
+         * the math in a test-side copy.
+         *
+         * Contract:
+         *  - Returns true iff the two BBOXes' centers are within 45% of each
+         *    summed dimension on BOTH axes. Strict `<` so edge-touching pairs
+         *    (dx == 0.5·(w_a + w_b)) pass.
+         *  - Symmetric: bboxOverlaps(a, b) == bboxOverlaps(b, a).
+         *  - Multiplier 0.45 (relaxed from 0.5 by audit P2 fix) provides
+         *    0.1·w buffer for adjacent Row members at current widths.
+         *  - Numeric breakpoint pinned by tests: stays correct up to ~75dp
+         *    enemy width on 411dp screens; beyond that
+         *    `FormationXOffset.rowXOffset.distanceBetween` must be retuned.
+         */
+        @androidx.annotation.VisibleForTesting
+        internal fun bboxOverlaps(
+            ax: Float, ay: Float, aw: Float, ah: Float,
+            bx: Float, by: Float, bw: Float, bh: Float,
+        ): Boolean {
+            val dx = kotlin.math.abs(ax - bx)
+            val dy = kotlin.math.abs(ay - by)
+            val xLimit = (aw + bw) * 0.45f
+            val yLimit = (ah + bh) * 0.45f
+            return dx < xLimit && dy < yLimit
+        }
     }
 
     val processEnemiesId = uuidUtils.getUuid()

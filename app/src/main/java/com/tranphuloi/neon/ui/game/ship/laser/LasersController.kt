@@ -43,6 +43,21 @@ class LasersController(
     private var shipLasers: List<Laser> = initialShipLasers
     private var ultimateLasers: List<Laser> = initialUltimateLasers
 
+    // Wave 11d Bug #1 fix — camera-zoom FAR extends the visible x range past
+    // [0, screenWidth] into [-extraXSpan, screenWidth + extraXSpan]. Enemies
+    // spawn into that extended band, so the UltimateLaser sweep must cover it
+    // too — otherwise enemies sitting in the right-edge margin survive the
+    // sweep entirely. GameState wires this on camera-zoom change (mirrors
+    // enemyController.setSpawnXMargin).
+    private var extraXSpan: Float = 0f
+
+    fun setExtraXSpan(margin: Float) {
+        if (extraXSpan != margin) {
+            Logger.d("LasersController.setExtraXSpan: $extraXSpan → $margin (UltimateLaser sweep extended)")
+            extraXSpan = margin
+        }
+    }
+
     val fireLaserId = uuidUtils.getUuid()
     val fireLaserRepeatTime = Millis(100)
     fun fireLasers(ship: Ship) {
@@ -274,13 +289,20 @@ class LasersController(
     }
 
     fun fireUltimateLaser() {
-        Logger.d("LasersController.fireUltimateLaser: spawning $ULTIMATE_LASERS_COUNT vertical beams (sweep bottom→top, existing=${ultimateLasers.size})")
+        // Wave 11d Bug #1 fix — sweep the extended camera-FAR x range, not just
+        // [0, screenWidth]. Beams now span [-extraXSpan, screenWidth + extraXSpan]
+        // so enemies that spawned into the extended right-edge margin (or moved
+        // there via formation drift) are caught by the sweep. With extraXSpan=0
+        // (MEDIUM/NEAR zoom) the math reduces to the prior raw-screen behavior.
+        val totalSpan = screenWidth + extraXSpan * 2f
+        val horizontalLaserDistance = totalSpan / ULTIMATE_LASERS_COUNT
+        val startX = -extraXSpan
+        Logger.d("LasersController.fireUltimateLaser: spawning $ULTIMATE_LASERS_COUNT vertical beams (sweep bottom→top, existing=${ultimateLasers.size}, span=$totalSpan startX=$startX extra=$extraXSpan)")
         val ultimateLaserList = mutableListOf<UltimateLaser>()
-        val horizontalLaserDistance = screenWidth / ULTIMATE_LASERS_COUNT
         for (i in 0..ULTIMATE_LASERS_COUNT) {
             val ultimateLaser = UltimateLaser(
                 id = uuidUtils.getUuid(),
-                xOffset = horizontalLaserDistance * i,
+                xOffset = startX + horizontalLaserDistance * i,
                 yOffset = screenHeight,        // start at bottom edge, sweep up via yOffset -= 7
                 yRange = screenHeight
             )

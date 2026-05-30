@@ -23,13 +23,29 @@
     <string name="daily_best_today">Kỷ lục hôm nay: %1$s</string>
 
     <!-- Round 62 — VoiceAnnouncer (TTS) phrases. -->
+    <!-- Wave 11d Bug #3 fix — 3 variants per event giảm lặp lại. Random picker
+         avoids back-to-back same variant. Singular keys giữ cho back-compat. -->
     <string name="voice_combo_double">Đánh đôi!</string>
+    <string name="voice_combo_double_2">Hai mạng!</string>
+    <string name="voice_combo_double_3">Liên hoàn đôi!</string>
     <string name="voice_combo_triple">Tam liên hoàn!</string>
+    <string name="voice_combo_triple_2">Ba mạng liên tiếp!</string>
+    <string name="voice_combo_triple_3">Bộ ba!</string>
     <string name="voice_combo_rampage">Càn quét!</string>
+    <string name="voice_combo_rampage_2">Tàn sát!</string>
+    <string name="voice_combo_rampage_3">Cuồng nộ!</string>
     <string name="voice_combo_unstoppable">Không thể cản phá!</string>
+    <string name="voice_combo_unstoppable_2">Bão lửa!</string>
+    <string name="voice_combo_unstoppable_3">Không khoan nhượng!</string>
     <string name="voice_combo_godlike">Vô địch!</string>
+    <string name="voice_combo_godlike_2">Bất tử!</string>
+    <string name="voice_combo_godlike_3">Thần thoại!</string>
     <string name="voice_boss_down">Hạ boss!</string>
+    <string name="voice_boss_down_2">Boss gục ngã!</string>
+    <string name="voice_boss_down_3">Đại bại!</string>
     <string name="voice_achievement_unlocked">Thành tựu mở khóa: %1$s</string>
     <string name="voice_new_best">Kỷ lục mới!</string>
+    <string name="voice_new_best_2">Phá kỷ lục!</string>
+    <string name="voice_new_best_3">Đỉnh cao mới!</string>
     <string name="settings_voice_announcer">Lời thoại trận đấu</string>
 </resources>

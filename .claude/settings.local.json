@@ -106,7 +106,10 @@
       "Bash(curl -s \"https://api.github.com/search/issues?q=repo:cashapp/paparazzi+AGP+9\")",
       "Bash(curl -s \"https://raw.githubusercontent.com/cashapp/paparazzi/master/README.md\")",
       "Bash(curl -s \"https://api.github.com/repos/cashapp/paparazzi/pulls/2318\")",
-      "Bash(curl -s \"https://api.github.com/repos/cashapp/paparazzi/releases/tags/2.0.0-alpha05\")"
+      "Bash(curl -s \"https://api.github.com/repos/cashapp/paparazzi/releases/tags/2.0.0-alpha05\")",
+      "Bash(awk -F: '{sum+=$2} END {print \"Total @Test annotations:\", sum}')",
+      "Bash(./gradlew testDevDebugUnitTest --tests \"com.tranphuloi.neon.ui.game.audio.VoicePickerWave11dTest\" --tests \"com.tranphuloi.neon.ui.game.enemy.EnemyOverlapWave11dTest\" -q)",
+      "Bash(./gradlew :app:testDevDebugUnitTest --tests \"com.tranphuloi.neon.ui.game.audio.VoicePickerWave11dTest\")"
     ]
   }
 }

@@ -1750,7 +1750,7 @@ Sequential lag-fix passes after gameplay features landed:
 
 ---
 
-## Wave 11 — Item booster expansion + DB metrics + Stats screen (✅ 11a + 11b + 11c done)
+## Wave 11 — Item booster expansion + DB metrics + Stats screen + device fixes (✅ 11a-11d done)
 
 ### 11a Booster types ✅ 36/36 — Wave 11a 9/9 shipped (CLONE included)
 
@@ -1807,6 +1807,68 @@ Sequential lag-fix passes after gameplay features landed:
   - Bullet attribution uses `ship.activeBulletType` at kill time, not the bullet that dealt the lethal hit. Diverges only if player swaps bullets mid-fight (rare; boosters last ~10s).
   - Regular enemies are aggregate-only (drawableIds not stable across builds); bosses get per-kind breakdown.
   - Ship skin is snapshotted once at run start; re-skinning mid-run not supported flow.
+
+### 11d Device-test bug fixes (Pixel 7 Pro) ✅ DONE
+
+Six bugs reported from Pixel 7 Pro device test, all shipped:
+
+- **Bug #1 — UltimateLaser/SmartBomb không cover góc BR ở zoom FAR.** `LasersController` thêm `extraXSpan` field + `setExtraXSpan` setter. `fireUltimateLaser` giờ span `[-extraXSpan, screenWidth + extraXSpan]` thay vì raw `[0, screenWidth]`. Wired từ GameState `LaunchedEffect(liveCameraZoom)` cùng với existing `enemyController.setSpawnXMargin`. SmartBomb đã iterate toàn enemies list → không cần fix.
+- **Bug #2 — HP/time UI top-left quá to.** `IndicatorStatus.kt`: capsule 60→44dp, width 150→120dp, HP fontSize 16→14sp, time 14→11sp, paddingTop 16→8dp, HP bar 110×8 → 88×6dp. ~25% smaller, vẫn readable.
+- **Bug #3 — Voice TTS lặp + thiếu đa dạng.** `VoiceAnnouncer.announceVariants(eventKey, phrases)` mới: random picker non-repeating + per-event 8s cooldown + global 1.5s burst throttle. 3 variants per event (combo_double/triple/rampage/unstoppable/godlike + boss_down + new_best) trong cả 3 strings.xml (default + vi + en). Log trước fix: "Đánh đôi!" 6 lần/2 phút. Sau fix: ≤1 lần/8s per event.
+- **Bug #4 — Enemies chồng lên nhau.** `EnemyController.addEnemy` thêm pre-spawn collision check: BBOX overlap (cả x và y) với existing enemies + just-accepted-in-same-batch. Skip overlapping candidates. Bosses bypass (intro pushes regulars). Logger.v "SKIPPED overlap candidate at (x,y)" cho diagnostic.
+- **Bug #6 — Stats screen polish.**
+  - Edge-to-edge fix: `WindowInsets.safeDrawing.asPaddingValues()` outer padding — content không scroll dưới status/nav bar.
+  - Replace bottom "QUAY LẠI" text button bằng top-right (✕) circle icon (NeonCyan, 40dp).
+  - Animations xịn sò:
+    - Staggered section reveal (`AnimatedVisibility` + `fadeIn + slideInVertically`, 80ms stagger per section)
+    - Bar fill animation (`animateFloatAsState` 800ms FastOutSlowIn, từ 0 → target pct)
+    - Title glow pulse (`infiniteRepeatable` neonGlow intensity 0.6↔1.0, 1.3s period)
+    - Defeated-boss cell alpha pulse (each cell có riêng `infiniteTransition`, 1.8s, alpha 0.18↔0.32)
+
+**Files changed (8):** 
+- `ui/game/state/GameState.kt` (UltimateLaser margin wire + combo/boss variant calls + voice variant lists)
+- `ui/game/ship/laser/LasersController.kt` (`extraXSpan` + `setExtraXSpan` + fireUltimateLaser bounds)
+- `ui/game/controls/IndicatorStatus.kt` (HUD sizing reduction)
+- `ui/game/audio/VoiceAnnouncer.kt` (`announceVariants` API + ConcurrentHashMap per-event throttle + non-repeating picker)
+- `ui/game/enemy/ship/controller/EnemyController.kt` (pre-spawn BBOX collision check)
+- `ui/stats/StatsScreen.kt` (edge-to-edge insets + (✕) close icon + 4 animation types)
+- `res/values/strings.xml`, `res/values-vi/strings.xml`, `res/values-en/strings.xml` (15 new voice variant strings × 3 locales = 45 strings)
+
+**Log analysis observations từ device test:**
+- 91s run survival, score 73, stage 78→83, chết do enemy laser × 7 hits
+- FPS chủ yếu 110-120 (Pixel 7 Pro 120Hz display), dips 68-91 trong combat dense (TRIPLE_SPEED modifier active)
+- Memory: heap 11-17MB stable, không leak (LeakWatch quiet)
+- Wave 11b telemetry: `recordRunMetrics: regular=73 bulletKinds=1 bossKinds=0 skinKinds=1 ranks=0` fire OK với idempotency guard
+
+**Audit follow-up fixes (Wave 11d hardening, audit score 6.5/10 → 9/10):**
+
+- **P1 — Compose hooks violation in `BossKindCell`** (`StatsScreen.kt`). `rememberInfiniteTransition` was inside `if (count > 0)` branch; when a player killed a new boss kind during a live Stats session the cell flipped count 0→1, growing the remember count by one — risked `IllegalStateException` on slot-table diff. Fix: hoist transition unconditionally, gate alpha consumption via `val pulse = if (count > 0) animatedPulse else 0f`.
+- **P3 — Voice variant distribution bias** (`VoiceAnnouncer.kt`). Prior picker had `~2× bias toward (last + 1) % size` for 3-phrase events ("A B B B A B B" rhythm). Fix: `Random.nextInt(size - 1)` then shift past `last` → uniform 1/(size-1) over the non-last indices. Also: `announceVariants` now records `lastVariantIndex[eventKey] = pickIndex` ONLY when the announcement actually spoke (`announceInternal` returns Boolean) so throttle-suppressed picks don't leave stale state.
+- **P2 — Wide-Row enemy over-rejection** (`EnemyController.kt`). Removed within-batch overlap check (formations already enforce non-overlap by construction via `FormationXOffset.rowXOffset` / V xStep / SineWave yStep) — only candidates vs PRE-EXISTING enemies are tested. Multiplier relaxed 0.5 → 0.45 so adjacent edges (dx ≈ w) pass with 0.1w buffer. Current max enemy width 46dp (tier ≤ 2) leaves comfortable margin; tests pin the future-breakpoint at ~75dp.
+- **Bonus — new-best variants wired** (`DialogGameOver.kt`). Prior code only spoke `voice_new_best` singular; the `_2` / `_3` variants shipped as dead strings. Now uses `announceVariants(eventKey = "new_best", phrases = voiceNewBestList)` for true rotation.
+- **Tests added** (R+22):
+  - `VoicePickerWave11dTest` (10 tests — size=1 stable, negative `last` falls back, never repeats, distribution uniformity across 30k trials, edge cases at index 0 / size-1 / out-of-range)
+  - `EnemyOverlapWave11dTest` (12 tests — Row spacing at current widths (46) + future bumps (60, 80 breakpoint), SineWave/V stagger pass, symmetric predicate, buffer documentation)
+- **Test total:** 466 (49 suites, 0 fail) — verified 2026-05-30.
+
+**Audit-2 follow-up (Wave 11d round 3, score 7/10 → 8.5/10):**
+
+- **Risk #1 — Test tautology fixed (P3 regression guard now real).** `pickNonRepeating` đã được pull thành `internal fun pickNonRepeatingFor(last, size, rng)` ở `VoiceAnnouncer.Companion`. `rng` injectable cho determinism. Test file rewrote để gọi production code trực tiếp — drop tautology helper. Bonus: thêm 2 regression tests ("biased impl would fail at size 3/size 4") flag explicitly nếu picker drift về biased formula cũ.
+- **Risk #2 — Reverted with documentation.** Fix attempt "skip if other.yOffset < candidate.height" nullified original Bug #4 cho same-height enemies (y-threshold = h luôn ≥ yLimit = 0.9h). Reverted. Edge case (multi-formation same-tick collision) ghi nhận ở comment + dormant-edge-case test "Risk #2 documentation". Production tại Stage.kt fire chỉ 1 formation/tick (one of ZigZag/Row/V/SineWave từ seed selector), không trigger trong gameplay hiện tại. Nếu future stage script add parallel spawning → cần proper spawn timestamp on Enemy interface.
+- **Risk #3 — Documented inline.** 21 cells × 1 InfiniteTransition khi Stats foregrounded. Compose batches Choreographer callbacks → 1 frame tick updates all 21 floats lockstep, không 21 separate. Acceptable cho transient screen. Inline comment đề xuất "switch to single shared InfiniteTransition + cell-level read" nếu device profile show battery drain.
+- **Test total: 469** (49 suites, +3 từ Risk #1 regression guards + 1 từ Risk #2 doc, then revert removed 3 Risk #2 tests → net +3 net).
+
+**Audit-3 follow-up (cycle 4, score 7.5/10 → 9/10):**
+
+- **#1 — Overlap predicate extracted to pure helper.** `bboxOverlaps(ax, ay, aw, ah, bx, by, bw, bh)` ở `EnemyController.Companion`, `@VisibleForTesting internal`. `addEnemy` overlap check giờ delegate vào helper. Test file rewrite — `collides()` wrapper gọi `EnemyController.bboxOverlaps(...)` trực tiếp. Drop tautology pattern. Net result: production code thực sự được exercise.
+- **#2 — `@VisibleForTesting` annotations + removed unused `@JvmStatic`.** Cả `pickNonRepeatingFor` (VoiceAnnouncer) và `bboxOverlaps` (EnemyController) đều marked `@VisibleForTesting internal`. Lint sẽ flag future production caller bypass internal API.
+- **#3 — Stats battery profile documentation.** Inline comment expanded với concrete `adb shell dumpsys gfxinfo com.tranphuloi.neon framestats` invocation + Android Studio Profiler note. Decision today: accept cost (transient screen). Profile threshold đề xuất "5% CPU sustained on mid-tier device" cho switch trigger.
+- **2 new regression guards thêm cho `bboxOverlaps`:**
+  - `regression — multiplier 0_5 would falsely reject this adjacent pair`: dx=0.95w. Production 0.45 → no collide (correct). Regression to 0.5 → collide (test trips).
+  - `regression — multiplier 0_4 would falsely accept this near-overlap pair`: dx=0.85w. Production 0.45 → collide (correct). Over-relax to 0.4 → no collide (test trips).
+- **Test total: 471** (49 suites, +2 regression guards).
+
+---
 
 ### 11c Statistics screen + telemetry achievements + precise attribution + audit pass ✅ DONE
 
@@ -1871,7 +1933,7 @@ User Round 67+ pick which Wave(s) to prioritize. Each Wave is 3-6 rounds. Sugges
 - **Logger:** 2 cấp — `Logger.d` cho sparse events (init/lifecycle/stage advance/boss kill/achievement), `Logger.v { ... }` cho hot-path (per-frame, per-collision, per-spawn, per-kill, audio micro-step). Toggle qua `Logger.VERBOSE = true` trong utils/Logger.kt khi cần debug stream đầy đủ.
 - **Mapper memoization (round 48):** `EnemyToEnemyUIMapper` + `LaserToLaserUIMapper` cache theo id với LRU LinkedHashMap (cap 64 + 128). Mappers là top-level `private val` → cache persist app-lifetime, bounded by LRU. Field-compare fast-path tránh allocation khi entity unchanged. Tints dùng `==` (structural) + caller dùng `emptyList()` singleton cho no-effect case.
 - **Entity caps (round 47):** `EnemyController.MAX_REGULAR_ENEMIES = 30` (bosses bypass), `LasersController.MAX_SHIP_LASERS = 25`, `EnemyLasersController.MAX_ENEMY_LASERS = 30`. `BoosterController.MAX_BOOSTERS = 3` (pre-existing). Skip-at-cap logs Logger.v.
-- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **444** (47 test suites, 0 failures — last verified 2026-05-30 sau Wave 11c + audit fixes).
+- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **471** (49 test suites, 0 failures — last verified 2026-05-30 sau Wave 11d audit-3 round).
 - **Doc structure:** R1-R75 history archived ở [feature-archive.md](feature-archive.md) (~2700 dòng). File này (R76-R86 recent + Phần 4-7 + Notes) ~1860 dòng. Khi feature.md vượt 200KB lần nữa → move R76-R85 sang archive.
 - **i18n:** strings mới phải thêm vào cả `values-vi/strings.xml` và `values-en/strings.xml`
 - **Compose stability:** data class state mới nên dùng `@Immutable`/`@Stable` annotation. EnemyUI, LaserUI, BoosterUI, MineralUI, RunModifier, RunBuff, StatusEffect, SecondaryWeapon, BulletType, ShipSkin, ColorBlindMode, NeonPalette đều `@Immutable`.

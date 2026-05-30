@@ -82,14 +82,45 @@ fun rememberGameState(): GameState {
     // Activity Context in long-lived `remember { ... }` lambdas — pre-resolved
     // String values are safe to capture.
     val voiceAnnouncer = com.tranphuloi.neon.ui.game.audio.LocalVoiceAnnouncer.current
-    val voiceComboDouble = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_double)
-    val voiceComboTriple = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_triple)
-    val voiceComboRampage = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_rampage)
-    val voiceComboUnstoppable = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_unstoppable)
-    val voiceComboGodlike = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_godlike)
-    val voiceBossDown = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_boss_down)
+    // Wave 11d Bug #3 fix — 3 variants per event for the announcer's randomizer.
+    val voiceComboDoubleList = listOf(
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_double),
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_double_2),
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_double_3),
+    )
+    val voiceComboTripleList = listOf(
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_triple),
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_triple_2),
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_triple_3),
+    )
+    val voiceComboRampageList = listOf(
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_rampage),
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_rampage_2),
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_rampage_3),
+    )
+    val voiceComboUnstoppableList = listOf(
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_unstoppable),
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_unstoppable_2),
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_unstoppable_3),
+    )
+    val voiceComboGodlikeList = listOf(
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_godlike),
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_godlike_2),
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_combo_godlike_3),
+    )
+    val voiceBossDownList = listOf(
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_boss_down),
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_boss_down_2),
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_boss_down_3),
+    )
+    val voiceNewBestList = listOf(
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_new_best),
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_new_best_2),
+        androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_new_best_3),
+    )
     val voiceAchievementUnlockedFmt = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_achievement_unlocked)
-    val voiceNewBest = androidx.compose.ui.res.stringResource(com.tranphuloi.neon.R.string.voice_new_best)
+    // Back-compat singletons preserved for any non-variant call sites.
+    val voiceNewBest = voiceNewBestList[0]
 
     var background by remember {
         mutableStateOf(
@@ -760,22 +791,23 @@ fun rememberGameState(): GameState {
             onTierAdvance = { tier ->
                 comboPopupTier = tier
                 comboPopupShownMillis = System.currentTimeMillis()
-                // Round 62 — TTS hype callout per combo tier. VoiceAnnouncer
-                // throttles to 1.5s so rapid tier escalation (DOUBLE→TRIPLE
-                // within 500ms) only speaks the LATEST event.
-                val phrase = when (tier) {
-                    com.tranphuloi.neon.ui.game.combo.ComboTier.DOUBLE -> voiceComboDouble
-                    com.tranphuloi.neon.ui.game.combo.ComboTier.TRIPLE -> voiceComboTriple
-                    com.tranphuloi.neon.ui.game.combo.ComboTier.RAMPAGE -> voiceComboRampage
-                    com.tranphuloi.neon.ui.game.combo.ComboTier.UNSTOPPABLE -> voiceComboUnstoppable
-                    com.tranphuloi.neon.ui.game.combo.ComboTier.GODLIKE -> voiceComboGodlike
-                    else -> null
+                // Wave 11d Bug #3 fix — pick a random variant per combo tier
+                // (announceVariants), with per-event 8s cooldown so the SAME
+                // tier can't re-fire its phrase rapidly. Prior code spoke one
+                // hard-coded phrase per tier — log evidence showed "Đánh đôi!"
+                // 6 times in 2 minutes on Pixel 7 Pro.
+                val (eventKey, phrases) = when (tier) {
+                    com.tranphuloi.neon.ui.game.combo.ComboTier.DOUBLE -> "combo_double" to voiceComboDoubleList
+                    com.tranphuloi.neon.ui.game.combo.ComboTier.TRIPLE -> "combo_triple" to voiceComboTripleList
+                    com.tranphuloi.neon.ui.game.combo.ComboTier.RAMPAGE -> "combo_rampage" to voiceComboRampageList
+                    com.tranphuloi.neon.ui.game.combo.ComboTier.UNSTOPPABLE -> "combo_unstoppable" to voiceComboUnstoppableList
+                    com.tranphuloi.neon.ui.game.combo.ComboTier.GODLIKE -> "combo_godlike" to voiceComboGodlikeList
+                    else -> null to emptyList()
                 }
-                if (phrase != null) {
-                    // Round 63 — HYPE personality: higher pitch + faster rate
-                    // for combo escalation. Conveys excitement.
-                    voiceAnnouncer.announce(
-                        phrase,
+                if (eventKey != null && phrases.isNotEmpty()) {
+                    voiceAnnouncer.announceVariants(
+                        eventKey = eventKey,
+                        phrases = phrases,
                         personality = com.tranphuloi.neon.ui.game.audio.VoicePersonality.HYPE,
                     )
                 }
@@ -965,10 +997,11 @@ fun rememberGameState(): GameState {
                     // achievement unlock + victory ending will speak afterward
                     // and we don't want a 3-way overlap of utterances.
                     if (enemy !is com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBoss) {
-                        // Round 63 — DRAMATIC personality: lower pitch + slower
-                        // rate for boss kill. Conveys gravitas.
-                        voiceAnnouncer.announce(
-                            voiceBossDown,
+                        // Wave 11d Bug #3 fix — variant picker; 3 phrases per
+                        // boss-down event keep the callouts feeling fresh.
+                        voiceAnnouncer.announceVariants(
+                            eventKey = "boss_down",
+                            phrases = voiceBossDownList,
                             personality = com.tranphuloi.neon.ui.game.audio.VoicePersonality.DRAMATIC,
                         )
                     }
@@ -1330,6 +1363,10 @@ fun rememberGameState(): GameState {
         // Round 78 (#4 spec fix follow-up) — also extend enemy spawn X bounds
         // so enemies appear at visual screen edges (not only inner 70% area).
         enemyController.setSpawnXMargin(extensionX)
+        // Wave 11d Bug #1 fix — extend UltimateLaser sweep bounds to match the
+        // extended enemy spawn band. Without this, enemies that spawned into
+        // the right-edge FAR-zoom margin survived ChargeShot/Ultimate sweeps.
+        lasersController.setExtraXSpan(extensionX)
         Logger.d("Camera zoom=${liveCameraZoom.key} scale=$scale → drag/spawn extension X=$extensionX Y=$extensionY")
     }
 

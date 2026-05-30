@@ -83,8 +83,12 @@ fun IndicatorStatus(
     val hpFlashIntensity = if (hpPulse > 1f) (hpPulse - 1f) * 1.5f else 0f
 
     val buttonPaddingEnd = dimensionResource(id = R.dimen.button_padding)
-    val buttonPaddingTop = 16.dp
-    val height = 60.dp
+    // Wave 11d Bug #2 fix — HUD top-left was visually oversized on tall device
+    // (Pixel 7 Pro). Reduced by ~25% across the board: capsule height 60→44dp,
+    // width 150→120dp, HP fontSize 16→14sp, time 14→11sp, padding-top 16→8dp.
+    // Combat info (hp/time) still readable; spec audit prefers compact HUD.
+    val buttonPaddingTop = 8.dp
+    val height = 44.dp
 
     val hpRatio = (hp.toFloat() / MAX_HP).coerceIn(0f, 1f)
     val hpColor = when {
@@ -109,7 +113,7 @@ fun IndicatorStatus(
             androidx.compose.foundation.Canvas(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .size(width = 150.dp, height = height)
+                    .size(width = 120.dp, height = height)
                     .graphicsLayer {
                         scaleX = hpPulse
                         scaleY = hpPulse
@@ -134,30 +138,30 @@ fun IndicatorStatus(
             Text(
                 text = "${hp}hp",
                 color = hpColor,
-                fontSize = 16.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 8.dp, end = 14.dp)
+                    .padding(top = 5.dp, end = 10.dp)
             )
             Text(
                 text = gameTime,
                 color = Color.White.copy(alpha = 0.85f),
-                fontSize = 14.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(start = 8.dp, bottom = 9.dp)
+                    .padding(start = 6.dp, bottom = 6.dp)
             )
         }
         // Visual HP bar — 110dp wide segmented bar showing hp/MAX_HP ratio,
         // glow intensity scales with hp deficit so low HP "screams".
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(3.dp))
         Box(
             modifier = Modifier
                 .padding(start = 4.dp)
-                .width(110.dp)
-                .height(8.dp)
+                .width(88.dp)
+                .height(6.dp)
                 .clip(MaterialTheme.shapes.small)
                 .background(Color.White.copy(alpha = 0.12f))
         ) {
