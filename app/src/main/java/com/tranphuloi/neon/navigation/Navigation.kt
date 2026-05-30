@@ -23,3 +23,5 @@ object LoadoutPicker : Navigation(route = "loadout-picker")
 object Info : Navigation(route = "info")
 /** Round 73 (Wave 8) — Ship picker: chọn loại tàu (5 ShipShape) ảnh hưởng stat. */
 object ShipPicker : Navigation(route = "ship-picker")
+/** Wave 11c — Statistics screen reading MetaProgressionRepository aggregate Flows. */
+object Stats : Navigation(route = "stats")

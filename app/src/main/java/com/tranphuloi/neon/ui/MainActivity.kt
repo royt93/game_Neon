@@ -231,6 +231,10 @@ class MainActivity : ComponentActivity() {
                                     Logger.d("Nav: Menu → Info (Bách Khoa)")
                                     navController.navigate(com.tranphuloi.neon.navigation.Info.route)
                                 },
+                                onOpenStats = {
+                                    Logger.d("Nav: Menu → Stats")
+                                    navController.navigate(com.tranphuloi.neon.navigation.Stats.route)
+                                },
                             )
                         }
                         composable(route = com.tranphuloi.neon.navigation.Info.route) {
@@ -407,6 +411,15 @@ class MainActivity : ComponentActivity() {
                             com.tranphuloi.neon.ui.dlg.shippicker.DialogShipPicker(
                                 onDismiss = {
                                     Logger.d("Nav: ShipPicker dismissed → back")
+                                    navController.popBackStack()
+                                },
+                            )
+                        }
+                        // Wave 11c — Statistics screen (THỐNG KÊ).
+                        composable(route = com.tranphuloi.neon.navigation.Stats.route) {
+                            com.tranphuloi.neon.ui.stats.StatsScreen(
+                                onBack = {
+                                    Logger.d("Nav: Stats → back")
                                     navController.popBackStack()
                                 },
                             )

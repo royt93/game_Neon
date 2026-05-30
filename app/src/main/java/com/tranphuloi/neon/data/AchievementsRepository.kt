@@ -67,6 +67,26 @@ enum class Achievement(
     TIME_ATTACK_HIGH("time_attack_high", "TỐC ĐỘ", "Đạt 50+ kill trong Đua Thời Gian", AchievementTier.SILVER),
     BOSS_RUSH_CLEAR("boss_rush_clear", "VƯỢT ẢI", "Clear chế độ Chiến Boss", AchievementTier.GOLD),
     MODIFIER_RUN("modifier_run", "ƯA MẠO HIỂM", "Hoàn thành 1 run với Buff", AchievementTier.BRONZE),
+
+    // --- Wave 11c expansion: telemetry-driven lifetime achievements ---
+    // Derive from MetaProgressionRepository aggregate Flows. Unlock check
+    // runs once per GAME_OVER (after recordRunMetrics writes), so the new
+    // total is visible. Pure lifetime milestones — survive the data drift
+    // mentioned in Wave 11c disclaimer (non-bullet kills attributed to
+    // current loadout, regular enemies aggregated lifetime-only).
+    PLASMA_MASTER("plasma_master", "PLASMA THIÊN TÀI",
+        "Tích lũy 100 kill bằng PLASMA", AchievementTier.SILVER),
+    HOMING_VETERAN("homing_veteran", "TÊN LỬA THUẦN THỤC",
+        "Tích lũy 100 kill bằng HOMING", AchievementTier.SILVER),
+    BOSS_ALL_KINDS("boss_all_kinds", "TOÀN BỘ BOSS",
+        "Đã hạ ít nhất 1 con cho mỗi 21 loại Boss", AchievementTier.GOLD),
+    S_RANK_10("s_rank_10", "PERFECT KILLER",
+        "Đạt hạng S 10 lần (lifetime)", AchievementTier.GOLD),
+    CYAN_HOUR("cyan_hour", "CYAN KỲ CỰU",
+        "Chơi tàu Cyan ≥ 1 giờ lifetime", AchievementTier.BRONZE),
+    LIFETIME_KILLS_1000("lifetime_kills_1000",
+        "THIÊN ĐỊCH",
+        "Diệt 1000 quái thường lifetime", AchievementTier.SILVER),
     ;
 }
 

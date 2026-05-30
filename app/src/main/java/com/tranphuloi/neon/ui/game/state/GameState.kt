@@ -140,6 +140,36 @@ fun rememberGameState(): GameState {
         Logger.d("rememberGameState: runModifier=$mod (key=$key)")
         mod
     }
+    // Wave 11b — snapshot ship skin once at run start for time-played attribution.
+    // Re-skinning mid-run is not a supported flow, so the snapshot is safe.
+    val runShipSkin = remember {
+        kotlinx.coroutines.runBlocking { settingsRepo.shipSkin.first() }
+    }
+    // Wave 11b — per-run telemetry buffers. Flushed to MetaProgressionRepository
+    // by GameScreen on GAME_OVER (single atomic DataStore edit). Plain HashMap +
+    // MutableList (not Compose state) — these are only read at end of run, not
+    // during recomposition. Reset to empty by remember{} on each GameState.
+    // Wave 11b/11c P0 fix — game loop runs on Dispatchers.IO (see launch(IO)
+    // below) while snapshot reads happen on Main during recomposition. Plain
+    // HashMap/MutableList is not safe across threads. ConcurrentHashMap +
+    // synchronizedList provide thread-safe mutation; .merge(key, 1, Int::plus)
+    // is atomic (read-modify-write inside CHM lock).
+    val bulletKillsThisRun = remember {
+        java.util.concurrent.ConcurrentHashMap<com.tranphuloi.neon.ui.game.ship.laser.BulletType, Int>()
+    }
+    val bossKillsThisRun = remember {
+        java.util.concurrent.ConcurrentHashMap<com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind, Int>()
+    }
+    val ranksAchievedThisRun = remember {
+        java.util.Collections.synchronizedList(mutableListOf<com.tranphuloi.neon.ui.game.controls.BossRank>())
+    }
+    // Wave 11c — last bullet that landed on each enemy, used for precise kill
+    // attribution. Updated by onLaserHit. Read by onEnemyKilled; entry cleared
+    // after consumption. Off-screen enemies leak entries (bounded by enemy
+    // cap = 30; worst-case a few hundred entries per run, GC'd at remember{}).
+    val lastBulletTypeByEnemyId = remember {
+        java.util.concurrent.ConcurrentHashMap<String, com.tranphuloi.neon.ui.game.ship.laser.BulletType>()
+    }
     val runContext = remember(runMode, runModifier) {
         com.tranphuloi.neon.ui.game.state.RunContext(
             mode = runMode,
@@ -608,9 +638,12 @@ fun rememberGameState(): GameState {
             initialUltimateLasers = ultimateLasers,
             setShipLasers = { shipLasers = it },
             setUltimateLasers = { ultimateLasers = it },
-            onLaserHit = { targetId, damage, x, y, isBoss ->
+            onLaserHit = { targetId, damage, x, y, isBoss, bulletType ->
                 damageNumberController.report(targetId, damage, x, y, isBoss)
                 impactSparkController.spawnBurst(x, y)
+                // Wave 11c — record last-hit bullet for precise kill attribution.
+                // Overwrites prior; lethal hit's bullet wins.
+                lastBulletTypeByEnemyId[targetId] = bulletType
                 // Wave 11a Phase 2 — VAMPIRE_BOOSTER lifesteal: heal ship 50% of
                 // damage dealt while active. Silent (no per-hit log spam).
                 shipController.applyVampireHeal(damage)
@@ -907,8 +940,26 @@ fun rememberGameState(): GameState {
                 comboCount = comboController.count
                 comboTier = comboController.currentTier()
                 if (comboCount > maxComboReached) maxComboReached = comboCount
+                // Wave 11c — attribute kill to the bullet that landed the
+                // lethal hit (recorded by onLaserHit into lastBulletTypeByEnemyId).
+                // Fallback to ship.activeBulletType for kills that bypass
+                // onLaserHit entirely — REFLECT_BOOSTER retaliation, CHAIN_
+                // LIGHTNING chain segments, SmartBomb / BURST sweep impacts,
+                // secondary weapons (MISSILE/MINE/BURST), and ultimate lasers
+                // all call enemy.onObjectImpact() directly. Those count under
+                // the currently active bullet type, which matches player intent
+                // (the buff was procced by their loadout). Known telemetry
+                // imprecision documented for the Statistics screen.
+                val killBullet = lastBulletTypeByEnemyId[enemy.enemyId]
+                    ?: ship.activeBulletType
+                bulletKillsThisRun.merge(killBullet, 1, Int::plus)
+                lastBulletTypeByEnemyId.remove(enemy.enemyId)
                 if (enemy.isBoss) {
                     bossesDefeatedTotal++
+                    // Wave 11b — boss kill breakdown per kind (atomic CHM merge).
+                    enemy.bossKind?.let { kind ->
+                        bossKillsThisRun.merge(kind, 1, Int::plus)
+                    }
                     smartBombs++       // reward: +1 smart bomb per boss kill
                     // Round 62 — TTS callout. Skip for FinalBoss because the
                     // achievement unlock + victory ending will speak afterward
@@ -953,6 +1004,8 @@ fun rememberGameState(): GameState {
                         val hpRatio = ship.hp.toFloat() / playerHpAtBossSpawn.toFloat()
                         bossKillRank = com.tranphuloi.neon.ui.game.controls.BossRank.compute(ttk, hpRatio)
                         bossKillRankShownMillis = System.currentTimeMillis()
+                        // Wave 11b — record rank achieved for distribution stats.
+                        bossKillRank?.let { ranksAchievedThisRun.add(it) }
                         Logger.d("Boss kill rank: ${bossKillRank?.letter} (ttk=${ttk}ms hpRatio=${"%.2f".format(hpRatio)})")
                     }
                 } else {
@@ -1845,7 +1898,23 @@ fun rememberGameState(): GameState {
                 Logger.d("toggleGameStatus: $gameStatus → $next")
                 gameStatus = next
             }
-        }
+        },
+        // Wave 11c — thread-safe snapshot for GAME_OVER flush. ConcurrentHashMap.toMap()
+        // is safe under concurrent writers; synchronizedList requires manual lock for
+        // iteration (toList walks the list). Called once at GAME_OVER — no per-frame
+        // cost. Captures gameTimeSec at call time, not at composition.
+        snapshotRunTelemetry = {
+            val ranksSnap = synchronized(ranksAchievedThisRun) {
+                ranksAchievedThisRun.toList()
+            }
+            com.tranphuloi.neon.data.RunTelemetrySnapshot(
+                bulletKills = bulletKillsThisRun.toMap(),
+                bossKills = bossKillsThisRun.toMap(),
+                ranksAchieved = ranksSnap,
+                shipSkin = runShipSkin,
+                shipTimeMillis = gameTimeSec * 1000L,
+            )
+        },
     )
 }
 
@@ -1960,6 +2029,13 @@ data class GameState(
     val onShipDragMove: (x: Float, y: Float) -> Unit = { _, _ -> },
     val onShipDragEnd: () -> Unit = {},
     val toggleGameStatus: () -> Unit,
+    // Wave 11c — single thread-safe snapshot callback. Called once by
+    // GameScreen at GAME_OVER to build both RunStats (display) and
+    // recordRunMetrics (persistence). Replaces 4 individual fields that
+    // were re-allocated every recomposition (audit P2-1 — ~125Hz allocation
+    // churn) and were also racy with IO-dispatcher mutations (audit P0-1).
+    val snapshotRunTelemetry: () -> com.tranphuloi.neon.data.RunTelemetrySnapshot =
+        { com.tranphuloi.neon.data.RunTelemetrySnapshot.EMPTY },
 )
 
 private val boosterMapper = BoosterToBoosterUIMapper()

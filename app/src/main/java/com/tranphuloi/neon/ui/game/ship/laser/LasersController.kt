@@ -22,7 +22,12 @@ class LasersController(
     initialUltimateLasers: List<Laser> = listOf(),
     private val setShipLasers: (List<Laser>) -> Unit,
     private val setUltimateLasers: (List<Laser>) -> Unit,
-    private val onLaserHit: (targetId: String, damage: Int, x: Float, y: Float, isBoss: Boolean) -> Unit = { _, _, _, _, _ -> },
+    // Wave 11c — onLaserHit carries [bulletType] for precise telemetry
+    // attribution (replaces prior ship.activeBulletType approximation in
+    // GameState.onEnemyKilled). PLASMA AoE splash forwards the source
+    // laser's bulletType for every splash victim, so AoE kills attribute
+    // back to PLASMA, not to the spread effect.
+    private val onLaserHit: (targetId: String, damage: Int, x: Float, y: Float, isBoss: Boolean, bulletType: BulletType) -> Unit = { _, _, _, _, _, _ -> },
     /**
      * Wave 5 (25x / 48x) — damage multiplier applied at hit time. Combines
      * RunModifier (GLASS_CANNON, BERSERKER, DOUBLE_OR_NOTHING) + skill tree
@@ -343,7 +348,7 @@ class LasersController(
                 target.onObjectImpact(effectiveDamage)
                 // Trigger same impact feedback as enemy hits — sparks + mini explosion +
                 // damage number + hit-stop freeze. Rocks are non-boss so isBoss=false.
-                onLaserHit(target.id, effectiveDamage.toInt(), hitX, hitY, false)
+                onLaserHit(target.id, effectiveDamage.toInt(), hitX, hitY, false, laser.bulletType)
                 destroyShipLaser(laser)
                 updateShipLasersUI()
             }
@@ -357,6 +362,7 @@ class LasersController(
                     target.xOffset + target.width / 2f,
                     target.yOffset,
                     target.isBoss,
+                    laser.bulletType,
                 )
                 // Round 35 (35x) — PIERCING / PLASMA collision behavior.
                 when (laser.bulletType) {
@@ -393,6 +399,7 @@ class LasersController(
                                     other.xOffset + other.width / 2f,
                                     other.yOffset,
                                     other.isBoss,
+                                    laser.bulletType,
                                 )
                             }
                         }

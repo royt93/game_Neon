@@ -96,6 +96,8 @@ fun MenuScreen(
     onOpenSettings: () -> Unit,
     onOpenInfo: () -> Unit = {},
     onOpenLoadout: () -> Unit = {},
+    /** Wave 11c — open Statistics screen. */
+    onOpenStats: () -> Unit = {},
 ) {
     val settings = LocalSettings.current
     val meta = LocalMetaProgression.current
@@ -280,6 +282,22 @@ fun MenuScreen(
                             onClick = {
                                 Logger.d("MenuScreen: INFO tapped")
                                 onOpenInfo()
+                            },
+                        )
+                    }
+                    // Wave 11c — Row 4: THỐNG KÊ standalone (full row).
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        MenuButton(
+                            label = "THỐNG KÊ",
+                            glyph = "▦",
+                            color = NeonGold,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                Logger.d("MenuScreen: STATS tapped")
+                                onOpenStats()
                             },
                         )
                     }

@@ -15,7 +15,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 // Note: `derivedStateOf` is still used for `stageTint` below; keep the import.
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import com.tranphuloi.neon.common.NeonBgDeep
 import com.tranphuloi.neon.common.NeonBgEdge
 import com.tranphuloi.neon.common.NeonBgMid
@@ -185,8 +189,15 @@ fun GameScreen(
 
     val runStats = com.tranphuloi.neon.data.LocalRunStats.current
     val runPersistence = com.tranphuloi.neon.data.LocalRunPersistence.current
+    val metaRepo = com.tranphuloi.neon.data.LocalMetaProgression.current
+    val achievementsRepo = com.tranphuloi.neon.data.LocalAchievements.current
+    // Wave 11c P1-3 fix — idempotency guard. LaunchedEffect re-fires on every
+    // gameStatus transition; if the kill-cam auto-GAME_OVER (FinalBoss path)
+    // races with a manual transition the flush could double-count.
+    var telemetryFlushed by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(gameState.gameStatus) {
-        if (gameState.gameStatus == GameStatus.GAME_OVER) {
+        if (gameState.gameStatus == GameStatus.GAME_OVER && !telemetryFlushed) {
+            telemetryFlushed = true
             // Round 23 — TIME_ATTACK timer expiry is also a "victory" (ship alive,
             // no kill-cam). Branch alongside FinalBoss defeat.
             val isVictory = gameState.finalBossDefeated || gameState.timeAttackEnded
@@ -203,6 +214,12 @@ fun GameScreen(
                 sfx.play(SfxEvent.GAME_OVER)
             }
             // 15c: snapshot end-of-run stats for DialogGameOver to read.
+            // Wave 11c — single thread-safe telemetry snapshot, shared between
+            // RunStats (display) and recordRunMetrics (persistence). The
+            // snapshot is taken under lock inside GameState.snapshotRunTelemetry,
+            // so concurrent IO-thread mutations to the underlying buffers can
+            // never tear the read.
+            val telemetry = gameState.snapshotRunTelemetry()
             runStats.value = com.tranphuloi.neon.data.RunStats(
                 score = gameState.mineralsEarnedTotal.toIntOrNull() ?: 0,
                 timeSec = gameState.gameTimeSec,
@@ -212,7 +229,57 @@ fun GameScreen(
                 stagesReached = gameState.stagesReached,
                 victoryAchieved = isVictory,
                 gameModeKey = gameState.gameMode.key,
+                bulletKills = telemetry.bulletKills,
+                bossKills = telemetry.bossKills,
+                ranksAchieved = telemetry.ranksAchieved,
+                shipSkin = telemetry.shipSkin,
+                shipTimeMillis = telemetry.shipTimeMillis,
             )
+            // Wave 11b — persist run telemetry. Single atomic DataStore edit
+            // (see MetaProgressionRepository.recordRunMetrics). Note:
+            // regularEnemyKills excludes boss kills — bosses are tracked
+            // per-kind in bossKills. Lifetime "enemies killed" counter
+            // therefore counts non-boss kills only.
+            metaRepo.recordRunMetrics(
+                regularEnemyKills = gameState.enemiesKilledTotal,
+                bulletKills = telemetry.bulletKills,
+                bossKills = telemetry.bossKills,
+                shipTimeMillisBySkin = mapOf(telemetry.shipSkin to telemetry.shipTimeMillis),
+                ranksAchieved = telemetry.ranksAchieved,
+            )
+            // Wave 11c — telemetry-driven achievement checks. Runs once after
+            // recordRunMetrics commits, so totals are fresh. .first() pulls a
+            // single emission from each Flow; suspend keeps us inside this
+            // LaunchedEffect's scope. Idempotent — repository.unlock returns
+            // false if already unlocked.
+            val plasmaTotal = metaRepo.bulletKills(com.tranphuloi.neon.ui.game.ship.laser.BulletType.PLASMA)
+                .first()
+            if (plasmaTotal >= 100) {
+                achievementsRepo.unlock(com.tranphuloi.neon.data.Achievement.PLASMA_MASTER)
+            }
+            val homingTotal = metaRepo.bulletKills(com.tranphuloi.neon.ui.game.ship.laser.BulletType.HOMING)
+                .first()
+            if (homingTotal >= 100) {
+                achievementsRepo.unlock(com.tranphuloi.neon.data.Achievement.HOMING_VETERAN)
+            }
+            val allBossKindKills = metaRepo.allBossKills.first()
+            if (allBossKindKills.values.all { it >= 1 }) {
+                achievementsRepo.unlock(com.tranphuloi.neon.data.Achievement.BOSS_ALL_KINDS)
+            }
+            val sRankCount = metaRepo.rankCount(com.tranphuloi.neon.ui.game.controls.BossRank.S)
+                .first()
+            if (sRankCount >= 10) {
+                achievementsRepo.unlock(com.tranphuloi.neon.data.Achievement.S_RANK_10)
+            }
+            val cyanTime = metaRepo.shipTimeMillis(com.tranphuloi.neon.data.ShipSkin.AURA_CYAN)
+                .first()
+            if (cyanTime >= 3_600_000L) {
+                achievementsRepo.unlock(com.tranphuloi.neon.data.Achievement.CYAN_HOUR)
+            }
+            val lifetimeEnemies = metaRepo.lifetimeEnemyKills.first()
+            if (lifetimeEnemies >= 1000L) {
+                achievementsRepo.unlock(com.tranphuloi.neon.data.Achievement.LIFETIME_KILLS_1000)
+            }
             Logger.d("Snapshot RunStats: score=${gameState.mineralsEarnedTotal}, time=${gameState.gameTimeSec}s, enemies=${gameState.enemiesKilledTotal}, bosses=${gameState.bossesDefeatedTotal}, maxCombo=${gameState.maxComboReached}, stages=${gameState.stagesReached}, mode=${gameState.gameMode.key}")
             // Round 26 — only CLEAR checkpoint on VICTORY (run truly complete).
             // On death: keep checkpoint so user can retry from last stage via

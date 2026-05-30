@@ -1750,7 +1750,7 @@ Sequential lag-fix passes after gameplay features landed:
 
 ---
 
-## Wave 11 — Item booster expansion + DB metrics (🟡 11a partial, 📋 11b+11c pending)
+## Wave 11 — Item booster expansion + DB metrics + Stats screen (✅ 11a + 11b + 11c done)
 
 ### 11a Booster types ✅ 36/36 — Wave 11a 9/9 shipped (CLONE included)
 
@@ -1788,11 +1788,69 @@ Sequential lag-fix passes after gameplay features landed:
 
 ---
 
-### 11b DB metrics persistence 📋 PENDING
-- Vision: extend MetaProgressionRepository với per-bullet/enemy/boss kill counters + per-ship time played + aggregated S/A/B/C/D rank distribution. Hiện tại chỉ có basic RunStats data class (score, timeSec, enemiesKilled, bossesDefeated, maxCombo, stagesReached, victoryAchieved) — chưa persisted across runs.
+### 11b DB metrics persistence ✅ DONE
+- **Repository (MetaProgressionRepository.kt):** 5 metric categories persisted to "neon_meta" DataStore:
+  - `bulletKills(BulletType): Flow<Int>` — per-type kill counter (12 keys, prefix `bullet_kill_`)
+  - `bossKills(BossKind): Flow<Int>` — per-kind boss defeat counter (21 keys, prefix `boss_kill_`)
+  - `shipTimeMillis(ShipSkin): Flow<Long>` — millis-played per skin (5 keys, prefix `ship_time_`)
+  - `rankCount(BossRank): Flow<Int>` — S/A/B/C/D distribution (5 keys, prefix `rank_dist_`)
+  - `lifetimeEnemyKills: Flow<Long>` — single aggregate counter (regular enemies; drawableIds not stable enough for per-type)
+  - Plus `allBulletKills/allBossKills/allShipTimeMillis/allRankCounts` aggregate snapshot Flows (cho Statistics screen ở 11c).
+- **Atomic flush (`recordRunMetrics`):** single `DataStore.edit { }` block — concurrent readers never see a partially-applied run.
+- **RunStats.kt:** mở rộng với 5 optional fields (`bulletKills/bossKills/ranksAchieved/shipSkin/shipTimeMillis`) — defaults preserve back-compat.
+- **GameState.kt hook:** transient `bulletKillsThisRun/bossKillsThisRun/ranksAchievedThisRun` HashMaps + `runShipSkin` snapshot. `onEnemyKilled` bumps per current `ship.activeBulletType` + `enemy.bossKind`; `bossKillRank.compute` result pushed to ranks list.
+- **GameScreen.kt:** at GAME_OVER `LaunchedEffect` fires `metaRepo.recordRunMetrics(...)` once (atomic). Single DataStore write per run — no hot-path I/O.
+- **Tests (R0+22 → 428 total):**
+  - `MetaProgressionKeysTest` (14 tests — enum sizes 12/21/5/5, name/key uniqueness, regex shape, cross-category prefix collision, stability pins for NORMAL/STAR/AURA_CYAN)
+  - `RunStatsWave11bTest` (6 tests — defaults empty, populated round-trip, bossKills.sum == bossesDefeated invariant, bulletKills.sum == enemies+bosses invariant, equality semantics)
+- **Approximations documented:**
+  - Bullet attribution uses `ship.activeBulletType` at kill time, not the bullet that dealt the lethal hit. Diverges only if player swaps bullets mid-fight (rare; boosters last ~10s).
+  - Regular enemies are aggregate-only (drawableIds not stable across builds); bosses get per-kind breakdown.
+  - Ship skin is snapshotted once at run start; re-skinning mid-run not supported flow.
 
-### 11c Statistics screen 📋 PENDING
-- Vision: new "THỐNG KÊ" screen accessible from MenuScreen. Display aggregated metrics + per-ship breakdown + achievement progress.
+### 11c Statistics screen + telemetry achievements + precise attribution + audit pass ✅ DONE
+
+**Statistics screen (`ui/stats/StatsScreen.kt`):**
+- New "THỐNG KÊ" route ở `Navigation.Stats.route = "stats"`, accessible từ MenuScreen row 4 (glyph `▦`, color NeonGold).
+- 5 sections: lifetime totals (regular + boss + minerals + time) → bullet kill ranking (bar chart sorted desc) → boss kill 3-col grid (21 BossKind, gray if 0) → ship time bars (color khớp `ShipSkin.glowColorHex`) → S/A/B/C/D rank distribution (color khớp `BossRank.color`).
+- Reads 4 aggregate snapshot Flows từ MetaProgressionRepository + 2 lifetime counters. Pure read-only, idempotent across re-entries.
+
+**Precise bullet attribution (Audit P2-3 partial fix):**
+- `LasersController.onLaserHit` signature mở rộng với `bulletType: BulletType` (5 call sites updated bao gồm PLASMA AoE splash victims).
+- GameState maintains `lastBulletTypeByEnemyId: ConcurrentHashMap<String, BulletType>` updated mỗi onLaserHit. `onEnemyKilled` reads it (precise) trước khi fallback `ship.activeBulletType` (cho non-bullet kills: REFLECT retaliation, CHAIN_LIGHTNING chains, SmartBomb, BURST sweep, secondary weapons).
+- Disclaimer rendered ở StatsScreen footer documents both attribution paths.
+
+**Telemetry-driven achievements (6 new — total 30 → 36):**
+- `PLASMA_MASTER` / `HOMING_VETERAN` — 100 lifetime kills per bullet type
+- `BOSS_ALL_KINDS` — defeated all 21 BossKind ≥ 1 time
+- `S_RANK_10` — 10 S-ranks lifetime
+- `CYAN_HOUR` — 1 hour shipped time with AURA_CYAN
+- `LIFETIME_KILLS_1000` — 1000 regular enemy kills lifetime
+- Unlock checks fire ONCE per GAME_OVER (after `recordRunMetrics` commits, via `.first()` snapshots). Repository idempotency guarantees no double-unlock.
+
+**Audit-driven fixes (independent agent review caught 5+ items):**
+- **P0-1 Race condition** — replaced plain `mutableMapOf`/`mutableListOf` với `ConcurrentHashMap` + `Collections.synchronizedList`. Game loop on `Dispatchers.IO` mutates; snapshot reads on Main thread. `.merge(key, 1, Int::plus)` provides atomic read-modify-write.
+- **P2-1 Per-frame allocation** — removed 4 `.toMap()`/`.toList()` calls from GameState data class (~125Hz allocation churn). Replaced với single `snapshotRunTelemetry: () -> RunTelemetrySnapshot` lambda called ONCE at GAME_OVER. New `RunTelemetrySnapshot` data class với `EMPTY` shared singleton.
+- **P1-3 Double-flush guard** — `var telemetryFlushed by rememberSaveable` idempotency flag. Race condition (FinalBoss auto-GAME_OVER vs manual death) can no longer double-count.
+- **P2-2 Enum rename detection** — added explicit name-set pin tests cho BulletType (12) + BossKind (21) + ShipSkin (5). Catches renames that swap entries silently.
+- **P1-1/P1-2 Lifecycle ON_STOP flush** — accepted leak. Delta-tracking shipTimeMillis (cumulative gameTimeSec) requires complex state machine for partial flushes; trade-off documented inline.
+
+**Tests added (R0+12 → 444 total):**
+- `AchievementsWave11cTest` (7 tests — 6 new enum presence + ID stability + cross-wave collision + count drift detection + tier sanity)
+- `RunTelemetrySnapshotTest` (5 tests — EMPTY singleton identity, data class equality, invalidation on each field)
+- Extended `MetaProgressionKeysTest` (+4 tests — full name-set rename pins)
+
+**Files changed (10):**
+- `data/MetaProgressionRepository.kt`, `data/RunStats.kt` (Wave 11b)
+- `data/RunTelemetrySnapshot.kt` (new)
+- `data/AchievementsRepository.kt` (+6 achievements)
+- `navigation/Navigation.kt` (+Stats route)
+- `ui/MainActivity.kt` (+Stats composable + Menu onOpenStats wiring)
+- `ui/menu/MenuScreen.kt` (+THỐNG KÊ button + onOpenStats param)
+- `ui/stats/StatsScreen.kt` (new — full screen, ~400 LoC)
+- `ui/game/GameScreen.kt` (telemetryFlushed idempotency + 6 achievement unlock checks + snapshot consumption)
+- `ui/game/state/GameState.kt` (P0/P2-1 fixes — ConcurrentHashMap, snapshotRunTelemetry, removed 4 data-class fields)
+- `ui/game/ship/laser/LasersController.kt` (onLaserHit signature + 5 call sites)
 
 ---
 
@@ -1813,7 +1871,7 @@ User Round 67+ pick which Wave(s) to prioritize. Each Wave is 3-6 rounds. Sugges
 - **Logger:** 2 cấp — `Logger.d` cho sparse events (init/lifecycle/stage advance/boss kill/achievement), `Logger.v { ... }` cho hot-path (per-frame, per-collision, per-spawn, per-kill, audio micro-step). Toggle qua `Logger.VERBOSE = true` trong utils/Logger.kt khi cần debug stream đầy đủ.
 - **Mapper memoization (round 48):** `EnemyToEnemyUIMapper` + `LaserToLaserUIMapper` cache theo id với LRU LinkedHashMap (cap 64 + 128). Mappers là top-level `private val` → cache persist app-lifetime, bounded by LRU. Field-compare fast-path tránh allocation khi entity unchanged. Tints dùng `==` (structural) + caller dùng `emptyList()` singleton cho no-effect case.
 - **Entity caps (round 47):** `EnemyController.MAX_REGULAR_ENEMIES = 30` (bosses bypass), `LasersController.MAX_SHIP_LASERS = 25`, `EnemyLasersController.MAX_ENEMY_LASERS = 30`. `BoosterController.MAX_BOOSTERS = 3` (pre-existing). Skip-at-cap logs Logger.v.
-- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **406** (43 test suites, 0 failures — last verified 2026-05-29).
+- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **444** (47 test suites, 0 failures — last verified 2026-05-30 sau Wave 11c + audit fixes).
 - **Doc structure:** R1-R75 history archived ở [feature-archive.md](feature-archive.md) (~2700 dòng). File này (R76-R86 recent + Phần 4-7 + Notes) ~1860 dòng. Khi feature.md vượt 200KB lần nữa → move R76-R85 sang archive.
 - **i18n:** strings mới phải thêm vào cả `values-vi/strings.xml` và `values-en/strings.xml`
 - **Compose stability:** data class state mới nên dùng `@Immutable`/`@Stable` annotation. EnemyUI, LaserUI, BoosterUI, MineralUI, RunModifier, RunBuff, StatusEffect, SecondaryWeapon, BulletType, ShipSkin, ColorBlindMode, NeonPalette đều `@Immutable`.
