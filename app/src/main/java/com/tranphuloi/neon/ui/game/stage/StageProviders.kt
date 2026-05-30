@@ -9,7 +9,9 @@ package com.tranphuloi.neon.ui.game.stage
  */
 
 /** Memoized chapter-1 game-stage slice (no messages/boss/break entries). */
-private val chapter1GameStages: List<StageGame> by lazy {
+// Audit-5 — `internal` (was private) so EndlessEscalationTest can size the
+// cycle multiplier correctly. Still scoped to module.
+internal val chapter1GameStages: List<StageGame> by lazy {
     stages.filterIsInstance<StageGame>().filter { it.chapterId == 1 }
 }
 
@@ -98,8 +100,27 @@ class EndlessProvider : StageProvider {
         val pos = index % chapter1GameStages.size
         val base = chapter1GameStages[pos]
         if (cycle == 0) return base
-        val hpScale = Math.pow(1.10, cycle.toDouble()).toFloat()
-        val spawnScale = Math.pow(0.95, cycle.toDouble()).toFloat()   // ×1.05^wave faster → /1.05 = ×0.95 cadence
+        // Pixel-2 #4 — escalating difficulty per cycle. Prior code only
+        // scaled HP × 1.10^cycle + spawn rate × 0.95^cycle (faster). User
+        // reported "level càng tăng thì enemy càng mạnh" — meaning damage +
+        // speed should also escalate. Adding impact × 1.08^cycle (mild,
+        // doesn't 1-shot the player) + yOffsetSpeed × 1.05^cycle (faster
+        // descent → less reaction time).
+        //
+        // Audit-5 P2 fix — caps. At cycle=30 the unclamped exponentials
+        // produced HP×17.4 / impact×10 / speed×4.3 → mathematically
+        // unplayable. Caps chosen so cycle=30 is a tough but finite ceiling:
+        //   HP cap 5.0     — ship can still 2-3-shot enemies with strong bullet
+        //   impact cap 2.5 — enemy laser hits hurt but don't 1-shot baseline ship
+        //   speed cap 2.5  — enemies fall fast but player reactions feasible
+        //   spawn cap 0.5  — cadence floor (avoid 0ms spawns)
+        // Reached around cycle ~17-23 depending on category. Beyond cap the
+        // run still escalates via more enemies on screen (spawn rate caps at
+        // 0.5×) and chapter rotation, but per-enemy power plateaus.
+        val hpScale = Math.pow(1.10, cycle.toDouble()).toFloat().coerceAtMost(5.0f)
+        val spawnScale = Math.pow(0.95, cycle.toDouble()).toFloat().coerceAtLeast(0.5f)
+        val impactScale = Math.pow(1.08, cycle.toDouble()).toFloat().coerceAtMost(2.5f)
+        val speedScale = Math.pow(1.05, cycle.toDouble()).toFloat().coerceAtMost(2.5f)
         val enemyType = base.enemyType
         val scaledType = if (enemyType is com.tranphuloi.neon.ui.game.enemy.ship.model.RegularEnemyType) {
             val baseRate = enemyType.enemySpawnRate
@@ -111,6 +132,8 @@ class EndlessProvider : StageProvider {
                 } else baseRate
             enemyType.copy(
                 hp = enemyType.hp * hpScale,
+                impactPower = enemyType.impactPower * impactScale,
+                yOffsetSpeed = enemyType.yOffsetSpeed * speedScale,
                 enemySpawnRate = scaledRate,
             )
         } else enemyType

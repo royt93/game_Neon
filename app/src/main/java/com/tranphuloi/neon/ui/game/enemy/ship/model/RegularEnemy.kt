@@ -41,6 +41,21 @@ data class RegularEnemy(
     /** Wave 5 (28x) — SineWave anchor x captured at spawn. xOffset oscillates around this. */
     private val sineAnchorX: Float = xOffset
 
+    /**
+     * Wave 11d Pixel-2 audit P1 fix — horizontal separation velocity accumulated
+     * by EnemyController.applySeparationForces() each tick when this enemy
+     * overlaps another. Consumed AFTER formation-specific movement so that
+     * SineWave's `xOffset = sineAnchorX + sin(phase) * amplitude` (which
+     * overwrites xOffset every tick) doesn't clobber the push. Decays 15%
+     * per tick so a single overlap nudge propagates over ~6 frames instead
+     * of teleporting.
+     *
+     * Visible publicly so the controller can accumulate from outside —
+     * Kotlin Float read/write is atomic on JVM (no `long`/`double` torn-read
+     * issue), so accessing from IO + Compose Main is safe for this primitive.
+     */
+    var separationVel: Float = 0f
+
     override fun enemyRect(): Rect {
         return Rect(
             center = Offset(
@@ -64,6 +79,17 @@ data class RegularEnemy(
             yOffset += knockbackVel
             knockbackVel *= 0.92f
             if (kotlin.math.abs(knockbackVel) < 0.05f) knockbackVel = 0f
+        }
+        // Pixel-2 audit P1 fix — consume horizontal separation velocity AFTER
+        // formation movement. Pre-fix EnemyController.applySeparationForces
+        // mutated xOffset directly, which SineWave's "xOffset = sineAnchorX +
+        // sin(phase) * amp" overwrote each tick. Now the controller adds to
+        // separationVel; we add it to xOffset post-formation so the push
+        // survives. Decay matches knockbackVel pattern for consistent feel.
+        if (separationVel != 0f) {
+            xOffset += separationVel
+            separationVel *= 0.85f
+            if (kotlin.math.abs(separationVel) < 0.05f) separationVel = 0f
         }
         if (yOffset + height > screenHeight) outOfScreen = true
         if (hp <= 0) destroyed = true

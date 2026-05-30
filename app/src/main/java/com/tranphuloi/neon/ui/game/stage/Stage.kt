@@ -134,16 +134,24 @@ private fun buildGameStage(chapter: Chapter, gameStage: Int, tier: Int): StageGa
     // SineWave procedurally. Selection seed = chapter.id * 12 + gameStage so it's
     // deterministic per slot. Chapter 1 keeps the original ZigZag/Row alternation
     // (matches existing early-game ramp pace).
+    //
+    // Pixel-2 #4 — derive a per-stage `xAnchorShift` in [-60, +60] so
+    // identical formation types spawn at different starting X positions across
+    // stages. Without this, every Row felt visually identical at the same X
+    // anchor. Deterministic per gameStage so save/load preserves the pattern.
+    val anchorShift = ((chapter.id * 12 + gameStage) * 37 % 121 - 60).toFloat()
     val formation: EnemyFormation = if (chapter.id < 2) {
-        if (isZigZag) ZigZag(position = zigZagPosition) else Row(rowCount = rowCount)
+        // Audit-5 P2 fix — ZigZag now also varies start position per stage.
+        if (isZigZag) ZigZag(position = zigZagPosition, xAnchorShift = anchorShift)
+        else Row(rowCount = rowCount, xAnchorShift = anchorShift)
     } else {
         val seed = chapter.id * 12 + gameStage
         // Distribution: 35% ZigZag, 30% Row, 17% VFormation, 18% SineWave.
         when (seed % 6) {
-            0, 1 -> ZigZag(position = zigZagPosition)
-            2, 3 -> Row(rowCount = rowCount)
-            4 -> VFormation(count = 5)
-            else -> SineWave(count = 4)
+            0, 1 -> ZigZag(position = zigZagPosition, xAnchorShift = anchorShift)
+            2, 3 -> Row(rowCount = rowCount, xAnchorShift = anchorShift)
+            4 -> VFormation(count = 5, xAnchorShift = anchorShift)
+            else -> SineWave(count = 4, xAnchorShift = anchorShift)
         }
     }
 

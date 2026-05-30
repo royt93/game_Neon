@@ -15,10 +15,15 @@ class FormationXOffset(private val screenWidth: Float) {
     var spawnXMargin: Float = 0f
 
     fun zigZagXOffset(formation: ZigZag): Float {
+        // Audit-5 P2 fix — apply per-stage anchor shift to ZigZag start X.
+        // ZigZag was the LAST formation type without positional variation
+        // (50% of chapter 1 stages → user's "repetitive feel" complaint
+        // partially survived). Shift moves the bounce wall inward/outward.
+        val shift = formation.xAnchorShift
         return if (formation.position == ZigZagInitialPosition.LEFT) {
-            -spawnXMargin
+            -spawnXMargin + shift
         } else {
-            screenWidth + spawnXMargin
+            screenWidth + spawnXMargin + shift
         }
     }
 
@@ -28,6 +33,9 @@ class FormationXOffset(private val screenWidth: Float) {
         val effectiveWidth = screenWidth + spawnXMargin * 2f
         val divider = formation.rowCount + 1
         val distanceBetween = effectiveWidth / divider - enemyWidth / divider
-        return previousEnemy?.let { it.xOffset + distanceBetween } ?: (-spawnXMargin + distanceBetween)
+        // Pixel-2 #4 — apply per-stage anchor shift to the Row's starting X.
+        // Subsequent members chain off `previousEnemy` so the shift propagates.
+        return previousEnemy?.let { it.xOffset + distanceBetween }
+            ?: (-spawnXMargin + distanceBetween + formation.xAnchorShift)
     }
 }

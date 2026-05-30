@@ -112,17 +112,7 @@ fun StatsScreen(onBack: () -> Unit) {
         }
     }
 
-    // Bug #6 — title glow pulse (infinite, subtle). Same pattern as MenuScreen.
-    val infiniteTransition = rememberInfiniteTransition(label = "stats-pulse")
-    val titlePulse by infiniteTransition.animateFloat(
-        initialValue = 0.6f,
-        targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1300, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "title-pulse",
-    )
+    // Audit-Pixel-2 #1 fix — title pulse moved into NeonActionBar (shared).
 
     val insetsPad = WindowInsets.safeDrawing.asPaddingValues()
 
@@ -144,27 +134,14 @@ fun StatsScreen(onBack: () -> Unit) {
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            // Action bar: title (left) + (✕) close icon (right).
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = "THỐNG KÊ",
-                    style = TextStyle(
-                        color = NeonGold,
-                        fontSize = 26.sp,
-                        fontWeight = FontWeight.Black,
-                    ),
-                    modifier = Modifier.neonGlow(
-                        color = NeonGold,
-                        intensity = titlePulse,
-                        radiusFactor = 1.5f,
-                    ),
-                )
-                CloseIcon(onClick = onBack)
-            }
+            // Audit-Pixel-2 #1 fix — shared NeonActionBar replaces inline
+            // duplicate; Info + Stats now share consistent affordance.
+            com.tranphuloi.neon.common.NeonActionBar(
+                title = "THỐNG KÊ",
+                titleColor = NeonGold,
+                onBack = onBack,
+                modifier = Modifier.padding(0.dp),    // outer Column already pads horizontally
+            )
 
             StaggeredSection(visible = revealStep >= 1) {
                 StatsCard(title = "Tổng cộng", accentColor = NeonGold) {
@@ -247,27 +224,6 @@ private fun StaggeredSection(visible: Boolean, content: @Composable () -> Unit) 
             ),
     ) {
         content()
-    }
-}
-
-@Composable
-private fun CloseIcon(onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(40.dp)
-            .clip(CircleShape)
-            .background(Color(0xFF1A2030))
-            .clickable { onClick() },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = "✕",
-            style = TextStyle(
-                color = NeonCyan,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-            ),
-        )
     }
 }
 

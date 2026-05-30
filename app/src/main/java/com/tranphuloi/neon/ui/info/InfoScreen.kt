@@ -102,30 +102,15 @@ fun InfoScreen(
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = "BÁCH KHOA",
-                    color = NeonCyan,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.neonGlow(color = NeonCyan, intensity = 0.6f, radiusFactor = 1.4f),
-                )
-                Box(
-                    modifier = Modifier
-                        .border(BorderStroke(1.5.dp, NeonCyan.copy(alpha = 0.7f)), RoundedCornerShape(20.dp))
-                        .clickable { onBack() }
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                ) {
-                    Text("← QUAY LẠI", color = NeonCyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            }
+            // Audit-Pixel-2 #1 fix — shared NeonActionBar replaces inline header;
+            // Info + Stats screens now use the same affordance (title left,
+            // (✕) close right). Pre-fix Info used a `← QUAY LẠI` text button —
+            // inconsistent with Stats' icon close. Unified here.
+            com.tranphuloi.neon.common.NeonActionBar(
+                title = "BÁCH KHOA",
+                titleColor = NeonCyan,
+                onBack = onBack,
+            )
             // Tabs
             Row(
                 modifier = Modifier

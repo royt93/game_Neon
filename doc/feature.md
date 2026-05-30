@@ -1868,6 +1868,64 @@ Six bugs reported from Pixel 7 Pro device test, all shipped:
   - `regression — multiplier 0_4 would falsely accept this near-overlap pair`: dx=0.85w. Production 0.45 → collide (correct). Over-relax to 0.4 → no collide (test trips).
 - **Test total: 471** (49 suites, +2 regression guards).
 
+**Pixel-2 feedback round 2 (Wave 11d round 5, 5 bugs + 1 audit-deep-dive):**
+
+- **#1 — Common `NeonActionBar`** (`common/NeonActionBar.kt`, new). Title left + (✕) close right + glow pulse. Applied to InfoScreen + StatsScreen. Eliminates inline duplicate (Info had `← QUAY LẠI` text button, Stats had `✕` icon — now consistent).
+- **#2 — Full-screen visual flash cho Ultimate + SmartBomb** (`GameState.kt`, `GameScreen.kt`). New `ultimateFlashMillis` (600ms cyan) + `smartBombFlashMillis` (700ms violet) full-screen overlays. Pre-fix user saw only 9 thin beams or per-enemy explosions — "splash xanh không phủ full screen". Now whole-screen alpha-faded color flash communicates the effect zone.
+- **#3 — Enemy overlap tightened + runtime separation** (`EnemyController.kt`). (a) Multiplier 0.45 → **0.5** (pixel-2 reported residual overlap after audit-3's relaxation). (b) New `applySeparationForces()` runs every processEnemies tick: O(n²) pairwise check; pushes overlapping RegularEnemies apart 0.4dp per tick along their connecting vector (~80dp/sec separation rate). Handles knockback / ZigZag bounce / formation drift clusters. Boss enemies skipped (intentional intimidation).
+- **#4 — Per-level enemy variation + escalating difficulty.**
+  - `EnemyFormation` (Row/V/SineWave) gained `xAnchorShift: Float` field. `Stage.kt.buildGameStage` computes deterministic shift `((chapter.id * 12 + gameStage) * 37 % 121 - 60).toFloat()` ∈ [-60, +60]. Identical formation types now spawn at different X positions across stages.
+  - `EndlessProvider` escalation expanded: was only HP × 1.10^cycle + spawn × 0.95^cycle; added impact × 1.08^cycle + yOffsetSpeed × 1.05^cycle. Endless cycle 5 → enemies hit ~47% harder + fall ~28% faster + spawn ~22% more frequently.
+- **#6 — Enemy biến mất sớm ở camera FAR** (mới phát hiện từ user pushback). `RegularEnemy.process()` flag `outOfScreen` via raw `screenHeight=891`, but at FAR zoom (scale=0.7) device-bottom maps to game-y ~1082. New `EnemyController.setExtraYSpan(margin)` + `processEnemies()` overrides flag with `screenHeight + extraYSpan` threshold. Wired from GameState's `LaunchedEffect(liveCameraZoom)` alongside existing X-axis fix.
+
+**Tests updated:** EnemyOverlapWave11dTest's existing tests updated cho multiplier 0.5 (3 tests rewrote: `Row spacing survives wide-future width 60dp` → `Row spacing breakpoint moves to width 58 at multiplier 0_5` confirms tighter rule; `partial overlap below 45 percent passes` → `edges exactly touching pass`; 2 regression guards inverted to flag relaxation back to 0.45).
+
+**Files changed (9 modified, 1 new):**
+- New: `common/NeonActionBar.kt`
+- Modified: `ui/info/InfoScreen.kt`, `ui/stats/StatsScreen.kt` (use NeonActionBar)
+- Modified: `ui/game/GameScreen.kt` (full-screen flash overlays)
+- Modified: `ui/game/state/GameState.kt` (flash millis fields + Y-axis wiring + ultimate trigger)
+- Modified: `ui/game/ship/laser/LasersController.kt` (no change needed — Bug #1 wiring complete)
+- Modified: `ui/game/enemy/ship/controller/EnemyController.kt` (setExtraYSpan + processEnemies threshold + applySeparationForces + multiplier 0.5)
+- Modified: `ui/game/enemy/ship/model/EnemyFormation.kt` (xAnchorShift fields)
+- Modified: `ui/game/enemy/ship/factory/EnemyFactory.kt` + `FormationXOffset.kt` (apply xAnchorShift)
+- Modified: `ui/game/stage/Stage.kt` (compute anchorShift per stage)
+- Modified: `ui/game/stage/StageProviders.kt` (impact + speed escalation)
+- Modified: `app/src/test/.../EnemyOverlapWave11dTest.kt` (multiplier 0.5 updates)
+- Modified: `doc/feature.md`
+
+**Log analysis observations (device test stage 83 → 87 GAME_OVER 59s):**
+- ✅ Voice variants confirmed firing 5 distinct phrases ("Đánh đôi!", "Liên hoàn đôi!", "Hai mạng!", "Tam liên hoàn!", "Bão lửa!") — Bug #3 audit fix working
+- ✅ Bug #1 wiring: `setExtraXSpan: 0.0 → 36.26469 → 88.071434` + `fireUltimateLaser: span=587 startX=-88 extra=88`
+- ⚠️ Heap growth 18MB stage 1 → 39MB after restart (2× across single restart); LeakWatch quiet; suspicious — may be Stats screen InfiniteTransitions + Compose state. Adds follow-up entry to investigate next cycle.
+
+**Audit-5 follow-up + heap fix (cycle 6, score 5/10 → est 8/10):**
+
+- **Heap growth root cause + fix.** Module-level `EnemyToEnemyUIMapper` (cap 64) + `LaserToLaserUIMapper` (cap 128) LRU caches persist app-lifetime (top-level `private val`). After 3-4 restarts → ~10MB zombie UI snapshots even though controllers GC'd. Fix: `enemyMapper.trimDead(emptySet()) + lasersMapper.trimDead(emptySet())` in GameState onDispose.
+- **P1 — Separation race + SineWave/ZigZag override fix.** Replaced direct `xOffset` mutation in EnemyController.applySeparationForces() with `separationVel: Float` field on RegularEnemy (mirrors existing knockbackVel pattern). Controller accumulates push into vel; RegularEnemy.process() consumes vel AFTER formation movement → SineWave's `xOffset = sineAnchorX + sin(phase)` no longer clobbers the push. Plus partition `regulars` list once outside O(n²) loop (was 870 casts/tick → 60 casts/tick) + early-out by Y-distance before sqrt.
+- **P2 — Endless escalation caps.** Added `.coerceAtMost(5.0f)` to hpScale + `.coerceAtMost(2.5f)` to impactScale + speedScale + `.coerceAtLeast(0.5f)` to spawnScale. Pre-fix cycle=30 → HP×17.4 / impact×10 / speed×4.3 (mathematically unplayable). Post-fix all hit ceiling around cycle 17-23. EndlessEscalationTest pins.
+- **P2 — NeonActionBar a11y + title overflow.**
+  - Close button 40dp → 48dp (Material a11y touch target minimum).
+  - Added `semantics { contentDescription = "Đóng"; role = Role.Button }` — screen reader speaks "Đóng, nút" instead of "✕".
+  - Title: `maxLines = 1` + `weight(1f, fill=false)` + `TextOverflow.Ellipsis`. Long titles no longer wrap + shove close icon below.
+  - ZigZag formation also gets `xAnchorShift` (was missing; 50% of chapter 1 stages → user's repetitiveness complaint partially survived audit-4 fix). Now applies to all 4 formation types.
+- **Tests added (+10 from 471 → 481, 51 suites):**
+  - `EndlessEscalationTest` (5 tests — cycle 0 baseline, cycle 5 escalation visible, cycle 30 caps hit, cycle 100 stays capped, monotonic across cycles)
+  - `StageAnchorShiftTest` (5 tests — range bounded [-60, +60], deterministic, 60+/100 unique values, adjacent stages differ, chapter advance reseeds)
+  - `chapter1GameStages` opened private → `internal` for cross-module test visibility.
+
+**Files changed (8 modified, 2 new test files):**
+- `ui/game/state/GameState.kt` — heap fix (mapper.trimDead in onDispose)
+- `ui/game/enemy/ship/controller/EnemyController.kt` — applySeparationForces uses separationVel + partition optimization
+- `ui/game/enemy/ship/model/RegularEnemy.kt` — added `var separationVel: Float` + consume in process()
+- `ui/game/enemy/ship/model/EnemyFormation.kt` — ZigZag.xAnchorShift field
+- `ui/game/enemy/ship/factory/FormationXOffset.kt` — apply ZigZag shift
+- `ui/game/stage/Stage.kt` — pass anchorShift to ZigZag
+- `ui/game/stage/StageProviders.kt` — escalation caps + `internal` visibility
+- `common/NeonActionBar.kt` — 48dp tap target + semantics + title ellipsis
+- New: `test/.../EndlessEscalationTest.kt` (5 tests)
+- New: `test/.../StageAnchorShiftTest.kt` (5 tests)
+
 ---
 
 ### 11c Statistics screen + telemetry achievements + precise attribution + audit pass ✅ DONE
@@ -1933,7 +1991,7 @@ User Round 67+ pick which Wave(s) to prioritize. Each Wave is 3-6 rounds. Sugges
 - **Logger:** 2 cấp — `Logger.d` cho sparse events (init/lifecycle/stage advance/boss kill/achievement), `Logger.v { ... }` cho hot-path (per-frame, per-collision, per-spawn, per-kill, audio micro-step). Toggle qua `Logger.VERBOSE = true` trong utils/Logger.kt khi cần debug stream đầy đủ.
 - **Mapper memoization (round 48):** `EnemyToEnemyUIMapper` + `LaserToLaserUIMapper` cache theo id với LRU LinkedHashMap (cap 64 + 128). Mappers là top-level `private val` → cache persist app-lifetime, bounded by LRU. Field-compare fast-path tránh allocation khi entity unchanged. Tints dùng `==` (structural) + caller dùng `emptyList()` singleton cho no-effect case.
 - **Entity caps (round 47):** `EnemyController.MAX_REGULAR_ENEMIES = 30` (bosses bypass), `LasersController.MAX_SHIP_LASERS = 25`, `EnemyLasersController.MAX_ENEMY_LASERS = 30`. `BoosterController.MAX_BOOSTERS = 3` (pre-existing). Skip-at-cap logs Logger.v.
-- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **471** (49 test suites, 0 failures — last verified 2026-05-30 sau Wave 11d audit-3 round).
+- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **481** (51 test suites, 0 failures — last verified 2026-05-30 sau Wave 11d audit-5 + heap fix).
 - **Doc structure:** R1-R75 history archived ở [feature-archive.md](feature-archive.md) (~2700 dòng). File này (R76-R86 recent + Phần 4-7 + Notes) ~1860 dòng. Khi feature.md vượt 200KB lần nữa → move R76-R85 sang archive.
 - **i18n:** strings mới phải thêm vào cả `values-vi/strings.xml` và `values-en/strings.xml`
 - **Compose stability:** data class state mới nên dùng `@Immutable`/`@Stable` annotation. EnemyUI, LaserUI, BoosterUI, MineralUI, RunModifier, RunBuff, StatusEffect, SecondaryWeapon, BulletType, ShipSkin, ColorBlindMode, NeonPalette đều `@Immutable`.

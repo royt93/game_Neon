@@ -38,6 +38,29 @@ class EnemyController(
     }
 
     /**
+     * Wave 11d Pixel-2 feedback #6 fix — Y-axis equivalent of [setSpawnXMargin].
+     *
+     * RegularEnemy.process() uses raw `screenHeight` to flag outOfScreen, so at
+     * camera FAR (scale=0.7) enemies whose `yOffset + height > 891` get culled
+     * while they're still mid-device visually (device-y range maps to game-y
+     * `-190 .. 1082`). User reported enemies disappearing before reaching the
+     * device-bottom edge.
+     *
+     * Fix: track `extraYSpan` here and override the per-enemy outOfScreen flag
+     * in [processEnemies] by re-computing against `screenHeight + extraYSpan`.
+     * Wired from GameState's `LaunchedEffect(liveCameraZoom)` alongside
+     * setSpawnXMargin + lasersController.setExtraXSpan.
+     */
+    private var extraYSpan: Float = 0f
+
+    fun setExtraYSpan(margin: Float) {
+        if (extraYSpan != margin) {
+            Logger.d("EnemyController.setExtraYSpan: $extraYSpan → $margin (enemy outOfScreen threshold extended)")
+            extraYSpan = margin
+        }
+    }
+
+    /**
      * Round 79 (#1) — set current chapter context so EnemyFactory picks the
      * right bossKind override on next boss spawn (eliminate visual dups across
      * chapter encounters). Call from GameState when chapter advances.
@@ -157,16 +180,22 @@ class EnemyController(
          * tests can drive the production code directly instead of mirroring
          * the math in a test-side copy.
          *
+         * Pixel-2 #3 fix — multiplier TIGHTENED from 0.45 back to 0.5 because
+         * user reported "enemy vẫn còn overlap sau" after relaxation. The
+         * relaxation was originally a safety buffer for hypothetical wide-Row
+         * formations (width > 60dp); current data has width ≤ 46dp, so the
+         * extra buffer just allowed visually-overlapping clusters from
+         * knockback / ZigZag bounce / spawn timing edge cases to settle in.
+         *
          * Contract:
-         *  - Returns true iff the two BBOXes' centers are within 45% of each
+         *  - Returns true iff the two BBOXes' centers are within 50% of each
          *    summed dimension on BOTH axes. Strict `<` so edge-touching pairs
          *    (dx == 0.5·(w_a + w_b)) pass.
          *  - Symmetric: bboxOverlaps(a, b) == bboxOverlaps(b, a).
-         *  - Multiplier 0.45 (relaxed from 0.5 by audit P2 fix) provides
-         *    0.1·w buffer for adjacent Row members at current widths.
-         *  - Numeric breakpoint pinned by tests: stays correct up to ~75dp
-         *    enemy width on 411dp screens; beyond that
-         *    `FormationXOffset.rowXOffset.distanceBetween` must be retuned.
+         *  - At width=46 (current max) Row spacing 60.83 > xLimit 46 → safe.
+         *  - Numeric breakpoint pinned by tests: at width 58.7+ the spawn
+         *    check starts rejecting valid Row formations — retune
+         *    `FormationXOffset.rowXOffset.distanceBetween` first.
          */
         @androidx.annotation.VisibleForTesting
         internal fun bboxOverlaps(
@@ -175,8 +204,8 @@ class EnemyController(
         ): Boolean {
             val dx = kotlin.math.abs(ax - bx)
             val dy = kotlin.math.abs(ay - by)
-            val xLimit = (aw + bw) * 0.45f
-            val yLimit = (ah + bh) * 0.45f
+            val xLimit = (aw + bw) * 0.5f
+            val yLimit = (ah + bh) * 0.5f
             return dx < xLimit && dy < yLimit
         }
     }
@@ -185,8 +214,15 @@ class EnemyController(
     val processEnemiesRepeatTime = Millis(5)
     fun processEnemies() {
         var leftScreen = 0
+        // Pixel-2 #6 fix — re-compute outOfScreen using extended Y threshold so
+        // enemies survive until they reach the device-visible bottom at FAR zoom.
+        // We OVERRIDE the per-enemy outOfScreen flag (which was set in process()
+        // against raw screenHeight). Negative extraYSpan (NEAR zoom) tightens
+        // the threshold — symmetric.
+        val effectiveHeight = screenHeight + extraYSpan
         enemies.forEach {
             it.process()
+            val visuallyOffScreen = it.yOffset + it.height > effectiveHeight
             if (it.destroyed) {
                 enemies -= it
                 addMinerals(
@@ -202,15 +238,62 @@ class EnemyController(
                     it.height
                 )
                 onEnemyKilled(it)
-            } else if (it.outOfScreen) {
+            } else if (visuallyOffScreen) {
                 enemies -= it
                 leftScreen++
             }
         }
+        // Pixel-2 #3 fix — runtime separation force. Knockback velocity (when
+        // ship rams an enemy), ZigZag bounce off screen edges, and overlapping
+        // spawns slipping past the pre-spawn check all create visible clusters
+        // post-spawn. Per-tick gentle nudge pushes overlapping pairs apart
+        // along their connecting vector. Step 0.4dp/tick @ ~200Hz = 80dp/sec
+        // separation rate — fast enough to resolve clusters within ~1s,
+        // gentle enough to not visibly teleport enemies. Y axis untouched so
+        // formation vertical staggers preserve their design.
+        applySeparationForces()
         // Round 37 — was logging "$leftScreen enemies left screen" per 5ms tick.
         // Mid-wave that fired multiple times per second. Active enemy count is
         // available via UI; left-screen events aren't actionable signal.
         updateEnemies()
+    }
+
+    private fun applySeparationForces() {
+        val list = enemies
+        if (list.size < 2) return
+        val step = 0.4f
+        // Audit-5 P1 fix — partition once at top, avoid 870 casts/tick at peak.
+        // Filter to RegularEnemies; bosses skip separation (intimidation
+        // intent). Also early-out the inner loop on Y-distance before sqrt.
+        val regulars = list.mapNotNull {
+            it as? com.tranphuloi.neon.ui.game.enemy.ship.model.RegularEnemy
+        }
+        if (regulars.size < 2) return
+        for (i in regulars.indices) {
+            val a = regulars[i]
+            for (j in i + 1 until regulars.size) {
+                val b = regulars[j]
+                val dy = b.yOffset - a.yOffset
+                val minDist = (a.width + b.width) * 0.5f
+                // Early Y-axis reject — avoids sqrt for far-apart pairs.
+                if (kotlin.math.abs(dy) >= minDist) continue
+                val dx = b.xOffset - a.xOffset
+                val distSq = dx * dx + dy * dy
+                val minDistSq = minDist * minDist
+                if (distSq > 0.01f && distSq < minDistSq) {
+                    val dist = kotlin.math.sqrt(distSq.toDouble()).toFloat()
+                    val pushX = (dx / dist) * step
+                    // Audit-5 P1 fix — accumulate into separationVel (consumed
+                    // by RegularEnemy.process() AFTER formation movement) so
+                    // SineWave's per-tick xOffset = sineAnchorX + sin(phase)
+                    // doesn't clobber the push. Pre-fix the controller mutated
+                    // xOffset directly → SineWave / ZigZag re-stepped overrode
+                    // it the same frame.
+                    a.separationVel -= pushX
+                    b.separationVel += pushX
+                }
+            }
+        }
     }
 
     fun hasEnemies() = enemies.isNotEmpty()

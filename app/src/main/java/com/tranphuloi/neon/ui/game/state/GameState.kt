@@ -373,6 +373,12 @@ fun rememberGameState(): GameState {
     }
     // HitStopController declared early so onLaserHit can call freezeForHit().
     var bossKillFlashMillis by remember { mutableLongStateOf(0L) }
+    // Pixel-2 #2 fix — full-screen flash overlays for SmartBomb + UltimateLaser
+    // fire. Before this, both abilities fired thin 9-beam sweeps + per-enemy
+    // explosions but user perceived "splash xanh không phủ full screen".
+    // Adds a 600ms colored full-screen flash to visualize the effect zone.
+    var ultimateFlashMillis by remember { mutableLongStateOf(0L) }
+    var smartBombFlashMillis by remember { mutableLongStateOf(0L) }
     // Round 79 (#4 fix) — boss hit lightning state. Updated on bullet→boss hit
     // via LasersController.onLaserHit(isBoss=true). BossHitLightning Composable
     // reads triggerMillis + position; fires 5-bolt full-screen lightning.
@@ -1367,6 +1373,10 @@ fun rememberGameState(): GameState {
         // extended enemy spawn band. Without this, enemies that spawned into
         // the right-edge FAR-zoom margin survived ChargeShot/Ultimate sweeps.
         lasersController.setExtraXSpan(extensionX)
+        // Pixel-2 feedback #6 fix — extend enemy outOfScreen Y threshold so
+        // enemies stay visible until they reach the actual device-bottom edge
+        // (not just game-coord screenHeight). Mirrors X-axis fix above.
+        enemyController.setExtraYSpan(extensionY)
         Logger.d("Camera zoom=${liveCameraZoom.key} scale=$scale → drag/spawn extension X=$extensionX Y=$extensionY")
     }
 
@@ -1434,7 +1444,10 @@ fun rememberGameState(): GameState {
                                         boosters = boosterController.boosters,
                                         enemies = enemies,
                                         enemyLasers = enemyLaserController.enemyLasers
-                                    ) { lasersController.fireUltimateLaser() }
+                                    ) {
+                                        lasersController.fireUltimateLaser()
+                                        ultimateFlashMillis = System.currentTimeMillis()
+                                    }
                                 }
                             )
                             // Round 75 (R75b) — REGEN SkillNode tick @ 1s.
@@ -1580,6 +1593,7 @@ fun rememberGameState(): GameState {
                         // ultimate laser. ShipController tracks the timer + cooldown.
                         if (shipController.consumeChargeShot()) {
                             lasersController.fireUltimateLaser()
+                            ultimateFlashMillis = System.currentTimeMillis()
                         }
                         if (gameStage is StageGame) {
                             val stage = gameStage as StageGame
@@ -1709,6 +1723,15 @@ fun rememberGameState(): GameState {
             job.cancel()
             // Module-level tinkerMap accumulates UUIDs forever otherwise.
             tinkerClearAll()
+            // Pixel-2 heap-growth fix — module-level mapper LRU caches persist
+            // across restart (top-level `private val` lifetime = app process).
+            // Each run leaves up to 64 EnemyUI + 128 LaserUI zombie entries
+            // in the cache. After 3-4 restarts heap grows ~10MB from these
+            // alone. Force-clear by trimming against an empty alive-set.
+            // LeakWatch quiet because the controllers themselves get GC'd —
+            // the cache is just retained UI snapshots.
+            enemyMapper.trimDead(emptySet())
+            lasersMapper.trimDead(emptySet())
             // Hand controllers + state to LeakCanary (no-op in release).
             LeakWatch.watch(shipController, "GameState.onDispose → ShipController must be GC'd")
             LeakWatch.watch(enemyController, "GameState.onDispose → EnemyController must be GC'd")
@@ -1778,6 +1801,8 @@ fun rememberGameState(): GameState {
         pickupBursts = pickupBursts,
         pickupPopups = pickupPopups,
         bossKillFlashMillis = bossKillFlashMillis,
+        ultimateFlashMillis = ultimateFlashMillis,
+        smartBombFlashMillis = smartBombFlashMillis,
         lastBossHitMillis = lastBossHitMillis,
         lastBossHitX = lastBossHitX,
         lastBossHitY = lastBossHitY,
@@ -1841,6 +1866,10 @@ fun rememberGameState(): GameState {
                 }
                 enemyLasers = emptyList()       // clear all enemy lasers
                 bossKillEventMillis = System.currentTimeMillis()    // reuse for screen feedback
+                // Pixel-2 #2 fix — fire full-screen violet flash overlay so
+                // user sees the effect zone covering full screen, not just
+                // per-enemy explosions scattered around.
+                smartBombFlashMillis = System.currentTimeMillis()
             }
         },
         killCamStartedAtMillis = killCamStartedAtMillis,
@@ -1990,6 +2019,10 @@ data class GameState(
     val pickupBursts: List<com.tranphuloi.neon.ui.game.spark.PickupBurst>,
     val pickupPopups: List<PickupPopup>,
     val bossKillFlashMillis: Long,
+    /** Pixel-2 #2 — wall-clock of last UltimateLaser fire; 0 = none. */
+    val ultimateFlashMillis: Long = 0L,
+    /** Pixel-2 #2 — wall-clock of last SmartBomb dispatch; 0 = none. */
+    val smartBombFlashMillis: Long = 0L,
     /** Round 79 (#4) — wall-clock of last bullet→boss hit; 0 if none yet. */
     val lastBossHitMillis: Long,
     /** Round 79 (#4) — boss center in game-coord dp when last hit. */

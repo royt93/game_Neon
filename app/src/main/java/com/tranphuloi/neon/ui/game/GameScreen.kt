@@ -859,6 +859,33 @@ fun GameScreen(
                     .zIndex(260f)
             )
         }
+        // Pixel-2 #2 fix — full-screen Ultimate laser flash overlay (600ms cyan).
+        // Visualizes the effect-zone of the 9 vertical beams sweep so user
+        // sees coverage instead of just thin beams + per-hit explosions.
+        val ultElapsed = (now - gameState.ultimateFlashMillis).coerceAtLeast(0L)
+        val ultProgress = (1f - ultElapsed.toFloat() / 600f).coerceIn(0f, 1f)
+        if (ultProgress > 0f && !reduceMotion) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(com.tranphuloi.neon.common.NeonCyan.copy(alpha = 0.35f * ultProgress))
+                    .zIndex(262f),
+            )
+        }
+        // Pixel-2 #2 fix — full-screen SmartBomb flash overlay (700ms violet).
+        // Communicates the "all enemies cleared" effect zone — pre-fix user
+        // only saw per-enemy explosions clustered where enemies happened to
+        // be, not a screen-wide AOE.
+        val sbElapsed = (now - gameState.smartBombFlashMillis).coerceAtLeast(0L)
+        val sbProgress = (1f - sbElapsed.toFloat() / 700f).coerceIn(0f, 1f)
+        if (sbProgress > 0f && !reduceMotion) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(com.tranphuloi.neon.common.NeonViolet.copy(alpha = 0.45f * sbProgress))
+                    .zIndex(263f),
+            )
+        }
         // Ship destroy phase 2 (200-300ms): full-screen white flash. Phase 1
         // (implosion) is in GameWorld; phase 3 (BANG explosions) triggered with
         // 300ms delay from GameState.onShipDestroyed.

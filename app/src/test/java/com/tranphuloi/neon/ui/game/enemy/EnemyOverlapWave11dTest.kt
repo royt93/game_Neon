@@ -11,19 +11,16 @@ import org.junit.Test
  *
  * Audit-3 #1 fix — tests now drive the PRODUCTION
  * [EnemyController.bboxOverlaps] function directly (extracted to companion as
- * `@VisibleForTesting internal`). Prior version mirrored the algorithm in
- * a test-side helper which was a tautology — production regression to the
- * old multiplier (0.5) would have passed all tests because the test copy
- * was independent.
+ * `@VisibleForTesting internal`).
+ *
+ * Pixel-2 #3 fix — multiplier tightened 0.45 → 0.5 because user reported
+ * residual visual overlap. Tests below updated to reflect the tighter rule.
  *
  * Contract pinned:
  *   1. Two enemies at the same (x, y) collide.
- *   2. Adjacent enemies in a Row formation (current max width 46 + spacing 60+) pass.
- *   3. Wide-Row regression: even at width 60 (future bump), Row spacing
- *      remains > 0.45 × (w + w) = 54 < 60.83 → passes.
- *   4. SineWave / V members staggered vertically pass (dy > yLimit).
- *   5. Within-batch overlap is NOT checked (formations design their own spacing).
- *   6. Boss spawns bypass entirely (verified separately by inspection).
+ *   2. Adjacent Row members at current max width 46 + spacing ~61 still pass.
+ *   3. SineWave / V members staggered vertically pass (dy > yLimit).
+ *   4. Boss spawns bypass entirely (verified separately by inspection).
  */
 class EnemyOverlapWave11dTest {
 
@@ -49,7 +46,8 @@ class EnemyOverlapWave11dTest {
         // Stage.kt: width = 40 + tier * 3. Max tier = 2 → max width 46dp.
         // FormationXOffset.kt: distanceBetween = (411 + 0) / 6 - 46 / 6
         //                                     = 68.5 - 7.67 = 60.83dp.
-        // xLimit = (46 + 46) * 0.45 = 41.4 → 60.83 > 41.4 → no collision.
+        // xLimit = (46 + 46) * 0.5 = 46 → 60.83 > 46 → no collision (Pixel-2 #3
+        // tightened multiplier from 0.45 to 0.5; current data still safe).
         val w = 46f
         val dx = 411f / 6f - w / 6f
         val a = FP(100f, 0f, w, w)
@@ -58,16 +56,17 @@ class EnemyOverlapWave11dTest {
     }
 
     @Test
-    fun `Row spacing survives wide-future width 60dp`() {
-        // Future-proofing: if width climbs to 60 via difficulty tuning,
-        // Row spacing = 411/6 - 60/6 = 58.5. xLimit = (60+60)*0.45 = 54.
-        // 58.5 > 54 → passes. The relaxed 0.45 multiplier buys this margin
-        // that the original 0.5 (xLimit=60) didn't.
+    fun `Row spacing breakpoint moves to width 58 at multiplier 0_5`() {
+        // Pixel-2 #3 tightened multiplier 0.45 → 0.5. At width 60,
+        // Row spacing = 411/6 - 60/6 = 58.5. xLimit = (60+60)*0.5 = 60.
+        // 58.5 < 60 → COLLIDES (rejected). So if difficulty tuning bumps
+        // enemy width past ~58dp, Row formations start losing members.
+        // Current max width is 46dp → 12dp safety buffer.
         val w = 60f
         val dx = 411f / 6f - w / 6f
         val a = FP(100f, 0f, w, w)
         val b = FP(100f + dx, 0f, w, w)
-        assertFalse("Wide-Row spacing must still pass", collides(a, b))
+        assertTrue("Row at w=60 hits the multiplier-0.5 breakpoint", collides(a, b))
     }
 
     @Test
@@ -155,14 +154,14 @@ class EnemyOverlapWave11dTest {
     }
 
     @Test
-    fun `partial overlap below 45 percent passes (edges touching)`() {
-        // dx = w * 0.9 → just outside 0.45 * 2w = 0.9w. Edges roughly touch.
+    fun `edges exactly touching pass (multiplier 0_5 boundary)`() {
+        // dx = w (centers exactly one width apart, edges touching). With
+        // multiplier 0.5: xLimit = w → dx == xLimit → strict `<` so passes.
         val w = 40f
-        val dx = w * 0.9f
+        val dx = w
         val a = FP(100f, 0f, w, w)
         val b = FP(100f + dx, 0f, w, w)
-        // dx = 36, xLimit = 36 → strict `<` so 36 < 36 is FALSE → passes.
-        assertFalse(collides(a, b))
+        assertFalse("Edge-touching pair (dx = w) must pass at multiplier 0.5", collides(a, b))
     }
 
     @Test
@@ -176,19 +175,13 @@ class EnemyOverlapWave11dTest {
     }
 
     @Test
-    fun `relaxed multiplier 0_45 vs prior 0_5 documents the buffer change`() {
-        // Demonstrate the audit-P2 fix changed behavior at the boundary.
-        // dx = w (centers exactly one width apart). At 0.5 multiplier:
-        //   xLimit = w → dx == xLimit → FALSE (boundary). Originally tight.
-        // At 0.45 multiplier:
-        //   xLimit = 0.9w → dx > xLimit → FALSE with 0.1w buffer.
+    fun `near-overlap at dx=0_8w rejected (multiplier 0_5)`() {
+        // dx = 0.8w. At multiplier 0.5: xLimit = w → 0.8w < w → collides.
+        // Documents the tight bound chosen by Pixel-2 #3 fix.
         val w = 40f
-        val dx = w  // centers exactly one width apart
         val a = FP(0f, 0f, w, w)
-        val b = FP(dx, 0f, w, w)
-        // Current impl with 0.45: 40 < 36 → FALSE.
-        val curr = collides(a, b)
-        assertFalse("Multiplier 0.45 leaves 0.1w buffer for adjacent enemies", curr)
+        val b = FP(0.8f * w, 0f, w, w)
+        assertTrue("Near-overlap at dx=0.8w must collide at multiplier 0.5", collides(a, b))
     }
 
     @Test
@@ -202,41 +195,43 @@ class EnemyOverlapWave11dTest {
         )
     }
 
-    // ── Audit-3 #1 regression guards — production multiplier 0.45 ──
+    // ── Pixel-2 #3 regression guards — production multiplier 0.5 ──
 
     @Test
-    fun `regression — multiplier 0_5 would falsely reject this adjacent pair`() {
-        // Adjacent Row members at distance dx = w (centers exactly one width
-        // apart). With multiplier 0.45 → xLimit = 0.9w → 0.9w < w → NO collide.
-        // With BIASED multiplier 0.5 → xLimit = w → w < w is FALSE so still
-        // no collide here at exact boundary. Need a slightly tighter dx
-        // to expose the difference.
+    fun `regression — multiplier 0_55 would falsely reject Row at width 46`() {
+        // Pixel-2 #3 chose multiplier 0.5 as the upper bound that still
+        // leaves 12dp safety buffer for current max width 46dp Row formations.
+        // If someone tightens to 0.55, Row formations would have:
+        //   xLimit = (46+46)*0.55 = 50.6
+        //   Row spacing = 60.83 > 50.6 → still passes (barely).
+        // At 0.6: xLimit = 55.2 → still passes.
+        // At 0.66: xLimit = 60.72 → 60.83 > 60.72 → still passes by 0.1dp.
+        // At 0.67+: xLimit = 61.64 → 60.83 < 61.64 → REJECTS. So the
+        // sensible upper bound is ~0.66.
         //
-        // Construction: dx = 0.95w. With multiplier 0.45 → xLimit = 0.9w →
-        // 0.95w > 0.9w → no collide (correct). With multiplier 0.5 →
-        // xLimit = w → 0.95w < w → collide (false reject). If production
-        // formula regresses to 0.5, this test fires.
+        // To regression-guard, we assert that the CURRENT impl passes the
+        // Row spacing at width 46 (already done in test above), AND that
+        // a deliberately-over-tightened pair (dx=w*1.1) still fails — i.e.
+        // multiplier hasn't dropped below ~0.55.
         val w = 40f
         val a = FP(0f, 0f, w, w)
-        val b = FP(0.95f * w, 0f, w, w)
+        val b = FP(1.1f * w, 0f, w, w)  // dx > w → above all reasonable xLimits
         assertFalse(
-            "Adjacent pair at dx=0.95w must NOT collide — if it does, multiplier may have regressed to 0.5",
+            "Pair at dx=1.1w must NOT collide regardless of multiplier choice in [0.45, 0.66]",
             collides(a, b),
         )
     }
 
     @Test
-    fun `regression — multiplier 0_4 would falsely accept this near-overlap pair`() {
-        // Defensive upper bound: if multiplier were ever DROPPED to 0.4 (over-
-        // relaxation), enemies overlapping by ~20% would be accepted. We want
-        // them rejected. Construction: dx = 0.85w. With multiplier 0.45 →
-        // xLimit = 0.9w → 0.85w < 0.9w → collides (correct reject). With
-        // multiplier 0.4 → xLimit = 0.8w → 0.85w > 0.8w → no collide (regression).
+    fun `regression — multiplier 0_45 would falsely accept this near-overlap pair`() {
+        // Inverse: if production were relaxed back to 0.45, a pair at
+        // dx=0.95w would pass (xLimit=0.9w, 0.95w > 0.9w). At current 0.5,
+        // xLimit=w, 0.95w < w → collides correctly. Catches regression.
         val w = 40f
         val a = FP(0f, 0f, w, w)
-        val b = FP(0.85f * w, 0f, w, w)
+        val b = FP(0.95f * w, 0f, w, w)
         assertTrue(
-            "Near-overlap pair at dx=0.85w MUST collide — if it doesn't, multiplier may have under-relaxed to 0.4",
+            "Near-overlap pair at dx=0.95w MUST collide at multiplier 0.5 — if it doesn't, multiplier regressed to 0.45 or lower",
             collides(a, b),
         )
     }

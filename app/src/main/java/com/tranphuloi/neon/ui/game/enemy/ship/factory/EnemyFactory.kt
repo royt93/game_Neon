@@ -95,7 +95,8 @@ class EnemyFactory(
                     val half = (n - 1) / 2
                     val xStep = type.width * 1.4f
                     val yStep = type.height * 0.9f
-                    val centerX = screenWidth / 2f - type.width / 2f
+                    // Pixel-2 #4 — apply per-stage anchor shift so V tip varies.
+                    val centerX = screenWidth / 2f - type.width / 2f + type.formation.xAnchorShift
                     for (i in 0 until n) {
                         // Slot ordering: -half .. +half (so even N has one extra on the right)
                         val slot = i - half
@@ -119,7 +120,8 @@ class EnemyFactory(
                 is SineWave -> {
                     val n = type.formation.count.coerceAtLeast(3)
                     val yStep = type.height * 1.4f
-                    val centerX = screenWidth / 2f - type.width / 2f
+                    // Pixel-2 #4 — per-stage anchor shift varies the serpent path.
+                    val centerX = screenWidth / 2f - type.width / 2f + type.formation.xAnchorShift
                     for (i in 0 until n) {
                         // All share the same anchor x; stagger vertically so the wave
                         // pattern is visible as a serpent of [n] segments.
