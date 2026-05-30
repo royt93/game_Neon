@@ -11,10 +11,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
+import com.tranphuloi.neon.common.PathPool
 import com.tranphuloi.neon.ui.game.spark.TrailLine
 import kotlinx.coroutines.delay
 
@@ -99,7 +99,11 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawJaggedBolt(
 ) {
     val pts = line.jaggedPoints(segments = 6)
     if (pts.size < 2) return
-    val path = Path().apply {
+    // Audit-10 P2 fix — was `val path = Path()` per-tick per-trail allocation.
+    // At peak combat (multiple chain-lightning bolts + reflect arcs) this
+    // produced per-frame Path GC pressure. Migrate to PathPool: acquire +
+    // draw 3 layers + release once.
+    val path = PathPool.acquire().apply {
         moveTo(pts[0].first, pts[0].second)
         for (i in 1 until pts.size) {
             lineTo(pts[i].first, pts[i].second)
@@ -123,4 +127,5 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawJaggedBolt(
         color = Color.White.copy(alpha = alpha * 0.90f),
         style = Stroke(width = widthPx * 0.6f, cap = StrokeCap.Round),
     )
+    PathPool.release(path)
 }

@@ -21,6 +21,22 @@ private const val BULLET_KILL_PREFIX = "bullet_kill_"
 private const val BOSS_KILL_PREFIX = "boss_kill_"
 private const val SHIP_TIME_PREFIX = "ship_time_"
 private const val RANK_DIST_PREFIX = "rank_dist_"
+// Wave 12 round 2 — shop persistence. Rank-based items reuse NODE_PREFIX
+// (each shop item appears as a "node" in DataStore with prefix `node_shop_*`),
+// CONSUMABLE items get their own STOCKPILE_PREFIX namespace so a consumable
+// stock counter can never collide with a skill-tree rank counter.
+internal const val STOCKPILE_PREFIX = "stockpile_"
+
+/**
+ * Pure spend predicate — extracted so tests can pin the decision logic
+ * without standing up DataStore. Used inside `spendOnNode`'s atomic edit.
+ */
+internal fun canSpendOnNode(balance: Int, cost: Int, currentRank: Int, maxRank: Int): Boolean =
+    cost >= 0 && balance >= cost && currentRank < maxRank
+
+/** Same idea for stockpile spend (consumables). */
+internal fun canSpendOnStockpile(balance: Int, cost: Int, addAmount: Int): Boolean =
+    cost >= 0 && balance >= cost && addAmount > 0
 
 /**
  * Wave 5 (48x) — permanent meta progression. Tracks:
@@ -74,7 +90,7 @@ class MetaProgressionRepository(private val appContext: Context) {
             val balance = prefs[LIFETIME_MINERALS_KEY] ?: 0
             val nodePrefKey = intPreferencesKey(NODE_PREFIX + nodeKey)
             val currentRank = prefs[nodePrefKey] ?: 0
-            if (balance >= cost && currentRank < maxRank) {
+            if (canSpendOnNode(balance, cost, currentRank, maxRank)) {
                 prefs[LIFETIME_MINERALS_KEY] = balance - cost
                 prefs[nodePrefKey] = currentRank + 1
                 success = true
@@ -84,6 +100,51 @@ class MetaProgressionRepository(private val appContext: Context) {
             }
         }
         return success
+    }
+
+    /**
+     * Wave 12 round 2 — shop CONSUMABLE category. Atomic deduction +
+     * stockpile increment. Returns true on success, false if balance < cost
+     * (or `addAmount <= 0`, defensive). Stockpile reads via [stockpileCount].
+     */
+    suspend fun spendOnStockpile(stockpileKey: String, cost: Int, addAmount: Int): Boolean {
+        var success = false
+        appContext.metaDataStore.edit { prefs ->
+            val balance = prefs[LIFETIME_MINERALS_KEY] ?: 0
+            val prefKey = intPreferencesKey(STOCKPILE_PREFIX + stockpileKey)
+            val current = prefs[prefKey] ?: 0
+            if (canSpendOnStockpile(balance, cost, addAmount)) {
+                prefs[LIFETIME_MINERALS_KEY] = balance - cost
+                prefs[prefKey] = current + addAmount
+                success = true
+                Logger.d("MetaProgressionRepository.spendOnStockpile($stockpileKey, cost=$cost, +$addAmount): stock $current → ${current + addAmount}, balance $balance → ${balance - cost}")
+            } else {
+                Logger.d("MetaProgressionRepository.spendOnStockpile($stockpileKey, cost=$cost) DENIED — balance=$balance addAmount=$addAmount")
+            }
+        }
+        return success
+    }
+
+    /** Current stockpile count for a consumable key. */
+    fun stockpileCount(stockpileKey: String): Flow<Int> = appContext.metaDataStore.data.map {
+        it[intPreferencesKey(STOCKPILE_PREFIX + stockpileKey)] ?: 0
+    }
+
+    /**
+     * Wave 12 round 3 — decrement a consumable stockpile when it's spent into a
+     * run (e.g., bombs folded into the run's starting count, a revive token
+     * granted at spawn). Clamped at 0 so a double-fire can never push the count
+     * negative. No-op for `amount <= 0`.
+     */
+    suspend fun consumeStockpile(stockpileKey: String, amount: Int) {
+        if (amount <= 0) return
+        appContext.metaDataStore.edit { prefs ->
+            val prefKey = intPreferencesKey(STOCKPILE_PREFIX + stockpileKey)
+            val current = prefs[prefKey] ?: 0
+            val next = (current - amount).coerceAtLeast(0)
+            prefs[prefKey] = next
+            Logger.d("MetaProgressionRepository.consumeStockpile($stockpileKey, -$amount): $current → $next")
+        }
     }
 
     // ── Wave 11b — DB metrics persistence ──

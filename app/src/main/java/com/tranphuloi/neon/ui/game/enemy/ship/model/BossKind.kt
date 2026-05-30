@@ -18,6 +18,7 @@ package com.tranphuloi.neon.ui.game.enemy.ship.model
  * resolve (Ch4 OFFENSIVE → HELL_LORD), boss banner sẽ hiện đúng tên Vietnamese
  * khớp với InfoScreen entry.
  */
+@androidx.annotation.Keep
 enum class BossKind(val displayName: String) {
     STAR(displayName = "Mặt Trời Đỏ Máu"),
     CROSS(displayName = "Thập Tự Ngọc Lục Bảo"),

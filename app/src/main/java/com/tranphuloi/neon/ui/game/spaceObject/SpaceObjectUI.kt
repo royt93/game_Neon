@@ -5,6 +5,7 @@ import androidx.compose.runtime.Immutable
 import java.io.Serializable
 
 @Immutable
+@androidx.annotation.Keep
 data class SpaceObjectUI(
     val id: String,
     val size: Float,

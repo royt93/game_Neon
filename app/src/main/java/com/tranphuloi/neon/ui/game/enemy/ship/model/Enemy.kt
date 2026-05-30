@@ -1,9 +1,11 @@
 package com.tranphuloi.neon.ui.game.enemy.ship.model
 
+import androidx.annotation.Keep
 import androidx.compose.ui.geometry.Rect
 import com.tranphuloi.neon.ui.game.laser.Laser
 import java.io.Serializable
 
+@Keep
 interface Enemy : Serializable {
     val enemyId: String
     val width: Float

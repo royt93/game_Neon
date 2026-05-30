@@ -77,6 +77,7 @@ fun DialogSettings(
     onDismiss: () -> Unit,
 ) {
     val settings = LocalSettings.current
+    val meta = com.tranphuloi.neon.data.LocalMetaProgression.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     // Round 39 — accent colors here come from LocalNeonPalette so toggling
@@ -91,6 +92,8 @@ fun DialogSettings(
     val autoSkipLoadout by settings.autoSkipLoadout.collectAsState(initial = true)
     val difficulty by settings.difficulty.collectAsState(initial = Difficulty.NORMAL)
     val shipSkin by settings.shipSkin.collectAsState(initial = ShipSkin.AURA_CYAN)
+    // Wave 12 round 3 — shop-gated skins. allRanks keyed by ShopItem.persistKey.
+    val shopRanks by meta.allRanks.collectAsState(initial = emptyMap())
     val colorBlindMode by settings.colorBlindMode.collectAsState(
         initial = com.tranphuloi.neon.data.ColorBlindMode.NORMAL,
     )
@@ -194,11 +197,24 @@ fun DialogSettings(
                     // skin's glow color so the swatch IS the color preview.
                     LabelledPillRow(label = "Hào quang tàu", color = palette.gold) {
                         ShipSkin.entries.forEach { s ->
+                            val locked = !com.tranphuloi.neon.data.ShopItem
+                                .isShopUnlocked(shopRanks, s.shopUnlockId)
                             Pill(
-                                label = s.displayName,
+                                // A locked skin can still be the active glow for
+                                // a legacy save (gating was added later); show it
+                                // selected + 🔒 rather than highlighting nothing —
+                                // the cosmetic is genuinely applied in-game.
+                                label = if (locked) "🔒 ${s.displayName}" else s.displayName,
                                 selected = s == shipSkin,
                                 color = Color(s.glowColorHex),
-                                onClick = { scope.launch { settings.setShipSkin(s) } }
+                                locked = locked,
+                                onClick = {
+                                    if (locked) {
+                                        Logger.d("Settings: skin ${s.name} locked — buy in shop")
+                                    } else {
+                                        scope.launch { settings.setShipSkin(s) }
+                                    }
+                                },
                             )
                         }
                     }
@@ -446,19 +462,28 @@ private fun Pill(
     selected: Boolean,
     color: Color,
     onClick: () -> Unit,
+    locked: Boolean = false,
 ) {
+    // Wave 12 round 3 — locked pills dim their border + label so the 🔒 prefix
+    // reads as disabled-but-tappable (tap logs a hint rather than selecting).
+    val borderColor = if (locked) color.copy(alpha = 0.35f) else color
+    val labelColor = when {
+        selected -> Color.White
+        locked -> color.copy(alpha = 0.45f)
+        else -> color
+    }
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .clip(RoundedCornerShape(18.dp))
             .background(if (selected) color.copy(alpha = 0.5f) else Color.Transparent)
-            .border(BorderStroke(1.dp, color), RoundedCornerShape(18.dp))
+            .border(BorderStroke(1.dp, borderColor), RoundedCornerShape(18.dp))
             .clickable { onClick() }
             .padding(horizontal = 14.dp, vertical = 7.dp)
     ) {
         Text(
             label,
-            color = if (selected) Color.White else color,
+            color = labelColor,
             fontWeight = FontWeight.Bold,
             fontSize = 14.sp,
         )

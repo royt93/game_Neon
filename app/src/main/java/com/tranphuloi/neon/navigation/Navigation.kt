@@ -25,3 +25,5 @@ object Info : Navigation(route = "info")
 object ShipPicker : Navigation(route = "ship-picker")
 /** Wave 11c — Statistics screen reading MetaProgressionRepository aggregate Flows. */
 object Stats : Navigation(route = "stats")
+/** Wave 12 — Shop / Economy. Spend lifetime minerals on permanent unlocks. */
+object Shop : Navigation(route = "shop")

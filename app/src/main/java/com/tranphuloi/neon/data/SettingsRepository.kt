@@ -86,12 +86,18 @@ enum class ShipSkin(
     val key: String,
     val displayName: String,
     val glowColorHex: Long,
+    /**
+     * Wave 12 round 3 — if non-null, this aura is locked in DialogSettings
+     * until the matching ShopItem (by id) is purchased. null = free from the
+     * start. Gate evaluated via [ShopItem.isShopUnlocked].
+     */
+    val shopUnlockId: String? = null,
 ) {
     AURA_CYAN(key = "aura_cyan", displayName = "Cyan", glowColorHex = 0xFF00F0FF),
     AURA_GOLD(key = "aura_gold", displayName = "Vàng", glowColorHex = 0xFFFFCB47),
     AURA_MAGENTA(key = "aura_magenta", displayName = "Hồng", glowColorHex = 0xFFFF2DE0),
-    AURA_VIOLET(key = "aura_violet", displayName = "Tím", glowColorHex = 0xFFB14CFF),
-    AURA_REDALERT(key = "aura_red", displayName = "Đỏ", glowColorHex = 0xFFFF2D55);
+    AURA_VIOLET(key = "aura_violet", displayName = "Tím", glowColorHex = 0xFFB14CFF, shopUnlockId = "skin_aura_violet"),
+    AURA_REDALERT(key = "aura_red", displayName = "Đỏ", glowColorHex = 0xFFFF2D55, shopUnlockId = "skin_aura_red");
 
     companion object {
         fun fromKey(key: String?): ShipSkin =

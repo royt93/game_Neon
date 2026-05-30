@@ -235,6 +235,10 @@ class MainActivity : ComponentActivity() {
                                     Logger.d("Nav: Menu → Stats")
                                     navController.navigate(com.tranphuloi.neon.navigation.Stats.route)
                                 },
+                                onOpenShop = {
+                                    Logger.d("Nav: Menu → Shop")
+                                    navController.navigate(com.tranphuloi.neon.navigation.Shop.route)
+                                },
                             )
                         }
                         composable(route = com.tranphuloi.neon.navigation.Info.route) {
@@ -420,6 +424,15 @@ class MainActivity : ComponentActivity() {
                             com.tranphuloi.neon.ui.stats.StatsScreen(
                                 onBack = {
                                     Logger.d("Nav: Stats → back")
+                                    navController.popBackStack()
+                                },
+                            )
+                        }
+                        // Wave 12 round 1 — Shop / Economy scaffolding.
+                        composable(route = com.tranphuloi.neon.navigation.Shop.route) {
+                            com.tranphuloi.neon.ui.shop.ShopScreen(
+                                onBack = {
+                                    Logger.d("Nav: Shop → back")
                                     navController.popBackStack()
                                 },
                             )

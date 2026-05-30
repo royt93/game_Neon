@@ -1,12 +1,15 @@
 package com.tranphuloi.neon.ui.game.enemy.ship.model
 
 import androidx.annotation.DrawableRes
+import androidx.annotation.Keep
 import com.tranphuloi.neon.ui.game.common.Once
 import com.tranphuloi.neon.ui.game.common.RepeatTime
 import java.io.Serializable
 
+@Keep
 sealed class EnemyType(val spawnRate: RepeatTime) : Serializable
 
+@Keep
 data class RegularEnemyType(
     @DrawableRes val drawableId: Int,
     val width: Float,
@@ -19,5 +22,5 @@ data class RegularEnemyType(
     val enemySpawnRate: RepeatTime,
 ) : EnemyType(spawnRate = enemySpawnRate)
 
-object LevelOneBossType : EnemyType(spawnRate = Once)
-object LevelTwoBossType : EnemyType(spawnRate = Once)
+@Keep object LevelOneBossType : EnemyType(spawnRate = Once)
+@Keep object LevelTwoBossType : EnemyType(spawnRate = Once)

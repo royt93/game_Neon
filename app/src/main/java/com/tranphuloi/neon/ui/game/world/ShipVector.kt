@@ -578,7 +578,9 @@ private fun DrawScope.drawDivaShape(color: Color, laserBoost: Boolean) {
         close()
     }
     drawPath(bodyPath, color)
-    PathPool.release(bodyPath)
+    // Audit-10 P0 fix — was `PathPool.release(bodyPath)` TWICE → pool corruption
+    // (same Path returned to pool 2x, next acquire() could hand same instance
+    // to 2 concurrent callers). Now released exactly once.
     PathPool.release(bodyPath)
     // Crown (3 triangle peaks at top)
     val crownPath = PathPool.acquire().apply {
@@ -824,8 +826,12 @@ private fun DrawScope.drawHanQuocShape(color: Color, laserBoost: Boolean) {
         lineTo(cx - w * 0.35f, h * 0.40f)
         close()
     }
+    // Audit-10 P0 fix — compound bug: was `drawPath(body) → release(body) →
+    // drawPath(body) → release(body)`. After first release the Path was back
+    // in pool and could be re-acquired+reset by another caller; the second
+    // drawPath would render on a stale/reset Path → wrong outline OR pool
+    // double-free (release-twice). Reorder: both draws BEFORE single release.
     drawPath(bodyPath, white)
-    PathPool.release(bodyPath)
     drawPath(bodyPath, color, style = Stroke(width = w * 0.025f))
     PathPool.release(bodyPath)
     // Taegeuk (yin-yang split horizontally with curves)

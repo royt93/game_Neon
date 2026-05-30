@@ -17,6 +17,7 @@ import androidx.compose.runtime.Immutable
  * per-tick target tracking via x/yVelocity refactor of Laser.
  */
 @Immutable
+@androidx.annotation.Keep
 enum class BulletType(
     val displayName: String,
     val activeDurationMillis: Long,
@@ -24,6 +25,12 @@ enum class BulletType(
     val pierceCount: Int,
     val aoeRadius: Float,
     val glyph: String,
+    /**
+     * Wave 12 round 3 — if non-null, this bullet is locked in
+     * DialogLoadoutPicker until the matching ShopItem (by id) is purchased.
+     * null = always available. Gate evaluated via `ShopItem.isShopUnlocked`.
+     */
+    val shopUnlockId: String? = null,
 ) {
     NORMAL(
         displayName = "Đạn thường",
@@ -121,6 +128,7 @@ enum class BulletType(
         pierceCount = 99,
         aoeRadius = 0f,
         glyph = "⊛",                               // circled asterisk
+        shopUnlockId = "bullet_kamehameha",        // Wave 12 round 3 — shop-gated
     ),
     ATOMIC(
         displayName = "Nguyên tử",
@@ -129,6 +137,7 @@ enum class BulletType(
         pierceCount = 0,
         aoeRadius = 150f,
         glyph = "⊙",                               // circled dot (nucleus)
+        shopUnlockId = "bullet_atomic",            // Wave 12 round 3 — shop-gated
     ),
     SPLIT(
         displayName = "Phân tách",

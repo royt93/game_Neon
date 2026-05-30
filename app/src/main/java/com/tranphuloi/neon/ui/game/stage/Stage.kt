@@ -14,6 +14,7 @@ import com.tranphuloi.neon.ui.game.enemy.ship.model.ZigZagInitialPosition
 import java.io.Serializable
 import java.util.UUID
 
+@androidx.annotation.Keep
 sealed class Stage(val durationSec: Int) : Serializable
 
 data class StageMessage(

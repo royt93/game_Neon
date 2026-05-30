@@ -1,8 +1,10 @@
 package com.tranphuloi.neon.ui.game.spaceObject
 
+import androidx.annotation.Keep
 import androidx.compose.ui.geometry.Rect
 import java.io.Serializable
 
+@Keep
 interface SpaceObject : Serializable {
     val id: String
     var xOffset: Float

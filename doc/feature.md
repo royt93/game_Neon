@@ -2020,6 +2020,73 @@ User push back: "issue camera zoom cho icon bomb + laser thì sao?" — implied 
 - New: `test/.../FlashCurveTest.kt` (11 tests)
 - **Test total: 500** (53 suites, 0 fail).
 
+**Audit-10 follow-up + Wave 12 start (cycle 11):**
+
+Audit cycle 10 caught **4 P0 release blockers**. All fixed pre Wave 12 start.
+
+- **P0 #1 — ShipVector PathPool bugs fixed:**
+  - Line 581-582: was `PathPool.release(bodyPath)` twice (Korea flag variant) → pool corruption. Now single release.
+  - Line 828-830: was `drawPath(body) → release → drawPath(body) → release` compound bug (use-after-release + double-release). Reordered: both draws BEFORE single release.
+- **P0 #2 — @Keep annotations + ProGuard rules:** Added `@Keep` to: `Enemy` interface, `EnemyType` sealed + `RegularEnemyType` data class + boss type objects, `BossKind` enum, `BulletType` enum, `ShipShape` enum, `SpaceObject` interface, `SpaceObjectUI`, `Stage` sealed, `RepeatTime` sealed + Millis/Once/Never. Rewrote `proguard-rules.pro` với explicit keeps for all Serializable entities + Media3 ExoPlayer + DataStore + Compose Composable methods + Kotlin Metadata. Production APK 12MB → 13MB (+1MB acceptable cho release safety).
+- **P2 #1 — TrailLineOverlay PathPool migration:** Was `val path = Path()` per-tick Composable allocation → GC pressure mid-combat. Migrate to `PathPool.acquire() + release` pattern.
+- **P2 #2 — Pixel3ZoomBoundsTest cleanup:** Removed 3 stale tests (NEAR scale=1.2 fictional since real NEAR=1.0; effectiveMaxY auto-pull test invalid since Pixel-3 round 5 removed auto-pull). Added 2 corrected tests reflecting real `CameraZoom.NEAR.pixelScale = 1.0` behavior (extension = 0 at NEAR).
+
+**Wave 12 round 1 — Shop / Economy scaffolding:**
+
+- **Navigation:** `Shop : Navigation(route = "shop")`. Wired in MainActivity composable() route. MenuScreen row 4 now has THỐNG KÊ + CỬA HÀNG paired.
+- **`data/ShopItem.kt`** (new): immutable data class với 4 categories (PERMANENT_BUFF, SHIP_SKIN_UNLOCK, BULLET_TYPE_UNLOCK, CONSUMABLE) + `maxRank` for rank-up items. `ShopItem.ALL` companion list 9 items khởi đầu cost-calibrated 100-1500 minerals.
+- **`ui/shop/ShopScreen.kt`** (new): pattern khớp StatsScreen — outer Box với NeonStarfieldBackground + sticky NeonActionBar + inner verticalScroll Column. BalanceCard top + 4 CategorySection (grouped by Category). Per-item Row hiển thị displayName + description + cost + affordability badge. Tap → `Logger.d("Shop: TODO purchase $id")` (round 1 SCAFFOLDING only — round 2 wire ShopRepository purchase + persist).
+- **Round 1 SCAFFOLDING only.** Purchase logic stubbed. Round 2 ship ShopRepository + actual cost deduction + unlock-flag DataStore persistence. Round 3 wire unlock-gate consumers (ShipPicker/LoadoutPicker/run-start buff apply).
+
+**Wave 12 round 2 — Shop purchase + persistence ✅ DONE:**
+
+- **`MetaProgressionRepository`:** extracted pure spend predicates `canSpendOnNode(balance, cost, currentRank, maxRank)` + `canSpendOnStockpile(balance, cost, addAmount)` (testable without DataStore). `spendOnNode` now delegates to the predicate. Added CONSUMABLE path: `spendOnStockpile(stockpileKey, cost, addAmount)` (atomic deduct + stock increment, new `STOCKPILE_PREFIX = "stockpile_"` namespace so a consumable stock counter never collides with a skill-tree rank counter) + `stockpileCount(stockpileKey): Flow<Int>`.
+- **`data/ShopItem.kt`:** added `stockpileAdd` (units per CONSUMABLE purchase, e.g. smartbomb_pack_3 → 3), `persistKey` getter (`"shop_$id"` — the `shop_` infix prevents collision with future skill-tree node ids), `isConsumable` getter. Cost comment corrected to real range (cheapest 150 / max 1500).
+- **`ui/shop/ShopScreen.kt`:** real purchase wiring. Rank items (PERMANENT_BUFF / SHIP_SKIN_UNLOCK / BULLET_TYPE_UNLOCK) route to `spendOnNode(persistKey, cost, maxRank)`; CONSUMABLE routes to `spendOnStockpile(persistKey, cost, stockpileAdd)`. Reads `meta.allRanks` (keyed by stripped-`node_` key = `persistKey`) for rank state + `meta.stockpileCount(persistKey)` for stock. Per-row inline state line ("Rank N/M" / "✓ Đã mua" / "Đang có: N"), MAX label + disabled tap when rank-maxed. `stockpileCount` flow collected unconditionally (stable Compose state-slot structure — no branched `collectAsState`).
+- **Round 2 done.**
+- **Tests added (+31):** `ShopSpendLogicTest` (17) + `ShopItemCatalogTest` (initial 14). **530 tests total, 0 failures** (was 499). Dev debug + production release compile clean.
+
+**Wave 12 round 3 — unlock-gate consumers ✅ DONE:**
+
+Design decision (user pick): the shop must NOT duplicate the mature skill-tree economy.
+- **PERMANENT_BUFF dropped.** `buff_hp/buff_damage/buff_magnet` duplicated skill-tree nodes `GIÁP CỨNG/HỎA LỰC/HỐ HẤP DẪN` (both deduct minerals via `spendOnNode`, both feed `EffectiveStats`). Removed the 3 items **and** the `PERMANENT_BUFF` category. Skill-tree (DialogMetaUpgrade) remains the single stat-buff economy. Shop now sells cosmetics + bullet unlocks + consumables only (6 items, 3 categories).
+- **Skins + bullets gated (were free).** Added `shopUnlockId: String?` to `ShipSkin` (AURA_VIOLET→`skin_aura_violet`, AURA_REDALERT→`skin_aura_red`) and `BulletType` (KAMEHAMEHA→`bullet_kamehameha`, ATOMIC→`bullet_atomic`). New `ShopItem.isShopUnlocked(allRanks, shopId)` helper (null/absent id = free; else requires node rank > 0). `DialogSettings` skin pills + `DialogLoadoutPicker` bullet cards now render a locked state (🔒 prefix/tip, dimmed, tap logs a "buy in shop" hint instead of selecting). `Pill`/`LoadoutCard` gained a `locked` param.
+- **Bullet gate enforced at run start too.** `rememberGameState` loadout head-start now falls back to NORMAL if the persisted `preferredBulletType` is shop-locked (catches a player who selected KAMEHAMEHA/ATOMIC while it was free). Uses the `runContext.metaUpgrades` snapshot. Skin gate is UI-only (cosmetic glow has no gameplay impact — a previously-chosen color is left applied rather than force-reset).
+- **Consumables.** New `MetaProgressionRepository.consumeStockpile(key, amount)` (clamped at 0). `rememberGameState` reads both stockpiles once via `runBlocking`. New `ShopItem.SMARTBOMB_STOCKPILE_KEY`/`REVIVE_STOCKPILE_KEY` consts (pinned equal to each item's `persistKey`).
+  - **Revive:** seeded directly in the `Ship` constructor (`hasReviveToken = startingReviveStock > 0`) — **not** a post-composition `ship.copy`, to avoid racing the loadout head-start effect. A `rememberSaveable reviveConsumed` flag + `LaunchedEffect` consumes 1 token exactly once (config-change/process-death safe; rest banked for future runs).
+  - **Smart-bomb — true per-use (round-3 audit follow-up).** Earlier draft folded the whole bomb stock into the starting count (unused bombs lost). Reworked to two counters: `smartBombs` (earned: base 2 + EXTRA_BOMB/LEGENDARY_HP meta + boss-kill bonuses, ephemeral) and `stockpileBombsRemaining` (purchased reserve, `rememberSaveable`). `dispatchSmartBomb` spends earned bombs first, the reserve last; each reserve use decrements DataStore immediately (`consumeStockpile(…, 1)`). Unused purchased bombs persist to the next run — matches the item's "consumed on use" copy. UI count = `smartBombs + stockpileBombsRemaining`.
+- **Round-3 audit follow-up (P2 fixes from independent review):** corrected the stale on-screen `ShopScreen` note (referenced the deleted "run-start buff" + "round 3 sẽ ship"); reworded the revive item description (applies on entering the run, not vaguely "next"); bullet picker now highlights NORMAL when the saved pick is shop-locked (matches the run-start fallback); skin picker shows a locked-but-active aura as selected (legacy saves); tightened the cost-floor test pin (`≥300`).
+- **Tests:** `ShopItemCatalogTest` updated (3-category pin, id-set without buffs, cost floor ≥300) + 6 round-3 tests (consumable key consts ↔ persistKey, `isShopUnlocked` null/absent/rank, ShipSkin + BulletType `shopUnlockId` category resolution, gated bullets locked under empty ranks = run-start fallback trigger). **536 tests total, 0 failures** (was 530). Dev debug + production release compile clean.
+- **Deferred:** none — shop economy loop is complete (earn minerals → buy in shop → unlock/consume in-game).
+
+**Files changed (10 modified, 2 new):**
+- Modified: `ui/game/world/ShipVector.kt` (PathPool double-release fix x2)
+- Modified: `ui/game/world/TrailLineOverlay.kt` (PathPool migration)
+- Modified: 8 entity files with @Keep annotations
+- Modified: `proguard-rules.pro` (comprehensive keep rules)
+- Modified: `test/.../Pixel3ZoomBoundsTest.kt` (stale tests removed + corrected)
+- Modified: `navigation/Navigation.kt` (+Shop route)
+- Modified: `ui/MainActivity.kt` (+Shop composable + Menu wiring)
+- Modified: `ui/menu/MenuScreen.kt` (+CỬA HÀNG button)
+- New: `data/ShopItem.kt` (9 catalog items + Category enum)
+- New: `ui/shop/ShopScreen.kt` (scaffolding UI)
+
+**Release readiness:**
+- ✅ Dev debug compile sạch
+- ✅ Production release assemble (12.5MB APK sau audit-10 polish — was 13MB, gỡ blanket `keep @Composable` rule, R8 lại shrink được Compose) + bundle build clean
+- ✅ ProGuard minification + R8 shrink resources work
+- ✅ All Serializable entities @Keep protected
+- ✅ 499 tests pass (1 stale removed = was 500 net unchanged)
+- ⚠️ Signed AAB requires manual `jarsigner` step (keystore.jks checked in, signingConfig not wired vào build.gradle)
+
+**Audit-10 polish follow-up (3 nit fixes):**
+- `TrailLineOverlay.kt`: import order sửa (PathPool về đúng alphabetical group) + bỏ unused `Path` import (sau khi migrate PathPool, không còn raw `Path()` allocation).
+- `proguard-rules.pro`: gỡ rule `-keepclassmembers class * { @Composable methods }` quá rộng (đè R8 shrink toàn bộ Compose). Gỡ thêm 2 `-keepnames kotlinx.coroutines.*` đã duplicate với consumer-rules.pro của AAR. Sửa comment Logger keep misleading. **Kết quả: APK 13MB → 12.45MB.**
+- `ShopItem.kt`: comment cost-calibration sửa từ "cheapest 100 / max 2000" sang đúng range thực tế "cheapest 150 / max 1500".
+
+**Score progression Wave 11d → 12:**
+- Round 7: 6/10 → Round 8: 8.5/10 → Round 9: 9/10 → Round 10: 7.5/10 (audit caught new issues) → Round 11 (this): **est 9/10** (P0 release blockers fixed + Wave 12 scaffolding clean + audit-10 polish 3 nit fixes).
+
 ---
 
 ### 11c Statistics screen + telemetry achievements + precise attribution + audit pass ✅ DONE
@@ -2085,7 +2152,7 @@ User Round 67+ pick which Wave(s) to prioritize. Each Wave is 3-6 rounds. Sugges
 - **Logger:** 2 cấp — `Logger.d` cho sparse events (init/lifecycle/stage advance/boss kill/achievement), `Logger.v { ... }` cho hot-path (per-frame, per-collision, per-spawn, per-kill, audio micro-step). Toggle qua `Logger.VERBOSE = true` trong utils/Logger.kt khi cần debug stream đầy đủ.
 - **Mapper memoization (round 48):** `EnemyToEnemyUIMapper` + `LaserToLaserUIMapper` cache theo id với LRU LinkedHashMap (cap 64 + 128). Mappers là top-level `private val` → cache persist app-lifetime, bounded by LRU. Field-compare fast-path tránh allocation khi entity unchanged. Tints dùng `==` (structural) + caller dùng `emptyList()` singleton cho no-effect case.
 - **Entity caps (round 47):** `EnemyController.MAX_REGULAR_ENEMIES = 30` (bosses bypass), `LasersController.MAX_SHIP_LASERS = 25`, `EnemyLasersController.MAX_ENEMY_LASERS = 30`. `BoosterController.MAX_BOOSTERS = 3` (pre-existing). Skip-at-cap logs Logger.v.
-- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **500** (53 test suites, 0 failures — last verified 2026-05-30 sau Wave 11d Pixel-3 round 4 visual coverage enhance).
+- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **536** (55 test suites, 0 failures — last verified 2026-05-30 sau Wave 12 round 3 Shop unlock-gate consumers + audit follow-up (per-use bomb model, P2 text fixes); +6 round-3 tests trong ShopItemCatalogTest). Production AAB 14MB / APK 13MB minified+shrunk build clean với new ProGuard rules.
 - **Doc structure:** R1-R75 history archived ở [feature-archive.md](feature-archive.md) (~2700 dòng). File này (R76-R86 recent + Phần 4-7 + Notes) ~1860 dòng. Khi feature.md vượt 200KB lần nữa → move R76-R85 sang archive.
 - **i18n:** strings mới phải thêm vào cả `values-vi/strings.xml` và `values-en/strings.xml`
 - **Compose stability:** data class state mới nên dùng `@Immutable`/`@Stable` annotation. EnemyUI, LaserUI, BoosterUI, MineralUI, RunModifier, RunBuff, StatusEffect, SecondaryWeapon, BulletType, ShipSkin, ColorBlindMode, NeonPalette đều `@Immutable`.

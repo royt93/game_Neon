@@ -141,7 +141,23 @@
       "Bash(adb -s 192.168.21.185:36713 shell input tap 720 2745)",
       "Bash(./gradlew installDevDebug testDevDebugUnitTest)",
       "Bash(adb -s 192.168.21.185:36713 shell input tap 1320 2480)",
-      "Bash(adb -s 192.168.21.185:36713 shell input tap 1320 2326)"
+      "Bash(adb -s 192.168.21.185:36713 shell input tap 1320 2326)",
+      "Bash(./gradlew assembleProductionRelease)",
+      "Bash(./gradlew testDevDebugUnitTest --no-daemon -q)",
+      "Bash(git *)",
+      "Bash(./gradlew compileDevDebugKotlin testDevDebugUnitTest --tests \"com.tranphuloi.neon.data.ShopSpendLogicTest\" --tests \"com.tranphuloi.neon.data.ShopItemCatalogTest\")",
+      "Bash(awk '{s+=$1} END {print \"Total tests:\", s}')",
+      "Bash(awk '{t+=$1; f+=$2; e+=$3} END {print \"Total tests:\", t, \"| failures:\", f, \"| errors:\", e}')",
+      "Bash(./gradlew compileDevDebugKotlin --console=plain)",
+      "Bash(./gradlew compileDevDebugKotlin compileProductionReleaseKotlin compileDevDebugUnitTestKotlin --console=plain)",
+      "Bash(./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest --console=plain)",
+      "Bash(awk '{t+=$1; f+=$2; e+=$3} END {print \"Total:\", t, \"| failures:\", f, \"| errors:\", e}')",
+      "Bash(adb shell *)",
+      "Bash(./gradlew assembleDevDebug --console=plain)",
+      "Bash(./gradlew installDevDebug --console=plain)",
+      "Bash(adb logcat *)",
+      "Bash(adb exec-out *)",
+      "Bash(adb pull *)"
     ]
   }
 }

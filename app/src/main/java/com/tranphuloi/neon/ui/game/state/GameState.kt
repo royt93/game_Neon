@@ -261,12 +261,32 @@ fun rememberGameState(): GameState {
         val legendaryBonus = (runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_LEGENDARY_HP] ?: 0) * 50
         (baseHp + legendaryBonus).coerceIn(100, 3500)
     }
+    // Wave 12 round 3 — purchased consumable stockpiles, read ONCE here.
+    // Reading synchronously via runBlocking matches the existing
+    // shipSkin/difficulty reads. The bomb stock seeds a persistent reserve
+    // (`stockpileBombsRemaining`, spent per-use below); the revive stock seeds
+    // one token in the Ship constructor and is consumed once by the
+    // `reviveConsumed`-guarded effect.
+    val startingBombStock = remember {
+        kotlinx.coroutines.runBlocking {
+            metaRepo.stockpileCount(com.tranphuloi.neon.data.ShopItem.SMARTBOMB_STOCKPILE_KEY).first()
+        }
+    }
+    val startingReviveStock = remember {
+        kotlinx.coroutines.runBlocking {
+            metaRepo.stockpileCount(com.tranphuloi.neon.data.ShopItem.REVIVE_STOCKPILE_KEY).first()
+        }
+    }
     var ship by rememberSaveable {
         mutableStateOf(
             Ship(
                 xOffset = screenWidth / 2 - 85f / 2,
                 yOffset = screenHeight + 240f,
                 hp = initialShipHp,
+                // Grant exactly one revive token at spawn if any were purchased.
+                // Seeded in the constructor (not a post-composition ship.copy) so
+                // it can't race the loadout head-start effect's ship mutation.
+                hasReviveToken = startingReviveStock > 0,
             )
         )
     }
@@ -279,7 +299,19 @@ fun rememberGameState(): GameState {
     var loadoutApplied by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (loadoutApplied) return@LaunchedEffect
-        val resolved = settingsRepo.preferredBulletType.first()
+        val preferred = settingsRepo.preferredBulletType.first()
+        // Wave 12 round 3 — a shop-gated bullet (KAMEHAMEHA/ATOMIC) that the
+        // player selected before it became gated must not still apply for free
+        // at run start. Fall back to NORMAL if the unlock isn't owned. Uses the
+        // run-start allRanks snapshot already captured in runContext.
+        val resolved = if (com.tranphuloi.neon.data.ShopItem
+                .isShopUnlocked(runContext.metaUpgrades, preferred.shopUnlockId)
+        ) {
+            preferred
+        } else {
+            Logger.d("Loadout: preferred=$preferred is shop-locked → falling back to NORMAL")
+            com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL
+        }
         if (resolved != com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL) {
             // Round 75 audit fix — wire BULLET_DURATION meta vào head-start
             // duration. Trước fix hardcode 10_000L bypass meta upgrade.
@@ -427,7 +459,30 @@ fun rememberGameState(): GameState {
     // + LEGENDARY_HP rank 1 = +1 bomb. Read once at init via runContext.metaUpgrades.
     val extraBombCount = (runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_EXTRA_BOMB] ?: 0) +
         (runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_LEGENDARY_HP] ?: 0)
+    // Earned bombs (base 2 + EXTRA_BOMB/LEGENDARY_HP meta + boss-kill bonuses).
+    // Ephemeral per run. Purchased bombs are a SEPARATE persistent reserve
+    // (`stockpileBombsRemaining`) so they survive a run if not used.
     var smartBombs by rememberSaveable { mutableIntStateOf(2 + extraBombCount) }
+    // Wave 12 round 3 — purchased smart-bomb reserve. True "consumed on use":
+    // earned bombs are spent first, this reserve last (see dispatchSmartBomb),
+    // so any reserve bombs left at run end persist to the next run. Each reserve
+    // use decrements DataStore immediately. `rememberSaveable` survives config
+    // change; restored value (not the re-read DataStore count) is authoritative
+    // mid-run.
+    var stockpileBombsRemaining by rememberSaveable { mutableIntStateOf(startingBombStock) }
+    // Wave 12 round 3 — grant + consume the purchased revive token exactly once
+    // at run start (token itself seeded in the Ship constructor above). The
+    // `rememberSaveable` flag survives config-change recreation so the decrement
+    // never double-fires. Mirrors the `loadoutApplied` guard above.
+    var reviveConsumed by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (reviveConsumed) return@LaunchedEffect
+        if (startingReviveStock > 0) {
+            metaRepo.consumeStockpile(com.tranphuloi.neon.data.ShopItem.REVIVE_STOCKPILE_KEY, 1)
+            Logger.d("Shop consumable: revive token granted at run start (stock was $startingReviveStock)")
+        }
+        reviveConsumed = true
+    }
     /**
      * Round 51 (26x Photo mode) — when true, GameScreen hides HUD overlays
      * (movement buttons, smart bomb, secondary weapon, score, combo, banners)
@@ -1828,7 +1883,8 @@ fun rememberGameState(): GameState {
         shipShape = runContext.shipShape,
         // Round 77 audit fix — reactive cameraZoom (collectAsState above).
         cameraZoom = liveCameraZoom,
-        smartBombs = smartBombs,
+        // Wave 12 round 3 — UI shows earned + purchased-reserve total.
+        smartBombs = smartBombs + stockpileBombsRemaining,
         mines = mines,
         lastBurstSweepMillis = lastBurstSweepMillis,
         chargeProgress = shipController.chargeProgress(),
@@ -1846,8 +1902,20 @@ fun rememberGameState(): GameState {
             }
         },
         dispatchSmartBomb = {
-            if (smartBombs > 0 && gameStatus == GameStatus.RUNNING) {
-                smartBombs--
+            if ((smartBombs + stockpileBombsRemaining) > 0 && gameStatus == GameStatus.RUNNING) {
+                // Spend earned bombs first; the purchased reserve last so unused
+                // purchases persist. A reserve use decrements DataStore now
+                // (true "consumed on use").
+                if (smartBombs > 0) {
+                    smartBombs--
+                } else {
+                    stockpileBombsRemaining--
+                    coroutineScope.launch {
+                        metaRepo.consumeStockpile(
+                            com.tranphuloi.neon.data.ShopItem.SMARTBOMB_STOCKPILE_KEY, 1,
+                        )
+                    }
+                }
                 smartBombsUsedCount++
                 // 46x SMART_BOMB_5 — used 5 in one run.
                 if (smartBombsUsedCount >= 5) {

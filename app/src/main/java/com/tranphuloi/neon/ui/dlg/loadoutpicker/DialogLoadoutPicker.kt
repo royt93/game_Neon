@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
@@ -69,7 +70,12 @@ fun DialogLoadoutPicker(
     onDismiss: () -> Unit = {},
 ) {
     val settings = LocalSettings.current
+    val meta = com.tranphuloi.neon.data.LocalMetaProgression.current
     val scope = rememberCoroutineScope()
+    // Wave 12 round 3 — shop-gated bullets (KAMEHAMEHA/ATOMIC). allRanks keyed
+    // by ShopItem.persistKey; a bullet with a non-null shopUnlockId stays locked
+    // until rank > 0.
+    val shopRanks by meta.allRanks.collectAsState(initial = emptyMap())
     // Round 45 fix 1 — was `collectAsState(initial = NORMAL/MISSILE)` which
     // flashed the inert default for 1 frame before DataStore resolved the
     // user's saved pick. `produceState<T?>` keeps the State null until the
@@ -121,22 +127,37 @@ fun DialogLoadoutPicker(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth(),
             ) {
+                // Wave 12 round 3 — if the saved pick is shop-locked, the run
+                // falls back to NORMAL at start (see GameState), so highlight
+                // NORMAL here to match what will actually be used.
+                val effectiveBullet = bulletType?.let {
+                    if (com.tranphuloi.neon.data.ShopItem.isShopUnlocked(shopRanks, it.shopUnlockId)) it
+                    else BulletType.NORMAL
+                }
                 BulletType.entries.forEach { b ->
                     val color = colorForBullet(b, palette)
+                    // Wave 12 round 3 — shop-gated bullets stay locked until bought.
+                    val locked = !com.tranphuloi.neon.data.ShopItem
+                        .isShopUnlocked(shopRanks, b.shopUnlockId)
                     // Round 71 (Issue 3) — animated bullet preview + multi-line +
                     // tooltip + color-code thickness theo damage tier.
                     LoadoutCard(
                         glyph = b.glyph,
                         title = b.displayName,
                         subtitle = subtitleForBullet(b),
-                        tip = tipForBullet(b),
+                        tip = if (locked) "🔒 Mua ở Cửa hàng để mở khóa" else tipForBullet(b),
                         color = color,
                         damageTier = damageTier(b.damageMultiplier),
-                        selected = b == bulletType,
+                        selected = b == effectiveBullet && !locked,
                         bulletPreview = b,
+                        locked = locked,
                         onClick = {
-                            Logger.d("LoadoutPicker: BulletType pick=$b")
-                            scope.launch { settings.setPreferredBulletType(b) }
+                            if (locked) {
+                                Logger.d("LoadoutPicker: BulletType $b locked — buy in shop")
+                            } else {
+                                Logger.d("LoadoutPicker: BulletType pick=$b")
+                                scope.launch { settings.setPreferredBulletType(b) }
+                            }
                         },
                     )
                 }
@@ -235,14 +256,22 @@ private fun LoadoutCard(
     selected: Boolean,
     bulletPreview: BulletType?,
     onClick: () -> Unit,
+    locked: Boolean = false,
 ) {
-    val bgAlpha = if (selected) 0.30f else 0.10f
+    val bgAlpha = if (selected) 0.30f else if (locked) 0.05f else 0.10f
     // Round 71 — color-code border: tier 1 (×0.x dmg) thin, tier 2 (×1.x) mid, tier 3 (×2+) thick.
     val baseBorder = when (damageTier) { 1 -> 1.dp; 2 -> 1.5.dp; else -> 2.5.dp }
     val borderWidth = if (selected) baseBorder + 1.dp else baseBorder
     // Round 71 (Issue 3) — selected card có border đậm hơn (no animation —
     // simpler + ít cost). Color-code thickness handles damage tier.
-    val borderColor = if (selected) color else color.copy(alpha = 0.7f)
+    // Wave 12 round 3 — locked cards dim border + content so the 🔒 tip reads
+    // as disabled (tap logs a hint rather than selecting).
+    val borderColor = when {
+        selected -> color
+        locked -> color.copy(alpha = 0.3f)
+        else -> color.copy(alpha = 0.7f)
+    }
+    val contentColor = if (locked) color.copy(alpha = 0.45f) else color
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -285,7 +314,7 @@ private fun LoadoutCard(
         }
         Spacer(modifier = Modifier.size(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = title, color = color, fontSize = 15.sp, fontWeight = FontWeight.Black)
+            Text(text = title, color = contentColor, fontSize = 15.sp, fontWeight = FontWeight.Black)
             Spacer(modifier = Modifier.height(2.dp))
             Text(text = subtitle, color = Color.White.copy(alpha = 0.82f), fontSize = 11.sp, lineHeight = 14.sp)
             Spacer(modifier = Modifier.height(3.dp))

@@ -12,6 +12,7 @@ import androidx.compose.runtime.Immutable
  * unlocked. Round 69+ implement unlock check + ShipPickerScreen UI.
  */
 @Immutable
+@androidx.annotation.Keep
 enum class ShipShape(
     val key: String,
     val displayName: String,

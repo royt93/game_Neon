@@ -98,6 +98,8 @@ fun MenuScreen(
     onOpenLoadout: () -> Unit = {},
     /** Wave 11c — open Statistics screen. */
     onOpenStats: () -> Unit = {},
+    /** Wave 12 — open Shop screen. */
+    onOpenShop: () -> Unit = {},
 ) {
     val settings = LocalSettings.current
     val meta = LocalMetaProgression.current
@@ -285,7 +287,7 @@ fun MenuScreen(
                             },
                         )
                     }
-                    // Wave 11c — Row 4: THỐNG KÊ standalone (full row).
+                    // Wave 11c + 12 — Row 4: THỐNG KÊ + CỬA HÀNG paired.
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxWidth(),
@@ -298,6 +300,16 @@ fun MenuScreen(
                             onClick = {
                                 Logger.d("MenuScreen: STATS tapped")
                                 onOpenStats()
+                            },
+                        )
+                        MenuButton(
+                            label = "CỬA HÀNG",
+                            glyph = "◇",
+                            color = NeonCyan,
+                            modifier = Modifier.weight(1f),
+                            onClick = {
+                                Logger.d("MenuScreen: SHOP tapped")
+                                onOpenShop()
                             },
                         )
                     }

@@ -45,39 +45,22 @@ class Pixel3ZoomBoundsTest {
     }
 
     @Test
-    fun `extensionY at NEAR zoom (scale gt 1) is negative — tightens bounds`() {
-        // NEAR zoom magnifies game world → visible game-y range shrinks.
-        // Extension goes negative, tightening the threshold (enemies disappear
-        // earlier, ship anchor pulls in toward center). Symmetric design.
-        val ext = extensionY(891f, 1.2f)
-        assertTrue("NEAR extension must be < 0, got $ext", ext < 0f)
-        assertEquals(-74.25f, ext, 0.1f)
+    fun `extensionY at NEAR zoom (scale=1_0) is zero — production behavior`() {
+        // Audit-10 P2 fix — production CameraZoom.NEAR.pixelScale = 1.0 (NOT
+        // 1.2). At scale=1.0 extension is exactly 0. Earlier draft of this
+        // test asserted scale=1.2 → negative extension; that's hypothetical
+        // (never reachable from production code). Pin the real behavior.
+        val ext = extensionY(891f, 1.0f)
+        assertEquals("NEAR scale=1.0 → no extension", 0f, ext, 1e-4f)
     }
 
     @Test
-    fun `effectiveMaxY at FAR zoom places ship near device-bottom`() {
-        // Pixel-3 #4 fix verified at the math level. Without dragBoundsExtensionY,
-        // ship parks at game-y maxYOffset = screenHeight - 140 = 751. After
-        // graphicsLayer scale 0.7 around device-center pivot 445.5 dp:
-        //   device-y = 445.5 + (751 - 445.5) * 0.7 = 659  (134dp above device-bottom)
-        //
-        // With effectiveMaxY = maxYOffset + extensionY = 751 + 190.9 = 941.9:
-        //   device-y = 445.5 + (941.9 - 445.5) * 0.7 = 793  (98dp above bottom, room for ship.height)
-        //
-        // Ship.height ≈ 140 → ship's bottom edge at device-y 793 + 140*0.7 ≈ 891 = device-bottom.
-        val screenHeight = 891f
-        val maxYOffset = screenHeight - 140f
-        val ext = extensionY(screenHeight, 0.7f)
-        val effectiveMaxY = maxYOffset + ext
-        val pivot = 445.5f
-        val deviceY = pivot + (effectiveMaxY - pivot) * 0.7f
-        val shipHeight = 140f
-        val shipBottomDevice = deviceY + shipHeight * 0.7f
-        // Allow ~5dp tolerance (pivot center isn't exactly 445.5 on every device)
-        assertEquals(
-            "Ship bottom should land at device-bottom (891) at FAR zoom",
-            891f, shipBottomDevice, 5f,
-        )
+    fun `extensionY formula stays negative for hypothetical scale gt 1`() {
+        // Defensive — IF a future zoom level introduces magnify (>1.0), the
+        // formula stays correct (negative extension = tighter bounds). Not
+        // currently reachable but pins the symmetry contract.
+        val ext = extensionY(891f, 1.2f)
+        assertTrue("Hypothetical scale=1.2 produces negative extension", ext < 0f)
     }
 
     @Test
@@ -125,19 +108,4 @@ class Pixel3ZoomBoundsTest {
         )
     }
 
-    @Test
-    fun `NEAR zoom tightens — extension is negative and bounds shrink`() {
-        // Symmetric design: NEAR zoom magnifies, so visible game-y range
-        // SHRINKS, not grows. Extension negative → ship anchor pulls in,
-        // enemies cull earlier. Pin this so a future "always positive"
-        // refactor doesn't break symmetry.
-        val screenHeight = 891f
-        val ext = extensionY(screenHeight, 1.2f)
-        assertTrue("NEAR extension must shrink bounds", ext < 0f)
-        val effectiveMaxY = (screenHeight - 140f) + ext
-        assertTrue(
-            "NEAR effectiveMaxY must be less than baseline 751",
-            effectiveMaxY < 751f,
-        )
-    }
 }
