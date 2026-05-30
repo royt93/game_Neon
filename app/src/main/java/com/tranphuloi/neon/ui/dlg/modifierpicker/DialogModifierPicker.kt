@@ -62,7 +62,7 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
     }
 
     com.tranphuloi.neon.common.NeonBottomSheet(
-        title = "CHỌN BUFF",
+        title = "CHỌN THỬ THÁCH",
         accentColor = NeonGold,
         onDismiss = {
             // Round 29 — ✕ tap = skip picker = apply NONE modifier.

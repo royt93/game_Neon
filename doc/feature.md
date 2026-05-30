@@ -2059,6 +2059,17 @@ Design decision (user pick): the shop must NOT duplicate the mature skill-tree e
 - **Tests:** `ShopItemCatalogTest` updated (3-category pin, id-set without buffs, cost floor ≥300) + 6 round-3 tests (consumable key consts ↔ persistKey, `isShopUnlocked` null/absent/rank, ShipSkin + BulletType `shopUnlockId` category resolution, gated bullets locked under empty ranks = run-start fallback trigger). **536 tests total, 0 failures** (was 530). Dev debug + production release compile clean.
 - **Deferred:** none — shop economy loop is complete (earn minerals → buy in shop → unlock/consume in-game).
 
+## 📋 Wave 13 — Picked (UX consolidation + content variety, từ feedback + on-device log Pixel 7 Pro)
+
+User pick 4/4 phương án đầy đủ sau khi review thiết kế + đọc log runtime (115–120 FPS, 0 crash, 0 leak):
+
+- 📋 **13a — Shop hub có tab.** Cửa hàng thành hub mua-bằng-khoáng với tab `[Skin] [Đạn] [Nâng cấp] [Ship] [Tiêu hao]`. Gom skill-tree (`DialogMetaUpgrade`) vào tab Nâng cấp (giữ dạng cây, không phẳng hoá mất prerequisite) + chuyển Ship unlock (đang theo ngưỡng khoáng) thành mua thật (`spendOnNode`) trong tab Ship. Buff/Trang bị/Chế độ giữ riêng (per-run, không phải mua). *Mục tiêu: 1 bề mặt tiêu khoáng duy nhất.*
+- ✅ **13b — Đổi tên BUFF + gộp nhóm menu (DONE).** `BUFF` → `THỬ THÁCH` ở MenuButton + InfoCard + DialogModifierPicker title (`CHỌN THỬ THÁCH`) + Logger. 8 nút MenuScreen gộp 3 nhóm có `GroupHeader`: *TRƯỚC TRẬN* (Chế độ · Thử thách · Trang bị) / *TIẾN TRÌNH* (Cửa hàng · Nâng cấp · Thống kê) / *KHÁC* (Bách khoa · Cài đặt). 3-item group render 3-wide với `MenuButton(compact=true)` (font 11sp/glyph 18sp/maxLines=1 → label dài không tràn ở 1/3 width). **Verify Pixel 7 Pro:** layout sạch không tràn, dialog title đúng, log `CHALLENGE (modifier) tapped`, 0 crash, 536 test pass. *(Nâng cấp vẫn nút riêng tới khi 13a gộp vào Cửa hàng.)*
+- 📋 **13c — Enemy đa kích thước.** Thêm `sizeScale` vào `EnemyType` (nhỏ 0.7× nhanh / thường 1.0× / to 1.4× trâu); hitbox + HP + speed scale theo (tránh trúng-hụt như bug round-13/16); giới hạn tần suất enemy lớn qua EnemyController.
+- 📋 **13d — Dịu đường cong endless 100+ + xoay theme.** Làm mượt scaling HP/spawn sau stage 100 (log: stage 109 ship chết ~6 đòn, gần bất khả thi) + xoay tint/hazard 5 chương luân phiên trong endless (hiện kẹt chương 1 mãi).
+
+**Thứ tự đề xuất triển khai:** 13b (nhỏ, an toàn, gỡ rối UX ngay) → 13c (gameplay variety, độc lập) → 13d (balance, cần đo) → 13a (lớn nhất, đụng nhiều màn — làm cuối). Mỗi mục 1 wave, build+test+audit theo quy trình.
+
 **Files changed (10 modified, 2 new):**
 - Modified: `ui/game/world/ShipVector.kt` (PathPool double-release fix x2)
 - Modified: `ui/game/world/TrailLineOverlay.kt` (PathPool migration)

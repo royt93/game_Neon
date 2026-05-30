@@ -157,7 +157,9 @@
       "Bash(./gradlew installDevDebug --console=plain)",
       "Bash(adb logcat *)",
       "Bash(adb exec-out *)",
-      "Bash(adb pull *)"
+      "Bash(adb pull *)",
+      "Bash(./gradlew testDevDebugUnitTest --console=plain)",
+      "Bash(awk '{t+=$1;f+=$2;e+=$3} END {print \"tests:\",t,\"fail:\",f,\"err:\",e}')"
     ]
   }
 }

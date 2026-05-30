@@ -198,20 +198,22 @@ fun MenuScreen(
             // Spacer(height=12) → gap thực tế = 12+12 = 24dp, vẫn không uniform
             // với grid inter-row 12dp.
 
-            // ─── 5-button grid (stagger 480ms) ───
-            // Round 67.7 — fix "buttons không cách đều":
-            // (a) Unified gap: Column spacedBy(12.dp) + Row spacedBy(12.dp) — was
-            //     vertical 12dp + horizontal 14dp (inconsistent).
-            // (b) BÁCH KHOA now in Row 3 với invisible spacer placeholder ở slot
-            //     trái — giữ width đúng bằng các button khác (~50% width thay vì
-            //     100% fillMaxWidth gây cảm giác "to gấp đôi").
+            // ─── Grouped action buttons (stagger 480ms) ───
+            // Wave 13b — 8 nút gộp 3 nhóm có header để bớt quá tải:
+            //   • TRƯỚC TRẬN: Chế độ / Thử thách / Trang bị (lựa chọn per-run)
+            //   • TIẾN TRÌNH: Cửa hàng / Nâng cấp / Thống kê (kinh tế + tiến độ)
+            //   • KHÁC: Bách khoa / Cài đặt
+            // 3-item groups render 3-wide (compact), nhóm cuối 2-wide thường.
+            // "BUFF" → "THỬ THÁCH" lộ rõ tính đánh-đổi per-run (RunModifier), hết
+            // nhầm với Nâng cấp (skill-tree vĩnh viễn).
             EntryAnim(stepIndex = 4) {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
+                    GroupHeader(label = "TRƯỚC TRẬN", color = NeonViolet)
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         MenuButton(
@@ -219,63 +221,83 @@ fun MenuScreen(
                             glyph = "⊞",
                             color = NeonViolet,
                             modifier = Modifier.weight(1f),
+                            compact = true,
                             onClick = {
                                 Logger.d("MenuScreen: MODE tapped")
                                 onOpenModePicker()
                             },
                         )
                         MenuButton(
-                            label = "BUFF",
+                            label = "THỬ THÁCH",
                             glyph = "⚡",
                             color = NeonGold,
                             modifier = Modifier.weight(1f),
+                            compact = true,
                             onClick = {
-                                Logger.d("MenuScreen: BUFF tapped")
+                                Logger.d("MenuScreen: CHALLENGE (modifier) tapped")
                                 onOpenModifierPicker()
                             },
                         )
+                        MenuButton(
+                            label = "TRANG BỊ",
+                            glyph = "◈",
+                            color = NeonCyan,
+                            modifier = Modifier.weight(1f),
+                            compact = true,
+                            onClick = {
+                                Logger.d("MenuScreen: LOADOUT tapped")
+                                onOpenLoadout()
+                            },
+                        )
                     }
+
+                    Spacer(modifier = Modifier.height(2.dp))
+                    GroupHeader(label = "TIẾN TRÌNH", color = NeonGold)
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
+                        MenuButton(
+                            label = "CỬA HÀNG",
+                            glyph = "◇",
+                            color = NeonCyan,
+                            modifier = Modifier.weight(1f),
+                            compact = true,
+                            onClick = {
+                                Logger.d("MenuScreen: SHOP tapped")
+                                onOpenShop()
+                            },
+                        )
                         MenuButton(
                             label = "NÂNG CẤP",
                             glyph = "⬆",
                             color = NeonCyan,
                             modifier = Modifier.weight(1f),
+                            compact = true,
                             onClick = {
                                 Logger.d("MenuScreen: UPGRADE tapped")
                                 onOpenMetaUpgrade()
                             },
                         )
                         MenuButton(
-                            label = "CÀI ĐẶT",
-                            glyph = "⚙",
-                            color = NeonMagenta,
+                            label = "THỐNG KÊ",
+                            glyph = "▦",
+                            color = NeonGold,
                             modifier = Modifier.weight(1f),
+                            compact = true,
                             onClick = {
-                                Logger.d("MenuScreen: SETTINGS tapped")
-                                onOpenSettings()
+                                Logger.d("MenuScreen: STATS tapped")
+                                onOpenStats()
                             },
                         )
                     }
-                    // Round 68 — Row 3: TRANG BỊ + BÁCH KHOA paired (full row).
-                    // Trang Bị mở LoadoutPicker manually (auto-skip Settings default true).
+
+                    Spacer(modifier = Modifier.height(2.dp))
+                    GroupHeader(label = "KHÁC", color = NeonViolet)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        MenuButton(
-                            label = "TRANG BỊ",
-                            glyph = "◈",
-                            color = NeonCyan,
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                Logger.d("MenuScreen: LOADOUT tapped")
-                                onOpenLoadout()
-                            },
-                        )
                         MenuButton(
                             label = "BÁCH KHOA",
                             glyph = "❡",
@@ -286,30 +308,14 @@ fun MenuScreen(
                                 onOpenInfo()
                             },
                         )
-                    }
-                    // Wave 11c + 12 — Row 4: THỐNG KÊ + CỬA HÀNG paired.
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
                         MenuButton(
-                            label = "THỐNG KÊ",
-                            glyph = "▦",
-                            color = NeonGold,
+                            label = "CÀI ĐẶT",
+                            glyph = "⚙",
+                            color = NeonMagenta,
                             modifier = Modifier.weight(1f),
                             onClick = {
-                                Logger.d("MenuScreen: STATS tapped")
-                                onOpenStats()
-                            },
-                        )
-                        MenuButton(
-                            label = "CỬA HÀNG",
-                            glyph = "◇",
-                            color = NeonCyan,
-                            modifier = Modifier.weight(1f),
-                            onClick = {
-                                Logger.d("MenuScreen: SHOP tapped")
-                                onOpenShop()
+                                Logger.d("MenuScreen: SETTINGS tapped")
+                                onOpenSettings()
                             },
                         )
                     }
@@ -511,7 +517,7 @@ private fun InfoCard(
         }
         if (runModifier != com.tranphuloi.neon.ui.game.modifier.RunModifier.NONE) {
             Text(
-                text = "⚡ Buff: ${runModifier.displayName} (×${runModifier.scoreMul})",
+                text = "⚡ Thử thách: ${runModifier.displayName} (×${runModifier.scoreMul})",
                 color = NeonGold,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -605,6 +611,9 @@ private fun MenuButton(
     glyph: String,
     color: Color,
     modifier: Modifier = Modifier,
+    // Wave 13b — compact = 3-wide row variant: nhỏ font/glyph + maxLines=1 để
+    // label dài ("THỬ THÁCH", "BÁCH KHOA") không tràn ở 1/3 chiều rộng.
+    compact: Boolean = false,
     onClick: () -> Unit,
 ) {
     Row(
@@ -617,22 +626,50 @@ private fun MenuButton(
             .background(color.copy(alpha = 0.12f))
             .border(BorderStroke(1.5.dp, color), RoundedCornerShape(14.dp))
             .neonGlow(color, intensity = 0.25f, radiusFactor = 1.2f)
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = if (compact) 6.dp else 10.dp),
     ) {
         Text(
             text = glyph,
             color = color,
-            fontSize = 22.sp,
+            fontSize = if (compact) 18.sp else 22.sp,
             fontWeight = FontWeight.Black,
             modifier = Modifier.neonGlow(color, intensity = 0.5f, radiusFactor = 1.2f),
         )
-        Spacer(modifier = Modifier.size(8.dp))
+        Spacer(modifier = Modifier.size(if (compact) 5.dp else 8.dp))
         Text(
             text = label,
             color = color,
-            fontSize = 13.sp,
+            fontSize = if (compact) 11.sp else 13.sp,
             fontWeight = FontWeight.Black,
-            style = TextStyle(letterSpacing = 1.5.sp),
+            maxLines = 1,
+            style = TextStyle(letterSpacing = if (compact) 0.5.sp else 1.5.sp),
+        )
+    }
+}
+
+/**
+ * Wave 13b — small uppercase section header above each menu button group.
+ * Accent bar + dim label, matches LoadoutPicker.SectionHeader vibe.
+ */
+@Composable
+private fun GroupHeader(label: String, color: Color) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth().padding(start = 2.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 3.dp, height = 12.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(color),
+        )
+        Spacer(modifier = Modifier.size(7.dp))
+        Text(
+            text = label,
+            color = color.copy(alpha = 0.85f),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Black,
+            style = TextStyle(letterSpacing = 2.sp),
         )
     }
 }
