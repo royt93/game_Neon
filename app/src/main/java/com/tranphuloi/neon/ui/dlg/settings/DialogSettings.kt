@@ -94,9 +94,6 @@ fun DialogSettings(
     val shipSkin by settings.shipSkin.collectAsState(initial = ShipSkin.AURA_CYAN)
     // Wave 12 round 3 — shop-gated skins. allRanks keyed by ShopItem.persistKey.
     val shopRanks by meta.allRanks.collectAsState(initial = emptyMap())
-    val colorBlindMode by settings.colorBlindMode.collectAsState(
-        initial = com.tranphuloi.neon.data.ColorBlindMode.NORMAL,
-    )
     // Round 70 (Issue 2) — SecondaryWeapon picker đã chuyển sang LoadoutPicker
     // duy nhất. Settings không còn read/write SECONDARY_WEAPON key.
     // Round 27 — lastMode / lastModifier reads removed; that info now lives in MenuScreen.
@@ -222,19 +219,8 @@ fun DialogSettings(
                 // Round 70 (Issue 2) — SecondaryWeapon picker removed. Loadout
                 // bottom sheet (TRANG BỊ button trong menu) là duy nhất quản lý
                 // bullet + secondary weapon per-run.
-                Spacer(modifier = Modifier.height(10.dp))
-                ControlGroup {
-                    LabelledPillRow(label = "Chế độ màu", color = palette.cyan) {
-                        com.tranphuloi.neon.data.ColorBlindMode.entries.forEach { m ->
-                            Pill(
-                                label = m.displayName,
-                                selected = m == colorBlindMode,
-                                color = palette.cyan,
-                                onClick = { scope.launch { settings.setColorBlindMode(m) } }
-                            )
-                        }
-                    }
-                }
+                // Wave 13a (slice E) — "Chế độ màu" (ColorBlindMode) đã chuyển sang
+                // Cửa hàng → tab Hiển thị (gom tuỳ chỉnh hiển thị về 1 chỗ).
                 // Round 77 (R77g) — Camera zoom picker.
                 Spacer(modifier = Modifier.height(10.dp))
                 ControlGroup {

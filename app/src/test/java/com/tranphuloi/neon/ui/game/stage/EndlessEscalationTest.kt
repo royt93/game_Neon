@@ -7,15 +7,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Wave 11d audit-5 P2 fix — pin EndlessProvider escalation caps so a long
- * Endless run never produces mathematically-unplayable enemies. Pre-fix
- * `1.10^30` etc. had no cap; cycle=30 produced HP×17.4 / impact×10 / speed×4.3.
+ * EndlessProvider escalation caps + (Wave 13d) softened curve & theme rotation.
  *
- * Caps chosen so cycle=30 hits a finite ceiling:
- *   HP cap     5.0  — reached around cycle 17
- *   impact cap 2.5  — reached around cycle 12
- *   speed cap  2.5  — reached around cycle 19
- *   spawn cap  0.5  — reached around cycle 14 (FLOOR — spawn cadence min)
+ * Wave 13d retuned the caps DOWN so stage 100+ isn't instant-death (on-device
+ * log showed ~6-hit deaths at the old caps). Current caps:
+ *   HP     × 1.08^c cap 4.0
+ *   impact × 1.05^c cap 1.8   ← main instant-death fix
+ *   speed  × 1.03^c cap 1.6
+ *   spawn  × 0.96^c floor 0.55 (or 300ms hard min, whichever greater)
  */
 class EndlessEscalationTest {
 
@@ -23,97 +22,97 @@ class EndlessEscalationTest {
 
     @Test
     fun `cycle 0 returns unscaled base stage`() {
-        // Cycle 0 short-circuits in getAt() — verify the base passes through.
-        val s0 = provider.getAt(0)
-        val s0Base = s0 as StageGame
-        val t = s0Base.enemyType as RegularEnemyType
-        // Reference: chapter1GameStages[0] tier=0 width=40, hp from family
-        // multiplier. We don't pin exact values (drift if Stage.kt is tuned)
-        // but verify cycle-0 path returns a regular enemy type unchanged.
+        val s0 = provider.getAt(0) as StageGame
+        val t = s0.enemyType as RegularEnemyType
         assertTrue("Cycle 0 baseline hp > 0", t.hp > 0f)
         assertTrue("Cycle 0 baseline impact > 0", t.impactPower > 0f)
     }
 
     @Test
     fun `cycle 5 escalation visible but under cap`() {
-        // cycle=5: hp×1.61, impact×1.47, speed×1.28, spawn×0.77
-        val base = provider.getAt(0) as StageGame
-        val c5 = provider.getAt(5 * chapter1GameStages.size) as StageGame
-        val baseT = base.enemyType as RegularEnemyType
-        val c5T = c5.enemyType as RegularEnemyType
+        val baseT = (provider.getAt(0) as StageGame).enemyType as RegularEnemyType
+        val c5T = (provider.getAt(5 * chapter1GameStages.size) as StageGame).enemyType as RegularEnemyType
         assertTrue("HP grew", c5T.hp > baseT.hp)
         assertTrue("Impact grew", c5T.impactPower > baseT.impactPower)
         assertTrue("Speed grew", c5T.yOffsetSpeed > baseT.yOffsetSpeed)
-        // All under caps at cycle 5
-        assertTrue("HP under 5×", c5T.hp < baseT.hp * 5.0f)
-        assertTrue("Impact under 2.5×", c5T.impactPower < baseT.impactPower * 2.5f)
-        assertTrue("Speed under 2.5×", c5T.yOffsetSpeed < baseT.yOffsetSpeed * 2.5f)
+        assertTrue("HP under 4×", c5T.hp <= baseT.hp * 4.0f)
+        assertTrue("Impact under 1.8×", c5T.impactPower <= baseT.impactPower * 1.8f)
+        assertTrue("Speed under 1.6×", c5T.yOffsetSpeed <= baseT.yOffsetSpeed * 1.6f)
     }
 
     @Test
-    fun `cycle 30 hits all caps (regression — pre-fix would have hp×17 etc)`() {
-        val base = provider.getAt(0) as StageGame
-        val c30 = provider.getAt(30 * chapter1GameStages.size) as StageGame
-        val baseT = base.enemyType as RegularEnemyType
-        val c30T = c30.enemyType as RegularEnemyType
+    fun `cycle 30 hits the softened caps`() {
+        val baseT = (provider.getAt(0) as StageGame).enemyType as RegularEnemyType
+        val c30T = (provider.getAt(30 * chapter1GameStages.size) as StageGame).enemyType as RegularEnemyType
 
-        // HP capped at 5.0× — pre-fix 1.10^30 = 17.45×
-        assertEquals(
-            "HP capped at 5× — if higher, escalation cap missing/broken",
-            baseT.hp * 5.0f, c30T.hp, 0.01f,
-        )
-        // Impact capped at 2.5× — pre-fix 1.08^30 = 10.06×
-        assertEquals(
-            "Impact capped at 2.5× — if higher, escalation cap missing/broken",
-            baseT.impactPower * 2.5f, c30T.impactPower, 0.01f,
-        )
-        // Speed capped at 2.5× — pre-fix 1.05^30 = 4.32×
-        assertEquals(
-            "Speed capped at 2.5× — if higher, escalation cap missing/broken",
-            baseT.yOffsetSpeed * 2.5f, c30T.yOffsetSpeed, 0.01f,
-        )
-        // Spawn rate FLOORED at 0.5× — pre-fix 0.95^30 = 0.21×
+        assertEquals("HP capped at 4×", baseT.hp * 4.0f, c30T.hp, 0.01f)
+        assertEquals("Impact capped at 1.8× (instant-death fix)", baseT.impactPower * 1.8f, c30T.impactPower, 0.01f)
+        assertEquals("Speed capped at 1.6×", baseT.yOffsetSpeed * 1.6f, c30T.yOffsetSpeed, 0.01f)
+
         val baseRate = (baseT.enemySpawnRate as Millis).timeMillis
         val c30Rate = (c30T.enemySpawnRate as Millis).timeMillis
-        // Expected floor = baseRate × 0.5 (also coerceAtLeast(300) in the
-        // copy block; pick whichever is greater).
-        val expectedFloor = (baseRate * 0.5f).toInt().coerceAtLeast(300)
-        assertEquals(
-            "Spawn rate floored at 0.5× of base (or 300ms min) — if lower, regression",
-            expectedFloor, c30Rate,
-        )
+        val expectedFloor = (baseRate * 0.55f).toInt().coerceAtLeast(300)
+        assertEquals("Spawn rate floored at 0.55× (or 300ms min)", expectedFloor, c30Rate)
     }
 
     @Test
     fun `cycle 100 stays capped (no late-game blowup)`() {
-        // Defensive — at extreme cycle, caps still hold. Math.pow(1.10, 100)
-        // is astronomical (~13780×) and would have produced absurd values
-        // pre-cap. After cap, behaves identical to cycle 30.
-        val base = provider.getAt(0) as StageGame
-        val c100 = provider.getAt(100 * chapter1GameStages.size) as StageGame
-        val baseT = base.enemyType as RegularEnemyType
-        val c100T = c100.enemyType as RegularEnemyType
-        assertEquals(baseT.hp * 5.0f, c100T.hp, 0.01f)
-        assertEquals(baseT.impactPower * 2.5f, c100T.impactPower, 0.01f)
-        assertEquals(baseT.yOffsetSpeed * 2.5f, c100T.yOffsetSpeed, 0.01f)
+        val baseT = (provider.getAt(0) as StageGame).enemyType as RegularEnemyType
+        val c100T = (provider.getAt(100 * chapter1GameStages.size) as StageGame).enemyType as RegularEnemyType
+        assertEquals(baseT.hp * 4.0f, c100T.hp, 0.01f)
+        assertEquals(baseT.impactPower * 1.8f, c100T.impactPower, 0.01f)
+        assertEquals(baseT.yOffsetSpeed * 1.6f, c100T.yOffsetSpeed, 0.01f)
+    }
+
+    @Test
+    fun `impact ramp is gentler than the old curve (instant-death regression guard)`() {
+        // Old: impact ×1.08^c cap 2.5. New must be strictly lower at a mid cycle
+        // so a future revert to the harsh curve fails this test.
+        val baseT = (provider.getAt(0) as StageGame).enemyType as RegularEnemyType
+        val c10T = (provider.getAt(10 * chapter1GameStages.size) as StageGame).enemyType as RegularEnemyType
+        val oldImpactAt10 = baseT.impactPower * Math.pow(1.08, 10.0).toFloat() // ~2.16×
+        assertTrue("new impact must be gentler than old 1.08^10", c10T.impactPower < oldImpactAt10)
     }
 
     @Test
     fun `monotonic — higher cycle never produces weaker stats`() {
-        val base = provider.getAt(0) as StageGame
-        val baseT = base.enemyType as RegularEnemyType
-        var prevHp = baseT.hp
-        var prevImpact = baseT.impactPower
-        var prevSpeed = baseT.yOffsetSpeed
+        val baseT = (provider.getAt(0) as StageGame).enemyType as RegularEnemyType
+        var prevHp = baseT.hp; var prevImpact = baseT.impactPower; var prevSpeed = baseT.yOffsetSpeed
         for (cycle in 1..30) {
-            val s = provider.getAt(cycle * chapter1GameStages.size) as StageGame
-            val t = s.enemyType as RegularEnemyType
+            val t = (provider.getAt(cycle * chapter1GameStages.size) as StageGame).enemyType as RegularEnemyType
             assertTrue("cycle=$cycle HP regressed", t.hp >= prevHp)
             assertTrue("cycle=$cycle impact regressed", t.impactPower >= prevImpact)
             assertTrue("cycle=$cycle speed regressed", t.yOffsetSpeed >= prevSpeed)
-            prevHp = t.hp
-            prevImpact = t.impactPower
-            prevSpeed = t.yOffsetSpeed
+            prevHp = t.hp; prevImpact = t.impactPower; prevSpeed = t.yOffsetSpeed
         }
+    }
+
+    // ── Wave 13d — theme rotation ──
+
+    @Test
+    fun `EndlessTheme rotates chapters 1 through 5 round-robin`() {
+        assertEquals(1, EndlessTheme.chapterIdForCycle(0))
+        assertEquals(2, EndlessTheme.chapterIdForCycle(1))
+        assertEquals(5, EndlessTheme.chapterIdForCycle(4))
+        assertEquals(1, EndlessTheme.chapterIdForCycle(5)) // wraps
+        assertEquals(3, EndlessTheme.chapterIdForCycle(12))
+    }
+
+    @Test
+    fun `provider chapterAt rotates with cycle (was stuck at 1)`() {
+        val size = chapter1GameStages.size
+        assertEquals(1, provider.chapterAt(0))
+        assertEquals(2, provider.chapterAt(size))       // cycle 1
+        assertEquals(1, provider.chapterAt(5 * size))   // cycle 5 wraps to chapter 1
+    }
+
+    @Test
+    fun `getAt past cycle 0 stamps the rotated chapter id and its hazard`() {
+        val size = chapter1GameStages.size
+        // cycle 1 → chapter 2 (NEBULA_CLOUD, hazard NEBULA_FOG).
+        val s = provider.getAt(size) as StageGame
+        assertEquals(2, s.chapterId)
+        val ch2Hazard = Chapter.entries.first { it.id == 2 }.hazard
+        assertEquals(ch2Hazard, s.hazard)
     }
 }

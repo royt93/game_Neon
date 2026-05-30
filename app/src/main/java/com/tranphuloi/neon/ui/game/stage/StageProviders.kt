@@ -99,28 +99,25 @@ class EndlessProvider : StageProvider {
         val cycle = index / chapter1GameStages.size                   // wave count
         val pos = index % chapter1GameStages.size
         val base = chapter1GameStages[pos]
-        if (cycle == 0) return base
-        // Pixel-2 #4 — escalating difficulty per cycle. Prior code only
-        // scaled HP × 1.10^cycle + spawn rate × 0.95^cycle (faster). User
-        // reported "level càng tăng thì enemy càng mạnh" — meaning damage +
-        // speed should also escalate. Adding impact × 1.08^cycle (mild,
-        // doesn't 1-shot the player) + yOffsetSpeed × 1.05^cycle (faster
-        // descent → less reaction time).
-        //
-        // Audit-5 P2 fix — caps. At cycle=30 the unclamped exponentials
-        // produced HP×17.4 / impact×10 / speed×4.3 → mathematically
-        // unplayable. Caps chosen so cycle=30 is a tough but finite ceiling:
-        //   HP cap 5.0     — ship can still 2-3-shot enemies with strong bullet
-        //   impact cap 2.5 — enemy laser hits hurt but don't 1-shot baseline ship
-        //   speed cap 2.5  — enemies fall fast but player reactions feasible
-        //   spawn cap 0.5  — cadence floor (avoid 0ms spawns)
-        // Reached around cycle ~17-23 depending on category. Beyond cap the
-        // run still escalates via more enemies on screen (spawn rate caps at
-        // 0.5×) and chapter rotation, but per-enemy power plateaus.
-        val hpScale = Math.pow(1.10, cycle.toDouble()).toFloat().coerceAtMost(5.0f)
-        val spawnScale = Math.pow(0.95, cycle.toDouble()).toFloat().coerceAtLeast(0.5f)
-        val impactScale = Math.pow(1.08, cycle.toDouble()).toFloat().coerceAtMost(2.5f)
-        val speedScale = Math.pow(1.05, cycle.toDouble()).toFloat().coerceAtMost(2.5f)
+        // Wave 13d — rotate the 5 chapter themes (tint + hazard) per cycle so an
+        // endless run beyond stage 100 doesn't stay visually stuck in chapter 1.
+        val rotatedChapterId = EndlessTheme.chapterIdForCycle(cycle)
+        if (cycle == 0) return base                                   // first pass = chapter 1, untouched
+        val themedHazard = Chapter.entries.firstOrNull { it.id == rotatedChapterId }?.hazard
+        // Wave 13d — SOFTENED difficulty curve. On-device log (Pixel 7 Pro) at
+        // stage ~109 (cycle ~9) showed the ship dying in ~6 hits — old impact
+        // ×1.08^c (cap 2.5) + speed ×1.05^c (cap 2.5) made stage 100+ feel
+        // instant-death. Damage + descent speed are what actually kill the
+        // player, so those now ramp gentler + cap lower (HP stays tanky —
+        // tankiness prolongs, it doesn't kill):
+        //   HP     × 1.08^c cap 4.0    (was 1.10 / 5.0)
+        //   impact × 1.05^c cap 1.8    (was 1.08 / 2.5)  ← main instant-death fix
+        //   speed  × 1.03^c cap 1.6    (was 1.05 / 2.5)  ← more reaction time
+        //   spawn  × 0.96^c floor 0.55 (was 0.95 / 0.5)
+        val hpScale = Math.pow(1.08, cycle.toDouble()).toFloat().coerceAtMost(4.0f)
+        val spawnScale = Math.pow(0.96, cycle.toDouble()).toFloat().coerceAtLeast(0.55f)
+        val impactScale = Math.pow(1.05, cycle.toDouble()).toFloat().coerceAtMost(1.8f)
+        val speedScale = Math.pow(1.03, cycle.toDouble()).toFloat().coerceAtMost(1.6f)
         val enemyType = base.enemyType
         val scaledType = if (enemyType is com.tranphuloi.neon.ui.game.enemy.ship.model.RegularEnemyType) {
             val baseRate = enemyType.enemySpawnRate
@@ -137,11 +134,22 @@ class EndlessProvider : StageProvider {
                 enemySpawnRate = scaledRate,
             )
         } else enemyType
-        return base.copy(enemyType = scaledType)
+        return base.copy(enemyType = scaledType, chapterId = rotatedChapterId, hazard = themedHazard)
     }
 
-    override fun chapterAt(index: Int): Int = 1
+    // Wave 13d — tint/hazard theme rotates 1..5 per full pass through ch-1 stages.
+    override fun chapterAt(index: Int): Int =
+        EndlessTheme.chapterIdForCycle(index / chapter1GameStages.size)
+
     override fun size(): Int = -1                                     // infinite
+}
+
+/** Wave 13d — pure helper: endless theme cycling (testable). */
+internal object EndlessTheme {
+    const val CHAPTER_COUNT = 5
+
+    /** cycle 0→1, 1→2, … 4→5, 5→1, … (chapters 1..5 round-robin). */
+    fun chapterIdForCycle(cycle: Int): Int = (cycle.coerceAtLeast(0) % CHAPTER_COUNT) + 1
 }
 
 /**

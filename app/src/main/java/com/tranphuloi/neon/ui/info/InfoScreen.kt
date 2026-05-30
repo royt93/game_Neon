@@ -81,7 +81,6 @@ private enum class InfoTab(val label: String, val color: Color) {
 @Composable
 fun InfoScreen(
     onBack: () -> Unit,
-    onOpenShipPicker: () -> Unit = {},
 ) {
     var selectedTab by remember { mutableStateOf(InfoTab.BULLETS) }
     // Round 67.7 — fade-in animation for tab content. Tăng dần alpha 0→1 trong
@@ -170,7 +169,7 @@ fun InfoScreen(
                 ) {
                     when (selectedTab) {
                         InfoTab.BULLETS -> BulletsTab()
-                        InfoTab.SHIP -> ShipTab(onOpenShipPicker = onOpenShipPicker)
+                        InfoTab.SHIP -> ShipTab()
                         InfoTab.ENEMIES -> EnemiesTab()
                         InfoTab.BOSSES -> BossesTab()
                         InfoTab.ITEMS -> ItemsTab()
@@ -509,29 +508,27 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSplitBullet(
 // ─────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun ShipTab(onOpenShipPicker: () -> Unit) {
-    // Round 72 → R73 — Apply 3-layer Ship info + CTA mở ShipPicker dialog
-    // (Wave 8 ship system đã wire vào EffectiveStats Round 73).
+private fun ShipTab() {
+    // Wave 13a (slice D) — Bách Khoa Tàu là TRANG TRA CỨU read-only. Việc
+    // mở khoá + chọn tàu đã chuyển sang Cửa hàng (tab Tàu). Banner tĩnh trỏ
+    // người chơi sang đó thay cho CTA mở ShipPicker (đã gỡ).
     Column(modifier = Modifier.padding(horizontal = 12.dp).verticalScroll(rememberScrollState())) {
-        // CTA to open ShipPicker dialog
         Spacer(modifier = Modifier.height(4.dp))
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(NeonCyan.copy(alpha = 0.25f))
-                .border(BorderStroke(2.dp, NeonCyan), RoundedCornerShape(12.dp))
-                .neonGlow(color = NeonCyan, intensity = 0.5f, radiusFactor = 1.4f)
-                .clickable { onOpenShipPicker() }
-                .padding(vertical = 12.dp),
+                .background(NeonCyan.copy(alpha = 0.12f))
+                .border(BorderStroke(1.5.dp, NeonCyan.copy(alpha = 0.6f)), RoundedCornerShape(12.dp))
+                .padding(vertical = 12.dp, horizontal = 12.dp),
         ) {
             Text(
-                text = "✦ ĐỔI TÀU — Mở picker chọn loại",
-                color = Color.White,
-                fontSize = 14.sp,
+                text = "✦ Mở khoá & chọn tàu ở CỬA HÀNG → tab Tàu",
+                color = NeonCyan,
+                fontSize = 13.sp,
                 fontWeight = FontWeight.Black,
-                style = TextStyle(letterSpacing = 1.sp),
+                style = TextStyle(letterSpacing = 0.5.sp),
             )
         }
         Spacer(modifier = Modifier.height(12.dp))
@@ -540,8 +537,8 @@ private fun ShipTab(onOpenShipPicker: () -> Unit) {
             color = NeonGold,
             title = "Phi thuyền — 3 lớp tuỳ chỉnh",
             subtitle = "Loại tàu · Màu sắc · Nâng cấp chỉ số",
-            description = "1) Chọn LOẠI TÀU (mở khoá theo khoáng tích luỹ) ảnh hưởng HP/Tốc độ/Sát thương\n" +
-                "2) Đổi MÀU SẮC (skin) — chỉ thẩm mỹ, miễn phí\n" +
+            description = "1) Mua LOẠI TÀU ở Cửa hàng (tab Tàu) — ảnh hưởng HP/Tốc độ/Sát thương\n" +
+                "2) Đổi MÀU SẮC (skin) — chỉ thẩm mỹ\n" +
                 "3) NÂNG CẤP CHỈ SỐ vĩnh viễn — tốn khoáng",
             iconDraw = { c -> drawShipPreview(c, NeonGold, laserBoosted = false) },
         )

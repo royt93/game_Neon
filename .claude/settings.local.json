@@ -1,6 +1,7 @@
 {
   "permissions": {
     "allow": [
+      "Bash(./gradlew:*)",
       "Read(//Users/loitran/Library/Android/sdk/platforms/**)",
       "Read(//Users/loitran/Library/Android/sdk/build-tools/**)",
       "Bash(/usr/libexec/java_home -V)",
@@ -159,7 +160,14 @@
       "Bash(adb exec-out *)",
       "Bash(adb pull *)",
       "Bash(./gradlew testDevDebugUnitTest --console=plain)",
-      "Bash(awk '{t+=$1;f+=$2;e+=$3} END {print \"tests:\",t,\"fail:\",f,\"err:\",e}')"
+      "Bash(awk '{t+=$1;f+=$2;e+=$3} END {print \"tests:\",t,\"fail:\",f,\"err:\",e}')",
+      "Bash(./gradlew compileDevDebugKotlin testDevDebugUnitTest --tests \"com.tranphuloi.neon.ui.game.ship.shape.ShipShopLogicTest\" --console=plain)",
+      "Bash(./gradlew testDevDebugUnitTest --tests \"com.tranphuloi.neon.ui.game.booster.BoosterTypeDistributionTest\" --rerun-tasks --console=plain)",
+      "Bash(./gradlew testDevDebugUnitTest --tests \"*ShipShopLogicTest\" --tests \"*ShopItemCatalogTest\" --tests \"*ShopSpendLogicTest\" --console=plain)",
+      "Bash(./gradlew compileProductionReleaseKotlin testDevDebugUnitTest --console=plain)",
+      "Bash(./gradlew testDevDebugUnitTest --tests \"com.tranphuloi.neon.data.MetaProgressionShipIntegrationTest\" --console=plain)",
+      "Bash(timeout 300 ./gradlew testDevDebugUnitTest --tests \"com.tranphuloi.neon.ui.shop.ShopScreenWidgetTest\" --console=plain)",
+      "Bash(./gradlew compileDevDebugKotlin testDevDebugUnitTest --tests \"com.tranphuloi.neon.ui.game.enemy.ship.model.EnemySizeTest\" --console=plain)"
     ]
   }
 }

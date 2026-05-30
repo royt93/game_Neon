@@ -13,17 +13,23 @@ data class RegularEnemy(
     private val screenHeight: Float,
     override var xOffset: Float,
     private val type: RegularEnemyType,
-    override var hp: Float = type.hp,
+    /**
+     * Wave 13c — per-enemy size scale (see [EnemySize]). Scales hitbox (width/
+     * height → enemyRect), HP, movement speed (inverse), and mineral reward.
+     * 1f = baseline. Picked once per spawn group in EnemyFactory.
+     */
+    val sizeScale: Float = 1f,
+    override var hp: Float = type.hp * EnemySize.hpFactor(sizeScale),
     /** Wave 5 (28x) — V/SineWave formations stagger spawn y position. Default 0 = top of screen. */
     private val initialYOffset: Float = 0f,
 ) : Enemy {
 
     override val enemyId: String = UUID.randomUUID().toString()
-    override val width: Float = type.width
-    override val height: Float = type.height
+    override val width: Float = type.width * sizeScale
+    override val height: Float = type.height * sizeScale
     override val initialHp: Float = hp
     override val impactPower: Float = type.impactPower
-    override val minerals: Int = 1
+    override val minerals: Int = EnemySize.mineralReward(sizeScale)
     override var destroyed: Boolean = false
         private set
     override var outOfScreen: Boolean = false
@@ -34,8 +40,9 @@ data class RegularEnemy(
     override val isBoss: Boolean = false
     override val displayName: String = "Regular"
     private var moveRight = true
-    private val xOffsetMovementSpeed = type.xOffsetSpeed
-    private val yOffsetMovementSpeed = type.yOffsetSpeed
+    // Wave 13c — bigger = slower, smaller = faster (inverse of sizeScale).
+    private val xOffsetMovementSpeed = type.xOffsetSpeed * EnemySize.speedFactor(sizeScale)
+    private val yOffsetMovementSpeed = type.yOffsetSpeed * EnemySize.speedFactor(sizeScale)
     // Smooth knockback: velocity accumulates from each hit, decays 15% per tick.
     private var knockbackVel: Float = 0f
     /** Wave 5 (28x) — SineWave anchor x captured at spawn. xOffset oscillates around this. */

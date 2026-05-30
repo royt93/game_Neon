@@ -32,13 +32,11 @@ import com.tranphuloi.neon.navigation.GameOver
 import com.tranphuloi.neon.navigation.GamePause
 import com.tranphuloi.neon.navigation.Menu
 import com.tranphuloi.neon.navigation.BuffPicker
-import com.tranphuloi.neon.navigation.MetaUpgrade
 import com.tranphuloi.neon.navigation.ModePicker
 import com.tranphuloi.neon.navigation.ModifierPicker
 import com.tranphuloi.neon.navigation.Settings as SettingsRoute
 import com.tranphuloi.neon.navigation.Splash
 import com.tranphuloi.neon.ui.dlg.difficulty.DialogDifficultyPicker
-import com.tranphuloi.neon.ui.dlg.metaupgrade.DialogMetaUpgrade
 import com.tranphuloi.neon.ui.dlg.modepicker.DialogModePicker
 import com.tranphuloi.neon.ui.dlg.modifierpicker.DialogModifierPicker
 import com.tranphuloi.neon.ui.menu.MenuScreen
@@ -219,10 +217,6 @@ class MainActivity : ComponentActivity() {
                                     Logger.d("Nav: Menu → ModifierPicker")
                                     navController.navigate(ModifierPicker.route)
                                 },
-                                onOpenMetaUpgrade = {
-                                    Logger.d("Nav: Menu → MetaUpgrade")
-                                    navController.navigate(MetaUpgrade.route)
-                                },
                                 onOpenSettings = {
                                     Logger.d("Nav: Menu → Settings")
                                     navController.navigate(SettingsRoute.route)
@@ -246,10 +240,6 @@ class MainActivity : ComponentActivity() {
                                 onBack = {
                                     Logger.d("Nav: Info → back")
                                     navController.popBackStack()
-                                },
-                                onOpenShipPicker = {
-                                    Logger.d("Nav: Info → ShipPicker")
-                                    navController.navigate(com.tranphuloi.neon.navigation.ShipPicker.route)
                                 },
                             )
                         }
@@ -356,15 +346,8 @@ class MainActivity : ComponentActivity() {
                                 navController.popBackStack()
                             })
                         }
-                        dialog(
-                            route = MetaUpgrade.route,
-                            dialogProperties = com.tranphuloi.neon.common.bottomSheetDialogProperties(),
-                        ) {
-                            DialogMetaUpgrade(onDismiss = {
-                                Logger.d("Nav: MetaUpgrade → back")
-                                navController.popBackStack()
-                            })
-                        }
+                        // Wave 13a (slice C) — MetaUpgrade route gỡ bỏ; skill-tree
+                        // đã chuyển sang Cửa hàng (Shop → tab Nâng cấp).
                         dialog(
                             route = BuffPicker.route,
                             dialogProperties = com.tranphuloi.neon.common.bottomSheetDialogProperties(),
@@ -407,18 +390,8 @@ class MainActivity : ComponentActivity() {
                                 },
                             )
                         }
-                        // Round 73 (Wave 8) — ShipPicker route. Open từ Bách Khoa → Tàu tab.
-                        dialog(
-                            route = com.tranphuloi.neon.navigation.ShipPicker.route,
-                            dialogProperties = com.tranphuloi.neon.common.bottomSheetDialogProperties(),
-                        ) {
-                            com.tranphuloi.neon.ui.dlg.shippicker.DialogShipPicker(
-                                onDismiss = {
-                                    Logger.d("Nav: ShipPicker dismissed → back")
-                                    navController.popBackStack()
-                                },
-                            )
-                        }
+                        // Wave 13a (slice D) — ShipPicker route gỡ bỏ; chọn/mua tàu
+                        // đã chuyển sang Cửa hàng (Shop → tab Tàu).
                         // Wave 11c — Statistics screen (THỐNG KÊ).
                         composable(route = com.tranphuloi.neon.navigation.Stats.route) {
                             com.tranphuloi.neon.ui.stats.StatsScreen(

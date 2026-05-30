@@ -12,7 +12,9 @@ import com.tranphuloi.neon.utils.Logger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-private val Context.metaDataStore by preferencesDataStore(name = "neon_meta")
+// `internal` (was private) so the Robolectric integration test can clear state
+// between cases — the DataStore is a process singleton keyed by file name.
+internal val Context.metaDataStore by preferencesDataStore(name = "neon_meta")
 
 private val LIFETIME_MINERALS_KEY = intPreferencesKey("lifetime_minerals")
 private val LIFETIME_ENEMY_KILLS_KEY = longPreferencesKey("lifetime_enemy_kills")
@@ -100,6 +102,27 @@ class MetaProgressionRepository(private val appContext: Context) {
             }
         }
         return success
+    }
+
+    /**
+     * Wave 13a — grant a node ownership flag WITHOUT charging (rank → 1), only
+     * if not already owned. Used by the ship-unlock migration (threshold-gate →
+     * purchase): the player's currently-selected ship is auto-granted so it
+     * keeps working. Idempotent — a node already at rank>0 is left untouched, so
+     * this is safe to call on every ship-tab load. Returns true if it granted.
+     */
+    suspend fun grantNodeFree(nodeKey: String): Boolean {
+        var granted = false
+        appContext.metaDataStore.edit { prefs ->
+            val nodePrefKey = intPreferencesKey(NODE_PREFIX + nodeKey)
+            val currentRank = prefs[nodePrefKey] ?: 0
+            if (currentRank == 0) {
+                prefs[nodePrefKey] = 1
+                granted = true
+                Logger.d("MetaProgressionRepository.grantNodeFree($nodeKey): rank 0 → 1 (migration, no charge)")
+            }
+        }
+        return granted
     }
 
     /**

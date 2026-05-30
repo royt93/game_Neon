@@ -92,7 +92,6 @@ fun MenuScreen(
     onPlay: () -> Unit,
     onOpenModePicker: () -> Unit,
     onOpenModifierPicker: () -> Unit,
-    onOpenMetaUpgrade: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenInfo: () -> Unit = {},
     onOpenLoadout: () -> Unit = {},
@@ -254,29 +253,19 @@ fun MenuScreen(
                     Spacer(modifier = Modifier.height(2.dp))
                     GroupHeader(label = "TIẾN TRÌNH", color = NeonGold)
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
+                        // Wave 13a (slice C) — NÂNG CẤP (skill-tree) đã gộp vào Cửa hàng
+                        // → tab Nâng cấp. Hàng này còn Cửa hàng + Thống kê.
                         MenuButton(
                             label = "CỬA HÀNG",
                             glyph = "◇",
                             color = NeonCyan,
                             modifier = Modifier.weight(1f),
-                            compact = true,
                             onClick = {
                                 Logger.d("MenuScreen: SHOP tapped")
                                 onOpenShop()
-                            },
-                        )
-                        MenuButton(
-                            label = "NÂNG CẤP",
-                            glyph = "⬆",
-                            color = NeonCyan,
-                            modifier = Modifier.weight(1f),
-                            compact = true,
-                            onClick = {
-                                Logger.d("MenuScreen: UPGRADE tapped")
-                                onOpenMetaUpgrade()
                             },
                         )
                         MenuButton(
@@ -284,7 +273,6 @@ fun MenuScreen(
                             glyph = "▦",
                             color = NeonGold,
                             modifier = Modifier.weight(1f),
-                            compact = true,
                             onClick = {
                                 Logger.d("MenuScreen: STATS tapped")
                                 onOpenStats()

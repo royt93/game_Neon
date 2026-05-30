@@ -59,13 +59,18 @@ class EnemyFactory(
     operator fun invoke(type: EnemyType, getShip: () -> Ship): List<Enemy> {
         val enemies: MutableList<Enemy> = mutableListOf()
         if (type is RegularEnemyType) {
+            // Wave 13c — one size for the whole spawn group so a formation reads
+            // as uniform; different groups vary (small/normal/large).
+            val sizeScale = com.tranphuloi.neon.ui.game.enemy.ship.model.EnemySize
+                .pick(kotlin.random.Random.nextFloat())
             when (type.formation) {
                 is ZigZag -> {
                     val enemy = RegularEnemy(
                         screenWidth = screenWidth,
                         screenHeight = screenHeight,
                         xOffset = formationXOffsetMutable.zigZagXOffset(type.formation),
-                        type = type
+                        type = type,
+                        sizeScale = sizeScale,
                     )
                     enemies += enemy
                     Logger.v { "EnemyFactory: ZigZag spawn drawable=${type.drawableId} hp=${type.hp} formation=${type.formation}" }
@@ -81,7 +86,8 @@ class EnemyFactory(
                                 previousEnemy = enemies.lastOrNull(),
                                 enemyWidth = type.width
                             ),
-                            type = type
+                            type = type,
+                            sizeScale = sizeScale,
                         )
                         enemies += enemy
                     }
@@ -111,6 +117,7 @@ class EnemyFactory(
                             screenHeight = screenHeight,
                             xOffset = xs.coerceIn(-spawnXMargin, screenWidth - type.width + spawnXMargin),
                             type = type,
+                            sizeScale = sizeScale,
                             initialYOffset = ys,
                         )
                     }
@@ -130,6 +137,7 @@ class EnemyFactory(
                             screenHeight = screenHeight,
                             xOffset = centerX,
                             type = type,
+                            sizeScale = sizeScale,
                             initialYOffset = -i * yStep,
                         )
                     }
