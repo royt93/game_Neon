@@ -49,12 +49,39 @@ class LasersController(
     // too — otherwise enemies sitting in the right-edge margin survive the
     // sweep entirely. GameState wires this on camera-zoom change (mirrors
     // enemyController.setSpawnXMargin).
+    // Audit-7 hardening — @Volatile ensures Main-thread write (LaunchedEffect)
+    // is visible to IO-thread read (game loop) without relying on luck. Float
+    // read/write was already atomic; this adds the memory-barrier visibility
+    // guarantee.
+    @Volatile
     private var extraXSpan: Float = 0f
 
     fun setExtraXSpan(margin: Float) {
         if (extraXSpan != margin) {
             Logger.d("LasersController.setExtraXSpan: $extraXSpan → $margin (UltimateLaser sweep extended)")
             extraXSpan = margin
+        }
+    }
+
+    /**
+     * Pixel-3 #2 deep-audit fix — Y-axis extension companion to setExtraXSpan.
+     *
+     * Pre-fix UltimateLaser beams spawned at `yOffset = screenHeight` (= 891
+     * game-coord), which at FAR camera zoom (scale=0.7) renders at device-y
+     * 757. Device shows game-y down to ~1081, so the bottom band 757..891 on
+     * device NEVER saw a beam pass through. User's "laser effect zone không
+     * phủ full screen at zoom xa" complaint.
+     *
+     * With extraYSpan = 190 at FAR, beam starts at game-y 1081 → renders at
+     * device-y 891 (device-bottom). Sweep covers the full visible band.
+     */
+    @Volatile
+    private var extraYSpan: Float = 0f
+
+    fun setExtraYSpan(margin: Float) {
+        if (extraYSpan != margin) {
+            Logger.d("LasersController.setExtraYSpan: $extraYSpan → $margin (UltimateLaser start extended)")
+            extraYSpan = margin
         }
     }
 
@@ -299,12 +326,17 @@ class LasersController(
         val startX = -extraXSpan
         Logger.d("LasersController.fireUltimateLaser: spawning $ULTIMATE_LASERS_COUNT vertical beams (sweep bottom→top, existing=${ultimateLasers.size}, span=$totalSpan startX=$startX extra=$extraXSpan)")
         val ultimateLaserList = mutableListOf<UltimateLaser>()
+        // Pixel-3 #2 deep-audit fix — beam start now `screenHeight + extraYSpan`
+        // so the bottom band visible at FAR zoom (device-y 757..891) also gets
+        // swept by the beam. Pre-fix beam started at raw screenHeight, leaving
+        // 134dp of visible device-bottom uncovered.
+        val startY = screenHeight + extraYSpan
         for (i in 0..ULTIMATE_LASERS_COUNT) {
             val ultimateLaser = UltimateLaser(
                 id = uuidUtils.getUuid(),
                 xOffset = startX + horizontalLaserDistance * i,
-                yOffset = screenHeight,        // start at bottom edge, sweep up via yOffset -= 7
-                yRange = screenHeight
+                yOffset = startY,
+                yRange = screenHeight,
             )
             ultimateLaserList.add(ultimateLaser)
         }

@@ -24,6 +24,27 @@ class EnemyLasersController(
     var enemyLasers: List<Laser> = initialEnemyLasers
         private set
 
+    /**
+     * Pixel-3 #2 deep-audit fix — Y-axis extension. Pre-fix enemy lasers
+     * destroyed at `yOffset > screenHeight = 891`. At FAR camera zoom that
+     * maps to device-y 757, so enemy lasers vanished 134dp before reaching
+     * the device-bottom edge. After the ship-anchor fix that lets the ship
+     * occupy the device-bottom band, enemy lasers MUST also travel into
+     * that band to hit the ship. Wired from GameState's `LaunchedEffect(
+     * liveCameraZoom)` alongside the X-axis fix.
+     */
+    // Audit-7 hardening — @Volatile cho cross-thread visibility (Main writes
+    // from LaunchedEffect, IO loop reads).
+    @Volatile
+    private var extraYSpan: Float = 0f
+
+    fun setExtraYSpan(margin: Float) {
+        if (extraYSpan != margin) {
+            Logger.d("EnemyLasersController.setExtraYSpan: $extraYSpan → $margin")
+            extraYSpan = margin
+        }
+    }
+
     val fireEnemyLaserId = UUID.randomUUID().toString()
     val fireEnemyLaserRepeatTime = Millis(1000)
     fun fireEnemyLasers(enemies: List<Enemy>) {
@@ -55,9 +76,14 @@ class EnemyLasersController(
         // Round 37 — was logging "removed N off-screen/destroyed" every 5ms tick.
         // Enemy lasers fall off the bottom edge constantly; this fired 5-15×/sec
         // during normal play. Per-collision events log impacts elsewhere.
+        //
+        // Pixel-3 #2 deep-audit fix — destruction threshold extended so enemy
+        // lasers reach the device-bottom band at FAR zoom (where the ship can
+        // now park after Pixel-3 #4 fix).
+        val effectiveHeight = screenHeight + extraYSpan
         enemyLasers.forEach {
             it.moveLaser()
-            if (it.yOffset > screenHeight || it.destroyed) destroyEnemyLaser(it)
+            if (it.yOffset > effectiveHeight || it.destroyed) destroyEnemyLaser(it)
         }
         updateShipLasers()
     }

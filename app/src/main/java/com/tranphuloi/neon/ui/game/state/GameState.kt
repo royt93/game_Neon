@@ -1377,6 +1377,12 @@ fun rememberGameState(): GameState {
         // enemies stay visible until they reach the actual device-bottom edge
         // (not just game-coord screenHeight). Mirrors X-axis fix above.
         enemyController.setExtraYSpan(extensionY)
+        // Pixel-3 #2 deep-audit fix — UltimateLaser start position AND
+        // EnemyLaser destruction threshold both need Y extension. Pre-fix
+        // beam sweep + enemy-laser drop both stopped at raw screenHeight,
+        // leaving the bottom 134dp band (at FAR zoom) without any effect.
+        lasersController.setExtraYSpan(extensionY)
+        enemyLaserController.setExtraYSpan(extensionY)
         Logger.d("Camera zoom=${liveCameraZoom.key} scale=$scale → drag/spawn extension X=$extensionX Y=$extensionY")
     }
 
@@ -1870,6 +1876,46 @@ fun rememberGameState(): GameState {
                 // user sees the effect zone covering full screen, not just
                 // per-enemy explosions scattered around.
                 smartBombFlashMillis = System.currentTimeMillis()
+                // Pixel-3 round 4 fix — screen-fill explosion ring. Pre-fix
+                // SmartBomb only spawned explosions AT enemy positions, so if
+                // no enemies in the extended bottom/top bands (FAR zoom margins
+                // outside raw screen), those bands stayed visually empty even
+                // though the kill logic cleared everything. Spawn ~8 anchor
+                // explosions at fixed positions covering the full extended
+                // game-coord rect so user sees AOE coverage edge-to-edge.
+                //
+                // Extension values mirror the LaunchedEffect(liveCameraZoom)
+                // wiring — read from shipController which is the canonical
+                // store (set by LaunchedEffect alongside controller setters).
+                val ringExtX = shipController.dragBoundsExtensionX
+                val ringExtY = shipController.dragBoundsExtensionY
+                val ringMargin = 60f
+                val ringExplosionSize = 70f
+                val ringYTop = -ringExtY + ringMargin
+                val ringYBot = screenHeight + ringExtY - ringMargin
+                val ringXLeft = -ringExtX + ringMargin
+                val ringXRight = screenWidth + ringExtX - ringMargin
+                val ringYMid = screenHeight / 2f
+                val ringXMid = screenWidth / 2f
+                // 8 explosions: 4 corners + 4 mid-edges. Covers extended margins.
+                val ringPositions = listOf(
+                    ringXLeft to ringYTop,
+                    ringXMid to ringYTop,
+                    ringXRight to ringYTop,
+                    ringXLeft to ringYMid,
+                    ringXRight to ringYMid,
+                    ringXLeft to ringYBot,
+                    ringXMid to ringYBot,
+                    ringXRight to ringYBot,
+                )
+                ringPositions.forEach { (rx, ry) ->
+                    explosionsController.addExplosion(
+                        xOffset = rx,
+                        yOffset = ry,
+                        width = ringExplosionSize,
+                        height = ringExplosionSize,
+                    )
+                }
             }
         },
         killCamStartedAtMillis = killCamStartedAtMillis,

@@ -123,27 +123,34 @@ fun StatsScreen(onBack: () -> Unit) {
                 Brush.verticalGradient(listOf(NeonBgEdge, NeonBgMid, NeonBgDeep))
             ),
     ) {
+        // Pixel-3 #3 — shared decorative starfield background. Animated 60-star
+        // 3-layer parallax + twinkle (extracted from MenuScreen). Sits below
+        // gradient, above device background. Doesn't consume pointer events.
+        com.tranphuloi.neon.common.NeonStarfieldBackground(
+            modifier = Modifier.fillMaxSize(),
+        )
+        // Pixel-3 #2 fix — sticky action bar. Outer Column holds bar (fixed)
+        // + scrollable content (verticalScroll only on inner column). Pre-fix
+        // the action bar scrolled with content; user had to scroll back up to
+        // tap (✕).
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                // Bug #6 — safe-drawing insets keep content out of status bar
-                // and gesture/nav bar zone. Previously content scrolled under
-                // the system bars (edge-to-edge bug).
-                .padding(insetsPad)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+                .padding(insetsPad),
         ) {
-            // Audit-Pixel-2 #1 fix — shared NeonActionBar replaces inline
-            // duplicate; Info + Stats now share consistent affordance.
             com.tranphuloi.neon.common.NeonActionBar(
                 title = "THỐNG KÊ",
                 titleColor = NeonGold,
                 onBack = onBack,
-                modifier = Modifier.padding(0.dp),    // outer Column already pads horizontally
             )
-
-            StaggeredSection(visible = revealStep >= 1) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                StaggeredSection(visible = revealStep >= 1) {
                 StatsCard(title = "Tổng cộng", accentColor = NeonGold) {
                     StatRow("Quái thường tiêu diệt", lifetimeEnemies.toString())
                     StatRow("Boss đã hạ", bossTotal.toString())
@@ -208,9 +215,10 @@ fun StatsScreen(onBack: () -> Unit) {
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )
             }
-            Spacer(Modifier.height(8.dp))
-        }
-    }
+                Spacer(Modifier.height(8.dp))
+            }       // inner scrollable Column close
+        }           // outer Column close (sticky bar + content)
+    }               // Box close
 }
 
 @Composable

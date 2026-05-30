@@ -51,6 +51,9 @@ class EnemyController(
      * Wired from GameState's `LaunchedEffect(liveCameraZoom)` alongside
      * setSpawnXMargin + lasersController.setExtraXSpan.
      */
+    // Audit-7 hardening — @Volatile cho cross-thread visibility (Main writes
+    // from LaunchedEffect, IO loop reads inside processEnemies).
+    @Volatile
     private var extraYSpan: Float = 0f
 
     fun setExtraYSpan(margin: Float) {

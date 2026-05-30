@@ -6,7 +6,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.Text
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,7 +23,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.unit.dp
 import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.common.neonGlow
@@ -39,6 +43,9 @@ fun SecondaryWeaponButton(
 ) {
     val ready = cooldownProgress >= 1f
     val accent = if (ready) NeonCyan else Color.White.copy(alpha = 0.25f)
+    // Pixel-3 round 5 — reverted label addition per user feedback "tôi không
+    // cần label sóng nổ + bomb". Column wrapper removed; restored to single
+    // Box icon as original.
     Box(
         modifier = modifier
             .size(42.dp)
@@ -156,6 +163,11 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawWeaponIcon(
                 close()
             }
             drawPath(star, accent)
+            // Audit-7 P1 fix — MINE branch was missing PathPool.release(star)
+            // (caught by audit after surviving 7 cycles). Without release, each
+            // recomposition of the MINE-active button leaked a Path to the GC
+            // instead of returning it to the pool.
+            PathPool.release(star)
             // Center pulse
             drawCircle(Color.White.copy(alpha = 0.85f), w * 0.07f, Offset(cx, cy))
         }
@@ -176,7 +188,11 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawWeaponIcon(
                 close()
             }
             drawPath(star, accent)
-            PathPool.release(star)
+            // Audit-7 P1 fix — BURST branch had `release(star)` TWICE, which
+            // returned the same Path to the pool twice → pool corruption: a
+            // subsequent acquire() could hand the SAME instance to two
+            // concurrent callers, causing reset() race / cross-paint bleed.
+            // Now released exactly once.
             PathPool.release(star)
             // Bright center
             drawCircle(Color.White.copy(alpha = 0.85f), rOuter * 0.30f, Offset(cx, cy))

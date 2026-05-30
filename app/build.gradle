@@ -11,8 +11,8 @@ android {
         applicationId = "com.tranphuloi.neon"
         minSdk = 23
         targetSdk = 37
-        versionCode = 20260509
-        versionName = "2026.05.09"
+        versionCode = 20260530
+        versionName = "2026.05.30"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

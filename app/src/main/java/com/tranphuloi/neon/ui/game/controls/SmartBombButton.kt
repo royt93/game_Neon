@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Text
@@ -36,6 +37,9 @@ fun SmartBombButton(
 ) {
     val enabled = count > 0
     val accent = if (enabled) NeonGold else Color.White.copy(alpha = 0.25f)
+    // Pixel-3 round 5 — reverted Pixel-3 #5 label addition per user feedback
+    // "tôi không cần label sóng nổ + bomb". Column wrapper removed; restored
+    // to single Box icon as original.
     Box(
         modifier = modifier
             .size(42.dp)

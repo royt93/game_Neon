@@ -73,32 +73,9 @@ fun NeonActionBar(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Audit-5 P2 fix — title now `weight(1f, fill=false)` + maxLines=1 +
-        // ellipsis. Pre-fix long titles wrapped to a second line and shoved
-        // the close icon below, breaking the action bar layout. Tested by
-        // pretending "TRỊNH CHỐNG VŨ TRỤ" (15 chars) which now ellipsizes.
-        Text(
-            text = title,
-            style = TextStyle(
-                color = titleColor,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Black,
-            ),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .neonGlow(
-                    color = titleColor,
-                    intensity = pulse,
-                    radiusFactor = 1.5f,
-                ),
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        // Audit-5 P2 fix — close button size 40dp → 48dp (Material a11y
-        // minimum touch target). Added semantic role=Button + content
-        // description so screen reader announces "Đóng, nút" instead of
-        // the raw "✕" glyph.
+        // Pixel-3 #1 — structure flipped: (✕) icon FIRST (left), title SECOND
+        // (right). Common iOS-style "close in top-left" affordance. Title
+        // still gets maxLines=1 + ellipsis + weight(1f) so long names truncate.
         Box(
             modifier = Modifier
                 .size(48.dp)
@@ -120,5 +97,23 @@ fun NeonActionBar(
                 ),
             )
         }
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = title,
+            style = TextStyle(
+                color = titleColor,
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Black,
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .neonGlow(
+                    color = titleColor,
+                    intensity = pulse,
+                    radiusFactor = 1.5f,
+                ),
+        )
     }
 }

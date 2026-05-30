@@ -109,7 +109,13 @@ class ShipController(
      * Settings, so we don't need to query CameraZoom from inside the controller.
      * Default 0 = no extension (NEAR zoom).
      */
+    // Audit-7 hardening — @Volatile cho cross-thread visibility. LaunchedEffect
+    // on Main updates these when user changes camera zoom; the game loop reads
+    // them on IO inside moveShip() + setDragTarget(). Without @Volatile JVM
+    // memory model doesn't guarantee the IO thread sees the update.
+    @Volatile
     var dragBoundsExtensionX: Float = 0f
+    @Volatile
     var dragBoundsExtensionY: Float = 0f
 
     /** Round 77 (R77h) — clamp target into screen. Round 78 — extension at FAR zoom. */
@@ -217,16 +223,16 @@ class ShipController(
         // Wave 11a — MINI buff multiplies speed × 1.3 while active.
         val miniSpeedMul = if (ship.miniEndMillis > System.currentTimeMillis()) 1.3f else 1f
         val effSpeed = movementSpeed * speedMultiplier() * miniSpeedMul
-        // Settle to play position bi-directionally. Activity recreate (config change,
-        // theme switch, etc.) preserves Ship.yOffset via rememberSaveable but resets
-        // ShipController.spawnStartMillis. If user pauses mid-spawn then resumes
-        // after spawnTotalMillis elapses, spawn anim is skipped — ship would be
-        // stuck wherever spawn left it. Pull it back to maxYOffset from either side.
-        if (newY > maxYOffset) {
-            newY = (newY - effSpeed).coerceAtLeast(maxYOffset)
-        } else if (newY < maxYOffset) {
-            newY = (newY + effSpeed).coerceAtMost(maxYOffset)
-        }
+        // Pixel-3 round 5 — removed auto-pull-to-maxYOffset entirely per user
+        // feedback "tại sao position của ship player luôn bị kéo về vị trí
+        // bottom". Pre-fix the auto-pull was intended only as activity-recreate
+        // fallback (spawn anim skipped after pause-resume mid-spawn) but it
+        // ran every tick post-spawn too, dragging the ship back to anchor
+        // whenever user released drag. Now ship stays where user placed it.
+        // Initial spawn anim (line 203) still positions ship correctly on
+        // first frame; activity-recreate edge case re-handled via the spawn
+        // anim's bi-directional lerp inside the `if (elapsed < spawnTotalMillis)`
+        // block above.
         // Symmetric bounds: left allows ship overlap by width/4 → right matches with
         // ship.width * 0.75. Was asymmetric (-21px vs +29px overlap, ~8px diff).
         val leftLimit = -ship.width / 4f

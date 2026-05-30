@@ -549,19 +549,12 @@ fun GameWorld(
                 }
             }
         }
-        // Round 41 (29x.2) — BURST sweep visual: a fading horizontal cyan band across
-        // the upper 2/3 of the screen, lasting 280ms after fire.
-        if (lastBurstSweepMillis > 0L) {
-            val sweepAge = System.currentTimeMillis() - lastBurstSweepMillis
-            if (sweepAge in 0L..280L) {
-                val alpha = (1f - sweepAge / 280f).coerceIn(0f, 1f) * 0.55f
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(palette.cyan.copy(alpha = alpha)),
-                )
-            }
-        }
+        // Pixel-3 round 5 — BURST sweep visual MOVED to GameScreen flash
+        // overlay (zIndex 261) so it sits OUTSIDE GameWorld's graphicsLayer
+        // and renders true device-fullscreen at any camera zoom. Pre-fix
+        // the cyan band was inside the scaled GameWorld Box → at FAR zoom
+        // band only covered inner 70% of device → user's "splash xanh
+        // không full screen" complaint. See GameScreen.kt BURST flash.
         // Round 59 — minerals to a single Canvas pass. Same 25dp sprite, alpha
         // gradient + position preserved exactly.
         com.tranphuloi.neon.ui.game.world.MineralCanvas(

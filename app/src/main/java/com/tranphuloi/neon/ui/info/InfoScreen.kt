@@ -101,6 +101,12 @@ fun InfoScreen(
             // (gây gap nửa-vời ở 1 cạnh).
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
+        // Pixel-3 #3 — shared decorative starfield. Sits above NeonBgDeep
+        // background, below Tab content. Pure decorative, doesn't consume
+        // pointer events.
+        com.tranphuloi.neon.common.NeonStarfieldBackground(
+            modifier = Modifier.fillMaxSize(),
+        )
         Column(modifier = Modifier.fillMaxSize()) {
             // Audit-Pixel-2 #1 fix — shared NeonActionBar replaces inline header;
             // Info + Stats screens now use the same affordance (title left,

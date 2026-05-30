@@ -113,6 +113,25 @@ private fun chapterDisplayNameFor(chapterId: Int): String {
     }
 }
 
+/**
+ * Pixel-3 round 4 — flash overlay alpha curve. Linear fade `1 - t/total`
+ * felt instantaneous on device (user: "không phủ full screen"). New curve:
+ *
+ *   ramp up 0→1 over [0, peakMs]   (sharp visible flash-in)
+ *   ramp down 1→0 over [peakMs, totalMs]   (gentle fade-out)
+ *
+ * Returns 0 outside [0, totalMs]. Used by both UltimateLaser + SmartBomb
+ * flash overlays at different peak/total values.
+ */
+private fun flashCurve(elapsedMs: Long, peakMs: Long, totalMs: Long): Float {
+    if (elapsedMs < 0L || elapsedMs >= totalMs) return 0f
+    return if (elapsedMs < peakMs) {
+        elapsedMs.toFloat() / peakMs
+    } else {
+        (1f - (elapsedMs - peakMs).toFloat() / (totalMs - peakMs)).coerceAtLeast(0f)
+    }
+}
+
 @Composable
 fun GameScreen(
     onGamePause: () -> Unit,
@@ -557,6 +576,8 @@ fun GameScreen(
         )
         // 20b Smart bomb button — 30% smaller (42dp wrapper) + 8dp from right edge.
         // Sits above right movement button (at 124dp from bottom).
+        // Pixel-3 round 5 — restored original padding 156/206 dp now that
+        // labels are removed (no Column wrapper height to compensate for).
         if (hudVisible) SmartBombButton(
             count = gameState.smartBombs,
             onDispatch = { gameState.dispatchSmartBomb() },
@@ -859,30 +880,57 @@ fun GameScreen(
                     .zIndex(260f)
             )
         }
-        // Pixel-2 #2 fix — full-screen Ultimate laser flash overlay (600ms cyan).
+        // Pixel-2 #2 fix — full-screen Ultimate laser flash overlay (cyan).
         // Visualizes the effect-zone of the 9 vertical beams sweep so user
         // sees coverage instead of just thin beams + per-hit explosions.
+        //
+        // Pixel-3 round 4 fix — bumped 600→900ms duration + 0.35→0.55 peak
+        // alpha + flash-up-then-fade-out curve (peak at 150ms). User reported
+        // linear fade felt "không phủ full screen"; flash-peak curve gives a
+        // perceptible bright moment before settling.
         val ultElapsed = (now - gameState.ultimateFlashMillis).coerceAtLeast(0L)
-        val ultProgress = (1f - ultElapsed.toFloat() / 600f).coerceIn(0f, 1f)
+        val ultProgress = flashCurve(ultElapsed, peakMs = 150L, totalMs = 900L)
         if (ultProgress > 0f && !reduceMotion) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(com.tranphuloi.neon.common.NeonCyan.copy(alpha = 0.35f * ultProgress))
+                    .background(com.tranphuloi.neon.common.NeonCyan.copy(alpha = 0.55f * ultProgress))
                     .zIndex(262f),
             )
         }
-        // Pixel-2 #2 fix — full-screen SmartBomb flash overlay (700ms violet).
+        // Pixel-3 round 5 — full-screen BURST sweep flash. Pre-fix the BURST
+        // band rendered inside GameWorld's graphicsLayer → scaled down to
+        // inner 70% at FAR zoom (user reported "splash xanh không full
+        // screen"). Now overlay sits at GameScreen-level (outside the
+        // graphicsLayer) so it truly covers device fullscreen. Shorter
+        // duration than SmartBomb (BURST is secondary weapon, ~500ms) +
+        // lighter cyan tint (0.40 peak alpha) to distinguish from Ultimate's
+        // heavier cyan (0.55).
+        val burstElapsed = (now - gameState.lastBurstSweepMillis).coerceAtLeast(0L)
+        val burstProgress = flashCurve(burstElapsed, peakMs = 100L, totalMs = 500L)
+        if (burstProgress > 0f && !reduceMotion) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(com.tranphuloi.neon.common.NeonCyan.copy(alpha = 0.40f * burstProgress))
+                    .zIndex(261f),
+            )
+        }
+        // Pixel-2 #2 fix — full-screen SmartBomb flash overlay (violet).
         // Communicates the "all enemies cleared" effect zone — pre-fix user
         // only saw per-enemy explosions clustered where enemies happened to
         // be, not a screen-wide AOE.
+        //
+        // Pixel-3 round 4 fix — bumped 700→1000ms duration + 0.45→0.65 peak
+        // alpha + flash-up curve. Heavier than ultimate to convey heavier
+        // ability (SmartBomb is finite + clears everything).
         val sbElapsed = (now - gameState.smartBombFlashMillis).coerceAtLeast(0L)
-        val sbProgress = (1f - sbElapsed.toFloat() / 700f).coerceIn(0f, 1f)
+        val sbProgress = flashCurve(sbElapsed, peakMs = 180L, totalMs = 1000L)
         if (sbProgress > 0f && !reduceMotion) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(com.tranphuloi.neon.common.NeonViolet.copy(alpha = 0.45f * sbProgress))
+                    .background(com.tranphuloi.neon.common.NeonViolet.copy(alpha = 0.65f * sbProgress))
                     .zIndex(263f),
             )
         }

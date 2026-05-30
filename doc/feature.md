@@ -1926,6 +1926,100 @@ Six bugs reported from Pixel 7 Pro device test, all shipped:
 - New: `test/.../EndlessEscalationTest.kt` (5 tests)
 - New: `test/.../StageAnchorShiftTest.kt` (5 tests)
 
+**Pixel-3 feedback round 3 (Wave 11d round 7, 5 visual UX bugs + Bug #2 deep-audit fix):**
+
+- **#1 — ActionBar structure flipped**: (✕) icon LEFT, title RIGHT (was opposite). Title vẫn maxLines=1 + ellipsis + weight(1f, fill=false).
+- **#2 deep-audit — Bomb + Laser effect zone STILL missing ở FAR zoom.** User insist + audit kỹ phát hiện 2 thiếu sót:
+  - **UltimateLaser start yOffset = screenHeight** (raw 891) → tại FAR scale=0.7 renders ở device-y 757. Bottom band 757..891 KHÔNG có beam đi qua. Fix: `LasersController.setExtraYSpan(margin)`, beam giờ start ở `screenHeight + extraYSpan = 1081` game-coord → device-bottom.
+  - **EnemyLasersController destroy threshold = `yOffset > screenHeight`** → enemy laser vanish ở device-y 757 (dead zone trên bottom). Sau Pixel-3 #4 fix ship có thể stand ở extended bottom band, enemy laser PHẢI travel xuống đó để hit. Fix: `setExtraYSpan(margin)` + destruction threshold dùng `screenHeight + extraYSpan`.
+  - Wired cả 2 từ GameState `LaunchedEffect(liveCameraZoom)` alongside existing X-axis fixes.
+- **#3 — Animated starfield background cho Stats + Info** (`common/NeonStarfieldBackground.kt`, new). Extracted from MenuScreen (60 stars × 3 layers × twinkle). Stats + Info now share visual style with Menu.
+- **#4 — Ship anchored away from device-bottom (real bug).** `ShipController.maxYOffset = screenHeight - 140` fixed cho MEDIUM zoom; tại FAR zoom ship đậu ở game-y 751 → device-y 659 → "dead zone" 134dp tới device-bottom. Fix: auto-pull target dùng `effectiveMaxY = maxYOffset + dragBoundsExtensionY` (mirror setDragTarget logic). Ship giờ track visible device-bottom.
+- **#2 sticky action bar trong Stats**: Refactored Stats Column → outer Column (sticky bar) + inner Column với verticalScroll cho content. Pre-fix action bar scroll cùng content (user had to scroll up to tap ✕).
+- **#5 — Bomb + Laser button labels.** SmartBombButton thêm "BOM" label dưới icon. SecondaryWeaponButton thêm weapon-type-specific label ("TÊN LỬA" / "MÌN" / "SÓNG NỔ"). User asked "đó là chức năng gì?" — giờ self-documenting.
+
+**Files changed (9 modified, 1 new):**
+- New: `common/NeonStarfieldBackground.kt`
+- Modified: `common/NeonActionBar.kt` (structure flip: icon left, title right)
+- Modified: `ui/stats/StatsScreen.kt` (sticky bar refactor + starfield)
+- Modified: `ui/info/InfoScreen.kt` (starfield)
+- Modified: `ui/game/ship/ship/ShipController.kt` (effectiveMaxY zoom-aware)
+- Modified: `ui/game/ship/laser/LasersController.kt` (extraYSpan + UltimateLaser start)
+- Modified: `ui/game/enemy/laser/EnemyLasersController.kt` (extraYSpan + destruction threshold)
+- Modified: `ui/game/state/GameState.kt` (wire setExtraYSpan x2)
+- Modified: `ui/game/controls/SmartBombButton.kt` (BOM label)
+- Modified: `ui/game/controls/SecondaryWeaponButton.kt` (weapon name label)
+- Test total: **481** (unchanged — UI-heavy round, manual device verification needed).
+
+**Audit-7 follow-up (cycle 8, score 6/10 → est 8.5/10):**
+
+- **#5 button position fix.** Column wrapper from Pixel-3 #5 (BOM / TÊN LỬA labels) shifted icons ~13dp upward — `GameScreen.kt:565,576` padding compensated: `bottom=156dp → 143dp` for SmartBomb, `206dp → 193dp` for SecondaryWeapon. Icons restore original relative position to movement buttons.
+- **Pre-existing P1 — SecondaryWeaponButton PathPool leak/double-free FIXED.** Audit caught after 7 cycles of surveying that file:
+  - MINE branch (line 181-184) was missing `PathPool.release(star)` after `drawPath` → leaked Path to GC each recomposition.
+  - BURST branch (line 201-203) had `PathPool.release(star)` TWICE → returned same Path to pool 2x → next `acquire()` could hand same instance to 2 callers → reset() race + cross-paint bleed.
+  - Both fixed to release exactly once.
+- **Hardening — @Volatile on cross-thread Float fields:**
+  - `LasersController.extraXSpan` + `extraYSpan` (Main writes from LaunchedEffect, IO loop reads)
+  - `EnemyLasersController.extraYSpan`
+  - `EnemyController.extraYSpan`
+  - `ShipController.dragBoundsExtensionX` + `dragBoundsExtensionY`
+  - Float read/write already atomic on JVM; @Volatile adds memory-barrier visibility guarantee (without it, IO thread could read stale value indefinitely after Main writes new value).
+- **Tests added (+8) — `Pixel3ZoomBoundsTest`:**
+  - `extensionY at MEDIUM (scale 0.85) ≈ 78dp` (verified against device log)
+  - `extensionY at FAR (scale 0.7) ≈ 190dp` (verified against device log)
+  - `extensionY at NEAR (scale 1.2) negative` (symmetry contract)
+  - `effectiveMaxY at FAR places ship near device-bottom`
+  - `UltimateLaser start y at FAR renders at device-bottom`
+  - `EnemyLaser destroy threshold at FAR matches device-bottom`
+  - `bounds extension symmetry X and Y formula identical`
+  - `NEAR zoom tightens — extension negative`
+  - Kills the audit-7 "zero tests for pure-math claims" doctrinal violation.
+
+**Files changed (5 modified, 1 new test):**
+- Modified: `ui/game/GameScreen.kt` (button padding compensate)
+- Modified: `ui/game/controls/SecondaryWeaponButton.kt` (MINE release + BURST single-release)
+- Modified: `ui/game/ship/laser/LasersController.kt` (@Volatile × 2)
+- Modified: `ui/game/enemy/laser/EnemyLasersController.kt` (@Volatile)
+- Modified: `ui/game/enemy/ship/controller/EnemyController.kt` (@Volatile)
+- Modified: `ui/game/ship/ship/ShipController.kt` (@Volatile × 2)
+- New: `test/.../Pixel3ZoomBoundsTest.kt` (8 tests pinning Y-extension math)
+- **Test total: 489** (52 suites, 0 fail).
+
+**Pixel-3 round 4 — visual coverage enhance (cycle 9, score est 8.5/10):**
+
+User push back: "issue camera zoom cho icon bomb + laser thì sao?" — implied math fix was right but visual perception still felt "không phủ full screen". 3 enhancements addressing the perception gap:
+
+- **Flash overlay bump + flash-up curve.**
+  - UltimateLaser cyan: duration 600→900ms + alpha 0.35→0.55 peak
+  - SmartBomb violet: duration 700→1000ms + alpha 0.45→0.65 peak
+  - New `flashCurve(elapsedMs, peakMs, totalMs)` helper replacing linear fade. Ramp UP 0→1 over [0, peakMs] then DOWN over [peakMs, totalMs]. Pre-fix `1 - elapsed/total` linear meant flash was at full brightness from frame 1 (no perceived attack-in moment); new curve gives explicit punch.
+
+- **SmartBomb screen-fill explosion ring.** Pre-fix dispatchSmartBomb only spawned explosions AT enemy positions, leaving extended-margin bands (at FAR zoom) visually empty. Added 8 anchor explosions at fixed positions (4 corners + 4 mid-edges) covering full extended game-coord rect. Uses `shipController.dragBoundsExtensionX/Y` for ring bounds — auto-tracks camera zoom changes.
+
+- **UltimateLaser beam dwell + size bump.**
+  - Speed 7→5 px/tick (sweep ~7.2s → ~10s, bottom band visible ~760ms → ~1.2s)
+  - Height 30→60 dp (heavier visual "vùng effect", bottom band sees beam-coverage ~1.5s post-fire)
+
+**Tests added (+11) — `FlashCurveTest`:**
+- t=0 returns 0 (ramp-in start)
+- t at peak returns 1 (full brightness)
+- t=totalMs returns 0 (ended)
+- t past totalMs returns 0 (already faded)
+- Negative t returns 0 (defensive clock skew)
+- Ramp-up phase linear over peakMs
+- Fade-out phase linear over remaining
+- SmartBomb tuning (peak=180, total=1000) hits 1 at peak
+- Curve never produces values outside 0..1
+- Peak duration ratio pin (150/900 = one-sixth)
+- Regression — prior linear fade returns 1 at t=0 (catches revert)
+
+**Files changed (4 modified, 1 new test):**
+- Modified: `ui/game/GameScreen.kt` (flashCurve helper + bumped overlay alpha/duration)
+- Modified: `ui/game/state/GameState.kt` (SmartBomb screen-fill explosion ring)
+- Modified: `ui/game/ship/laser/UltimateLaser.kt` (speed 7→5, height 30→60)
+- New: `test/.../FlashCurveTest.kt` (11 tests)
+- **Test total: 500** (53 suites, 0 fail).
+
 ---
 
 ### 11c Statistics screen + telemetry achievements + precise attribution + audit pass ✅ DONE
@@ -1991,7 +2085,7 @@ User Round 67+ pick which Wave(s) to prioritize. Each Wave is 3-6 rounds. Sugges
 - **Logger:** 2 cấp — `Logger.d` cho sparse events (init/lifecycle/stage advance/boss kill/achievement), `Logger.v { ... }` cho hot-path (per-frame, per-collision, per-spawn, per-kill, audio micro-step). Toggle qua `Logger.VERBOSE = true` trong utils/Logger.kt khi cần debug stream đầy đủ.
 - **Mapper memoization (round 48):** `EnemyToEnemyUIMapper` + `LaserToLaserUIMapper` cache theo id với LRU LinkedHashMap (cap 64 + 128). Mappers là top-level `private val` → cache persist app-lifetime, bounded by LRU. Field-compare fast-path tránh allocation khi entity unchanged. Tints dùng `==` (structural) + caller dùng `emptyList()` singleton cho no-effect case.
 - **Entity caps (round 47):** `EnemyController.MAX_REGULAR_ENEMIES = 30` (bosses bypass), `LasersController.MAX_SHIP_LASERS = 25`, `EnemyLasersController.MAX_ENEMY_LASERS = 30`. `BoosterController.MAX_BOOSTERS = 3` (pre-existing). Skip-at-cap logs Logger.v.
-- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **481** (51 test suites, 0 failures — last verified 2026-05-30 sau Wave 11d audit-5 + heap fix).
+- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **500** (53 test suites, 0 failures — last verified 2026-05-30 sau Wave 11d Pixel-3 round 4 visual coverage enhance).
 - **Doc structure:** R1-R75 history archived ở [feature-archive.md](feature-archive.md) (~2700 dòng). File này (R76-R86 recent + Phần 4-7 + Notes) ~1860 dòng. Khi feature.md vượt 200KB lần nữa → move R76-R85 sang archive.
 - **i18n:** strings mới phải thêm vào cả `values-vi/strings.xml` và `values-en/strings.xml`
 - **Compose stability:** data class state mới nên dùng `@Immutable`/`@Stable` annotation. EnemyUI, LaserUI, BoosterUI, MineralUI, RunModifier, RunBuff, StatusEffect, SecondaryWeapon, BulletType, ShipSkin, ColorBlindMode, NeonPalette đều `@Immutable`.
