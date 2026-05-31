@@ -33,14 +33,38 @@ class ChapterMidBossWireTest {
     }
 
     @Test
-    fun `total mid-boss spawn slots across 5 chapters equals 15`() {
-        // R71: 4 chapters × 1 = 4 mid-boss slots (Ch5 had 0)
-        // R82 wires: each chapter has 3-4 = 3+3+3+3+4 = 16 (no wait Ch1-4=3 each, Ch5=4)
-        // Actually Ch1=3, Ch2=3, Ch3=3, Ch4=3, Ch5=4 → 16 total
+    fun `total mid-boss spawn slots across 5 chapters equals 22`() {
+        // R82=16; Wave15 +3 (Ch1/2/3) → 19; Wave16 +3 (Ch4 +CONDOM +VENOM,
+        // Ch5 +CORRUPTION) → 22. Now: Ch1=4, Ch2=4, Ch3=4, Ch4=5, Ch5=5 → 22.
         val total = Chapter.values().sumOf { it.midBossTypes.size }
         assertEquals(
-            "Expected 16 mid-boss slots (3+3+3+3+4 per chapter). Got $total",
-            16, total,
+            "Expected 22 mid-boss slots (4+4+4+5+5 per chapter). Got $total",
+            22, total,
+        )
+    }
+
+    @Test
+    fun `Wave16 3 new BossKinds are wired to chapters`() {
+        val expected = setOf(
+            BossKind.GIANT_CONDOM, BossKind.VENOM_SPIDER, BossKind.CORRUPTION,
+        )
+        val wired = Chapter.values().flatMap { it.midBossTypes }.map { it.defaultBossKind }.toSet()
+        assertTrue("Wave16 BossKinds not wired: ${expected - wired}", (expected - wired).isEmpty())
+    }
+
+    @Test
+    fun `Wave15 3 new BossKinds are wired to chapters 1-3`() {
+        val expectedWave15 = setOf(
+            BossKind.SKULL_CROSSBONES, BossKind.VAMPIRE, BossKind.COSMIC_CENTIPEDE,
+        )
+        val wired = Chapter.values()
+            .flatMap { it.midBossTypes }
+            .map { it.defaultBossKind }
+            .toSet()
+        val missing = expectedWave15 - wired
+        assertTrue(
+            "Wave15 BossKinds not wired to any chapter: $missing",
+            missing.isEmpty(),
         )
     }
 

@@ -48,7 +48,10 @@ import kotlinx.coroutines.launch
  * layout is fine. The balance row is omitted (the Shop screen shows balance).
  */
 @Composable
-fun MetaUpgradeNodes(scope: kotlinx.coroutines.CoroutineScope) {
+internal fun MetaUpgradeNodes(
+    scope: kotlinx.coroutines.CoroutineScope,
+    onRequestPurchase: (PurchaseRequest) -> Unit,
+) {
     val meta = LocalMetaProgression.current
     val balance by meta.lifetimeMinerals.collectAsState(initial = 0)
     val ranks by meta.allRanks.collectAsState(initial = emptyMap())
@@ -69,14 +72,27 @@ fun MetaUpgradeNodes(scope: kotlinx.coroutines.CoroutineScope) {
     Spacer(modifier = Modifier.height(4.dp))
     SkillNode.values().forEach { node ->
         NodeRow(node = node, ranks = ranks, balance = balance, onBuy = {
-            scope.launch {
-                meta.spendOnNode(
-                    nodeKey = node.key,
-                    cost = node.costForNextRank(ranks[node.key] ?: 0),
-                    maxRank = node.maxRank,
+            val currentRank = ranks[node.key] ?: 0
+            val price = node.costForNextRank(currentRank)
+            onRequestPurchase(
+                PurchaseRequest(
+                    title = node.displayName,
+                    description = node.description,
+                    cost = price,
+                    balanceAfter = balance - price,
+                    accent = NeonCyan,
+                    confirm = {
+                        scope.launch {
+                            meta.spendOnNode(
+                                nodeKey = node.key,
+                                cost = price,
+                                maxRank = node.maxRank,
+                            )
+                            Logger.d("Shop upgrade: buy ${node.key}")
+                        }
+                    },
                 )
-                Logger.d("Shop upgrade: buy ${node.key}")
-            }
+            )
         })
     }
 }

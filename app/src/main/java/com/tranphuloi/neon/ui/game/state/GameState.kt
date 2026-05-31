@@ -61,6 +61,14 @@ import kotlinx.coroutines.yield
 import java.util.Locale
 import java.util.UUID
 
+// ── Wave 16 balance — tunables cho cơ chế đạn trào phúng (đưa ra const để
+// dễ chỉnh; xem onLaserHit + knockbackRef). ──
+/** Bánh Mì hồi máu mỗi phát trúng. +1 (giảm từ 2) vì pierce×3 + rapid-fire
+ *  có thể cộng dồn ~20-40 HP/s nếu để +2 → gần bất tử khi spam vào cụm. */
+private const val BANH_MI_HEAL_PER_HIT: Int = 1
+/** Cục Gạch hất địch lùi (px) khi trúng. */
+private const val BRICK_KNOCKBACK_PX: Float = 32f
+
 @Composable
 fun rememberGameState(): GameState {
     // Round 37 — was Logger.d("rememberGameState: composing — entry point") here, but
@@ -277,6 +285,19 @@ fun rememberGameState(): GameState {
             metaRepo.stockpileCount(com.tranphuloi.neon.data.ShopItem.REVIVE_STOCKPILE_KEY).first()
         }
     }
+    // Wave 14a Round 2 — 6 "buff 1 run" consumable stocks, read ONCE here;
+    // consumed (1 each) by the guarded effect below; effect lasts the whole run.
+    fun stockOf(key: String) = kotlinx.coroutines.runBlocking { metaRepo.stockpileCount(key).first() }
+    val startX2Min = remember { stockOf(com.tranphuloi.neon.data.ShopItem.X2_MINERALS_KEY) }
+    val startShield = remember { stockOf(com.tranphuloi.neon.data.ShopItem.START_SHIELD_KEY) }
+    val startX2Score = remember { stockOf(com.tranphuloi.neon.data.ShopItem.X2_SCORE_KEY) }
+    val startComboKeep = remember { stockOf(com.tranphuloi.neon.data.ShopItem.COMBO_KEEP_KEY) }
+    val startMagnetXL = remember { stockOf(com.tranphuloi.neon.data.ShopItem.MAGNET_XL_KEY) }
+    val startRapidFire = remember { stockOf(com.tranphuloi.neon.data.ShopItem.RAPID_FIRE_KEY) }
+    // Whole-run multipliers (x2 Khoáng & x2 Điểm both boost yield — score==minerals
+    // here so they stack; ×2 each → ×4 if both bought). Magnet XL doubles radius.
+    val runYieldMult = remember { (if (startX2Min > 0) 2f else 1f) * (if (startX2Score > 0) 2f else 1f) }
+    val runMagnetMult = remember { if (startMagnetXL > 0) 2f else 1f }
     var ship by rememberSaveable {
         mutableStateOf(
             Ship(
@@ -287,6 +308,9 @@ fun rememberGameState(): GameState {
                 // Seeded in the constructor (not a post-composition ship.copy) so
                 // it can't race the loadout head-start effect's ship mutation.
                 hasReviveToken = startingReviveStock > 0,
+                // Wave 14a — Gói Khiên Khởi Đầu: vào trận có sẵn khiên 8s.
+                shieldEnabled = startShield > 0,
+                shieldEndMillis = if (startShield > 0) System.currentTimeMillis() + 8000L else 0L,
             )
         )
     }
@@ -312,21 +336,17 @@ fun rememberGameState(): GameState {
             Logger.d("Loadout: preferred=$preferred is shop-locked → falling back to NORMAL")
             com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL
         }
-        if (resolved != com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL) {
-            // Round 75 audit fix — wire BULLET_DURATION meta vào head-start
-            // duration. Trước fix hardcode 10_000L bypass meta upgrade.
-            val bulletDurRank = runContext.metaUpgrades[
-                com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_BULLET_DURATION
-            ] ?: 0
-            val durationMs = (10_000L * (1f + bulletDurRank * 0.10f)).toLong()
-            Logger.d("Loadout: applying preferredBulletType=$resolved for ${durationMs}ms head-start (bulletDurRank=$bulletDurRank)")
-            ship = ship.copy(
-                activeBulletType = resolved,
-                bulletTypeEndMillis = System.currentTimeMillis() + durationMs,
-            )
-        } else {
-            Logger.d("Loadout: preferredBulletType=NORMAL → no head-start")
-        }
+        // Wave 14 (đạn cả run) — đạn loadout giờ là VŨ KHÍ CHÍNH suốt run, không
+        // còn head-start 10s. Set `baseBulletType` (đạn nền cố định) +
+        // `activeBulletType` = resolved, `bulletTypeEndMillis = 0L` (không tự
+        // hết). Booster đạn vẫn ghi đè tạm thời; khi hết, ShipController revert
+        // về `baseBulletType` (không phải NORMAL nữa) → giữ đạn loadout.
+        Logger.d("Loadout: bullet=$resolved áp dụng CẢ RUN (base+active, no expiry)")
+        ship = ship.copy(
+            baseBulletType = resolved,
+            activeBulletType = resolved,
+            bulletTypeEndMillis = 0L,
+        )
         loadoutApplied = true
     }
     var gameStatus by rememberSaveable { mutableStateOf(GameStatus.RUNNING) }
@@ -481,6 +501,22 @@ fun rememberGameState(): GameState {
             metaRepo.consumeStockpile(com.tranphuloi.neon.data.ShopItem.REVIVE_STOCKPILE_KEY, 1)
             Logger.d("Shop consumable: revive token granted at run start (stock was $startingReviveStock)")
         }
+        // Wave 14a Round 2 — consume the 6 "buff 1 run" packs that applied to
+        // this run (effects already baked in above: shield ctor, combo window,
+        // yield/magnet mults, rapid fire). Each decremented once. Idempotent via
+        // the reviveConsumed guard (config-change / process-death safe).
+        suspend fun useOne(stock: Int, key: String, label: String) {
+            if (stock > 0) {
+                metaRepo.consumeStockpile(key, 1)
+                Logger.d("Shop consumable: $label applied this run (stock was $stock)")
+            }
+        }
+        useOne(startX2Min, com.tranphuloi.neon.data.ShopItem.X2_MINERALS_KEY, "x2 Khoáng")
+        useOne(startShield, com.tranphuloi.neon.data.ShopItem.START_SHIELD_KEY, "Khiên khởi đầu")
+        useOne(startX2Score, com.tranphuloi.neon.data.ShopItem.X2_SCORE_KEY, "x2 Điểm")
+        useOne(startComboKeep, com.tranphuloi.neon.data.ShopItem.COMBO_KEEP_KEY, "Giữ Combo")
+        useOne(startMagnetXL, com.tranphuloi.neon.data.ShopItem.MAGNET_XL_KEY, "Nam châm XL")
+        useOne(startRapidFire, com.tranphuloi.neon.data.ShopItem.RAPID_FIRE_KEY, "Bắn nhanh")
         reviveConsumed = true
     }
     /**
@@ -548,6 +584,11 @@ fun rememberGameState(): GameState {
     // primaryTargetId excluded so the chain doesn't re-hit the original target.
     val chainLightningRef = remember {
         object { @Volatile var run: (primaryTargetId: String, primaryDamage: Int, hitX: Float, hitY: Float) -> Unit = { _, _, _, _ -> } }
+    }
+    // Wave 16 Slice 4b — BRICK knockback. Deferred ref (enemies declared later);
+    // pushes the hit enemy back (yOffset up, away from player) on impact.
+    val knockbackRef = remember {
+        object { @Volatile var run: (targetId: String) -> Unit = { } }
     }
     val shipController = remember {
         Logger.d("rememberGameState: building ShipController (initial hp=${ship.hp})")
@@ -774,6 +815,30 @@ fun rememberGameState(): GameState {
                         System.currentTimeMillis(),
                     )
                 }
+                // Wave 16 Slice 4b — đạn trào phúng: CƠ CHẾ RIÊNG (tách bạch).
+                when (bulletType) {
+                    // Sầu Riêng — làm CHẬM (SLOW giờ thực sự giảm tốc enemy).
+                    com.tranphuloi.neon.ui.game.ship.laser.BulletType.DURIAN ->
+                        statusEffectController.apply(
+                            targetId, com.tranphuloi.neon.ui.game.status.StatusEffect.SLOW,
+                            System.currentTimeMillis(),
+                        )
+                    // Like/Tim — gây STUN (địch "đứng hình", ngưng bắn).
+                    com.tranphuloi.neon.ui.game.ship.laser.BulletType.HEART ->
+                        statusEffectController.apply(
+                            targetId, com.tranphuloi.neon.ui.game.status.StatusEffect.STUN,
+                            System.currentTimeMillis(),
+                        )
+                    // Bánh Mì — HỒI MÁU tàu mỗi phát trúng (giòn rụm, ăn no).
+                    com.tranphuloi.neon.ui.game.ship.laser.BulletType.BANH_MI ->
+                        if (damage > 0 && ship.hp in 1..999) {
+                            ship = ship.copy(hp = (ship.hp + BANH_MI_HEAL_PER_HIT).coerceAtMost(1000))
+                        }
+                    // Cục Gạch — HẤT VĂNG địch ra sau.
+                    com.tranphuloi.neon.ui.game.ship.laser.BulletType.BRICK ->
+                        knockbackRef.run(targetId)
+                    else -> {}
+                }
             },
             // 25x/48x — modifier + skill tree damage multiplier applied per hit.
             // Round 60 (38x) — BERSERK + CRIT_SURGE stack multiplicatively on top.
@@ -799,7 +864,10 @@ fun rememberGameState(): GameState {
                     healthyBonus *
                     critRoll
             },
-        )
+        ).also {
+            // Wave 14a — Gói Bắn Nhanh: rút ngắn nhịp bắn (~1.5×) cả run.
+            if (startRapidFire > 0) it.fireLaserRepeatTime = Millis(67)
+        }
     }
 
     var spaceObjects: List<SpaceObject> by rememberSaveable { mutableStateOf(emptyList()) }
@@ -846,7 +914,8 @@ fun rememberGameState(): GameState {
         Logger.d("rememberGameState: building ComboController")
         // Round 75 (R75a) — COMBO_KEEP meta upgrade: +500ms decay window/rank (max 3 = +1.5s).
         val comboKeepRank = runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_COMBO_KEEP] ?: 0
-        val comboWindow = 2000L + comboKeepRank * 500L
+        // Wave 14a — Gói Giữ Combo: cửa sổ giữ combo ×2 cả run.
+        val comboWindow = (2000L + comboKeepRank * 500L) * (if (startComboKeep > 0) 2L else 1L)
         com.tranphuloi.neon.ui.game.combo.ComboController(
             resetWindowMillis = comboWindow,
             onTierAdvance = { tier ->
@@ -886,7 +955,8 @@ fun rememberGameState(): GameState {
                 // multiplied by 1.5× rounds to 2-3; large minerals (10) round to 15.
                 // Round 60 (38x) — SCORE_X3 booster stacks multiplicatively on top
                 // (×3 for 15s). Both active = ×~4.5 score gain.
-                val scaled = (amount * effectiveStats.scoreMul * shipController.scoreMul())
+                // Wave 14a — Gói x2 Khoáng / x2 Điểm: nhân thêm runYieldMult cả run.
+                val scaled = (amount * effectiveStats.scoreMul * shipController.scoreMul() * runYieldMult)
                     .toInt().coerceAtLeast(amount)
                 mineralsEarnedTotal += scaled
                 lastMineralPickupMillis = System.currentTimeMillis()
@@ -910,7 +980,7 @@ fun rememberGameState(): GameState {
             // 25x apply RunModifier magnetMul to magnet radius (e.g. SUPER_MAGNET ×2).
             // Round 60 (38x) — MAGNET_BOOST stacks ×2 multiplicatively (15s window).
             getMagnetRadius = {
-                val base = magnetRadiusState.floatValue * effectiveStats.magnetMul * shipController.magnetBoostMul()
+                val base = magnetRadiusState.floatValue * effectiveStats.magnetMul * shipController.magnetBoostMul() * runMagnetMult
                 // Wave 11a Phase 3 — GRAVITY_BOOSTER multiplies radius × 100 while
                 // active → effectively pulls every on-screen mineral into ship.
                 if (shipController.isGravityActive()) base * 100f else base
@@ -1002,6 +1072,12 @@ fun rememberGameState(): GameState {
             prevY = cy2
         }
     }
+    // Wave 16 Slice 4b — BRICK knockback: đẩy địch trúng đòn lùi lên (ra xa tàu).
+    knockbackRef.run = { targetId ->
+        enemies.firstOrNull { it.enemyId == targetId }?.let { e ->
+            e.yOffset = (e.yOffset - BRICK_KNOCKBACK_PX).coerceAtLeast(-e.height)
+        }
+    }
     val enemyController = remember {
         Logger.d("rememberGameState: building EnemyController")
         EnemyController(
@@ -1011,6 +1087,8 @@ fun rememberGameState(): GameState {
             getShip = { ship },
             initialEnemies = enemies,
             setEnemies = { enemies = it },
+            // Wave 16 — SLOW status now actually slows enemy movement (DURIAN bullet).
+            isSlowed = { enemyId -> statusEffectController.isSlowed(enemyId) },
             addMinerals = { xOffset: Float, yOffset: Float, width: Float, mineralAmount: Int ->
                 mineralsController.addMinerals(
                     xOffset = xOffset,
@@ -1153,6 +1231,8 @@ fun rememberGameState(): GameState {
     var waveClearBannerShownMillis by remember { mutableLongStateOf(0L) }
     var bossIntroShownAtMillis by remember { mutableLongStateOf(0L) }
     var bossIntroName by remember { mutableStateOf("") }
+    // Wave 16 — taunt line shown inside the full-screen cinematic intro.
+    var bossIntroTaunt by remember { mutableStateOf("") }
     // Round 74 (R73e) — boss kind cho per-boss audio cue (pitch shift).
     var bossIntroBossKind by remember {
         mutableStateOf<com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind?>(null)
@@ -1242,19 +1322,24 @@ fun rememberGameState(): GameState {
                         )
                     bossIntroName = resolvedKind?.displayName ?: "BOSS"
                     bossIntroBossKind = resolvedKind
+                    // 47x Story — boss taunt. Shown inside the cinematic now;
+                    // also queued to StoryOverlay AFTER the cinematic as a linger.
+                    val taunt = com.tranphuloi.neon.ui.game.story.StoryRegistry
+                        .bossTaunt(newStage.enemyType, newStage.chapterId)
+                    bossIntroTaunt = taunt?.text ?: ""
                     bossIntroShownAtMillis = System.currentTimeMillis()
                     // Snapshot for rank computation — boss spawn time + player hp.
                     bossSpawnedAtMillis = bossIntroShownAtMillis
                     playerHpAtBossSpawn = ship.hp
+                    // Wave 16 — full-screen cinematic: freeze the whole sim via the
+                    // existing hit-stop loop gate so the boss fight starts only
+                    // after the intro (player tap can skip → endBossIntroFreeze).
+                    hitStopController.freezeForBossIntro(HitStopController.BOSS_INTRO_FREEZE_MS)
                     Logger.d("Boss intro: $bossIntroName cinematic triggered (hpSnapshot=${ship.hp})")
-                    // 47x Story — boss taunt queued AFTER the BossIntroOverlay's
-                    // 1.5s priority window so it doesn't compete with the warning
-                    // banner. StoryOverlay is bottom-anchored so it won't overlap.
-                    val taunt = com.tranphuloi.neon.ui.game.story.StoryRegistry
-                        .bossTaunt(newStage.enemyType, newStage.chapterId)
                     if (taunt != null) {
                         coroutineScope.launch {
-                            delay(1600L)
+                            // After the cinematic (was 1600L) so it doesn't compete.
+                            delay(2600L)
                             storyLine = taunt
                             storyShownMillis = System.currentTimeMillis()
                         }
@@ -1872,7 +1957,13 @@ fun rememberGameState(): GameState {
         waveClearBannerShownMillis = waveClearBannerShownMillis,
         bossIntroShownAtMillis = bossIntroShownAtMillis,
         bossIntroName = bossIntroName,
+        bossIntroTaunt = bossIntroTaunt,
         bossIntroBossKind = bossIntroBossKind,
+        onSkipBossIntro = {
+            bossIntroShownAtMillis = 0L
+            hitStopController.endBossIntroFreeze()
+            Logger.d("Boss intro: skipped by player tap")
+        },
         bossKillRank = bossKillRank,
         bossKillRankShownMillis = bossKillRankShownMillis,
         gameTimeSec = gameTimeSec,
@@ -2147,8 +2238,12 @@ data class GameState(
     val waveClearBannerShownMillis: Long,
     val bossIntroShownAtMillis: Long,
     val bossIntroName: String,
+    /** Wave 16 — taunt line shown inside the full-screen cinematic intro. */
+    val bossIntroTaunt: String = "",
     /** Round 74 (R73e) — boss kind for per-boss audio cue. Null = non-boss intro. */
     val bossIntroBossKind: com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind? = null,
+    /** Wave 16 — player tapped the cinematic intro to skip (ends freeze early). */
+    val onSkipBossIntro: () -> Unit = {},
     val bossKillRank: com.tranphuloi.neon.ui.game.controls.BossRank?,
     val bossKillRankShownMillis: Long,
     val gameTimeSec: Long,

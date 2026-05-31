@@ -29,6 +29,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -45,6 +46,7 @@ import com.tranphuloi.neon.common.NeonActionBar
 import com.tranphuloi.neon.common.NeonBgDeep
 import com.tranphuloi.neon.common.NeonBgEdge
 import com.tranphuloi.neon.common.NeonBgMid
+import com.tranphuloi.neon.common.NeonBottomSheet
 import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.common.NeonMagenta
@@ -75,11 +77,13 @@ import kotlinx.coroutines.launch
  *
  * (Nâng cấp / Hiển thị tabs land in the next 13a slices.)
  */
+// Tab order (user pick): Tàu > Đạn > Skin > Tiêu hao > Nâng cấp > Hiển thị.
+// TabBar renders in this declaration order.
 private enum class ShopTab(val label: String, val accent: Color) {
-    SKIN("Skin", NeonMagenta),
-    BULLET("Đạn", NeonViolet),
-    CONSUMABLE("Tiêu hao", NeonGold),
     SHIP("Tàu", NeonCyan),
+    BULLET("Đạn", NeonViolet),
+    SKIN("Skin", NeonMagenta),
+    CONSUMABLE("Tiêu hao", NeonGold),
     // Wave 13a (slice C) — skill-tree (permanent stat upgrades), moved from menu.
     UPGRADE("Nâng cấp", NeonCyan),
     // Wave 13a (slice E) — display/accessibility (ColorBlindMode), free.
@@ -93,8 +97,18 @@ fun ShopScreen(onBack: () -> Unit) {
     val allRanks by meta.allRanks.collectAsState(initial = emptyMap())
     val scope = rememberCoroutineScope()
 
-    var tab by rememberSaveable { mutableStateOf(ShopTab.SKIN) }
+    var tab by rememberSaveable { mutableStateOf(ShopTab.SHIP) }
     val grouped = ShopItem.ALL.groupBy { it.category }
+
+    // Wave 15 — purchase-confirm bottom sheet. Every spend routes through here
+    // first: a row tap builds a [PurchaseRequest] (display + the actual spend
+    // captured as `confirm`) instead of deducting immediately. Khoáng is a
+    // scarce, non-refundable currency + the tabs are scroll-then-tap lists, so
+    // an accidental tap must not silently drain it. `remember` (not Saveable):
+    // it holds a lambda + is a transient confirmation — fine to drop on config
+    // change.
+    var pending by remember { mutableStateOf<PurchaseRequest?>(null) }
+    val requestPurchase: (PurchaseRequest) -> Unit = { pending = it }
 
     Box(
         modifier = Modifier
@@ -125,33 +139,129 @@ fun ShopScreen(onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 when (tab) {
-                    ShopTab.SKIN -> CategorySection(
-                        items = grouped[ShopItem.Category.SHIP_SKIN_UNLOCK].orEmpty(),
-                        accent = NeonMagenta, balance = balance, allRanks = allRanks,
-                        meta = meta, scope = scope,
-                        footnote = "Skin đã mua sẽ mở khoá để chọn trong Cài đặt.",
+                    ShopTab.SKIN -> SkinTab(
+                        balance = balance, allRanks = allRanks, meta = meta, scope = scope,
+                        onRequestPurchase = requestPurchase,
                     )
-                    ShopTab.BULLET -> CategorySection(
-                        items = grouped[ShopItem.Category.BULLET_TYPE_UNLOCK].orEmpty(),
-                        accent = NeonViolet, balance = balance, allRanks = allRanks,
-                        meta = meta, scope = scope,
-                        footnote = "Đạn đã mua sẽ mở khoá để chọn trong Trang bị.",
+                    ShopTab.BULLET -> BulletTab(
+                        balance = balance, allRanks = allRanks, meta = meta, scope = scope,
+                        onRequestPurchase = requestPurchase,
                     )
                     ShopTab.CONSUMABLE -> CategorySection(
                         items = grouped[ShopItem.Category.CONSUMABLE].orEmpty(),
                         accent = NeonGold, balance = balance, allRanks = allRanks,
                         meta = meta, scope = scope,
                         footnote = "Tự áp dụng khi vào run — bom dư giữ lại cho run sau.",
+                        onRequestPurchase = requestPurchase,
                     )
                     ShopTab.SHIP -> ShipTab(
                         balance = balance, allRanks = allRanks, meta = meta, scope = scope,
+                        onRequestPurchase = requestPurchase,
                     )
-                    ShopTab.UPGRADE -> MetaUpgradeNodes(scope = scope)
+                    ShopTab.UPGRADE -> MetaUpgradeNodes(
+                        scope = scope, onRequestPurchase = requestPurchase,
+                    )
                     ShopTab.DISPLAY -> DisplayTab(scope = scope)
                 }
                 Spacer(Modifier.height(8.dp))
             }
         }
+
+        // Wave 15 — purchase-confirm sheet overlays everything when armed.
+        pending?.let { req ->
+            PurchaseConfirmSheet(
+                request = req,
+                onConfirm = {
+                    req.confirm()
+                    pending = null
+                },
+                onDismiss = { pending = null },
+            )
+        }
+    }
+}
+
+/**
+ * Wave 15 — a pending purchase awaiting confirmation. [confirm] captures the
+ * actual spend (already wrapped in the caller's `scope.launch { … }`) so the
+ * sheet stays decoupled from spendOnNode/spendOnStockpile signatures.
+ */
+internal class PurchaseRequest(
+    val title: String,
+    val description: String,
+    val cost: Int,
+    val balanceAfter: Int,
+    val accent: Color,
+    val confirm: () -> Unit,
+)
+
+@Composable
+private fun PurchaseConfirmSheet(
+    request: PurchaseRequest,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    NeonBottomSheet(
+        title = "XÁC NHẬN MUA",
+        accentColor = request.accent,
+        onDismiss = onDismiss,
+    ) {
+        Text(
+            text = request.title,
+            style = TextStyle(color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Black),
+        )
+        if (request.description.isNotBlank()) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = request.description,
+                style = TextStyle(color = Color(0xFFB0C0D0), fontSize = 13.sp),
+            )
+        }
+        Spacer(Modifier.height(14.dp))
+        ConfirmInfoLine("Giá", "${request.cost} ◇", request.accent)
+        Spacer(Modifier.height(4.dp))
+        ConfirmInfoLine("Số dư sau khi mua", "${request.balanceAfter} ◇", Color.White)
+        Spacer(Modifier.height(18.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .border(BorderStroke(1.5.dp, Color(0xFF8090A0)), RoundedCornerShape(10.dp))
+                    .clickable { onDismiss() }
+                    .padding(vertical = 12.dp),
+            ) {
+                Text("Huỷ", style = TextStyle(color = Color(0xFFB0C0D0), fontSize = 14.sp, fontWeight = FontWeight.Black))
+            }
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(request.accent.copy(alpha = 0.22f))
+                    .border(BorderStroke(1.5.dp, request.accent), RoundedCornerShape(10.dp))
+                    .neonGlow(request.accent, intensity = 0.35f, radiusFactor = 1.2f)
+                    .clickable { onConfirm() }
+                    .padding(vertical = 12.dp),
+            ) {
+                Text("Xác nhận", style = TextStyle(color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Black))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConfirmInfoLine(label: String, value: String, valueColor: Color) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(label, style = TextStyle(color = Color(0xFF8090A0), fontSize = 13.sp))
+        Text(value, style = TextStyle(color = valueColor, fontSize = 15.sp, fontWeight = FontWeight.Black))
     }
 }
 
@@ -224,12 +334,14 @@ private fun CategorySection(
     meta: MetaProgressionRepository,
     scope: kotlinx.coroutines.CoroutineScope,
     footnote: String,
+    onRequestPurchase: (PurchaseRequest) -> Unit,
 ) {
     if (items.isEmpty()) return
     items.forEach { item ->
         ShopItemRow(
             item = item, balance = balance, allRanks = allRanks,
             meta = meta, scope = scope, accent = accent,
+            onRequestPurchase = onRequestPurchase,
         )
     }
     Text(
@@ -247,6 +359,7 @@ private fun ShopItemRow(
     meta: MetaProgressionRepository,
     scope: kotlinx.coroutines.CoroutineScope,
     accent: Color,
+    onRequestPurchase: (PurchaseRequest) -> Unit,
 ) {
     // Always collect stockpile flow — Compose state slots must have stable
     // structure across recomposition (a branched `collectAsState` would leak
@@ -264,14 +377,25 @@ private fun ShopItemRow(
             .clip(RoundedCornerShape(8.dp))
             .background(Color(0xFF161C28))
             .clickable(enabled = affordable) {
-                scope.launch {
-                    val ok = if (item.isConsumable) {
-                        meta.spendOnStockpile(item.persistKey, item.cost, item.stockpileAdd)
-                    } else {
-                        meta.spendOnNode(item.persistKey, item.cost, item.maxRank)
-                    }
-                    Logger.d("Shop: purchase ${item.id} → $ok")
-                }
+                onRequestPurchase(
+                    PurchaseRequest(
+                        title = item.displayName,
+                        description = item.description,
+                        cost = item.cost,
+                        balanceAfter = balance - item.cost,
+                        accent = accent,
+                        confirm = {
+                            scope.launch {
+                                val ok = if (item.isConsumable) {
+                                    meta.spendOnStockpile(item.persistKey, item.cost, item.stockpileAdd)
+                                } else {
+                                    meta.spendOnNode(item.persistKey, item.cost, item.maxRank)
+                                }
+                                Logger.d("Shop: purchase ${item.id} → $ok")
+                            }
+                        },
+                    )
+                )
             }
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -357,6 +481,280 @@ private fun inlineStateLine(item: ShopItem, rank: Int, stockpile: Int): String =
     else -> if (rank > 0) "✓ Đã mua" else ""
 }
 
+// ─────────────────────────── bullet tab (full picker: buy + select, Wave 14a) ───────────────────────────
+
+@Composable
+private fun BulletTab(
+    balance: Int,
+    allRanks: Map<String, Int>,
+    meta: MetaProgressionRepository,
+    scope: kotlinx.coroutines.CoroutineScope,
+    onRequestPurchase: (PurchaseRequest) -> Unit,
+) {
+    val settings = LocalSettings.current
+    val preferred by settings.preferredBulletType
+        .collectAsState(initial = com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL)
+
+    // Migration (Wave 14a) — if the player's selected bullet just became
+    // shop-gated (GIANT/PLASMA were free before), grant it for free so it stays
+    // usable. Idempotent (grantNodeFree no-ops if owned).
+    LaunchedEffect(preferred) {
+        if (!ShopItem.isShopUnlocked(allRanks, preferred.shopUnlockId)) {
+            val item = preferred.shopUnlockId?.let { id -> ShopItem.ALL.firstOrNull { it.id == id } }
+            if (item != null) meta.grantNodeFree(item.persistKey)
+        }
+    }
+
+    Text(
+        text = "Chọn vũ khí chính cho run kế. Đạn 🔒 mua 1 lần rồi dùng mãi.",
+        style = TextStyle(color = Color(0xFF8090A0), fontSize = 11.sp),
+        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+    )
+    com.tranphuloi.neon.ui.game.ship.laser.BulletType.entries.forEach { bullet ->
+        val shopItem = bullet.shopUnlockId?.let { id -> ShopItem.ALL.firstOrNull { it.id == id } }
+        val owned = ShopItem.isShopUnlocked(allRanks, bullet.shopUnlockId)
+        val cost = shopItem?.cost ?: 0
+        BulletRow(
+            color = Color(com.tranphuloi.neon.ui.game.ship.laser.BulletTypeColorMap.argbFor(bullet)),
+            glyph = bullet.glyph,
+            name = bullet.displayName,
+            stats = bulletDesc(bullet) + " · ST ×${bullet.damageMultiplier}",
+            owned = owned,
+            selected = bullet == preferred,
+            cost = cost,
+            canBuy = !owned && balance >= cost,
+            onBuy = {
+                val item = shopItem ?: return@BulletRow
+                onRequestPurchase(
+                    PurchaseRequest(
+                        title = bullet.displayName,
+                        description = bulletDesc(bullet) + " · Sát thương ×${bullet.damageMultiplier}. Mua 1 lần, dùng mãi.",
+                        cost = item.cost,
+                        balanceAfter = balance - item.cost,
+                        accent = Color(com.tranphuloi.neon.ui.game.ship.laser.BulletTypeColorMap.argbFor(bullet)),
+                        confirm = {
+                            scope.launch {
+                                val ok = meta.spendOnNode(item.persistKey, item.cost, item.maxRank)
+                                Logger.d("Shop bullet: buy ${bullet.name} → $ok")
+                            }
+                        },
+                    )
+                )
+            },
+            onSelect = {
+                Logger.d("Shop bullet: select ${bullet.name}")
+                scope.launch { settings.setPreferredBulletType(bullet) }
+            },
+        )
+    }
+}
+
+@Composable
+private fun BulletRow(
+    color: Color,
+    glyph: String,
+    name: String,
+    stats: String,
+    owned: Boolean,
+    selected: Boolean,
+    cost: Int,
+    canBuy: Boolean,
+    onBuy: () -> Unit,
+    onSelect: () -> Unit,
+) {
+    val rowAlpha = if (owned || canBuy) 1f else 0.5f
+    val borderColor = when {
+        selected -> color
+        owned -> color.copy(alpha = 0.5f)
+        else -> Color.White.copy(alpha = 0.18f)
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color(0xFF161C28))
+            .border(BorderStroke(if (selected) 2.dp else 1.dp, borderColor), RoundedCornerShape(10.dp))
+            .let { if (selected) it.neonGlow(color, intensity = 0.35f, radiusFactor = 1.3f) else it }
+            .clickable(enabled = owned || canBuy) { if (owned) onSelect() else onBuy() }
+            .padding(10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(color.copy(alpha = 0.22f * rowAlpha))
+                    .border(BorderStroke(1.dp, color.copy(alpha = 0.6f * rowAlpha)), RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(text = if (!owned) "🔒" else glyph, style = TextStyle(color = color.copy(alpha = rowAlpha), fontSize = 18.sp, fontWeight = FontWeight.Black))
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = name, style = TextStyle(color = color.copy(alpha = rowAlpha), fontSize = 14.sp, fontWeight = FontWeight.Black))
+                Text(text = stats, style = TextStyle(color = Color(0xFFB0C0D0).copy(alpha = rowAlpha), fontSize = 10.sp))
+            }
+        }
+        when {
+            selected -> Text("✓ ĐANG DÙNG", style = TextStyle(color = color, fontSize = 11.sp, fontWeight = FontWeight.Black))
+            owned -> Text("Có sẵn", style = TextStyle(color = color.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.Bold))
+            else -> Text("$cost ◇", style = TextStyle(color = if (canBuy) color else Color(0xFF606878), fontSize = 14.sp, fontWeight = FontWeight.Black))
+        }
+    }
+}
+
+/** Wave 14 — mô tả tiếng Việt dễ hiểu cho từng loại đạn (hiện ở row tab Đạn). */
+private fun bulletDesc(b: com.tranphuloi.neon.ui.game.ship.laser.BulletType): String =
+    when (b) {
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL -> "Đạn cơ bản"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.PIERCING -> "Xuyên qua nhiều địch"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.PLASMA -> "Nổ lan vùng nhỏ khi trúng"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.FIRE -> "Gây cháy, mất máu dần"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.HOMING -> "Tự đuổi theo địch"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.BOUNCE -> "Nảy khỏi mép màn hình"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.GIANT -> "To gấp đôi, mạnh hơn"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.SMOKE -> "Toả khói làm chậm địch"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.ZIGZAG -> "Bay zigzag né dễ"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.KAMEHAMEHA -> "Tia lớn xuyên thấu tất cả"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.ATOMIC -> "Nổ AoE rộng khắp"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.SPLIT -> "Tách thành 3 mảnh"
+        // Wave 16 — đạn trào phúng.
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.LOTTERY -> "Vé số — sát thương hên xui"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.FIREWORK -> "Pháo hoa — nổ chùm rộng"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.BRICK -> "Cục gạch — to, nặng, mạnh"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.BANH_MI -> "Bánh mì — xuyên nhiều địch"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.DURIAN -> "Sầu riêng — nổ mùi AoE"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.HEART -> "Tim — tự đuổi theo địch"
+    }
+
+/** Wave 14 — short human descriptor cho tàu, suy từ stat profile (hợp lý cho 23 tàu). */
+private fun shipDesc(s: ShipShape): String = when {
+    s.hpMul >= 1.3f -> "Trâu bò — chịu đòn cực tốt, hơi chậm"
+    s.damageMul >= 1.25f -> "Sát thủ — sát thương cao"
+    s.speedMul >= 1.2f -> "Nhanh nhẹn — né tốt, luồn lách"
+    s.hpMul >= 1.15f -> "Cứng cáp — nhiều máu hơn"
+    s.speedMul >= 1.1f -> "Linh hoạt — cơ động khá"
+    s.damageMul >= 1.1f -> "Hơi mạnh — sát thương khá"
+    else -> "Cân bằng — dễ chơi cho người mới"
+}
+
+// ─────────────────────────── skin tab (buy + select, Wave 13 #1) ───────────────────────────
+
+@Composable
+private fun SkinTab(
+    balance: Int,
+    allRanks: Map<String, Int>,
+    meta: MetaProgressionRepository,
+    scope: kotlinx.coroutines.CoroutineScope,
+    onRequestPurchase: (PurchaseRequest) -> Unit,
+) {
+    val settings = LocalSettings.current
+    val selectedSkin by settings.shipSkin.collectAsState(initial = com.tranphuloi.neon.data.ShipSkin.AURA_CYAN)
+    Text(
+        text = "Chọn hào quang tàu. Skin trả phí mua 1 lần, dùng mãi.",
+        style = TextStyle(color = Color(0xFF8090A0), fontSize = 11.sp),
+        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+    )
+    com.tranphuloi.neon.data.ShipSkin.entries.forEach { skin ->
+        val shopItem = skin.shopUnlockId?.let { id -> ShopItem.ALL.firstOrNull { it.id == id } }
+        val owned = ShopItem.isShopUnlocked(allRanks, skin.shopUnlockId)
+        val cost = shopItem?.cost ?: 0
+        SkinRow(
+            color = Color(skin.glowColorHex),
+            name = skin.displayName,
+            owned = owned,
+            selected = skin == selectedSkin,
+            cost = cost,
+            canBuy = !owned && balance >= cost,
+            onBuy = {
+                val item = shopItem ?: return@SkinRow
+                onRequestPurchase(
+                    PurchaseRequest(
+                        title = "Hào quang ${skin.displayName}",
+                        description = "Đổi màu hào quang tàu — chỉ làm đẹp, không đổi chỉ số.",
+                        cost = item.cost,
+                        balanceAfter = balance - item.cost,
+                        accent = Color(skin.glowColorHex),
+                        confirm = {
+                            scope.launch {
+                                val ok = meta.spendOnNode(item.persistKey, item.cost, item.maxRank)
+                                Logger.d("Shop skin: buy ${skin.name} → $ok")
+                            }
+                        },
+                    )
+                )
+            },
+            onSelect = {
+                Logger.d("Shop skin: select ${skin.name}")
+                scope.launch { settings.setShipSkin(skin) }
+            },
+        )
+    }
+}
+
+@Composable
+private fun SkinRow(
+    color: Color,
+    name: String,
+    owned: Boolean,
+    selected: Boolean,
+    cost: Int,
+    canBuy: Boolean,
+    onBuy: () -> Unit,
+    onSelect: () -> Unit,
+) {
+    val rowAlpha = if (owned || canBuy) 1f else 0.5f
+    val borderColor = when {
+        selected -> color
+        owned -> color.copy(alpha = 0.5f)
+        else -> Color.White.copy(alpha = 0.18f)
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color(0xFF161C28))
+            .border(BorderStroke(if (selected) 2.dp else 1.dp, borderColor), RoundedCornerShape(10.dp))
+            .let { if (selected) it.neonGlow(color, intensity = 0.35f, radiusFactor = 1.3f) else it }
+            .clickable(enabled = owned || canBuy) { if (owned) onSelect() else onBuy() }
+            .padding(10.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+            // Aura swatch — a filled glow circle in the skin colour.
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(color.copy(alpha = rowAlpha))
+                    .neonGlow(color, intensity = 0.5f, radiusFactor = 1.4f),
+            )
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = "Hào quang $name",
+                    style = TextStyle(color = color.copy(alpha = rowAlpha), fontSize = 14.sp, fontWeight = FontWeight.Black),
+                )
+                Text(
+                    text = "Đổi màu hào quang tàu — chỉ làm đẹp",
+                    style = TextStyle(color = Color(0xFFB0C0D0).copy(alpha = rowAlpha), fontSize = 10.sp),
+                )
+            }
+        }
+        when {
+            selected -> Text("✓ ĐANG DÙNG", style = TextStyle(color = color, fontSize = 11.sp, fontWeight = FontWeight.Black))
+            owned -> Text("Đã sở hữu", style = TextStyle(color = color.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.Bold))
+            else -> Text(
+                text = "$cost ◇",
+                style = TextStyle(color = if (canBuy) color else Color(0xFF606878), fontSize = 14.sp, fontWeight = FontWeight.Black),
+            )
+        }
+    }
+}
+
 // ─────────────────────────── ship tab ───────────────────────────
 
 @Composable
@@ -365,6 +763,7 @@ private fun ShipTab(
     allRanks: Map<String, Int>,
     meta: MetaProgressionRepository,
     scope: kotlinx.coroutines.CoroutineScope,
+    onRequestPurchase: (PurchaseRequest) -> Unit,
 ) {
     val settings = LocalSettings.current
     val selectedShape by settings.selectedShipShape.collectAsState(initial = ShipShape.FIGHTER)
@@ -397,14 +796,25 @@ private fun ShipTab(
             discounted = discountRank > 0 && !ShipShopLogic.isFree(shape),
             canBuy = ShipShopLogic.canBuy(balance, shape, allRanks, discountRank),
             onBuy = {
-                scope.launch {
-                    val ok = meta.spendOnNode(
-                        ShipShopLogic.persistKey(shape),
-                        ShipShopLogic.effectiveCost(shape, discountRank),
-                        maxRank = 1,
+                val price = ShipShopLogic.effectiveCost(shape, discountRank)
+                onRequestPurchase(
+                    PurchaseRequest(
+                        title = shape.displayName,
+                        description = shipDesc(shape) +
+                            " · Máu ×${shape.hpMul} · Tốc ×${shape.speedMul} · ST ×${shape.damageMul}",
+                        cost = price,
+                        balanceAfter = balance - price,
+                        accent = Color(ShipShapeColorMap.argbFor(shape)),
+                        confirm = {
+                            scope.launch {
+                                val ok = meta.spendOnNode(
+                                    ShipShopLogic.persistKey(shape), price, maxRank = 1,
+                                )
+                                Logger.d("Shop ship: buy ${shape.key} → $ok")
+                            }
+                        },
                     )
-                    Logger.d("Shop ship: buy ${shape.key} → $ok")
-                }
+                )
             },
             onSelect = {
                 Logger.d("Shop ship: select ${shape.key}")
@@ -463,6 +873,11 @@ private fun ShipRow(
                 Text(
                     text = shape.displayName,
                     style = TextStyle(color = color.copy(alpha = rowAlpha), fontSize = 14.sp, fontWeight = FontWeight.Black),
+                )
+                // Wave 14 — short human descriptor from stat profile.
+                Text(
+                    text = shipDesc(shape),
+                    style = TextStyle(color = color.copy(alpha = rowAlpha * 0.85f), fontSize = 10.sp),
                 )
                 Text(
                     text = "Máu ×${shape.hpMul} · Tốc ×${shape.speedMul} · ST ×${shape.damageMul}",

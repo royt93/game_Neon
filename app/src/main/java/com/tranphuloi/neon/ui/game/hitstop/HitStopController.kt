@@ -48,6 +48,24 @@ class HitStopController(
         }
     }
 
+    /**
+     * Wave 16 — long freeze for the full-screen boss-intro cinematic. Reuses
+     * the existing loop gate (`isFrozen()` at the top of the game loop) so the
+     * whole simulation truly pauses for the cinematic — no separate freeze path.
+     * Unlike the micro hit-stops this is a hard SET (not max-with-existing) so a
+     * stray prior hit-stop can't shorten it.
+     */
+    fun freezeForBossIntro(durationMillis: Long) {
+        unfrozenAtMillis = System.currentTimeMillis() + durationMillis
+        Logger.d("HitStopController: boss-intro freeze ${durationMillis}ms")
+    }
+
+    /** Wave 16 — end the boss-intro freeze early (player tapped "skip"). */
+    fun endBossIntroFreeze() {
+        unfrozenAtMillis = 0L
+        Logger.d("HitStopController: boss-intro freeze ended (skip)")
+    }
+
     fun isFrozen(now: Long = System.currentTimeMillis()): Boolean = now < unfrozenAtMillis
 
     companion object {
@@ -55,5 +73,8 @@ class HitStopController(
         const val BOSS_FREEZE_MS: Long = 120L
         const val HIT_FREEZE_MS: Long = 30L
         const val HIT_FREEZE_RATE_CAP_MS: Long = 250L
+
+        /** Wave 16 — boss-intro cinematic hold (matches BossIntroOverlay duration). */
+        const val BOSS_INTRO_FREEZE_MS: Long = 2400L
     }
 }

@@ -86,7 +86,9 @@ class LasersController(
     }
 
     val fireLaserId = uuidUtils.getUuid()
-    val fireLaserRepeatTime = Millis(100)
+    // Wave 14a — `var` so the Gói Bắn Nhanh consumable can shorten the fire
+    // interval for the whole run (read each tick by the game loop's tinker).
+    var fireLaserRepeatTime: com.tranphuloi.neon.ui.game.common.RepeatTime = Millis(100)
     fun fireLasers(ship: Ship) {
         // Round 47 — cap so laser-booster spam + triple-laser at firing rate 100ms
         // doesn't allow the in-flight list to grow unbounded during heavy waves.
@@ -214,21 +216,49 @@ class LasersController(
                 yOffset = ship.yOffset - 40f + dy,
                 yRange = screenHeight,
             )
-            // Round 68 (Wave 10 finish) — 5 bullet types stub. Fall back về
-            // NORMAL ShipLaser body, damage mul áp dụng qua damageMultiplier
-            // lambda. Behaviors thật (SMOKE AoE slow, ZIGZAG sine path,
-            // KAMEHAMEHA wide beam, ATOMIC AoE 150dp, SPLIT 3 children at
-            // apex) deferred to Round 69a-e, each behavior 1 round.
-            BulletType.SMOKE, BulletType.ZIGZAG, BulletType.KAMEHAMEHA,
-            BulletType.ATOMIC, BulletType.SPLIT -> if (ship.laserBoosterEnabled) {
+            // Wave 14 — KAMEHAMEHA: pierce-all (reuse PiercingShipLaser body with
+            // its own bulletType → beam shape + pierce collision). pierceRemaining
+            // = KAMEHAMEHA.pierceCount (99) set in ctor.
+            BulletType.KAMEHAMEHA -> PiercingShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - 3f + dx,
+                yOffset = ship.yOffset - 22f + dy,
+                yRange = screenHeight,
+                bulletType = BulletType.KAMEHAMEHA,
+            )
+            // Wave 14 — ATOMIC: AoE 150 (reuse PlasmaShipLaser body with its own
+            // bulletType → atomic shape + AoE uses ATOMIC.aoeRadius=150).
+            BulletType.ATOMIC -> PlasmaShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - PlasmaShipLaser.PLASMA_WIDTH / 2 + dx,
+                yOffset = ship.yOffset - 34f + dy,
+                yRange = screenHeight,
+                bulletType = BulletType.ATOMIC,
+            )
+            // Wave 16 (Slice 3) — ZIGZAG: sine-weaving path (dedicated class).
+            BulletType.ZIGZAG -> ZigZagShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - ShipLaser.SHIP_LASER_WIDTH / 2 + dx,
+                yOffset = ship.yOffset - 20f + dy,
+                yRange = screenHeight,
+            )
+            // Wave 16 (Slice 3) — SMOKE: slow fat puff, small AoE on hit
+            // (splash handled in the PLASMA/ATOMIC/SMOKE collision arm).
+            BulletType.SMOKE -> SmokeShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - SmokeShipLaser.SMOKE_WIDTH / 2 + dx,
+                yOffset = ship.yOffset - 25f + dy,
+                yRange = screenHeight,
+            )
+            // Wave 16 (Slice 3) — SPLIT: normal body; on hit it spawns 3 NORMAL
+            // children (handled in the SPLIT collision arm). Keeps booster look.
+            BulletType.SPLIT -> if (ship.laserBoosterEnabled) {
                 ShipBoostedLaser(
                     id = uuidUtils.getUuid(),
                     xOffset = ship.xOffset + ship.width / 2 - SHIP_BOOSTED_LASER_WIDTH / 2 + dx,
                     yOffset = ship.yOffset - 25f + dy,
                     yRange = screenHeight,
-                    // Round 71 (Issue 4a) — pass bullet type cho LaserCanvas
-                    // dispatch unique vector shape mỗi loại đạn.
-                    bulletType = ship.activeBulletType,
+                    bulletType = BulletType.SPLIT,
                 )
             } else {
                 ShipLaser(
@@ -236,9 +266,58 @@ class LasersController(
                     xOffset = ship.xOffset + ship.width / 2 - SHIP_LASER_WIDTH / 2 + dx,
                     yOffset = ship.yOffset - 20f + dy,
                     yRange = screenHeight,
-                    bulletType = ship.activeBulletType,
+                    bulletType = BulletType.SPLIT,
                 )
             }
+            // Wave 16 — Vé Số: random damage mỗi viên (0.3×–3× base 25).
+            BulletType.LOTTERY -> ShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - SHIP_LASER_WIDTH / 2 + dx,
+                yOffset = ship.yOffset - 20f + dy,
+                yRange = screenHeight,
+                bulletType = BulletType.LOTTERY,
+            ).also { it.impactPower = 25f * (0.3f + kotlin.random.Random.nextFloat() * 2.7f) }
+            // Wave 16 — Pháo Hoa: nổ chùm AoE (reuse Plasma body + FIREWORK.aoeRadius=130).
+            BulletType.FIREWORK -> PlasmaShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - PlasmaShipLaser.PLASMA_WIDTH / 2 + dx,
+                yOffset = ship.yOffset - 34f + dy,
+                yRange = screenHeight,
+                bulletType = BulletType.FIREWORK,
+            )
+            // Wave 16 — Cục Gạch: to + nặng (damage ×2.2 via BulletType), thân rộng.
+            BulletType.BRICK -> ShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - 14f / 2 + dx,
+                yOffset = ship.yOffset - 24f + dy,
+                yRange = screenHeight,
+                width = 14f,
+                bulletType = BulletType.BRICK,
+            )
+            // Wave 16 batch 2 — Bánh Mì: xuyên (reuse Piercing body).
+            BulletType.BANH_MI -> PiercingShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - 3f + dx,
+                yOffset = ship.yOffset - 22f + dy,
+                yRange = screenHeight,
+                bulletType = BulletType.BANH_MI,
+            )
+            // Wave 16 batch 2 — Sầu Riêng: nổ mùi AoE 110 (reuse Plasma body).
+            BulletType.DURIAN -> PlasmaShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - PlasmaShipLaser.PLASMA_WIDTH / 2 + dx,
+                yOffset = ship.yOffset - 34f + dy,
+                yRange = screenHeight,
+                bulletType = BulletType.DURIAN,
+            )
+            // Wave 16 batch 2 — Like/Tim: tự đuổi (reuse Missile homing body).
+            BulletType.HEART -> MissileLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - 4f + dx,
+                yOffset = ship.yOffset - 24f + dy,
+                yRange = screenHeight,
+                bulletType = BulletType.HEART,
+            )
             BulletType.NORMAL -> if (ship.laserBoosterEnabled) {
                 ShipBoostedLaser(
                     id = uuidUtils.getUuid(),
@@ -286,7 +365,11 @@ class LasersController(
             it.moveLaser()
             // Cleanup once laser scrolls fully off the top of the screen.
             // (Coord system is now TopStart; laser leaves top when yOffset < -height.)
-            if (it.yOffset < -100f || it.destroyed) destroyShipLaser(it)
+            // Wave 16 fix — ở camera zoom XA (pixelScale<1), đỉnh device hiển thị
+            // tới game-y ≈ -extraYSpan, nên cull ở -100f làm đạn BIẾN MẤT giữa
+            // vùng nhìn thay vì bay hẳn ra ngoài (bug user báo). Trừ extraYSpan để
+            // đạn chỉ bị xoá khi đã thực sự khuất mép trên ở mọi mức zoom.
+            if (it.yOffset < -100f - extraYSpan || it.destroyed) destroyShipLaser(it)
         }
         updateShipLasersUI()
     }
@@ -409,6 +492,28 @@ class LasersController(
             if (enemyRectList.any { it.overlaps(laserRect) }) {
                 val index = enemyRectList.indexOfFirst { it.overlaps(laserRect) }
                 val target = enemies[index]
+                // Wave 14b — ChargeShot ultimate must NOT one-shot bosses.
+                // The beam persists (never destroyed on hit) and re-overlaps
+                // every Millis(1) tick, so at impactPower=1000 a boss in its
+                // path evaporated instantly (user bug report). A boss instead
+                // takes a small flat chip ONCE per beam; mobs are unchanged.
+                if (laser is UltimateLaser && target.isBoss) {
+                    if (laser.hitBossIds.add(target.enemyId)) {
+                        // Cap at min(flat × dmgMul, 8% of spawn HP) so even a
+                        // maxed-out damage run can't restore the one-shot.
+                        val bossDmg = UltimateLaser.bossChipDamage(dmgMul, target.initialHp)
+                        target.onObjectImpact(bossDmg)
+                        onLaserHit(
+                            target.enemyId,
+                            bossDmg.toInt(),
+                            target.xOffset + target.width / 2f,
+                            target.yOffset,
+                            true,
+                            laser.bulletType,
+                        )
+                    }
+                    return@forEach
+                }
                 target.onObjectImpact(effectiveDamage)
                 onLaserHit(
                     target.enemyId,
@@ -420,7 +525,8 @@ class LasersController(
                 )
                 // Round 35 (35x) — PIERCING / PLASMA collision behavior.
                 when (laser.bulletType) {
-                    BulletType.PIERCING -> {
+                    // Wave 14 — KAMEHAMEHA pierces like PIERCING (pierceRemaining=99).
+                    BulletType.PIERCING, BulletType.KAMEHAMEHA, BulletType.BANH_MI -> {
                         // Decrement pierce; destroy only when exhausted.
                         // Round 37 — removed per-hit Logger.d (fired inside Millis(1) tick;
                         // during a PIERCING run through enemy formations this spammed dozens
@@ -430,7 +536,11 @@ class LasersController(
                             destroyShipLaser(laser)
                         }
                     }
-                    BulletType.PLASMA -> {
+                    // Wave 14 — ATOMIC reuses PLASMA AoE; radius from ATOMIC.aoeRadius=150.
+                    // Wave 16 (Slice 3) — SMOKE shares the splash arm (its own
+                    // aoeRadius=60 → a small puff; not a PlasmaShipLaser so the
+                    // rarity multiplier defaults to 1.0).
+                    BulletType.PLASMA, BulletType.ATOMIC, BulletType.SMOKE, BulletType.FIREWORK, BulletType.DURIAN -> {
                         // AoE damage: enemies within radius take 50% damage.
                         // Round 52 (40x Item combos) — radius scaled by
                         // [PlasmaShipLaser.aoeRadiusMultiplier] set at spawn
@@ -468,7 +578,7 @@ class LasersController(
                     BulletType.FIRE -> destroyShipLaser(laser)
                     // Round 67 — HOMING: MissileLaser is destroyed normally
                     // on hit. Tracking happens in processShipLasers update.
-                    BulletType.HOMING -> destroyShipLaser(laser)
+                    BulletType.HOMING, BulletType.HEART -> destroyShipLaser(laser)
                     // Round 67 — BOUNCE: don't destroy on hit (keep bouncing
                     // until bounceRemaining=0 or off-screen). Decrement
                     // pierce-style counter on the BounceShipLaser instead.
@@ -483,8 +593,25 @@ class LasersController(
                     }
                     BulletType.GIANT -> destroyShipLaser(laser)
                     // Round 68 stub — destroy on hit. Behaviors thật Round 69+.
-                    BulletType.SMOKE, BulletType.ZIGZAG, BulletType.KAMEHAMEHA,
-                    BulletType.ATOMIC, BulletType.SPLIT -> destroyShipLaser(laser)
+                    // Wave 16 (Slice 3) — ZIGZAG: weaving normal shot, single hit.
+                    // Wave 16 — LOTTERY (random dmg) + BRICK (heavy) also single-hit.
+                    BulletType.ZIGZAG, BulletType.LOTTERY, BulletType.BRICK -> destroyShipLaser(laser)
+                    // Wave 16 (Slice 3) — SPLIT: burst into 3 NORMAL children that
+                    // keep flying up in a small spread, then destroy the parent.
+                    // Children are NORMAL so they can't split again (no recursion).
+                    BulletType.SPLIT -> {
+                        val children = listOf(-16f, 0f, 16f).map { ox ->
+                            ShipLaser(
+                                id = uuidUtils.getUuid(),
+                                xOffset = laser.xOffset + ox,
+                                yOffset = laser.yOffset,
+                                yRange = screenHeight,
+                                bulletType = BulletType.NORMAL,
+                            )
+                        }
+                        shipLasers = shipLasers + children
+                        destroyShipLaser(laser)
+                    }
                 }
                 updateShipLasersUI()
             }

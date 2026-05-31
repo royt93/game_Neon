@@ -213,10 +213,17 @@ class ShipController(
         if (dragTargetX != null) {
             val targetX = dragTargetX!!
             val targetY = dragTargetY ?: newY
+            // Wave 16 — bank theo DRAG (trước đây ép 0f → kéo tàu KHÔNG đảo cánh,
+            // đúng phàn nàn của user). Độ nghiêng ∝ khoảng cách ngang còn lại tới
+            // ngón tay (= hướng + tốc độ di chuyển), kẹp ±26°, lerp 0.22 cho mượt.
+            // Kết hợp scaleX squash ở GameWorld → wing-roll giả-3D.
+            val dxToTarget = targetX - newX
             // Smooth lerp 0.30 mỗi tick → ~5 tick để converge
             newX += (targetX - newX) * 0.30f
             newY += (targetY - newY) * 0.30f
-            ship = ship.copy(xOffset = newX, yOffset = newY, bankRotation = 0f)
+            val dragBankTarget = (dxToTarget * 0.6f).coerceIn(-26f, 26f)
+            val newBankRot = ship.bankRotation + (dragBankTarget - ship.bankRotation) * 0.22f
+            ship = ship.copy(xOffset = newX, yOffset = newY, bankRotation = newBankRot)
             setShip(ship)
             return
         }
@@ -260,14 +267,16 @@ class ShipController(
         } else if (!iceActive) {
             slipVelocityX = 0f                           // reset when leaving ice zone
         }
-        // Bank rotation lerp toward target (-16° / 0° / +16°), smoothing 0.18.
+        // Bank rotation lerp toward target. Wave 16 — góc ±16°→±26° + lerp
+        // 0.18→0.22 (bẻ lái rõ + bám tay hơn); kết hợp scaleX squash ở GameWorld
+        // render → "đảo cánh" wing-roll giả-3D thay vì chỉ xoay phẳng.
         // Single ship.copy() per tick to avoid 3 setShip allocations.
         val bankTarget = when {
-            movingLeft -> -16f
-            movingRight -> 16f
+            movingLeft -> -26f
+            movingRight -> 26f
             else -> 0f
         }
-        val newBankRot = ship.bankRotation + (bankTarget - ship.bankRotation) * 0.18f
+        val newBankRot = ship.bankRotation + (bankTarget - ship.bankRotation) * 0.22f
         if (newX != ship.xOffset || newY != ship.yOffset ||
             kotlin.math.abs(newBankRot - ship.bankRotation) > 0.05f) {
             ship = ship.copy(xOffset = newX, yOffset = newY, bankRotation = newBankRot)
@@ -1089,10 +1098,12 @@ class ShipController(
             Logger.d("Booster: clone OFF")
         }
         // Round 35 (35x) — expire active bullet type.
+        // Wave 14 — revert to the loadout base bullet (whole-run weapon), not
+        // NORMAL, so a temporary booster expiring doesn't strip the chosen gun.
         if (ship.bulletTypeEndMillis > 0L && currentTime >= ship.bulletTypeEndMillis) {
-            Logger.d("BulletType: ${ship.activeBulletType} expired → revert to NORMAL")
+            Logger.d("BulletType: ${ship.activeBulletType} expired → revert to base ${ship.baseBulletType}")
             ship = ship.copy(
-                activeBulletType = com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL,
+                activeBulletType = ship.baseBulletType,
                 bulletTypeEndMillis = 0L,
             )
             setShip(ship)

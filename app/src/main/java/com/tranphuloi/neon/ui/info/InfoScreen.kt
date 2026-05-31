@@ -222,6 +222,14 @@ private fun bulletDescription(b: BulletType): String = when (b) {
     BulletType.KAMEHAMEHA -> "Tia laser khổng lồ xuyên thấu vô hạn enemy với damage ×3."
     BulletType.ATOMIC -> "Đạn nguyên tử nổ AoE 150px khổng lồ khi va chạm."
     BulletType.SPLIT -> "Đạn va chạm phân tách thành 3 mảnh nhỏ tiếp tục bay."
+    // Wave 16 — đạn trào phúng.
+    BulletType.LOTTERY -> "Vé Số: sát thương NGẪU NHIÊN mỗi viên (0.3×–3× cơ bản) — hên xui."
+    BulletType.FIREWORK -> "Pháo Hoa: nổ chùm AoE 130px rộng khi va chạm — dọn cụm enemy."
+    BulletType.BRICK -> "Cục Gạch (Nokia 1280): to + nặng, damage ×2.2 nồi đồng cối đá."
+    // Wave 16 batch 2.
+    BulletType.BANH_MI -> "Bánh Mì: giòn rụm, xuyên qua 3 enemy (như PIERCING)."
+    BulletType.DURIAN -> "Sầu Riêng: nổ 'mùi' AoE 110px nặng đô khi va chạm."
+    BulletType.HEART -> "Like/Tim: thả tim tự đuổi theo enemy gần nhất (như HOMING)."
 }
 
 /**
@@ -271,6 +279,14 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBulletCapsule(
         BulletType.KAMEHAMEHA -> drawBeamBullet(cx, cy, w * 0.75f, h * 0.35f, color)
         BulletType.ATOMIC -> drawAtomicBullet(cx, cy, w * 0.3f, color)
         BulletType.SPLIT -> drawSplitBullet(cx, cy, w * 0.25f, h * 0.7f, color)
+        // Wave 16 — đạn trào phúng (reuse recipe gần nhất với cơ chế).
+        BulletType.LOTTERY -> drawCapsuleBullet(cx, cy, w * 0.25f, h * 0.7f, color)
+        BulletType.FIREWORK -> drawOrbBullet(cx, cy, w * 0.32f, color)
+        BulletType.BRICK -> drawGiantBullet(cx, cy, w * 0.45f, h * 0.85f, color)
+        // Wave 16 batch 2 (reuse recipe khớp cơ chế).
+        BulletType.BANH_MI -> drawNeedleBullet(cx, cy, w * 0.18f, h * 0.85f, color)
+        BulletType.DURIAN -> drawOrbBullet(cx, cy, w * 0.32f, color)
+        BulletType.HEART -> drawHomingBullet(cx, cy, w * 0.25f, h * 0.7f, color)
     }
 }
 
@@ -1285,8 +1301,8 @@ private fun BossesTab() {
         Spacer(modifier = Modifier.height(6.dp))
         InfoCard(
             color = Color(0xFFCC0000),
-            title = "Cộng Sản Bịp Bợm",
-            subtitle = "Lõi Thiên Hà ·quăng búa liềm bịp bợm",
+            title = "Cộng Sản Lên Ngôi",
+            subtitle = "Lõi Thiên Hà · quăng búa liềm",
             description = "Vòng đỏ + búa + liềm vàng + sao 5 cánh ở đầu. Throws hammer + sickle projectile pair.",
             iconDraw = { c -> drawBossHammerSicklePreview(c, Color(0xFFCC0000), Color(0xFFFFD700)) },
         )
@@ -1306,6 +1322,62 @@ private fun BossesTab() {
             description = "Tóc cam đặc trưng + cà vạt vàng + complexion da + monocle. 3 dollar bills float quanh. " +
                 "Throws dollar bills 360°.",
             iconDraw = { c -> drawBossGoldenTycoonPreview(c, Color(0xFFFFB890), Color(0xFFFFC020)) },
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        // ── Wave 15 batch 1 — 3 boss user nêu đích danh ──
+        InfoCard(
+            color = Color(0xFFE8E8E8),
+            title = "Đầu Lâu Xương Chéo",
+            subtitle = "Vành Đai Tiểu Hành Tinh · HP 2000",
+            description = "Sọ trắng + hốc mắt đỏ rực + hàm răng, trên nền 2 xương chéo (X). " +
+                "Quăng xương xoay. Chủ đề cướp biển vũ trụ.",
+            iconDraw = { c -> drawBossSkullPreview(c, Color(0xFFE8E8E8), Color(0xFFCC1144)) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = Color(0xFF8A2030),
+            title = "Ma Cà Rồng",
+            subtitle = "Mây Tinh Vân · HP 2900",
+            description = "2 cánh dơi scallop + đầu tối + 2 mắt đỏ + 2 răng nanh trắng. HP cao, dai — " +
+                "hồi máu nhẹ khi gây sát thương ở phase 2.",
+            iconDraw = { c -> drawBossVampirePreview(c, Color(0xFF8A2030), Color(0xFFFF3355)) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = Color(0xFFFF6A2A),
+            title = "Con Rết Vũ Trụ",
+            subtitle = "Hành Tinh Băng · HP 3100",
+            description = "Đầu có râu + càng, chuỗi 6 đốt thân uốn lượn + chân 2 bên. " +
+                "Rất dài, HP cao nhất batch, đòn độc.",
+            iconDraw = { c -> drawBossCentipedePreview(c, Color(0xFFFF6A2A), Color(0xFFB8FF3A)) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        // Wave 16 batch 2 — 3 boss user nêu đích danh (nốt)
+        InfoCard(
+            color = Color(0xFFB8C0FF),
+            title = "Bao Cao Su Khổng Lồ",
+            subtitle = "Trạm Thù Địch · HP 2400",
+            description = "Túi phình + núm chứa + vòng cuộn ở đáy. \"Phình nổ\": tỏa vòng đạn dày " +
+                "theo nhịp phình/xẹp.",
+            iconDraw = { c -> drawBossCondomPreview(c, Color(0xFFB8C0FF), Color(0xFF8088CC)) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = Color(0xFF9B30FF),
+            title = "Nhện Venom",
+            subtitle = "Trạm Thù Địch · HP 2800",
+            description = "8 chân + thân 2 đốt + dấu độc + nanh trắng. \"Tơ độc\": bắn 8 nan tỏa ra; " +
+                "phase 2 nhả thêm 1 tia thẳng.",
+            iconDraw = { c -> drawBossVenomSpiderPreview(c, Color(0xFF9B30FF), Color(0xFF55FF88)) },
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        InfoCard(
+            color = Color(0xFF2E8B57),
+            title = "Tham Nhũng",
+            subtitle = "Lõi Thiên Hà · HP 3300 (cao nhất)",
+            description = "Túi tiền béo + cổ thắt + ký hiệu $ + mắt tham. \"Tiền đè\": tường ngang " +
+                "DÀY, CHẬM, gần kín (1 khe) để đè người chơi.",
+            iconDraw = { c -> drawBossCorruptionPreview(c, Color(0xFF2E8B57), Color(0xFFFFD700)) },
         )
     }
 }
@@ -2916,5 +2988,207 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyKamikazePr
             androidx.compose.ui.geometry.Offset(cx - w * 0.20f + i * w * 0.05f, sy),
             androidx.compose.ui.geometry.Offset(cx + w * 0.20f - i * w * 0.05f, sy),
             strokeWidth = w * 0.02f)
+    }
+}
+
+// ── Wave 15 batch 1 — preview helpers cho 3 boss mới (mirror EnemyCanvas) ──
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossSkullPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val r = minOf(w, h) * 0.30f
+    val black = Color.Black.copy(alpha = 0.85f)
+    val diag = minOf(w, h) * 0.31f * 0.7071f
+    val boneW = r * 0.24f
+    listOf(
+        androidx.compose.ui.geometry.Offset(cx - diag, cy - diag) to
+            androidx.compose.ui.geometry.Offset(cx + diag, cy + diag),
+        androidx.compose.ui.geometry.Offset(cx - diag, cy + diag) to
+            androidx.compose.ui.geometry.Offset(cx + diag, cy - diag),
+    ).forEach { (s, e) ->
+        drawLine(accent, s, e, strokeWidth = boneW,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        drawCircle(accent, boneW * 0.85f, s)
+        drawCircle(accent, boneW * 0.85f, e)
+    }
+    val sx = cx; val sy = cy - r * 0.10f
+    drawCircle(body, r, androidx.compose.ui.geometry.Offset(sx, sy))
+    val jaw = androidx.compose.ui.graphics.Path().apply {
+        moveTo(sx - r * 0.55f, sy + r * 0.50f)
+        lineTo(sx + r * 0.55f, sy + r * 0.50f)
+        lineTo(sx + r * 0.34f, sy + r * 1.04f)
+        lineTo(sx - r * 0.34f, sy + r * 1.04f)
+        close()
+    }
+    drawPath(jaw, body)
+    val eyeR = r * 0.27f
+    for (sgn in listOf(-1f, 1f)) {
+        val ex = sx + sgn * r * 0.40f; val ey = sy - r * 0.05f
+        drawCircle(black, eyeR, androidx.compose.ui.geometry.Offset(ex, ey))
+        drawCircle(accent, eyeR * 0.42f, androidx.compose.ui.geometry.Offset(ex, ey))
+    }
+    val nose = androidx.compose.ui.graphics.Path().apply {
+        moveTo(sx, sy + r * 0.12f)
+        lineTo(sx - r * 0.14f, sy + r * 0.44f)
+        lineTo(sx + r * 0.14f, sy + r * 0.44f)
+        close()
+    }
+    drawPath(nose, black)
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossVampirePreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val r = minOf(w, h) * 0.26f
+    val span = minOf(w, h) * 0.50f
+    for (sgn in listOf(-1f, 1f)) {
+        val wing = androidx.compose.ui.graphics.Path().apply {
+            moveTo(cx + sgn * r * 0.35f, cy - r * 0.25f)
+            lineTo(cx + sgn * span, cy - r * 0.55f)
+            lineTo(cx + sgn * span * 0.82f, cy + r * 0.10f)
+            lineTo(cx + sgn * span * 0.60f, cy - r * 0.05f)
+            lineTo(cx + sgn * span * 0.66f, cy + r * 0.55f)
+            lineTo(cx + sgn * span * 0.38f, cy + r * 0.20f)
+            lineTo(cx + sgn * r * 0.30f, cy + r * 0.40f)
+            close()
+        }
+        drawPath(wing, body)
+    }
+    drawCircle(body, r, androidx.compose.ui.geometry.Offset(cx, cy))
+    for (sgn in listOf(-1f, 1f)) {
+        drawCircle(accent, r * 0.24f,
+            androidx.compose.ui.geometry.Offset(cx + sgn * r * 0.40f, cy - r * 0.08f))
+    }
+    for (sgn in listOf(-1f, 1f)) {
+        val fx = cx + sgn * r * 0.18f
+        val fang = androidx.compose.ui.graphics.Path().apply {
+            moveTo(fx - r * 0.08f, cy + r * 0.38f)
+            lineTo(fx + r * 0.08f, cy + r * 0.38f)
+            lineTo(fx, cy + r * 0.88f)
+            close()
+        }
+        drawPath(fang, Color.White)
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossCentipedePreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2
+    val unit = minOf(w, h)
+    val seg = unit * 0.12f
+    val n = 5
+    val spanH = unit * 0.74f
+    val topY = (h / 2) - spanH * 0.5f
+    val stepY = spanH / (n + 1)
+    val sway = unit * 0.13f
+    for (i in 1..n) {
+        val segY = topY + stepY * i
+        val segX = cx + sway * kotlin.math.sin(i.toDouble()).toFloat()
+        for (sgn in listOf(-1f, 1f)) {
+            drawLine(accent,
+                androidx.compose.ui.geometry.Offset(segX + sgn * seg, segY),
+                androidx.compose.ui.geometry.Offset(segX + sgn * seg * 2.0f, segY - seg * 0.55f),
+                strokeWidth = seg * 0.20f,
+                cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        }
+        drawCircle(body, seg, androidx.compose.ui.geometry.Offset(segX, segY))
+    }
+    val headR = seg * 1.35f
+    val hx = cx; val hy = topY
+    drawCircle(body, headR, androidx.compose.ui.geometry.Offset(hx, hy))
+    for (sgn in listOf(-1f, 1f)) {
+        drawCircle(accent, headR * 0.30f,
+            androidx.compose.ui.geometry.Offset(hx + sgn * headR * 0.42f, hy - headR * 0.10f))
+        drawLine(accent,
+            androidx.compose.ui.geometry.Offset(hx + sgn * headR * 0.30f, hy - headR * 0.70f),
+            androidx.compose.ui.geometry.Offset(hx + sgn * headR * 0.95f, hy - headR * 1.65f),
+            strokeWidth = seg * 0.16f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+}
+
+// ── Wave 16 batch 2 — preview helpers cho 3 boss mới (mirror EnemyCanvas) ──
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossCondomPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val unit = minOf(w, h)
+    val bodyR = unit * 0.34f
+    val bcy = cy + unit * 0.05f
+    drawCircle(body, bodyR, androidx.compose.ui.geometry.Offset(cx, bcy))
+    drawCircle(accent, bodyR, androidx.compose.ui.geometry.Offset(cx, bcy),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = unit * 0.035f))
+    drawCircle(body, unit * 0.10f, androidx.compose.ui.geometry.Offset(cx, bcy - bodyR + unit * 0.01f))
+    drawOval(accent,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - bodyR * 0.85f, bcy + bodyR * 0.7f),
+        size = androidx.compose.ui.geometry.Size(bodyR * 1.7f, unit * 0.16f),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = unit * 0.06f))
+    drawCircle(Color.White.copy(alpha = 0.5f), bodyR * 0.16f,
+        androidx.compose.ui.geometry.Offset(cx - bodyR * 0.35f, bcy - bodyR * 0.25f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossVenomSpiderPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val unit = minOf(w, h)
+    val bodyR = unit * 0.22f
+    val legLen = unit * 0.46f
+    val cap = androidx.compose.ui.graphics.StrokeCap.Round
+    for (i in 0 until 8) {
+        val a = Math.toRadians(i * 45.0)
+        val ex = cx + (legLen * kotlin.math.cos(a)).toFloat()
+        val ey = cy + (legLen * kotlin.math.sin(a)).toFloat()
+        drawLine(body, androidx.compose.ui.geometry.Offset(cx, cy),
+            androidx.compose.ui.geometry.Offset(ex, ey), strokeWidth = bodyR * 0.18f, cap = cap)
+    }
+    drawCircle(body, bodyR, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(body, bodyR * 0.75f, androidx.compose.ui.geometry.Offset(cx, cy + bodyR * 0.95f))
+    drawCircle(accent, bodyR * 0.32f, androidx.compose.ui.geometry.Offset(cx, cy + bodyR * 0.95f))
+    for (s in listOf(-1f, 1f)) {
+        drawCircle(accent, bodyR * 0.18f,
+            androidx.compose.ui.geometry.Offset(cx + s * bodyR * 0.42f, cy - bodyR * 0.2f))
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossCorruptionPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height
+    val cx = w / 2; val cy = h / 2
+    val unit = minOf(w, h)
+    val r = unit * 0.32f
+    val sack = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - r * 0.4f, cy - r * 0.5f)
+        cubicTo(cx - r * 1.1f, cy, cx - r * 0.9f, cy + r * 0.95f, cx, cy + r)
+        cubicTo(cx + r * 0.9f, cy + r * 0.95f, cx + r * 1.1f, cy, cx + r * 0.4f, cy - r * 0.5f)
+        close()
+    }
+    drawPath(sack, body)
+    drawPath(sack, accent, style = androidx.compose.ui.graphics.drawscope.Stroke(width = unit * 0.03f))
+    drawLine(accent, androidx.compose.ui.geometry.Offset(cx - r * 0.45f, cy - r * 0.5f),
+        androidx.compose.ui.geometry.Offset(cx + r * 0.45f, cy - r * 0.5f),
+        strokeWidth = unit * 0.06f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    val by = cy + r * 0.25f
+    drawLine(accent, androidx.compose.ui.geometry.Offset(cx, by - r * 0.42f),
+        androidx.compose.ui.geometry.Offset(cx, by + r * 0.42f), strokeWidth = unit * 0.04f)
+    drawArc(color = accent, startAngle = 50f, sweepAngle = 250f, useCenter = false,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - r * 0.24f, by - r * 0.38f),
+        size = androidx.compose.ui.geometry.Size(r * 0.48f, r * 0.36f),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = unit * 0.045f))
+    drawArc(color = accent, startAngle = 230f, sweepAngle = 250f, useCenter = false,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - r * 0.24f, by - r * 0.02f),
+        size = androidx.compose.ui.geometry.Size(r * 0.48f, r * 0.36f),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(width = unit * 0.045f))
+    for (s in listOf(-1f, 1f)) {
+        drawCircle(accent, r * 0.10f, androidx.compose.ui.geometry.Offset(cx + s * r * 0.26f, cy - r * 0.38f))
     }
 }

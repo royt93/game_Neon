@@ -383,6 +383,14 @@ fun GameScreen(
                 com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HAMMER_SICKLE -> 0.90f
                 com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.MONEY_TYCOON -> 1.05f
                 com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.GOLDEN_TYCOON -> 1.15f
+                // Wave 15 batch 1 — pitch cho sting intro 3 boss mới.
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SKULL_CROSSBONES -> 0.80f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.VAMPIRE -> 0.55f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.COSMIC_CENTIPEDE -> 1.30f
+                // Wave 16 batch 2
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.GIANT_CONDOM -> 1.10f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.VENOM_SPIDER -> 0.70f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.CORRUPTION -> 0.85f
                 null -> 1.0f
             }
             sfx.play(SfxEvent.EXPLOSION, rate)
@@ -612,8 +620,9 @@ fun GameScreen(
         // Higher-priority banner suppresses lower-priority ones to keep UI clean.
         val bossRankActive = gameState.bossKillRankShownMillis > 0L &&
             (now - gameState.bossKillRankShownMillis) < 1800L
+        // Wave 16 — full-screen cinematic now lasts 2400ms (was 1500ms banner).
         val bossIntroActive = gameState.bossIntroShownAtMillis > 0L &&
-            (now - gameState.bossIntroShownAtMillis) < 1500L
+            (now - gameState.bossIntroShownAtMillis) < 2400L
         // 5c: Neon glow stage banner replaces plain Text for stage messages.
         // Stays at exact center (anchor banner — most important narrative event).
         // Hidden when boss-kill rank or boss intro is active.
@@ -824,8 +833,10 @@ fun GameScreen(
         // 21c: Boss intro overlay — pulsing red border + boss name + alarm SFX.
         BossIntroOverlay(
             bossName = gameState.bossIntroName,
+            bossTaunt = gameState.bossIntroTaunt,
             shownAtMillis = gameState.bossIntroShownAtMillis,
-            modifier = Modifier.zIndex(440f),
+            onSkip = gameState.onSkipBossIntro,
+            modifier = Modifier.zIndex(470f),
         )
         // 24b: Boss kill rank S/A/B/C/D overlay — 1.8s after boss kill.
         BossRankOverlay(

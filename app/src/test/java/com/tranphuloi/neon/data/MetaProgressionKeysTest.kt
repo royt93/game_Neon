@@ -29,12 +29,12 @@ class MetaProgressionKeysTest {
 
     @Test
     fun `BulletType has 12 entries`() {
-        assertEquals(12, BulletType.entries.size)
+        assertEquals(18, BulletType.entries.size)
     }
 
     @Test
-    fun `BossKind has 21 entries`() {
-        assertEquals(21, BossKind.entries.size)
+    fun `BossKind has 27 entries`() {
+        assertEquals(27, BossKind.entries.size)
     }
 
     @Test
@@ -45,8 +45,8 @@ class MetaProgressionKeysTest {
     }
 
     @Test
-    fun `ShipSkin has 5 entries`() {
-        assertEquals(5, ShipSkin.entries.size)
+    fun `ShipSkin has 8 entries`() {
+        assertEquals(8, ShipSkin.entries.size)
     }
 
     // ── Key uniqueness — overlap would collide in DataStore ──
@@ -168,6 +168,10 @@ class MetaProgressionKeysTest {
             "NORMAL", "PIERCING", "PLASMA", "FIRE", "HOMING",
             "BOUNCE", "GIANT", "SMOKE", "ZIGZAG", "KAMEHAMEHA",
             "ATOMIC", "SPLIT",
+            // Wave 16 — đạn trào phúng batch 1
+            "LOTTERY", "FIREWORK", "BRICK",
+            // Wave 16 — đạn trào phúng batch 2
+            "BANH_MI", "DURIAN", "HEART",
         )
         val actual = BulletType.entries.map { it.name }.toSet()
         assertEquals(
@@ -187,6 +191,10 @@ class MetaProgressionKeysTest {
             "HEN_MOTHER", "BUFFALO_RAGE", "DUMB_RAT", "FIERCE_TIGER",
             "SEXY_DIVA", "TROLL_TOWER", "TWIN_SUMMITS", "VOID_GLOBES",
             "WHITE_DRAGON", "HAMMER_SICKLE", "MONEY_TYCOON", "GOLDEN_TYCOON",
+            // Wave 15 batch 1
+            "SKULL_CROSSBONES", "VAMPIRE", "COSMIC_CENTIPEDE",
+            // Wave 16 batch 2
+            "GIANT_CONDOM", "VENOM_SPIDER", "CORRUPTION",
         )
         val actual = BossKind.entries.map { it.name }.toSet()
         assertEquals(
@@ -197,7 +205,11 @@ class MetaProgressionKeysTest {
 
     @Test
     fun `ShipSkin full key set is stable (rename detection)`() {
-        val expected = setOf("aura_cyan", "aura_gold", "aura_magenta", "aura_violet", "aura_red")
+        val expected = setOf(
+            "aura_cyan", "aura_gold", "aura_magenta", "aura_violet", "aura_red",
+            // Wave 16
+            "aura_emerald", "aura_amber", "aura_ice",
+        )
         val actual = ShipSkin.entries.map { it.key }.toSet()
         assertEquals(
             "Rename detected — DataStore key migration required for renamed entries",

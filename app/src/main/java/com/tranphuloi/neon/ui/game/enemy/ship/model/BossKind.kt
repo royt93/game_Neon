@@ -43,7 +43,17 @@ enum class BossKind(val displayName: String) {
     TWIN_SUMMITS(displayName = "Đôi Đỉnh Sinh Hoa"),
     VOID_GLOBES(displayName = "Đôi Cầu Hư Vô"),
     WHITE_DRAGON(displayName = "Bạch Long Mắt Lam"),
-    HAMMER_SICKLE(displayName = "Cộng Sản Bịp Bợm"),
+    HAMMER_SICKLE(displayName = "Cộng Sản Lên Ngôi"),
     MONEY_TYCOON(displayName = "Tư Bản Bóc Lột"),
     GOLDEN_TYCOON(displayName = "Tycoon Vàng"),
+
+    // ── Wave 15 batch 1 — 3 boss user nêu đích danh ──
+    SKULL_CROSSBONES(displayName = "Đầu Lâu Xương Chéo"),
+    VAMPIRE(displayName = "Ma Cà Rồng"),
+    COSMIC_CENTIPEDE(displayName = "Con Rết Vũ Trụ"),
+
+    // ── Wave 16 batch 2 — 3 boss user nêu đích danh (nốt) ──
+    GIANT_CONDOM(displayName = "Bao Cao Su Khổng Lồ"),
+    VENOM_SPIDER(displayName = "Nhện Venom"),
+    CORRUPTION(displayName = "Tham Nhũng"),
 }

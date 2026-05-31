@@ -133,6 +133,117 @@ internal fun DrawScope.drawBoosterShape(
     }
 }
 
+/**
+ * Wave 16 — vector mini-glyph badge, replacing the `Text(glyph)` overlay in
+ * [com.tranphuloi.neon.ui.game.world.GameWorld].
+ *
+ * Bug fixed: many booster glyphs were exotic Unicode (Ѱ Ѵ ѻ ǁ ⊛ ⌇ ❍ ⇋ ⚜ ⊚ ◌
+ * …) the device font has no glyph for → Android rendered the missing-glyph box
+ * ("?"/tofu). Drawing each as a tiny vector removes the font dependency
+ * entirely. Dispatch on the existing glyph String so the data model +
+ * `BoosterGlyphTest` stay untouched. Unknown glyph → small dot (never tofu).
+ *
+ * Drawn into a small square badge centered at (cx, cy); [sz] is the badge edge.
+ */
+/**
+ * Every glyph string [drawBoosterGlyphVector] draws a dedicated vector for.
+ * Pinned against the booster catalog by `BoosterGlyphVectorTest`: any booster
+ * glyph NOT in this set would fall through to the generic-dot `else` branch
+ * (losing its distinct badge). Keep in sync with the `when` arms below.
+ */
+internal val BOOSTER_GLYPH_VECTORS: Set<String> = setOf(
+    "→", "◯", "♨", "◎", "⇄", "⬤", "❍", "⌇", "⊛", "⊙",
+    "Ѱ", "⊕", "✱", "☆", "⚡", "◇", "$", "✚", "✦", "+",
+    "⚯", "♻", "❄", "◌", "Ѵ", "ѻ", "⊚", "⇋", "⚜", "ǁ",
+)
+
+internal fun DrawScope.drawBoosterGlyphVector(
+    glyph: String, cx: Float, cy: Float, sz: Float, color: Color,
+) {
+    val r = sz * 0.40f
+    val sw = (sz * 0.11f).coerceAtLeast(1.5f)
+    val capR = androidx.compose.ui.graphics.StrokeCap.Round
+    fun ring(rr: Float, w: Float = sw) =
+        drawCircle(color, rr, Offset(cx, cy), style = Stroke(width = w))
+    fun dot(rr: Float, ox: Float = 0f, oy: Float = 0f) =
+        drawCircle(color, rr, Offset(cx + ox, cy + oy))
+    fun ln(x1: Float, y1: Float, x2: Float, y2: Float, w: Float = sw) =
+        drawLine(color, Offset(cx + x1, cy + y1), Offset(cx + x2, cy + y2), strokeWidth = w, cap = capR)
+    // n evenly-spaced spokes from center (asterisk/snowflake/sparkle base).
+    fun spokes(n: Int, len: Float, startDeg: Double = -90.0) {
+        for (i in 0 until n) {
+            val a = Math.toRadians(startDeg + i * 360.0 / n)
+            ln(0f, 0f, (len * kotlin.math.cos(a)).toFloat(), (len * kotlin.math.sin(a)).toFloat())
+        }
+    }
+    fun arrow(dx: Float, dy: Float, tx: Float, ty: Float) {
+        ln(dx, dy, tx, ty)
+        val ang = kotlin.math.atan2((ty - dy).toDouble(), (tx - dx).toDouble())
+        val h = sz * 0.16f
+        for (s in listOf(2.5, -2.5)) {
+            ln(tx, ty, tx + (h * kotlin.math.cos(ang + s)).toFloat(), ty + (h * kotlin.math.sin(ang + s)).toFloat())
+        }
+    }
+    fun star(points: Int, outer: Float, inner: Float, fill: Boolean) {
+        val p = PathPool.acquire().apply {
+            val step = Math.PI / points
+            for (i in 0 until points * 2) {
+                val a = -Math.PI / 2.0 + i * step
+                val rr = if (i % 2 == 0) outer else inner
+                val x = cx + (rr * kotlin.math.cos(a)).toFloat()
+                val y = cy + (rr * kotlin.math.sin(a)).toFloat()
+                if (i == 0) moveTo(x, y) else lineTo(x, y)
+            }
+            close()
+        }
+        if (fill) drawPath(p, color) else drawPath(p, color, style = Stroke(width = sw * 0.8f))
+        PathPool.release(p)
+    }
+    fun diamond(half: Float, fill: Boolean) {
+        val p = PathPool.acquire().apply {
+            moveTo(cx, cy - half); lineTo(cx + half * 0.8f, cy)
+            lineTo(cx, cy + half); lineTo(cx - half * 0.8f, cy); close()
+        }
+        if (fill) drawPath(p, color) else drawPath(p, color, style = Stroke(width = sw * 0.8f))
+        PathPool.release(p)
+    }
+    fun plus(arm: Float) { ln(-arm, 0f, arm, 0f); ln(0f, -arm, 0f, arm) }
+
+    when (glyph) {
+        "→" -> arrow(-r, 0f, r, 0f)
+        "◯" -> ring(r)
+        "♨" -> { ln(-r * 0.5f, r * 0.4f, -r * 0.5f, -r * 0.4f, sw * 0.8f); ln(r * 0.5f, r * 0.4f, r * 0.5f, -r * 0.4f, sw * 0.8f); ln(0f, r * 0.5f, 0f, -r * 0.3f, sw * 0.8f) }
+        "◎" -> { ring(r); dot(r * 0.42f) }
+        "⇄" -> { arrow(-r, -r * 0.4f, r, -r * 0.4f); arrow(r, r * 0.4f, -r, r * 0.4f) }
+        "⬤" -> dot(r)
+        "❍" -> { ring(r * 0.85f); dot(r * 0.28f, r * 0.4f, -r * 0.4f) }
+        "⌇" -> { ln(0f, -r, r * 0.5f, -r * 0.4f); ln(r * 0.5f, -r * 0.4f, -r * 0.5f, r * 0.1f); ln(-r * 0.5f, r * 0.1f, r * 0.3f, r) }
+        "⊛" -> { ring(r); spokes(4, r * 0.55f, -45.0) }
+        "⊙" -> { ring(r); dot(r * 0.22f) }
+        "Ѱ" -> { ln(0f, -r, 0f, r); ln(0f, r * 0.1f, -r * 0.7f, -r * 0.7f); ln(0f, r * 0.1f, r * 0.7f, -r * 0.7f); ln(-r * 0.5f, r, r * 0.5f, r) }
+        "⊕" -> { ring(r); plus(r * 0.55f) }
+        "✱" -> spokes(6, r)
+        "☆" -> star(5, r, r * 0.45f, fill = false)
+        "⚡" -> { ln(r * 0.3f, -r, -r * 0.2f, 0f); ln(-r * 0.2f, 0f, r * 0.15f, 0f); ln(r * 0.15f, 0f, -r * 0.3f, r) }
+        "◇" -> diamond(r, fill = false)
+        "$" -> { ln(0f, -r * 1.05f, 0f, r * 1.05f, sw * 0.8f); ln(-r * 0.4f, -r * 0.5f, r * 0.4f, -r * 0.5f); ln(-r * 0.4f, 0f, r * 0.4f, 0f); ln(-r * 0.4f, r * 0.5f, r * 0.4f, r * 0.5f) }
+        "✚" -> { ln(-r, 0f, r, 0f, sw * 1.4f); ln(0f, -r, 0f, r, sw * 1.4f) }
+        "✦" -> { spokes(4, r); spokes(4, r * 0.5f, -45.0) }
+        "+" -> plus(r * 0.8f)
+        "⚯" -> { drawCircle(color, r * 0.45f, Offset(cx - r * 0.4f, cy), style = Stroke(width = sw)); drawCircle(color, r * 0.45f, Offset(cx + r * 0.4f, cy), style = Stroke(width = sw)) }
+        "♻" -> { ring(r * 0.9f); arrow(r * 0.9f, -r * 0.2f, r * 0.5f, -r * 0.7f) }
+        "❄" -> { spokes(6, r); for (i in 0 until 6) { val a = Math.toRadians(-90.0 + i * 60.0); val bx = (r * 0.6f * kotlin.math.cos(a)).toFloat(); val by = (r * 0.6f * kotlin.math.sin(a)).toFloat(); ln(bx, by, bx + sz * 0.1f, by - sz * 0.1f, sw * 0.7f); ln(bx, by, bx - sz * 0.1f, by - sz * 0.1f, sw * 0.7f) } }
+        "◌" -> for (i in 0 until 8) { val a = Math.toRadians(i * 45.0); dot(sw * 0.6f, (r * kotlin.math.cos(a)).toFloat(), (r * kotlin.math.sin(a)).toFloat()) }
+        "Ѵ" -> { ln(-r * 0.7f, -r, 0f, r); ln(r * 0.7f, -r, 0f, r) }
+        "ѻ" -> { ring(r * 0.7f); ln(r * 0.45f, r * 0.45f, r, r) }
+        "⊚" -> { ring(r); ring(r * 0.5f) }
+        "⇋" -> { arrow(-r * 0.4f, -r, -r * 0.4f, r); arrow(r * 0.4f, r, r * 0.4f, -r) }
+        "⚜" -> { dot(sw * 0.7f, -r * 0.6f, -r * 0.6f); dot(sw * 0.7f, r * 0.5f, -r * 0.1f); dot(sw * 0.7f, -r * 0.3f, r * 0.6f); ln(-r * 0.6f, -r * 0.6f, r * 0.5f, -r * 0.1f); ln(r * 0.5f, -r * 0.1f, -r * 0.3f, r * 0.6f) }
+        "ǁ" -> { ln(-r * 0.35f, -r, -r * 0.35f, r); ln(r * 0.35f, -r, r * 0.35f, r) }
+        else -> dot(sz * 0.14f)
+    }
+}
+
 /** Two small ship silhouettes side-by-side — CLONE_BOOSTER (phantom twin firing alongside). */
 private fun DrawScope.drawClonePairShape(cx: Float, cy: Float, size: Float, color: Color) {
     val shipW = size * 0.22f

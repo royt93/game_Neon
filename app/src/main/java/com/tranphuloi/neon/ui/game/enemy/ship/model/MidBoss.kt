@@ -66,6 +66,25 @@ data class MidBoss(
 
     private var knockbackVel: Float = 0f
     private var movementTime: Float = 0f              // accumulates per process() call
+    // Wave 16 — increments each generateLasers() call; drives rotating /
+    // alternating signature patterns (e.g. SKULL spinning bone fan).
+    private var fireTick: Int = 0
+
+    // ── Wave 16 Wave B — MARQUEE mechanics (vài boss đỉnh) ──
+    /** SHIELD: bất tử 1 cửa sổ khi vào phase 2 (Bạch Long, Bao Cao Su). */
+    private val hasShield: Boolean =
+        variant == MidBossType.WHITE_DRAGON || variant == MidBossType.GIANT_CONDOM
+    /** TELEPORT: nhảy chỗ định kỳ + giữ vị trí (Venom, Tham Nhũng, Hell Lord/OFFENSIVE). */
+    private val hasTeleport: Boolean =
+        variant == MidBossType.VENOM_SPIDER || variant == MidBossType.CORRUPTION ||
+            variant == MidBossType.OFFENSIVE
+    private var shieldedUntilMillis: Long = 0L
+    private var lastTeleportMillis: Long = 0L
+    private var teleportHoldUntil: Long = 0L
+    private var teleportCount: Int = 0
+
+    /** External (render/HP-bar) — true khi đang bất tử nhờ shield. */
+    fun isShielded(now: Long = System.currentTimeMillis()): Boolean = now < shieldedUntilMillis
 
     /** True once the phase transition flash has been triggered (one-shot gate). */
     private var phase2Engaged: Boolean = false
@@ -106,8 +125,27 @@ data class MidBoss(
             MidBossType.HAMMER_SICKLE -> 0       // sine
             MidBossType.MONEY_TYCOON -> 1        // patrol
             MidBossType.GOLDEN_TYCOON -> 2       // erratic
+            // Wave 15 batch 1
+            MidBossType.SKULL_CROSSBONES -> 0    // sine (cướp biển hung hãn)
+            MidBossType.VAMPIRE -> 2             // erratic (lượn như dơi)
+            MidBossType.COSMIC_CENTIPEDE -> 1    // patrol (bò dài)
+            // Wave 16 batch 2
+            MidBossType.GIANT_CONDOM -> 1        // patrol (phình to ì ạch)
+            MidBossType.VENOM_SPIDER -> 2        // erratic (nhện bò giật)
+            MidBossType.CORRUPTION -> 1          // patrol (béo ục ịch)
         }
-        when (patternForVariant) {
+        // Marquee TELEPORT — nhảy sang một bên (luân phiên) + GIỮ vị trí một
+        // lúc (chặn movement trong cửa sổ hold) để cú nhảy "ăn" được.
+        val now = System.currentTimeMillis()
+        if (hasTeleport && now - lastTeleportMillis > TELEPORT_INTERVAL_MS) {
+            lastTeleportMillis = now
+            teleportHoldUntil = now + TELEPORT_HOLD_MS
+            val side = if (teleportCount % 2 == 0) 0.18f else 0.82f
+            teleportCount++
+            xOffset = (screenWidth * side - width / 2f).coerceIn(0f, screenWidth - width)
+        }
+        // Chỉ chạy movement thường khi KHÔNG đang giữ vị trí teleport.
+        if (now >= teleportHoldUntil) when (patternForVariant) {
             0 -> {
                 // Sine wave horizontal: ±100px around center, 3s cycle.
                 val t = movementTime / 600f
@@ -141,6 +179,8 @@ data class MidBoss(
         if (!phase2Engaged && hp < initialHp * 0.5f) {
             phase2Engaged = true
             lastImpactMillis = System.currentTimeMillis()    // re-uses flash trigger for visual cue
+            // Marquee SHIELD — vào phase 2 thì bất tử 1 cửa sổ (vảy rồng / bong bóng).
+            if (hasShield) shieldedUntilMillis = System.currentTimeMillis() + SHIELD_MS
         }
 
         if (yOffset + height > screenHeight) outOfScreen = true
@@ -150,95 +190,393 @@ data class MidBoss(
     override fun generateLasers(): List<Laser> {
         val ship: Ship = getShip()
         val phase2 = phase == 2
-        // Round 82 — 12 new variants reuse existing laser patterns (triple-spread,
-        // barrage, aimed). Bullet customization (egg/horn/laser/roar/hair-projectile
-        // etc per user spec) defer R83+.
-        val firePatternId: Int = when (variant) {
-            MidBossType.OFFENSIVE -> 0
-            MidBossType.DEFENSIVE -> 1
-            MidBossType.SWARM -> 2
-            MidBossType.HEN_MOTHER -> 2          // spread (egg cluster proxy)
-            MidBossType.BUFFALO_RAGE -> 0        // aimed (horn throw proxy)
-            MidBossType.DUMB_RAT -> 0            // aimed laser
-            MidBossType.FIERCE_TIGER -> 1        // barrage roar
-            MidBossType.SEXY_DIVA -> 2           // spread hair
-            MidBossType.TROLL_TOWER -> 0         // aimed projectile
-            MidBossType.TWIN_SUMMITS -> 0        // dual high-dmg aimed
-            MidBossType.VOID_GLOBES -> 1         // cluster barrage
-            MidBossType.WHITE_DRAGON -> 1        // fire breath barrage
-            MidBossType.HAMMER_SICKLE -> 2       // hammer+sickle spread
-            MidBossType.MONEY_TYCOON -> 2        // money bill spread
-            MidBossType.GOLDEN_TYCOON -> 2       // dollar bill spread
-        }
-        return when (firePatternId) {
-            0 -> if (phase2) tripleSpreadLasers(ship) else listOf(aimedLaser(ship))
-            1 -> if (phase2) barrageLasers() else listOf(aimedLaser(ship))
-            2 -> if (phase2) tripleSpreadLasers(ship) else listOf(aimedLaser(ship))
-            else -> listOf(aimedLaser(ship))
+        fireTick++
+
+        // Wave 16 — every mid-boss variant now has a SIGNATURE attack pattern
+        // (the old shared aimed/spread/barrage trio is gone). Exhaustive over the
+        // sealed MidBossType so a new variant MUST declare its skill (else compile
+        // error — no silent fallback to a generic pattern).
+        return when (variant) {
+            MidBossType.SKULL_CROSSBONES -> spinningBoneFan(phase2)
+            MidBossType.VAMPIRE -> batSwarmLifesteal(ship, phase2)
+            MidBossType.COSMIC_CENTIPEDE -> poisonSprayArc(phase2)
+            MidBossType.HEN_MOTHER -> eggLobCluster(phase2)
+            MidBossType.BUFFALO_RAGE -> hornCharge(ship, phase2)
+            MidBossType.FIERCE_TIGER -> roarWall(phase2)
+            MidBossType.WHITE_DRAGON -> fireBreath(phase2)
+            MidBossType.HAMMER_SICKLE -> hammerSickle(ship, phase2)
+            MidBossType.MONEY_TYCOON -> moneyRain(phase2)
+            MidBossType.GOLDEN_TYCOON -> dollarSpiral(phase2)
+            MidBossType.SEXY_DIVA -> hairWhip(phase2)
+            MidBossType.TROLL_TOWER -> towerBeam(phase2)
+            MidBossType.OFFENSIVE -> eyeBeam(ship, phase2)
+            MidBossType.DEFENSIVE -> atomOrbit(phase2)
+            MidBossType.SWARM -> hauntScatter(phase2)
+            MidBossType.DUMB_RAT -> ratNibble(ship, phase2)
+            MidBossType.TWIN_SUMMITS -> twinColumns(phase2)
+            MidBossType.VOID_GLOBES -> voidOrbs(phase2)
+            // Wave 16 batch 2
+            MidBossType.GIANT_CONDOM -> inflateBurst(phase2)
+            MidBossType.VENOM_SPIDER -> venomWeb(phase2)
+            MidBossType.CORRUPTION -> corruptionWall(phase2)
         }
     }
 
-    private fun aimedLaser(ship: Ship): Laser {
-        val laserW = 28f
-        val dx = ship.xOffset - xOffset
-        val dy = (ship.yOffset - yOffset).coerceAtLeast(1f)
-        return EnemyLaser(
-            xOffset = xOffset + width / 2 - laserW / 2,
-            yOffset = yOffset + height,
-            yRange = screenHeight,
-            width = laserW,
-            height = laserW,
-            xOffsetMovementSpeed = (dx / dy) * 0.8f,
-            yOffsetMovementSpeed = 0.8f,
-            drawableId = R.drawable.ic_laser_red_8,
-        )
-    }
+    // ────────────────────────────────────────────────────────────────────────
+    // Wave 16 — per-boss signature attack patterns (batch 1). Each spawns
+    // EnemyLasers with a distinct geometry/behaviour so bosses no longer share
+    // the generic aimed/spread/barrage trio.
+    // ────────────────────────────────────────────────────────────────────────
 
-    private fun tripleSpreadLasers(ship: Ship): List<Laser> {
-        // Three lasers at -30°, 0°, +30° spread.
-        val laserW = 26f
-        val baseDx = ship.xOffset - xOffset
-        val baseDy = (ship.yOffset - yOffset).coerceAtLeast(1f)
-        return listOf(-0.4f, 0f, 0.4f).map { spreadOffset ->
-            EnemyLaser(
-                xOffset = xOffset + width / 2 - laserW / 2,
-                yOffset = yOffset + height,
-                yRange = screenHeight,
-                width = laserW,
-                height = laserW,
-                xOffsetMovementSpeed = (baseDx / baseDy + spreadOffset) * 0.7f,
-                yOffsetMovementSpeed = 0.8f,
-                drawableId = R.drawable.ic_laser_red_8,
+    /** Spawn one downward EnemyLaser. [angleDeg] = 0 is straight down; +/- tilts. */
+    private fun bossBullet(
+        xSpeed: Float,
+        ySpeed: Float,
+        w: Float = 26f,
+        spawnX: Float = xOffset + width / 2f - w / 2f,
+        drawable: Int = R.drawable.ic_laser_red_8,
+    ): EnemyLaser = EnemyLaser(
+        xOffset = spawnX,
+        yOffset = yOffset + height,
+        yRange = screenHeight,
+        width = w,
+        height = w,
+        xOffsetMovementSpeed = xSpeed,
+        yOffsetMovementSpeed = ySpeed,
+        drawableId = drawable,
+    )
+
+    /** Đầu Lâu Xương Chéo — quạt "xương" xoay trái-phải theo thời gian. */
+    private fun spinningBoneFan(phase2: Boolean): List<Laser> {
+        val n = if (phase2) 7 else 5
+        val spreadDeg = 80f
+        val sweep = (kotlin.math.sin(fireTick * 0.5) * 25.0).toFloat()    // rotating fan
+        return (0 until n).map { i ->
+            val frac = if (n == 1) 0.5f else i.toFloat() / (n - 1)
+            val rad = Math.toRadians((-spreadDeg / 2f + frac * spreadDeg + sweep).toDouble())
+            bossBullet(
+                xSpeed = (kotlin.math.sin(rad) * 0.9).toFloat(),
+                ySpeed = (kotlin.math.cos(rad) * 0.9).toFloat().coerceAtLeast(0.35f),
             )
         }
     }
 
-    private fun barrageLasers(): List<Laser> {
-        // 5-wide laser barrage covering 80% of screen width, with 1 random gap.
-        val laserW = 30f
-        val laserCount = 5
-        val gap = (Math.random() * laserCount).toInt()
-        val spacing = (screenWidth * 0.8f) / laserCount
-        val startX = screenWidth * 0.1f
-        return (0 until laserCount).filter { it != gap }.map { i ->
-            EnemyLaser(
-                xOffset = startX + i * spacing,
-                yOffset = yOffset + height,
-                yRange = screenHeight,
-                width = laserW,
-                height = laserW,
-                xOffsetMovementSpeed = 0f,
-                yOffsetMovementSpeed = 0.9f,
-                drawableId = R.drawable.ic_laser_red_8,
+    /** Ma Cà Rồng — bầy "dơi" hội tụ về tàu + HÚT MÁU (hồi HP, chặn ở HP spawn). */
+    private fun batSwarmLifesteal(ship: Ship, phase2: Boolean): List<Laser> {
+        hp = (hp + if (phase2) 28f else 16f).coerceAtMost(initialHp)     // lifesteal
+        val count = if (phase2) 5 else 3
+        val baseDx = ship.xOffset - xOffset
+        val baseDy = (ship.yOffset - yOffset).coerceAtLeast(1f)
+        val aim = baseDx / baseDy
+        return (0 until count).map { i ->
+            val frac = if (count == 1) 0.5f else i.toFloat() / (count - 1)
+            bossBullet(
+                xSpeed = aim * 0.7f,
+                ySpeed = 0.75f,
+                w = 22f,
+                spawnX = xOffset + width * (0.15f + 0.7f * frac),
+            )
+        }
+    }
+
+    /** Con Rết Vũ Trụ — phun vòng cung "độc" rộng + chậm (như đám mây độc trôi). */
+    private fun poisonSprayArc(phase2: Boolean): List<Laser> {
+        val n = if (phase2) 9 else 6
+        val spreadDeg = 130f
+        return (0 until n).map { i ->
+            val frac = i.toFloat() / (n - 1)
+            val rad = Math.toRadians((-spreadDeg / 2f + frac * spreadDeg).toDouble())
+            bossBullet(
+                xSpeed = (kotlin.math.sin(rad) * 0.5).toFloat(),
+                ySpeed = (kotlin.math.cos(rad) * 0.5).toFloat().coerceAtLeast(0.3f),
+                w = 20f,
+            )
+        }
+    }
+
+    /** Gà Mái Dầu — cụm "trứng" rơi chậm, tản mác ngẫu nhiên. */
+    private fun eggLobCluster(phase2: Boolean): List<Laser> {
+        val n = if (phase2) 6 else 4
+        return (0 until n).map {
+            bossBullet(
+                xSpeed = (Math.random().toFloat() - 0.5f) * 0.7f,
+                ySpeed = 0.55f + Math.random().toFloat() * 0.25f,
+                w = 24f,
+                spawnX = xOffset + width * (0.2f + 0.6f * Math.random().toFloat()),
+            )
+        }
+    }
+
+    /** Trâu Hung Hãn — "húc sừng": vài tia nặng, nhanh, song song nhắm tàu. */
+    private fun hornCharge(ship: Ship, phase2: Boolean): List<Laser> {
+        val baseDx = ship.xOffset - xOffset
+        val baseDy = (ship.yOffset - yOffset).coerceAtLeast(1f)
+        val aim = baseDx / baseDy
+        val horns = if (phase2) listOf(-0.18f, -0.06f, 0.06f, 0.18f) else listOf(-0.12f, 0.12f)
+        return horns.map { off ->
+            bossBullet(
+                xSpeed = aim * 1.3f,
+                ySpeed = 1.3f,
+                w = 34f,
+                spawnX = xOffset + width * (0.5f + off) - 17f,
+            )
+        }
+    }
+
+    /** Cọp Hung Tợn — "gầm": bức tường ngang gần kín màn, 1-2 khe để né. */
+    private fun roarWall(phase2: Boolean): List<Laser> {
+        val count = 8
+        val gaps = if (phase2) {
+            setOf((Math.random() * count).toInt())                       // 1 gap = harder
+        } else {
+            setOf((Math.random() * count).toInt(), (Math.random() * count).toInt())
+        }
+        val spacing = (screenWidth * 0.9f) / count
+        val startX = screenWidth * 0.05f
+        return (0 until count).filter { it !in gaps }.map { i ->
+            bossBullet(
+                xSpeed = 0f,
+                ySpeed = if (phase2) 1.1f else 0.9f,
+                w = 28f,
+                spawnX = startX + i * spacing,
+            )
+        }
+    }
+
+    // ── Wave 16 batch 2 ──
+
+    /** Bạch Long Mắt Lam — "thét lửa": luồng hẹp, nhanh, hơi rung (flame breath). */
+    private fun fireBreath(phase2: Boolean): List<Laser> {
+        val n = if (phase2) 5 else 3
+        val flicker = (kotlin.math.sin(fireTick * 0.9) * 0.12).toFloat()
+        return (0 until n).map { i ->
+            val frac = if (n == 1) 0f else (i.toFloat() / (n - 1) - 0.5f)   // -0.5..0.5
+            bossBullet(xSpeed = frac * 0.3f + flicker, ySpeed = 1.1f, w = 24f)
+        }
+    }
+
+    /** Cộng Sản Lên Ngôi — quăng "búa & liềm": 2 vật nặng văng 2 bên (+ tâm ở phase 2). */
+    private fun hammerSickle(ship: Ship, phase2: Boolean): List<Laser> {
+        val out = mutableListOf<Laser>(
+            bossBullet(xSpeed = -0.6f, ySpeed = 0.7f, w = 32f, spawnX = xOffset + width * 0.30f - 16f),
+            bossBullet(xSpeed = 0.6f, ySpeed = 0.7f, w = 32f, spawnX = xOffset + width * 0.70f - 16f),
+        )
+        if (phase2) {
+            val dx = ship.xOffset - xOffset
+            val dy = (ship.yOffset - yOffset).coerceAtLeast(1f)
+            out.add(bossBullet(xSpeed = (dx / dy) * 0.8f, ySpeed = 0.9f, w = 30f))
+        }
+        return out
+    }
+
+    /** Tư Bản Bóc Lột — "mưa tiền": đạn nhẹ rơi rải khắp bề ngang màn hình. */
+    private fun moneyRain(phase2: Boolean): List<Laser> {
+        val n = if (phase2) 7 else 5
+        return (0 until n).map {
+            bossBullet(
+                xSpeed = (Math.random().toFloat() - 0.5f) * 0.15f,
+                ySpeed = 0.7f + Math.random().toFloat() * 0.3f,
+                w = 18f,
+                spawnX = screenWidth * (0.05f + 0.9f * Math.random().toFloat()),
+            )
+        }
+    }
+
+    /** Tycoon Vàng — "đô la xoáy": dòng xoắn ốc quay theo thời gian (fireTick). */
+    private fun dollarSpiral(phase2: Boolean): List<Laser> {
+        val arms = if (phase2) 3 else 2
+        val base = fireTick * 22f
+        return (0 until arms).map { k ->
+            val rad = Math.toRadians((base + k * 360f / arms).toDouble())
+            bossBullet(
+                xSpeed = (kotlin.math.sin(rad) * 0.75).toFloat(),
+                ySpeed = (kotlin.math.cos(rad) * 0.75).toFloat().coerceAtLeast(0.3f),
+                w = 22f,
+            )
+        }
+    }
+
+    /** Cô Gái Sexy — "quất tóc": loạt nghiêng, đổi bên trái-phải luân phiên mỗi nhịp. */
+    private fun hairWhip(phase2: Boolean): List<Laser> {
+        val side = if (fireTick % 2 == 0) -1f else 1f
+        val n = if (phase2) 4 else 3
+        return (0 until n).map { i ->
+            val frac = i.toFloat() / n
+            bossBullet(xSpeed = side * (0.25f + frac * 0.5f), ySpeed = 0.7f, w = 22f)
+        }
+    }
+
+    /** Tháp Tinh Quỷ — "tia từ đỉnh": cột dọc dày ở tâm + 2 tia rìa nghiêng. */
+    private fun towerBeam(phase2: Boolean): List<Laser> {
+        val out = mutableListOf<Laser>()
+        val cols = if (phase2) listOf(-0.06f, 0f, 0.06f) else listOf(0f)
+        cols.forEach { off ->
+            out.add(
+                bossBullet(
+                    xSpeed = 0f, ySpeed = 1.2f, w = 26f,
+                    spawnX = xOffset + width * (0.5f + off) - 13f,
+                ),
+            )
+        }
+        out.add(bossBullet(xSpeed = -0.4f, ySpeed = 0.7f, w = 20f))
+        out.add(bossBullet(xSpeed = 0.4f, ySpeed = 0.7f, w = 20f))
+        return out
+    }
+
+    // ── Wave 16 batch 3 (final) ──
+
+    /** Lính Gác Mắt Sát Thủ / Chúa Tể Địa Ngục — "tia mắt": chùm nhắm sát, nhanh. */
+    private fun eyeBeam(ship: Ship, phase2: Boolean): List<Laser> {
+        val dx = ship.xOffset - xOffset
+        val dy = (ship.yOffset - yOffset).coerceAtLeast(1f)
+        val aim = dx / dy
+        val n = if (phase2) 4 else 3
+        val out = (0 until n).map { i ->
+            bossBullet(
+                xSpeed = aim * 1.0f,
+                ySpeed = 1.0f,
+                w = 22f,
+                spawnX = xOffset + width / 2f - 11f + (i - n / 2) * 6f,
+            )
+        }.toMutableList()
+        if (phase2) {
+            out.add(bossBullet(xSpeed = aim - 0.3f, ySpeed = 0.9f, w = 20f))
+            out.add(bossBullet(xSpeed = aim + 0.3f, ySpeed = 0.9f, w = 20f))
+        }
+        return out
+    }
+
+    /** Hộ Vệ Nguyên Tử — "quỹ đạo": vòng đạn quay (atomic orbit), trôi dần xuống. */
+    private fun atomOrbit(phase2: Boolean): List<Laser> {
+        val n = if (phase2) 8 else 6
+        val base = fireTick * 15f
+        return (0 until n).map { i ->
+            val rad = Math.toRadians((base + i * 360f / n).toDouble())
+            bossBullet(
+                xSpeed = (kotlin.math.cos(rad) * 0.6).toFloat(),
+                // y amplitude < bias so EVERY orbit bullet still drifts downward
+                // (min = -0.45 + 0.55 = +0.10); upward bullets would just fly off
+                // the top and waste the volley.
+                ySpeed = (kotlin.math.sin(rad) * 0.45).toFloat() + 0.55f,
+                w = 22f,
+            )
+        }
+    }
+
+    /** Hồn Ma Trẻ Em — "ám": đạn tản loạn hỗn loạn từ vị trí ngẫu nhiên (eerie). */
+    private fun hauntScatter(phase2: Boolean): List<Laser> {
+        val n = if (phase2) 7 else 5
+        return (0 until n).map {
+            bossBullet(
+                xSpeed = (Math.random().toFloat() - 0.5f) * 1.0f,
+                ySpeed = 0.45f + Math.random().toFloat() * 0.4f,
+                w = 20f,
+                spawnX = xOffset + width * Math.random().toFloat(),
+            )
+        }
+    }
+
+    /** Chuột Ngu Si — "gặm": nhắm tàu nhưng lệch lung tung (ngắm dở). */
+    private fun ratNibble(ship: Ship, phase2: Boolean): List<Laser> {
+        val dx = ship.xOffset - xOffset
+        val dy = (ship.yOffset - yOffset).coerceAtLeast(1f)
+        val aim = dx / dy
+        val n = if (phase2) 3 else 2
+        return (0 until n).map {
+            val misaim = (Math.random().toFloat() - 0.5f) * 0.6f
+            bossBullet(xSpeed = aim * 0.7f + misaim, ySpeed = 0.8f, w = 24f)
+        }
+    }
+
+    /** Đôi Đỉnh Sinh Hoa — "tia kép": 2 cột thẳng song song cách xa (twin beams). */
+    private fun twinColumns(phase2: Boolean): List<Laser> {
+        val cols = if (phase2) listOf(0.25f, 0.40f, 0.60f, 0.75f) else listOf(0.3f, 0.7f)
+        return cols.map { frac ->
+            bossBullet(xSpeed = 0f, ySpeed = 1.0f, w = 28f, spawnX = screenWidth * frac - 14f)
+        }
+    }
+
+    /** Đôi Cầu Hư Vô — "xé hư vô": 2 cầu bắn chéo nhau tạo hình X. */
+    private fun voidOrbs(phase2: Boolean): List<Laser> {
+        val out = mutableListOf<Laser>()
+        val n = if (phase2) 3 else 2
+        repeat(n) { i ->
+            val f = if (n == 1) 0f else i.toFloat() / (n - 1)
+            out.add(bossBullet(xSpeed = 0.2f + f * 0.4f, ySpeed = 0.7f, w = 22f,
+                spawnX = xOffset + width * 0.2f))
+            out.add(bossBullet(xSpeed = -(0.2f + f * 0.4f), ySpeed = 0.7f, w = 22f,
+                spawnX = xOffset + width * 0.8f))
+        }
+        return out
+    }
+
+    // ── Wave 16 batch 2 (3 boss user nêu đích danh, nốt) ──
+
+    /** Bao Cao Su Khổng Lồ — "phình nổ": vòng đạn dày toả tròn, nhịp phình/xẹp. */
+    private fun inflateBurst(phase2: Boolean): List<Laser> {
+        // Pulse: alternate dense/less-dense rings (phình rồi xẹp) mỗi nhịp bắn.
+        val n = if (fireTick % 2 == 0) (if (phase2) 14 else 10) else (if (phase2) 10 else 7)
+        val off = if (fireTick % 2 == 0) 0f else 18f
+        return (0 until n).map { i ->
+            val rad = Math.toRadians((off + i * 360f / n).toDouble())
+            bossBullet(
+                xSpeed = (kotlin.math.cos(rad) * 0.6).toFloat(),
+                ySpeed = (kotlin.math.sin(rad) * 0.45).toFloat() + 0.55f,   // all drift down
+                w = 22f,
+            )
+        }
+    }
+
+    /** Nhện Venom — "tơ độc": 8 nan cố định toả ra (như chân nhện) + phase2 nhả thẳng. */
+    private fun venomWeb(phase2: Boolean): List<Laser> {
+        val spokes = 8
+        val out = (0 until spokes).map { i ->
+            val rad = Math.toRadians((i * 360f / spokes - 90f).toDouble())
+            bossBullet(
+                xSpeed = (kotlin.math.cos(rad) * 0.45).toFloat(),
+                ySpeed = (kotlin.math.sin(rad) * 0.45).toFloat() + 0.5f,
+                w = 20f,
+            )
+        }.toMutableList()
+        if (phase2) out.add(bossBullet(xSpeed = 0f, ySpeed = 0.95f, w = 24f))
+        return out
+    }
+
+    /** Tham Nhũng — "tiền đè": tường ngang DÀY, CHẬM, gần kín (chỉ 1 khe) để đè người. */
+    private fun corruptionWall(phase2: Boolean): List<Laser> {
+        val count = if (phase2) 10 else 7
+        val spacing = (screenWidth * 0.94f) / count
+        val startX = screenWidth * 0.03f
+        val gap = (Math.random() * count).toInt()                     // chỉ 1 khe duy nhất
+        return (0 until count).filter { it != gap }.map { i ->
+            bossBullet(
+                xSpeed = 0f,
+                ySpeed = if (phase2) 0.7f else 0.55f,                  // chậm = "đè"
+                w = 24f,
+                spawnX = startX + i * spacing,
             )
         }
     }
 
     override fun onObjectImpact(impactPower: Float) {
+        // Marquee SHIELD — bất tử trong cửa sổ shield: nháy (deflect) nhưng KHÔNG mất máu.
+        if (System.currentTimeMillis() < shieldedUntilMillis) {
+            lastImpactMillis = System.currentTimeMillis()
+            return
+        }
         hp -= impactPower
         lastImpactMillis = System.currentTimeMillis()
         if (!isInEntryPhase) {
             knockbackVel = (knockbackVel - 1.2f).coerceAtLeast(-2.5f)
         }
+    }
+
+    companion object {
+        /** Marquee SHIELD — độ dài cửa sổ bất tử khi vào phase 2 (ms). */
+        const val SHIELD_MS: Long = 1800L
+        /** Marquee TELEPORT — khoảng cách giữa 2 lần nhảy (ms). */
+        const val TELEPORT_INTERVAL_MS: Long = 4000L
+        /** Marquee TELEPORT — giữ vị trí sau nhảy (ms), chặn movement đè. */
+        const val TELEPORT_HOLD_MS: Long = 450L
     }
 }

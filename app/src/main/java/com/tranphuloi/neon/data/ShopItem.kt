@@ -72,6 +72,15 @@ data class ShopItem(
         const val SMARTBOMB_STOCKPILE_KEY = "shop_smartbomb_pack_3"
         const val REVIVE_STOCKPILE_KEY = "shop_revive_pack_1"
 
+        // Wave 14a Round 2 — 6 new "buff 1 run" consumable stockpile keys
+        // (consumed at run start by rememberGameState).
+        const val X2_MINERALS_KEY = "shop_buff_x2_minerals"
+        const val START_SHIELD_KEY = "shop_buff_start_shield"
+        const val X2_SCORE_KEY = "shop_buff_x2_score"
+        const val COMBO_KEEP_KEY = "shop_buff_combo_keep"
+        const val MAGNET_XL_KEY = "shop_buff_magnet_xl"
+        const val RAPID_FIRE_KEY = "shop_buff_rapid_fire"
+
         /**
          * Round 3 (Wave 12) — unlock gate for shop-gated content (skins,
          * bullets). [shopId] is a ShopItem.id, or null for free content.
@@ -96,37 +105,75 @@ data class ShopItem(
             ShopItem(
                 id = "skin_aura_violet",
                 displayName = "Skin Tím",
-                description = "Mở khóa ship skin AURA VIOLET",
+                description = "Đổi hào quang tàu sang màu tím (chỉ làm đẹp, không đổi sức mạnh).",
                 cost = 500,
                 category = Category.SHIP_SKIN_UNLOCK,
             ),
             ShopItem(
                 id = "skin_aura_red",
                 displayName = "Skin Đỏ Báo Động",
-                description = "Mở khóa ship skin AURA REDALERT",
+                description = "Đổi hào quang tàu sang màu đỏ rực (chỉ làm đẹp).",
                 cost = 800,
+                category = Category.SHIP_SKIN_UNLOCK,
+            ),
+            // Wave 16 — 3 hào quang mới.
+            ShopItem(
+                id = "skin_aura_emerald",
+                displayName = "Skin Lục Bảo",
+                description = "Đổi hào quang tàu sang xanh lục bảo (chỉ làm đẹp).",
+                cost = 600,
+                category = Category.SHIP_SKIN_UNLOCK,
+            ),
+            ShopItem(
+                id = "skin_aura_amber",
+                displayName = "Skin Hổ Phách",
+                description = "Đổi hào quang tàu sang cam hổ phách (chỉ làm đẹp).",
+                cost = 700,
+                category = Category.SHIP_SKIN_UNLOCK,
+            ),
+            ShopItem(
+                id = "skin_aura_ice",
+                displayName = "Skin Băng Giá",
+                description = "Đổi hào quang tàu sang xanh băng giá (chỉ làm đẹp).",
+                cost = 900,
                 category = Category.SHIP_SKIN_UNLOCK,
             ),
             // Bullet type unlocks (gated bullets beyond default NORMAL)
             ShopItem(
                 id = "bullet_kamehameha",
                 displayName = "Đạn Kamehameha",
-                description = "Mở khóa BulletType KAMEHAMEHA cho Loadout",
+                description = "Tia năng lượng to, xuyên thấu nhiều địch một lúc (sát thương ×3).",
                 cost = 1000,
                 category = Category.BULLET_TYPE_UNLOCK,
             ),
             ShopItem(
                 id = "bullet_atomic",
-                displayName = "Đạn Atomic",
-                description = "Mở khóa BulletType ATOMIC cho Loadout",
+                displayName = "Đạn Nguyên Tử",
+                description = "Khi trúng sẽ nổ lan ra vùng rộng, sát thương cả cụm địch xung quanh.",
                 cost = 1500,
+                category = Category.BULLET_TYPE_UNLOCK,
+            ),
+            // Wave 14a — gate 2 more strong bullets (were free). Migration in the
+            // Đạn tab grants the currently-selected one so nobody loses it.
+            ShopItem(
+                id = "bullet_giant",
+                displayName = "Đạn Khổng Lồ",
+                description = "Viên đạn to gấp đôi, sát thương ×2 — dễ trúng, mạnh hơn.",
+                cost = 700,
+                category = Category.BULLET_TYPE_UNLOCK,
+            ),
+            ShopItem(
+                id = "bullet_plasma",
+                displayName = "Đạn Plasma",
+                description = "Khi trúng sẽ nổ lan một vùng nhỏ, dính cả địch đứng gần.",
+                cost = 900,
                 category = Category.BULLET_TYPE_UNLOCK,
             ),
             // Consumables (stockpile) — round 3 wires gameplay consumers.
             ShopItem(
                 id = "smartbomb_pack_3",
                 displayName = "Túi bom +3",
-                description = "+3 smart bomb stock (consumed on use)",
+                description = "Vào run kế có thêm 3 quả bom dọn sạch màn hình (bấm nút bom để dùng).",
                 cost = 300,
                 category = Category.CONSUMABLE,
                 stockpileAdd = 3,
@@ -134,10 +181,54 @@ data class ShopItem(
             ShopItem(
                 id = "revive_pack_1",
                 displayName = "Túi hồi sinh +1",
-                description = "+1 token hồi sinh — tự kích hoạt khi vào run kế tiếp bạn chơi",
+                description = "Vào run kế, khi tàu nổ sẽ tự hồi sinh 1 lần (dùng là hết).",
                 cost = 600,
                 category = Category.CONSUMABLE,
                 stockpileAdd = 1,
+            ),
+            // Wave 14a Round 2 — 6 "buff 1 run" packs. Consumed at run start in
+            // rememberGameState; effect lasts the whole next run, then gone.
+            ShopItem(
+                id = "buff_x2_minerals",
+                displayName = "Gói x2 Khoáng",
+                description = "Run kế: mọi khoáng nhặt được nhân đôi (cày shop nhanh hơn).",
+                cost = 400,
+                category = Category.CONSUMABLE,
+            ),
+            ShopItem(
+                id = "buff_start_shield",
+                displayName = "Gói Khiên Khởi Đầu",
+                description = "Run kế: vào trận có sẵn 1 lớp khiên đỡ đòn (8 giây đầu).",
+                cost = 250,
+                category = Category.CONSUMABLE,
+            ),
+            ShopItem(
+                id = "buff_x2_score",
+                displayName = "Gói x2 Điểm",
+                description = "Run kế: điểm gửi bảng xếp hạng nhân đôi (không đổi khoáng kiếm được).",
+                cost = 400,
+                category = Category.CONSUMABLE,
+            ),
+            ShopItem(
+                id = "buff_combo_keep",
+                displayName = "Gói Giữ Combo",
+                description = "Run kế: combo lâu hết hơn (cửa sổ giữ combo dài gấp đôi).",
+                cost = 350,
+                category = Category.CONSUMABLE,
+            ),
+            ShopItem(
+                id = "buff_magnet_xl",
+                displayName = "Gói Nam Châm XL",
+                description = "Run kế: bán kính hút khoáng to gấp đôi cả run.",
+                cost = 300,
+                category = Category.CONSUMABLE,
+            ),
+            ShopItem(
+                id = "buff_rapid_fire",
+                displayName = "Gói Bắn Nhanh",
+                description = "Run kế: tốc độ bắn nhanh hơn (~1.5×) cả run.",
+                cost = 450,
+                category = Category.CONSUMABLE,
             ),
         )
     }

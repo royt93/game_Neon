@@ -34,4 +34,6 @@ data class EnemyUI(
     val activeStatusEffectTints: List<Long> = emptyList(),
     /** Round 71 (Issue 4d) — boss silhouette kind. Null = regular enemy. */
     val bossKind: BossKind? = null,
+    /** Wave 16 Wave B — true khi boss đang bất tử (SHIELD) → GameWorld vẽ vòng khiên. */
+    val isShielded: Boolean = false,
 ) : Serializable

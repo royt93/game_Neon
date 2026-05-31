@@ -25,6 +25,14 @@ data class Ship(
         com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL,
     val bulletTypeEndMillis: Long = 0L,
     /**
+     * Wave 14 — the loadout-selected bullet, applied for the WHOLE run (no
+     * 10s head-start expiry). A bullet BOOSTER temporarily overrides
+     * [activeBulletType] with a timed window; when it expires ShipController
+     * reverts to this base (not NORMAL), so the player keeps their chosen weapon.
+     */
+    val baseBulletType: com.tranphuloi.neon.ui.game.ship.laser.BulletType =
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL,
+    /**
      * Round 52 (40x Item combos) — rarity of the booster that activated the
      * current [activeBulletType]. Used to tier-up combat behaviour:
      *  - PIERCING: pierceCount scales 3/4/5 for Common/Rare/Epic.

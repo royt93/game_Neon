@@ -88,6 +88,14 @@ class BossKindResolverTest {
             MidBossType.HAMMER_SICKLE to BossKind.HAMMER_SICKLE,
             MidBossType.MONEY_TYCOON to BossKind.MONEY_TYCOON,
             MidBossType.GOLDEN_TYCOON to BossKind.GOLDEN_TYCOON,
+            // Wave 15 batch 1
+            MidBossType.SKULL_CROSSBONES to BossKind.SKULL_CROSSBONES,
+            MidBossType.VAMPIRE to BossKind.VAMPIRE,
+            MidBossType.COSMIC_CENTIPEDE to BossKind.COSMIC_CENTIPEDE,
+            // Wave 16 batch 2
+            MidBossType.GIANT_CONDOM to BossKind.GIANT_CONDOM,
+            MidBossType.VENOM_SPIDER to BossKind.VENOM_SPIDER,
+            MidBossType.CORRUPTION to BossKind.CORRUPTION,
         )
         for ((variant, expectedKind) in pairs) {
             assertEquals(

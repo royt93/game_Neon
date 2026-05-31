@@ -110,9 +110,9 @@ class ShopItemCatalogTest {
         // revisit.
         val minCost = all.minOf { it.cost }
         val maxCost = all.maxOf { it.cost }
-        // Tightened to the real current floor (300) so a "discount everything"
-        // regression breaks visibly instead of sliding under a loose ≥100 pin.
-        assertTrue("min cost $minCost should be ≥ 300", minCost >= 300)
+        // Floor = 250 (Gói Khiên Khởi Đầu, Wave 14a) — pins against a
+        // "discount everything" regression.
+        assertTrue("min cost $minCost should be ≥ 250", minCost >= 250)
         assertTrue("max cost $maxCost should be ≤ 2000", maxCost <= 2000)
     }
 
@@ -126,8 +126,15 @@ class ShopItemCatalogTest {
         // skill-tree owns the stat-buff economy now.
         val expected = setOf(
             "skin_aura_violet", "skin_aura_red",
+            // Wave 16 — 3 skin mới
+            "skin_aura_emerald", "skin_aura_amber", "skin_aura_ice",
             "bullet_kamehameha", "bullet_atomic",
+            // Wave 14a — 2 more strong bullets gated.
+            "bullet_giant", "bullet_plasma",
             "smartbomb_pack_3", "revive_pack_1",
+            // Wave 14a Round 2 — 6 "buff 1 run" consumables.
+            "buff_x2_minerals", "buff_start_shield", "buff_x2_score",
+            "buff_combo_keep", "buff_magnet_xl", "buff_rapid_fire",
         )
         val actual = all.map { it.id }.toSet()
         assertEquals(
@@ -178,6 +185,27 @@ class ShopItemCatalogTest {
         val revive = all.first { it.id == "revive_pack_1" }
         assertEquals(bomb.persistKey, ShopItem.SMARTBOMB_STOCKPILE_KEY)
         assertEquals(revive.persistKey, ShopItem.REVIVE_STOCKPILE_KEY)
+        // Wave 14a Round 2 — 6 new buff packs: const key must equal persistKey.
+        assertEquals(all.first { it.id == "buff_x2_minerals" }.persistKey, ShopItem.X2_MINERALS_KEY)
+        assertEquals(all.first { it.id == "buff_start_shield" }.persistKey, ShopItem.START_SHIELD_KEY)
+        assertEquals(all.first { it.id == "buff_x2_score" }.persistKey, ShopItem.X2_SCORE_KEY)
+        assertEquals(all.first { it.id == "buff_combo_keep" }.persistKey, ShopItem.COMBO_KEEP_KEY)
+        assertEquals(all.first { it.id == "buff_magnet_xl" }.persistKey, ShopItem.MAGNET_XL_KEY)
+        assertEquals(all.first { it.id == "buff_rapid_fire" }.persistKey, ShopItem.RAPID_FIRE_KEY)
+    }
+
+    @Test
+    fun `the 6 new buff packs are CONSUMABLE with positive cost and clear description`() {
+        val ids = listOf(
+            "buff_x2_minerals", "buff_start_shield", "buff_x2_score",
+            "buff_combo_keep", "buff_magnet_xl", "buff_rapid_fire",
+        )
+        ids.forEach { id ->
+            val item = all.first { it.id == id }
+            assertEquals("$id must be CONSUMABLE", ShopItem.Category.CONSUMABLE, item.category)
+            assertTrue("$id cost > 0", item.cost > 0)
+            assertTrue("$id needs a non-trivial description", item.description.length > 15)
+        }
     }
 
     @Test

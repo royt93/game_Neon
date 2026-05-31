@@ -43,10 +43,12 @@ enum class Chapter(
         ),
         hazard = HazardType.ASTEROID_STORM,
         // Round 82 — Ch1: OFFENSIVE (existing) + HEN_MOTHER + BUFFALO_RAGE (R81 new)
+        // Wave 15 — + SKULL_CROSSBONES (chủ đề cướp biển vũ trụ hợp Vành đai).
         midBossTypes = listOf(
             MidBossType.OFFENSIVE,
             MidBossType.HEN_MOTHER,
             MidBossType.BUFFALO_RAGE,
+            MidBossType.SKULL_CROSSBONES,
         ),
         finalBossType = LevelOneBossType,
     ),
@@ -65,10 +67,12 @@ enum class Chapter(
         ),
         hazard = HazardType.NEBULA_FOG,
         // Round 82 — Ch2: DEFENSIVE (existing) + DUMB_RAT + FIERCE_TIGER
+        // Wave 15 — + VAMPIRE (mây tinh vân tối tăm hợp ma cà rồng).
         midBossTypes = listOf(
             MidBossType.DEFENSIVE,
             MidBossType.DUMB_RAT,
             MidBossType.FIERCE_TIGER,
+            MidBossType.VAMPIRE,
         ),
         finalBossType = LevelTwoBossType,
     ),
@@ -88,10 +92,12 @@ enum class Chapter(
         ),
         hazard = HazardType.ICE_PATCHES,
         // Round 82 — Ch3: SWARM (existing) + SEXY_DIVA + TROLL_TOWER
+        // Wave 15 — + COSMIC_CENTIPEDE (con rết dài bò trên băng).
         midBossTypes = listOf(
             MidBossType.SWARM,
             MidBossType.SEXY_DIVA,
             MidBossType.TROLL_TOWER,
+            MidBossType.COSMIC_CENTIPEDE,
         ),
         finalBossType = LevelOneBossType,             // reuse — palette change handled visually
     ),
@@ -116,10 +122,13 @@ enum class Chapter(
         ),
         hazard = null,                                // station = open zone
         // Round 82 — Ch4: OFFENSIVE reuse (→HELL_LORD via factory) + TWIN_SUMMITS + VOID_GLOBES
+        // Wave 16 — + Bao Cao Su Khổng Lồ + Nhện Venom (trạm thù địch hợp 2 boss này).
         midBossTypes = listOf(
             MidBossType.OFFENSIVE,
             MidBossType.TWIN_SUMMITS,
             MidBossType.VOID_GLOBES,
+            MidBossType.GIANT_CONDOM,
+            MidBossType.VENOM_SPIDER,
         ),
         finalBossType = LevelTwoBossType,
     ),
@@ -147,6 +156,8 @@ enum class Chapter(
             MidBossType.HAMMER_SICKLE,
             MidBossType.MONEY_TYCOON,
             MidBossType.GOLDEN_TYCOON,
+            // Wave 16 — Tham Nhũng ngự ở Lõi Thiên Hà (climax).
+            MidBossType.CORRUPTION,
         ),
         finalBossType = FinalBossType,                // 34d 3-phase final boss
     );

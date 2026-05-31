@@ -8,8 +8,8 @@ import org.junit.Test
 class ShipSkinTest {
 
     @Test
-    fun `enum has 5 aura color entries`() {
-        assertEquals(5, ShipSkin.entries.size)
+    fun `enum has 8 aura color entries`() {
+        assertEquals(8, ShipSkin.entries.size)
     }
 
     @Test

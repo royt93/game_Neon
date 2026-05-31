@@ -19,7 +19,13 @@ class EnemyController(
     private val addMinerals: (xOffset: Float, yOffset: Float, width: Float, mineralAmount: Int) -> Unit,
     private val addExplosion: (xOffset: Float, yOffset: Float, width: Float, height: Float) -> Unit,
     private val onEnemyKilled: (Enemy) -> Unit = {},
+    // Wave 16 — SLOW status hook: slowed enemies skip movement on alternate
+    // ticks (≈50% speed). Was a no-op before (isSlowed defined but never read).
+    private val isSlowed: (enemyId: String) -> Boolean = { false },
 ) {
+
+    /** Wave 16 — alternating gate for SLOW (skip move every other tick). */
+    private var slowTick: Int = 0
 
     init {
         Logger.d("EnemyController init: initialEnemies=${initialEnemies.size}, screen=${screenWidth}x${screenHeight}")
@@ -223,8 +229,11 @@ class EnemyController(
         // against raw screenHeight). Negative extraYSpan (NEAR zoom) tightens
         // the threshold — symmetric.
         val effectiveHeight = screenHeight + extraYSpan
+        slowTick++
         enemies.forEach {
-            it.process()
+            // Wave 16 — SLOW: slowed enemies move only every other tick (~50%).
+            val skipMove = isSlowed(it.enemyId) && (slowTick % 2 == 0)
+            if (!skipMove) it.process()
             val visuallyOffScreen = it.yOffset + it.height > effectiveHeight
             if (it.destroyed) {
                 enemies -= it

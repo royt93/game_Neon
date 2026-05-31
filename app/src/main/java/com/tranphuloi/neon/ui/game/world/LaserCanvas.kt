@@ -121,6 +121,13 @@ private fun DrawScope.drawLaserBody(
         BulletType.KAMEHAMEHA -> drawBeamBody(xPx, yPx, wPx, hPx, glow)
         BulletType.ATOMIC -> drawAtomicBody(xPx, yPx, wPx, hPx, glow)
         BulletType.SPLIT -> drawSplitBody(xPx, yPx, wPx, hPx, glow)
+        // Wave 16 — body VECTOR RIÊNG cho 6 đạn trào phúng (hết đụng hàng shape).
+        BulletType.LOTTERY -> drawLotteryBody(xPx, yPx, wPx, hPx, glow)
+        BulletType.FIREWORK -> drawFireworkBody(xPx, yPx, wPx, hPx, glow)
+        BulletType.BRICK -> drawBrickBody(xPx, yPx, wPx, hPx, glow)
+        BulletType.BANH_MI -> drawBanhMiBody(xPx, yPx, wPx, hPx, glow)
+        BulletType.DURIAN -> drawDurianBody(xPx, yPx, wPx, hPx, glow)
+        BulletType.HEART -> drawHeartBody(xPx, yPx, wPx, hPx, glow)
     }
 }
 
@@ -198,6 +205,77 @@ private fun DrawScope.drawOrbBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float
     val r = maxOf(wPx, hPx) * 0.5f
     drawCircle(glow, r, Offset(cx, cy))
     drawCircle(Color.White.copy(alpha = 0.85f), r * 0.5f, Offset(cx, cy))
+}
+
+// ── Wave 16 — body VECTOR RIÊNG cho 6 đạn trào phúng (in-game): vé (ticket),
+// pháo hoa (starburst), gạch (rect+mạch), bánh mì (oval+rạch), sầu riêng
+// (tròn+gai), tim (heart). Không còn dùng chung body với NORMAL/PLASMA/… ──
+
+/** Vé Số — tấm vé bo góc + chấm số trắng giữa. */
+private fun DrawScope.drawLotteryBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {
+    val w = maxOf(wPx, 7f)
+    val x = xPx + wPx / 2f - w / 2f
+    drawRoundRect(glow, Offset(x, yPx), Size(w, hPx),
+        androidx.compose.ui.geometry.CornerRadius(w * 0.35f))
+    drawCircle(Color.White.copy(alpha = 0.9f), w * 0.32f, Offset(xPx + wPx / 2f, yPx + hPx / 2f))
+}
+
+/** Pháo Hoa — tâm sáng + nan toả (starburst). */
+private fun DrawScope.drawFireworkBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {
+    val cx = xPx + wPx / 2f; val cy = yPx + hPx / 2f
+    val r = maxOf(wPx, hPx) * 0.5f
+    for (i in 0 until 8) {
+        val a = i * 45.0 * Math.PI / 180.0
+        drawLine(glow, Offset(cx, cy),
+            Offset(cx + (r * kotlin.math.cos(a)).toFloat(), cy + (r * kotlin.math.sin(a)).toFloat()),
+            strokeWidth = r * 0.16f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+    drawCircle(Color.White, r * 0.32f, Offset(cx, cy))
+}
+
+/** Cục Gạch — chữ nhật góc vuông + mạch vữa. */
+private fun DrawScope.drawBrickBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {
+    drawRect(glow, Offset(xPx, yPx), Size(wPx, hPx))
+    drawLine(Color.Black.copy(alpha = 0.35f),
+        Offset(xPx, yPx + hPx / 2f), Offset(xPx + wPx, yPx + hPx / 2f), strokeWidth = hPx * 0.06f)
+}
+
+/** Bánh Mì — ổ bầu dục + vạch rạch chéo. */
+private fun DrawScope.drawBanhMiBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {
+    val w = maxOf(wPx, 8f)
+    drawOval(glow, Offset(xPx + wPx / 2f - w / 2f, yPx), Size(w, hPx))
+    drawLine(Color.White.copy(alpha = 0.6f),
+        Offset(xPx + wPx / 2f - w * 0.2f, yPx + hPx * 0.35f),
+        Offset(xPx + wPx / 2f + w * 0.2f, yPx + hPx * 0.65f), strokeWidth = w * 0.12f)
+}
+
+/** Sầu Riêng — tròn + gai nhọn quanh. */
+private fun DrawScope.drawDurianBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {
+    val cx = xPx + wPx / 2f; val cy = yPx + hPx / 2f
+    val r = maxOf(wPx, hPx) * 0.36f
+    drawCircle(glow, r, Offset(cx, cy))
+    for (i in 0 until 10) {
+        val a = i * 36.0 * Math.PI / 180.0
+        drawLine(glow, Offset(cx + (r * kotlin.math.cos(a)).toFloat(), cy + (r * kotlin.math.sin(a)).toFloat()),
+            Offset(cx + (r * 1.6f * kotlin.math.cos(a)).toFloat(), cy + (r * 1.6f * kotlin.math.sin(a)).toFloat()),
+            strokeWidth = r * 0.22f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+}
+
+/** Like/Tim — trái tim (2 thuỳ + đáy nhọn). */
+private fun DrawScope.drawHeartBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {
+    val cx = xPx + wPx / 2f; val cy = yPx + hPx / 2f
+    val s = maxOf(wPx, hPx) * 0.5f
+    val lobe = s * 0.42f
+    drawCircle(glow, lobe, Offset(cx - lobe * 0.8f, cy - lobe * 0.4f))
+    drawCircle(glow, lobe, Offset(cx + lobe * 0.8f, cy - lobe * 0.4f))
+    val tri = androidx.compose.ui.graphics.Path().apply {
+        moveTo(cx - lobe * 1.7f, cy - lobe * 0.1f)
+        lineTo(cx + lobe * 1.7f, cy - lobe * 0.1f)
+        lineTo(cx, cy + s * 0.95f)
+        close()
+    }
+    drawPath(tri, glow)
 }
 
 private fun DrawScope.drawFireBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {

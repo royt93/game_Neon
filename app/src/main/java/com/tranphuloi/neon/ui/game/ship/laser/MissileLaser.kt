@@ -24,6 +24,10 @@ data class MissileLaser(
     override var yOffset: Float,
     private val yRange: Float,
     override var width: Float = 8f,
+    // Wave 16 — explicit bulletType so satirical homing bullets (e.g. HEART)
+    // reuse the same tracking body but render/route under their own type.
+    // Default HOMING keeps existing call-sites unchanged.
+    override val bulletType: BulletType = BulletType.HOMING,
 ) : Laser {
 
     override val xOffsetMovementSpeed: Float = 0f
@@ -33,11 +37,6 @@ data class MissileLaser(
     override var impactPower: Float = 60f                          // 2.4× a normal 25-power shot
     override val drawableId: Int = R.drawable.ic_laser_blue_7      // reuse — distinct from cyan via tint at render-site (round 41)
     override var destroyed: Boolean = false
-    // Round 71 fix (Issue 4a audit) — surface bulletType cho LaserCanvas
-    // dispatch unique vector shape (HOMING = capsule + targeting ring).
-    // Secondary weapon MISSILE cũng dùng class này → render giống HOMING (OK
-    // vì cả 2 đều là "homing missile" visually).
-    override val bulletType: BulletType = BulletType.HOMING
 
     /**
      * X-position of the missile's current target. `null` when no enemy is alive

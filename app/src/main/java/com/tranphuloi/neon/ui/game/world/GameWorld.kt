@@ -281,15 +281,25 @@ fun GameWorld(
                         )
                     }
                     if (it.glyph != null) {
-                        Text(
-                            text = it.glyph,
-                            color = Color(it.tintColorHex),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
+                        // Wave 16 — vector glyph badge (was Text(glyph); exotic
+                        // Unicode glyphs rendered as "?"/tofu when the device
+                        // font lacked them). drawBoosterGlyphVector is font-free.
+                        val g = it.glyph
+                        val tint = it.tintColorHex
+                        androidx.compose.foundation.Canvas(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
-                                .offset(x = 4.dp, y = (-4).dp),
-                        )
+                                .offset(x = 4.dp, y = (-4).dp)
+                                .size(15.dp),
+                        ) {
+                            drawBoosterGlyphVector(
+                                glyph = g,
+                                cx = size.width / 2f,
+                                cy = size.height / 2f,
+                                sz = size.minDimension,
+                                color = Color(tint),
+                            )
+                        }
                     }
                 }
             }
@@ -414,6 +424,11 @@ fun GameWorld(
                     .height(ship.height.dp)
                     .graphicsLayer {
                         rotationZ = ship.spawnRotation + ship.bankRotation
+                        // Wave 16 — wing-roll giả-3D: bóp ngang (scaleX) theo độ
+                        // nghiêng → cánh "lật vào cua" như máy bay thật, không chỉ
+                        // xoay phẳng. Ở bank tối đa (±26°) scaleX ≈ 0.78.
+                        val bankFrac = (kotlin.math.abs(ship.bankRotation) / 26f).coerceIn(0f, 1f)
+                        scaleX = 1f - bankFrac * 0.22f
                     }
                     .neonGlow(
                         color = shipGlowColor,
@@ -450,6 +465,10 @@ fun GameWorld(
                         .height(ship.height.dp)
                         .graphicsLayer {
                             rotationZ = ship.spawnRotation + ship.bankRotation
+                            // Wave 16 — clone cũng lật cánh (wing-roll) như tàu chính
+                            // để 2 tàu đồng bộ khi nghiêng.
+                            val bankFrac = (kotlin.math.abs(ship.bankRotation) / 26f).coerceIn(0f, 1f)
+                            scaleX = 1f - bankFrac * 0.22f
                         }
                 ) {
                     drawShipVector(
@@ -472,6 +491,27 @@ fun GameWorld(
             nowMillis = nowMillis,
             modifier = Modifier.fillMaxSize(),
         )
+        // Wave 16 Wave B — SHIELD ring quanh boss đang bất tử (để miễn-sát-thương
+        // ĐỌC ĐƯỢC, không bị tưởng là bug). Vòng tròn băng nhấp nháy + glow.
+        val shieldPulse = 0.45f + 0.55f * kotlin.math.abs(
+            kotlin.math.sin(nowMillis / 170.0).toFloat()
+        )
+        enemies.forEach {
+            if (it.isShielded) {
+                key("shield_${it.enemyId}") {
+                    Box(
+                        modifier = Modifier
+                            .offset(x = (it.xOffset - it.width * 0.16f).dp, y = (it.yOffset - it.height * 0.16f).dp)
+                            .size(width = (it.width * 1.32f).dp, height = (it.height * 1.32f).dp)
+                            .border(
+                                BorderStroke(3.dp, Color(0xFF66E0FF).copy(alpha = shieldPulse)),
+                                RoundedCornerShape(percent = 50),
+                            )
+                            .neonGlow(Color(0xFF66E0FF), intensity = 0.5f * shieldPulse, radiusFactor = 1.4f),
+                    )
+                }
+            }
+        }
         // Round 70 (Issue 8) — Thay EnemyHpBar (3-layer bar nằm trên enemy)
         // bằng EnemyHpNumber (số HP ở center enemy, chỉ show khi damaged +
         // hide tier-1). Boss vẫn dùng BossHpBar full-width.

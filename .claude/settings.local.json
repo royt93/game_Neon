@@ -167,7 +167,18 @@
       "Bash(./gradlew compileProductionReleaseKotlin testDevDebugUnitTest --console=plain)",
       "Bash(./gradlew testDevDebugUnitTest --tests \"com.tranphuloi.neon.data.MetaProgressionShipIntegrationTest\" --console=plain)",
       "Bash(timeout 300 ./gradlew testDevDebugUnitTest --tests \"com.tranphuloi.neon.ui.shop.ShopScreenWidgetTest\" --console=plain)",
-      "Bash(./gradlew compileDevDebugKotlin testDevDebugUnitTest --tests \"com.tranphuloi.neon.ui.game.enemy.ship.model.EnemySizeTest\" --console=plain)"
+      "Bash(./gradlew compileDevDebugKotlin testDevDebugUnitTest --tests \"com.tranphuloi.neon.ui.game.enemy.ship.model.EnemySizeTest\" --console=plain)",
+      "Bash(awk 'NR>=760 && NR<=820 && /val lasersController = remember/{print NR\": \"$0}' app/src/main/java/com/tranphuloi/neon/ui/game/state/GameState.kt)",
+      "Bash(awk 'NR>=752 && NR<=830 {print NR\": \"$0}' app/src/main/java/com/tranphuloi/neon/ui/game/state/GameState.kt)",
+      "Bash(xargs cat)",
+      "Bash(awk '{s+=$1} END {print \"total tests: \" s}')",
+      "Bash(awk '{s+=$1} END {print \"total: \" s}')",
+      "Bash(awk '{s+=$1} END {print s}')",
+      "Bash(adb reconnect *)",
+      "Bash(awk 'NR>=420 && NR<=470' app/src/main/java/com/tranphuloi/neon/ui/dlg/loadoutpicker/DialogLoadoutPicker.kt)",
+      "Bash(awk '/BulletType.BRICK -> \\\\{/{f=1} f{print NR\": \"$0} /drawLine\\\\\\(color = Color.Black/{if\\(f\\)c++} c>=1 && f && /^        \\\\}/{print \"END@\"NR; exit}' app/src/main/java/com/tranphuloi/neon/ui/dlg/loadoutpicker/DialogLoadoutPicker.kt)",
+      "Bash(awk '/ -> / && /BulletType/')",
+      "Bash(adb install *)"
     ]
   }
 }

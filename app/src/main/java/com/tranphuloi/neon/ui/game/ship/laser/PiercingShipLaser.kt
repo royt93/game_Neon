@@ -15,6 +15,9 @@ data class PiercingShipLaser(
     override var yOffset: Float,
     private val yRange: Float,
     override var width: Float = 6f,
+    // Wave 14 — overridable so KAMEHAMEHA (pierce-all) reuses this body while
+    // keeping its own bulletType (→ beam shape + collision routing).
+    override val bulletType: BulletType = BulletType.PIERCING,
 ) : Laser {
 
     override val xOffsetMovementSpeed: Float = 0f
@@ -25,10 +28,8 @@ data class PiercingShipLaser(
     override val drawableId: Int = R.drawable.ic_laser_blue_7
     override var destroyed: Boolean = false
 
-    override val bulletType: BulletType = BulletType.PIERCING
-
     /** Mutable hit counter — decremented in LasersController on each hit. */
-    override var pierceRemaining: Int = BulletType.PIERCING.pierceCount
+    override var pierceRemaining: Int = bulletType.pierceCount
 
     override fun moveLaser() {
         yOffset -= yOffsetMovementSpeed

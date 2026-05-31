@@ -32,5 +32,13 @@ object BulletTypeColorMap {
         BulletType.KAMEHAMEHA -> BoosterToBoosterUIMapper.KAMEHAMEHA_TINT_ARGB
         BulletType.ATOMIC -> BoosterToBoosterUIMapper.ATOMIC_TINT_ARGB
         BulletType.SPLIT -> BoosterToBoosterUIMapper.SPLIT_TINT_ARGB
+        // Wave 16 — đạn trào phúng (không có booster origin → literal riêng).
+        BulletType.LOTTERY -> 0xFFFFC400L            // gold-festive (vé số)
+        BulletType.FIREWORK -> 0xFFFF4FA3L           // hot pink (pháo hoa)
+        BulletType.BRICK -> 0xFFC8714AL              // gạch nung (terracotta)
+        // Wave 16 batch 2 — đạn trào phúng (literal, không booster origin).
+        BulletType.BANH_MI -> 0xFFE0A33CL            // vàng nâu bánh mì
+        BulletType.DURIAN -> 0xFFB6D43AL             // vàng-xanh sầu riêng
+        BulletType.HEART -> 0xFFFF5C8AL              // hồng tim
     }
 }

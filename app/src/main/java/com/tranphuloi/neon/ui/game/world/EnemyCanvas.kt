@@ -334,6 +334,20 @@ private fun DrawScope.drawEnemyShape(
                 drawBossMoneyTycoon(cx, cy, wPx, hPx, body, accent)
             com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.GOLDEN_TYCOON ->
                 drawBossGoldenTycoon(cx, cy, wPx, hPx, body, accent)
+            // Wave 15 batch 1 — 3 boss user nêu đích danh.
+            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SKULL_CROSSBONES ->
+                drawBossSkull(cx, cy, wPx, hPx, body, accent)
+            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.VAMPIRE ->
+                drawBossVampire(cx, cy, wPx, hPx, body, accent)
+            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.COSMIC_CENTIPEDE ->
+                drawBossCentipede(cx, cy, wPx, hPx, body, accent)
+            // Wave 16 batch 2 — 3 boss user nêu đích danh (nốt).
+            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.GIANT_CONDOM ->
+                drawBossCondom(cx, cy, wPx, hPx, body, accent)
+            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.VENOM_SPIDER ->
+                drawBossVenomSpider(cx, cy, wPx, hPx, body, accent)
+            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.CORRUPTION ->
+                drawBossCorruption(cx, cy, wPx, hPx, body, accent)
         }
         return
     }
@@ -599,6 +613,257 @@ private fun DrawScope.drawBossSpider(
         androidx.compose.ui.geometry.Offset(cx - bodyR * 0.4f, cy - bodyR * 0.1f))
     drawCircle(accent, bodyR * 0.18f,
         androidx.compose.ui.geometry.Offset(cx + bodyR * 0.4f, cy - bodyR * 0.1f))
+}
+
+// ─────────── Wave 15 batch 1 — 3 boss user nêu đích danh ───────────
+
+/** Đầu lâu + xương chéo (X) phía sau. */
+private fun DrawScope.drawBossSkull(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val r = minOf(wPx, hPx) * 0.30f
+    val black = Color.Black.copy(alpha = 0.85f)
+    // Crossbones (X) phía sau — 2 thanh chéo + đầu xương tròn.
+    val half = minOf(wPx, hPx) * 0.31f
+    val diag = half * 0.7071f
+    val boneW = r * 0.24f
+    val bones = listOf(
+        Offset(cx - diag, cy - diag) to Offset(cx + diag, cy + diag),
+        Offset(cx - diag, cy + diag) to Offset(cx + diag, cy - diag),
+    )
+    bones.forEach { (s, e) ->
+        drawLine(accent, s, e, strokeWidth = boneW,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        drawCircle(accent, boneW * 0.85f, s)
+        drawCircle(accent, boneW * 0.85f, e)
+    }
+    val sx = cx; val sy = cy - r * 0.10f
+    // Sọ (cranium) + hàm (trapezoid).
+    drawCircle(body, r, Offset(sx, sy))
+    val jaw = PathPool.acquire().apply {
+        moveTo(sx - r * 0.55f, sy + r * 0.50f)
+        lineTo(sx + r * 0.55f, sy + r * 0.50f)
+        lineTo(sx + r * 0.34f, sy + r * 1.04f)
+        lineTo(sx - r * 0.34f, sy + r * 1.04f)
+        close()
+    }
+    drawPath(jaw, body)
+    PathPool.release(jaw)
+    // Hốc mắt + đốm sáng accent.
+    val eyeR = r * 0.27f
+    for (sgn in listOf(-1f, 1f)) {
+        val ex = sx + sgn * r * 0.40f
+        val ey = sy - r * 0.05f
+        drawCircle(black, eyeR, Offset(ex, ey))
+        drawCircle(accent, eyeR * 0.42f, Offset(ex, ey))
+    }
+    // Mũi (tam giác đen).
+    val nose = PathPool.acquire().apply {
+        moveTo(sx, sy + r * 0.12f)
+        lineTo(sx - r * 0.14f, sy + r * 0.44f)
+        lineTo(sx + r * 0.14f, sy + r * 0.44f)
+        close()
+    }
+    drawPath(nose, black)
+    PathPool.release(nose)
+    // Răng (3 khe dọc).
+    for (i in -1..1) {
+        val tx = sx + i * r * 0.27f
+        drawLine(black, Offset(tx, sy + r * 0.58f), Offset(tx, sy + r * 1.00f),
+            strokeWidth = r * 0.07f)
+    }
+}
+
+/** Ma cà rồng — 2 cánh dơi + đầu tối + mắt đỏ + 2 răng nanh trắng. */
+private fun DrawScope.drawBossVampire(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val r = minOf(wPx, hPx) * 0.26f
+    val span = minOf(wPx, hPx) * 0.52f
+    // 2 cánh dơi (scallop kép) — mirror qua tâm.
+    for (sgn in listOf(-1f, 1f)) {
+        val wing = PathPool.acquire().apply {
+            moveTo(cx + sgn * r * 0.35f, cy - r * 0.25f)
+            lineTo(cx + sgn * span, cy - r * 0.55f)
+            lineTo(cx + sgn * span * 0.82f, cy + r * 0.10f)
+            lineTo(cx + sgn * span * 0.60f, cy - r * 0.05f)
+            lineTo(cx + sgn * span * 0.66f, cy + r * 0.55f)
+            lineTo(cx + sgn * span * 0.38f, cy + r * 0.20f)
+            lineTo(cx + sgn * r * 0.30f, cy + r * 0.40f)
+            close()
+        }
+        drawPath(wing, body)
+        drawPath(wing, accent, style = Stroke(width = wPx * 0.012f))
+        PathPool.release(wing)
+    }
+    // Đầu/thân tròn tối.
+    drawCircle(body, r, Offset(cx, cy))
+    drawCircle(accent, r, Offset(cx, cy), style = Stroke(width = wPx * 0.018f))
+    // 2 mắt đỏ rực.
+    for (sgn in listOf(-1f, 1f)) {
+        drawCircle(accent, r * 0.24f, Offset(cx + sgn * r * 0.40f, cy - r * 0.08f))
+        drawCircle(Color.White, r * 0.07f, Offset(cx + sgn * r * 0.46f, cy - r * 0.14f))
+    }
+    // 2 răng nanh trắng (tam giác chỉ xuống).
+    for (sgn in listOf(-1f, 1f)) {
+        val fx = cx + sgn * r * 0.18f
+        val fang = PathPool.acquire().apply {
+            moveTo(fx - r * 0.08f, cy + r * 0.38f)
+            lineTo(fx + r * 0.08f, cy + r * 0.38f)
+            lineTo(fx, cy + r * 0.88f)
+            close()
+        }
+        drawPath(fang, Color.White)
+        PathPool.release(fang)
+    }
+}
+
+/** Con rết vũ trụ — đầu + chuỗi đốt thân uốn lượn + chân + râu + càng. */
+private fun DrawScope.drawBossCentipede(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val seg = unit * 0.12f
+    val n = 6
+    val spanH = unit * 0.74f
+    val topY = cy - spanH * 0.5f
+    val stepY = spanH / (n + 1)
+    val sway = unit * 0.13f
+    // Chuỗi đốt thân (uốn sin) + chân 2 bên mỗi đốt.
+    for (i in 1..n) {
+        val segY = topY + stepY * i
+        val segX = cx + sway * sin(i.toDouble()).toFloat()
+        for (sgn in listOf(-1f, 1f)) {
+            drawLine(
+                accent,
+                Offset(segX + sgn * seg, segY),
+                Offset(segX + sgn * seg * 2.0f, segY - seg * 0.55f),
+                strokeWidth = seg * 0.20f,
+                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+            )
+        }
+        drawCircle(body, seg, Offset(segX, segY))
+        drawCircle(accent, seg, Offset(segX, segY), style = Stroke(width = wPx * 0.016f))
+    }
+    // Đầu (to hơn) ở trên cùng — mắt + râu + càng.
+    val headR = seg * 1.35f
+    val hx = cx + sway * sin(0.0).toFloat()
+    val hy = topY
+    drawCircle(body, headR, Offset(hx, hy))
+    for (sgn in listOf(-1f, 1f)) {
+        drawCircle(accent, headR * 0.30f, Offset(hx + sgn * headR * 0.42f, hy - headR * 0.10f))
+        // Râu.
+        drawLine(accent,
+            Offset(hx + sgn * headR * 0.30f, hy - headR * 0.70f),
+            Offset(hx + sgn * headR * 0.95f, hy - headR * 1.65f),
+            strokeWidth = seg * 0.16f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        // Càng (mandible).
+        drawLine(accent,
+            Offset(hx + sgn * headR * 0.30f, hy + headR * 0.70f),
+            Offset(hx + sgn * headR * 0.85f, hy + headR * 1.30f),
+            strokeWidth = seg * 0.22f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+}
+
+// ─────────── Wave 16 batch 2 — 3 boss user nêu đích danh (nốt) ───────────
+
+/** Bao cao su khổng lồ — túi phình + núm chứa trên đỉnh + vòng cuộn ở đáy. */
+private fun DrawScope.drawBossCondom(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val bodyR = unit * 0.34f
+    val bcy = cy + unit * 0.05f
+    drawCircle(body, bodyR, Offset(cx, bcy))
+    drawCircle(accent, bodyR, Offset(cx, bcy), style = Stroke(width = unit * 0.035f))
+    // Núm chứa (reservoir tip) trên đỉnh.
+    drawCircle(body, unit * 0.10f, Offset(cx, bcy - bodyR + unit * 0.01f))
+    drawCircle(accent, unit * 0.10f, Offset(cx, bcy - bodyR + unit * 0.01f), style = Stroke(width = unit * 0.03f))
+    // Vòng cuộn ở miệng (đáy) — ellipse stroke.
+    drawOval(
+        color = accent,
+        topLeft = Offset(cx - bodyR * 0.85f, bcy + bodyR * 0.7f),
+        size = Size(bodyR * 1.7f, unit * 0.16f),
+        style = Stroke(width = unit * 0.06f),
+    )
+    // Sheen highlight.
+    drawCircle(Color.White.copy(alpha = 0.5f), bodyR * 0.16f, Offset(cx - bodyR * 0.35f, bcy - bodyR * 0.25f))
+}
+
+/** Nhện Venom — 8 chân + thân 2 đốt + dấu độc + mắt đỏ + nanh trắng. */
+private fun DrawScope.drawBossVenomSpider(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val bodyR = unit * 0.24f
+    val legLen = unit * 0.50f
+    val capR = androidx.compose.ui.graphics.StrokeCap.Round
+    for (i in 0 until 8) {
+        val a = Math.toRadians(i * 45.0)
+        val ex = cx + (legLen * cos(a)).toFloat()
+        val ey = cy + (legLen * sin(a)).toFloat()
+        drawLine(body, Offset(cx, cy), Offset(ex, ey), strokeWidth = bodyR * 0.18f, cap = capR)
+        drawCircle(accent, bodyR * 0.10f, Offset(ex, ey))
+    }
+    // Thân: đầu-ngực + bụng.
+    drawCircle(body, bodyR, Offset(cx, cy))
+    drawCircle(body, bodyR * 0.75f, Offset(cx, cy + bodyR * 0.95f))
+    drawCircle(accent, bodyR * 0.32f, Offset(cx, cy + bodyR * 0.95f))   // dấu độc
+    // Mắt đỏ.
+    for (s in listOf(-1f, 1f)) {
+        drawCircle(accent, bodyR * 0.18f, Offset(cx + s * bodyR * 0.42f, cy - bodyR * 0.2f))
+    }
+    // Nanh.
+    for (s in listOf(-1f, 1f)) {
+        val fx = cx + s * bodyR * 0.2f
+        val fang = PathPool.acquire().apply {
+            moveTo(fx - bodyR * 0.06f, cy + bodyR * 0.42f)
+            lineTo(fx + bodyR * 0.06f, cy + bodyR * 0.42f)
+            lineTo(fx, cy + bodyR * 0.82f)
+            close()
+        }
+        drawPath(fang, Color.White)
+        PathPool.release(fang)
+    }
+}
+
+/** Tham Nhũng — túi tiền béo: thân phình + cổ thắt + ký hiệu $ + 2 mắt tham. */
+private fun DrawScope.drawBossCorruption(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val r = unit * 0.32f
+    val sack = PathPool.acquire().apply {
+        moveTo(cx - r * 0.4f, cy - r * 0.5f)
+        cubicTo(cx - r * 1.1f, cy, cx - r * 0.9f, cy + r * 0.95f, cx, cy + r)
+        cubicTo(cx + r * 0.9f, cy + r * 0.95f, cx + r * 1.1f, cy, cx + r * 0.4f, cy - r * 0.5f)
+        close()
+    }
+    drawPath(sack, body)
+    drawPath(sack, accent, style = Stroke(width = unit * 0.03f))
+    PathPool.release(sack)
+    // Cổ thắt.
+    drawLine(
+        accent, Offset(cx - r * 0.45f, cy - r * 0.5f), Offset(cx + r * 0.45f, cy - r * 0.5f),
+        strokeWidth = unit * 0.06f, cap = androidx.compose.ui.graphics.StrokeCap.Round,
+    )
+    // Ký hiệu $ trên bụng.
+    val by = cy + r * 0.25f
+    drawLine(accent, Offset(cx, by - r * 0.42f), Offset(cx, by + r * 0.42f), strokeWidth = unit * 0.04f)
+    drawArc(
+        color = accent, startAngle = 50f, sweepAngle = 250f, useCenter = false,
+        topLeft = Offset(cx - r * 0.24f, by - r * 0.38f), size = Size(r * 0.48f, r * 0.36f),
+        style = Stroke(width = unit * 0.045f),
+    )
+    drawArc(
+        color = accent, startAngle = 230f, sweepAngle = 250f, useCenter = false,
+        topLeft = Offset(cx - r * 0.24f, by - r * 0.02f), size = Size(r * 0.48f, r * 0.36f),
+        style = Stroke(width = unit * 0.045f),
+    )
+    // 2 mắt tham.
+    for (s in listOf(-1f, 1f)) {
+        drawCircle(accent, r * 0.10f, Offset(cx + s * r * 0.26f, cy - r * 0.38f))
+    }
 }
 
 // ─────────── Shape recipes ───────────

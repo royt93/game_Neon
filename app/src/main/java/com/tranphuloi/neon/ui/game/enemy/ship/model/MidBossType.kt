@@ -117,7 +117,9 @@ sealed class MidBossType(
     object HAMMER_SICKLE : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 2700f,
-        displayName = "CỘNG SẢN BỊP BỢM",
+        // Wave 15 — đồng bộ với BossKind.HAMMER_SICKLE sau lần đổi tên
+        // "Cộng Sản Bịp Bợm" → "Cộng Sản Lên Ngôi" (trước chỉ đổi ở BossKind).
+        displayName = "CỘNG SẢN LÊN NGÔI",
         defaultBossKind = BossKind.HAMMER_SICKLE,
     )
 
@@ -133,5 +135,57 @@ sealed class MidBossType(
         baseHp = 2500f,
         displayName = "TYCOON VÀNG",
         defaultBossKind = BossKind.GOLDEN_TYCOON,
+    )
+
+    // ── Wave 15 batch 1 — 3 boss user nêu đích danh ──
+
+    /** Đầu lâu + xương chéo — bắn xương xoay. HP trung bình. */
+    object SKULL_CROSSBONES : MidBossType(
+        drawableId = R.drawable.enemy_red_boss,
+        baseHp = 2000f,
+        displayName = "ĐẦU LÂU XƯƠNG CHÉO",
+        defaultBossKind = BossKind.SKULL_CROSSBONES,
+    )
+
+    /** Ma cà rồng — HP cao + dai (tự hồi máu khi gây sát thương ở MidBoss phase 2). */
+    object VAMPIRE : MidBossType(
+        drawableId = R.drawable.enemy_green_boss,
+        baseHp = 2900f,
+        displayName = "MA CÀ RỒNG",
+        defaultBossKind = BossKind.VAMPIRE,
+    )
+
+    /** Con rết vũ trụ — rất dài, HP cao nhất batch, đòn độc. */
+    object COSMIC_CENTIPEDE : MidBossType(
+        drawableId = R.drawable.enemy_red_boss,
+        baseHp = 3100f,
+        displayName = "CON RẾT VŨ TRỤ",
+        defaultBossKind = BossKind.COSMIC_CENTIPEDE,
+    )
+
+    // ── Wave 16 batch 2 — 3 boss user nêu đích danh (nốt) ──
+
+    /** Bao cao su khổng lồ — phình rồi nổ ra vòng đạn. */
+    object GIANT_CONDOM : MidBossType(
+        drawableId = R.drawable.enemy_green_boss,
+        baseHp = 2400f,
+        displayName = "BAO CAO SU KHỔNG LỒ",
+        defaultBossKind = BossKind.GIANT_CONDOM,
+    )
+
+    /** Nhện Venom — cực nguy hiểm: tơ độc 8 hướng. */
+    object VENOM_SPIDER : MidBossType(
+        drawableId = R.drawable.enemy_red_boss,
+        baseHp = 2800f,
+        displayName = "NHỆN VENOM",
+        defaultBossKind = BossKind.VENOM_SPIDER,
+    )
+
+    /** Tham Nhũng — HP cao nhất, phun "tiền" dày đặc đè người. */
+    object CORRUPTION : MidBossType(
+        drawableId = R.drawable.enemy_red_boss,
+        baseHp = 3300f,
+        displayName = "THAM NHŨNG",
+        defaultBossKind = BossKind.CORRUPTION,
     )
 }

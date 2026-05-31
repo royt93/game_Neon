@@ -61,12 +61,25 @@ class BulletColorIdentityTest {
         assertEquals(BulletTypeColorMap.NORMAL_ARGB, BulletTypeColorMap.argbFor(BulletType.NORMAL))
     }
 
+    /**
+     * Wave 16 — satirical bullets with NO booster origin (color is a literal in
+     * [BulletTypeColorMap], not derived from a BoosterType). Exempt from the
+     * booster-pair completeness check below, but still accounted for so a NEW
+     * bullet can't slip through uncategorised.
+     */
+    private val bulletOnlyLiteralColors = setOf(
+        BulletType.LOTTERY, BulletType.FIREWORK, BulletType.BRICK,
+        // Wave 16 batch 2
+        BulletType.BANH_MI, BulletType.DURIAN, BulletType.HEART,
+    )
+
     @Test
-    fun `all 11 non-NORMAL BulletTypes are covered by pairs (audit completeness)`() {
-        val coveredBullets = pairs.map { it.first }.toSet()
+    fun `every non-NORMAL BulletType is either booster-paired or a known literal-color bullet`() {
+        val coveredBullets = pairs.map { it.first }.toSet() + bulletOnlyLiteralColors
         val allNonNormal = BulletType.values().filter { it != BulletType.NORMAL }.toSet()
         assertEquals(
-            "BulletType pair list out of sync with enum — new BulletType added without identity pair?",
+            "BulletType out of sync — new BulletType added without a color pair OR a " +
+                "bulletOnlyLiteralColors entry?",
             allNonNormal, coveredBullets,
         )
     }

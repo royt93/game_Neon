@@ -81,5 +81,13 @@ object StoryRegistry {
         BossKind.HAMMER_SICKLE -> "Búa liềm bịp bợm — vinh quang giai cấp!"
         BossKind.MONEY_TYCOON -> "Tiền là sức mạnh, tàu trẻ con."
         BossKind.GOLDEN_TYCOON -> "Tin ta đi, tàu ngươi sẽ chết tuyệt vời nhất."
+        // Wave 15 batch 1
+        BossKind.SKULL_CROSSBONES -> "Khặc khặc... xương ngươi sẽ chéo cùng ta!"
+        BossKind.VAMPIRE -> "Ta khát... chỉ một giọt máu tàu ngươi thôi!"
+        BossKind.COSMIC_CENTIPEDE -> "Trăm chân ta bò khắp Ngân Hà — không thoát đâu!"
+        // Wave 16 batch 2
+        BossKind.GIANT_CONDOM -> "Ta bảo vệ tất cả... rồi nuốt chửng ngươi!"
+        BossKind.VENOM_SPIDER -> "Tơ độc đã giăng. Ngươi chỉ là con mồi."
+        BossKind.CORRUPTION -> "Có tiền mua tiên cũng được — kể cả mạng ngươi!"
     }
 }

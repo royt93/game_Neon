@@ -8,15 +8,15 @@ import org.junit.Test
 /**
  * Round 81 audit — verifies [BossKind] enum integrity.
  *
- * Roster: 5 base (R71) + 4 R79 + 12 R81 = 21 total.
+ * Roster: 5 base (R71) + 4 R79 + 12 R81 + 3 Wave15 = 24 total.
  * Each name must be unique (Kotlin enforces this) — test documents the count
  * + verifies no value is accidentally renamed without test update.
  */
 class BossKindTest {
 
     @Test
-    fun `BossKind has expected 21 values across R71 R79 R81`() {
-        assertEquals(21, BossKind.values().size)
+    fun `BossKind has expected 27 values across R71 R79 R81 Wave15 Wave16`() {
+        assertEquals(27, BossKind.values().size)
     }
 
     @Test
@@ -53,6 +53,28 @@ class BossKindTest {
         )
         assertTrue(
             "R81 BossKinds missing",
+            expected.all { it in BossKind.values() },
+        )
+    }
+
+    @Test
+    fun `Wave15 3 new BossKinds exist`() {
+        val expected = setOf(
+            BossKind.SKULL_CROSSBONES, BossKind.VAMPIRE, BossKind.COSMIC_CENTIPEDE,
+        )
+        assertTrue(
+            "Wave15 BossKinds missing",
+            expected.all { it in BossKind.values() },
+        )
+    }
+
+    @Test
+    fun `Wave16 3 new BossKinds exist`() {
+        val expected = setOf(
+            BossKind.GIANT_CONDOM, BossKind.VENOM_SPIDER, BossKind.CORRUPTION,
+        )
+        assertTrue(
+            "Wave16 BossKinds missing",
             expected.all { it in BossKind.values() },
         )
     }

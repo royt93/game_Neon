@@ -55,6 +55,7 @@ enum class BulletType(
         pierceCount = 0,
         aoeRadius = 80f,                            // damage radius on impact
         glyph = "◯",
+        shopUnlockId = "bullet_plasma",            // Wave 14a — shop-gated (AoE premium)
     ),
 
     // Round 67 (Wave 10a) — 3 new bullet types with FULL behaviors implemented.
@@ -100,6 +101,7 @@ enum class BulletType(
         pierceCount = 0,
         aoeRadius = 0f,
         glyph = "⬤",                               // large filled circle
+        shopUnlockId = "bullet_giant",             // Wave 14a — shop-gated (×2 dmg premium)
     ),
     // Round 68 (Wave 10 finish) — 5 bullet types remaining. Stubs: enum
     // entries + dispatch + damage mul. UNIQUE BEHAVIORS deferred to Round 69+
@@ -146,6 +148,64 @@ enum class BulletType(
         pierceCount = 0,
         aoeRadius = 0f,
         glyph = "Ѱ",                               // psi (3-prong)
+    ),
+
+    // ── Wave 16 — đạn trào phúng batch 1 ──
+    /** Vé Số — sát thương NGẪU NHIÊN mỗi phát (hên xui, từ 0.3× tới 3×). */
+    LOTTERY(
+        displayName = "Vé Số",
+        activeDurationMillis = 12_000L,
+        damageMultiplier = 1f,                      // base; mỗi viên random tại spawn
+        pierceCount = 0,
+        aoeRadius = 0f,
+        glyph = "?",                                // ô số bí ẩn
+    ),
+    /** Pháo Hoa — nổ chùm AoE rộng khi trúng. */
+    FIREWORK(
+        displayName = "Pháo Hoa",
+        activeDurationMillis = 10_000L,
+        damageMultiplier = 1.1f,
+        pierceCount = 0,
+        aoeRadius = 130f,                           // nổ chùm rộng
+        glyph = "✺",
+    ),
+    /** Cục Gạch (Nokia 1280) — to, chậm, nặng (nồi đồng cối đá). */
+    BRICK(
+        displayName = "Cục Gạch",
+        activeDurationMillis = 12_000L,
+        damageMultiplier = 2.2f,                    // nặng
+        pierceCount = 0,
+        aoeRadius = 0f,
+        glyph = "▦",
+    ),
+
+    // ── Wave 16 — đạn trào phúng batch 2 ──
+    /** Bánh Mì — giòn rụm, XUYÊN qua 3 địch (như PIERCING). */
+    BANH_MI(
+        displayName = "Bánh Mì",
+        activeDurationMillis = 12_000L,
+        damageMultiplier = 1f,
+        pierceCount = 3,
+        aoeRadius = 0f,
+        glyph = "⊐",                                // ổ bánh mì (vector glyph)
+    ),
+    /** Sầu Riêng — nổ "mùi" AoE rộng khi trúng (nặng mùi). */
+    DURIAN(
+        displayName = "Sầu Riêng",
+        activeDurationMillis = 10_000L,
+        damageMultiplier = 1.2f,
+        pierceCount = 0,
+        aoeRadius = 110f,
+        glyph = "✸",
+    ),
+    /** Like/Tim — thả tim TỰ ĐUỔI theo địch (như HOMING). */
+    HEART(
+        displayName = "Like/Tim",
+        activeDurationMillis = 10_000L,
+        damageMultiplier = 0.9f,
+        pierceCount = 0,
+        aoeRadius = 0f,
+        glyph = "♡",
     );
 
     companion object {

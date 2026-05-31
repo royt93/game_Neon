@@ -54,9 +54,13 @@ fun DialogModePicker(onPicked: () -> Unit) {
 
     LaunchedEffect(Unit) { Logger.d("DialogModePicker shown") }
 
+    // Wave 13 (#3) — SURVIVAL removed from the picker: it was a near-duplicate of
+    // ENDLESS (both = chapter-1 cycled forever + escalation + score-by-survival),
+    // with cross-wired names. ENDLESS is the richer twin (exp scaling + theme
+    // rotation + endless leaderboard) so it stays; SurvivalProvider is kept only
+    // for back-compat of any saved lastMode=survival (GameMode.fromKey fallback).
     val pickable = listOf(
         GameMode.CAMPAIGN,
-        GameMode.SURVIVAL,
         GameMode.TIME_ATTACK,
         GameMode.BOSS_RUSH,
         GameMode.ENDLESS,

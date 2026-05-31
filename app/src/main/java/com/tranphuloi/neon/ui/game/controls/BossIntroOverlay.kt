@@ -3,6 +3,8 @@ package com.tranphuloi.neon.ui.game.controls
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -25,6 +27,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,102 +35,135 @@ import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.common.NeonBgDeep
 import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.neonGlow
-import kotlinx.coroutines.delay
 
-private const val DURATION_MILLIS: Long = 1500L
+/** Wave 16 — full-screen cinematic duration (matches HitStopController freeze). */
+private const val DURATION_MILLIS: Long = 2400L
 
 /**
- * 21c Boss intro cinematic — REDESIGNED to a TOP BANNER zone (was full-screen
- * centered text that overlapped damage numbers / combo popups / pickup popups).
+ * Wave 16 — Boss intro CINEMATIC (user pick: full-screen 2-3s, freeze + skip).
  *
- * Layout:
- *   - Pulsing red border around entire screen (visual alarm, doesn't block content)
- *   - Boss name banner pinned to TOP-CENTER (y=70dp..160dp), only consumes the
- *     top strip, so player effects in the middle / bottom of the screen remain visible.
+ * Replaces the old compact top-banner. While this shows, the simulation is
+ * frozen via [com.tranphuloi.neon.ui.game.hitstop.HitStopController] (the boss
+ * fight only begins when the cinematic ends). Tapping anywhere calls [onSkip],
+ * which ends both the cinematic and the freeze early.
+ *
+ * Stages (t = elapsed / DURATION):
+ *   - 0.00–0.15  enter: scrim fades in, boss name zooms 0.6→1.0
+ *   - 0.15–0.82  hold:  name + taunt + pulsing alarm border
+ *   - 0.82–1.00  exit:  everything fades out → gameplay resumes
  */
 @Composable
 fun BossIntroOverlay(
     bossName: String,
+    bossTaunt: String,
     shownAtMillis: Long,
+    onSkip: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (shownAtMillis == 0L || bossName.isBlank()) return
 
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(shownAtMillis) {
-        repeat(50) {
+        // ~33ms ticks for the cinematic's own animation (independent of the
+        // frozen sim, which advances on wall-clock once unfrozen).
+        repeat(80) {
             nowMillis = System.currentTimeMillis()
-            delay(33L)
+            kotlinx.coroutines.delay(30L)
         }
     }
     val elapsed = (nowMillis - shownAtMillis).coerceAtLeast(0L)
     if (elapsed > DURATION_MILLIS) return
     val t = elapsed.toFloat() / DURATION_MILLIS
 
-    val pulseAlpha = (kotlin.math.sin(t * Math.PI.toFloat() * 4f) * 0.5f + 0.5f) * (1f - t * 0.6f)
-    // Slide-down from top + scale pop.
-    val slideY = when {
-        t < 0.18f -> -120f * (1f - t / 0.18f)
-        t < 0.85f -> 0f
-        else -> -120f * ((t - 0.85f) / 0.15f)
-    }
-    val bannerAlpha = if (t < 0.85f) 1f else 1f - ((t - 0.85f) / 0.15f)
+    // Scrim + content alpha envelope.
+    val enter = (t / 0.15f).coerceIn(0f, 1f)
+    val exit = if (t > 0.82f) 1f - ((t - 0.82f) / 0.18f).coerceIn(0f, 1f) else 1f
+    val envelope = enter * exit
+    val scrimAlpha = 0.82f * envelope
+    // Name zoom-in 0.6 → 1.0 during enter, tiny settle after.
+    val nameScale = 0.6f + 0.4f * enter
+    // Alarm border pulse.
+    val pulse = (kotlin.math.sin(t * Math.PI.toFloat() * 6f) * 0.5f + 0.5f)
+    val borderAlpha = pulse * envelope
 
-    Box(modifier = modifier.fillMaxSize()) {
-        // Pulsing red warning border around the entire screen — visual alarm,
-        // doesn't block player content because it's only a 1-pixel-wide stroke at edges.
+    val noopInteraction = remember { MutableInteractionSource() }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            // Dark scrim → reads as "frozen"; captures the tap to skip.
+            .background(NeonBgDeep.copy(alpha = scrimAlpha))
+            .clickable(
+                interactionSource = noopInteraction,
+                indication = null,
+                onClick = onSkip,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        // Pulsing red alarm border around the whole screen.
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .border(
-                    BorderStroke(8.dp, NeonRedAlert.copy(alpha = pulseAlpha)),
-                    RectangleShape,
-                ),
+                .border(BorderStroke(10.dp, NeonRedAlert.copy(alpha = borderAlpha)), RectangleShape),
         )
-        // Boss name banner — pinned to TOP. Backed by darkened plate so damage numbers
-        // / combo popups in the body of the screen don't show through, but middle and
-        // bottom of the screen remain unblocked for gameplay events.
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 70.dp, start = 32.dp, end = 32.dp)
-                .graphicsLayer {
-                    translationY = slideY
-                    alpha = bannerAlpha
-                },
+                .padding(horizontal = 28.dp)
+                .graphicsLayer { alpha = envelope },
         ) {
             Text(
-                text = "⚠ WARNING",
-                color = NeonRedAlert.copy(alpha = pulseAlpha),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
+                text = "⚠ NGUY HIỂM",
+                color = NeonRedAlert.copy(alpha = (0.6f + 0.4f * pulse)),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Center,
-                style = TextStyle(letterSpacing = 4.sp),
+                style = TextStyle(letterSpacing = 6.sp),
             )
-            Spacer(modifier = Modifier.height(4.dp))
-            Box(
-                contentAlignment = Alignment.Center,
+            Spacer(modifier = Modifier.height(14.dp))
+            // Boss name — huge, centered, zoom-in + neon glow.
+            Text(
+                text = bossName,
+                color = Color.White,
+                fontSize = 44.sp,
+                fontWeight = FontWeight.Black,
+                textAlign = TextAlign.Center,
+                style = TextStyle(letterSpacing = 2.sp),
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(NeonBgDeep.copy(alpha = 0.85f))
-                    .border(
-                        BorderStroke(2.dp, NeonRedAlert),
-                        RoundedCornerShape(6.dp),
+                    .graphicsLayer {
+                        scaleX = nameScale
+                        scaleY = nameScale
+                    }
+                    .neonGlow(NeonRedAlert, intensity = 0.6f, radiusFactor = 1.4f),
+            )
+            if (bossTaunt.isNotBlank()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.Black.copy(alpha = 0.45f))
+                        .border(BorderStroke(1.dp, NeonRedAlert.copy(alpha = 0.6f)), RoundedCornerShape(8.dp))
+                        .padding(vertical = 10.dp, horizontal = 14.dp),
+                ) {
+                    Text(
+                        text = "“$bossTaunt”",
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 15.sp,
+                        fontStyle = FontStyle.Italic,
+                        textAlign = TextAlign.Center,
                     )
-                    .neonGlow(NeonRedAlert, intensity = 0.4f, radiusFactor = 1.1f)
-                    .padding(vertical = 10.dp, horizontal = 8.dp),
-            ) {
-                Text(
-                    text = bossName,
-                    color = Color.White,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Black,
-                    textAlign = TextAlign.Center,
-                    style = TextStyle(letterSpacing = 4.sp),
-                )
+                }
             }
+            Spacer(modifier = Modifier.height(22.dp))
+            Text(
+                text = "Chạm để bỏ qua",
+                color = Color.White.copy(alpha = 0.45f * envelope),
+                fontSize = 11.sp,
+                textAlign = TextAlign.Center,
+            )
         }
     }
 }

@@ -41,6 +41,9 @@ class EnemyToEnemyUIMapper {
         activeStatusEffectTints: List<Long> = emptyList(),
     ): EnemyUI {
         val cached = cache[enemy.enemyId]
+        // Wave 16 Wave B — shield flag (MidBoss marquee). Part of the memo key so
+        // the shield ring appears/disappears even on a stationary (teleport-hold) boss.
+        val shielded = (enemy as? com.tranphuloi.neon.ui.game.enemy.ship.model.MidBoss)?.isShielded() ?: false
         // Field-compare fast-path: same fields → reuse cached reference.
         // `activeStatusEffectTints` reuses `emptyList()` singleton in the caller's
         // common case, so reference equality covers most no-effect comparisons.
@@ -60,7 +63,8 @@ class EnemyToEnemyUIMapper {
             cached.currentPhase == enemy.currentPhase &&
             cached.phaseTransitionMillis == enemy.phaseTransitionMillis &&
             cached.activeStatusEffectTints == activeStatusEffectTints &&
-            cached.bossKind == enemy.bossKind
+            cached.bossKind == enemy.bossKind &&
+            cached.isShielded == shielded
         ) {
             return cached
         }
@@ -83,6 +87,7 @@ class EnemyToEnemyUIMapper {
                 phaseTransitionMillis = phaseTransitionMillis,
                 activeStatusEffectTints = activeStatusEffectTints,
                 bossKind = bossKind,
+                isShielded = shielded,
             )
         }
         cache[enemy.enemyId] = newUi

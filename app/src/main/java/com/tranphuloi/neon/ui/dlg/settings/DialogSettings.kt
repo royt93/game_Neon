@@ -55,7 +55,6 @@ import com.tranphuloi.neon.common.NeonViolet
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.data.Difficulty
 import com.tranphuloi.neon.data.LocalSettings
-import com.tranphuloi.neon.data.ShipSkin
 import com.tranphuloi.neon.utils.Logger
 import kotlinx.coroutines.launch
 
@@ -77,7 +76,6 @@ fun DialogSettings(
     onDismiss: () -> Unit,
 ) {
     val settings = LocalSettings.current
-    val meta = com.tranphuloi.neon.data.LocalMetaProgression.current
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     // Round 39 — accent colors here come from LocalNeonPalette so toggling
@@ -91,9 +89,6 @@ fun DialogSettings(
     val voiceAnnouncerEnabled by settings.voiceAnnouncerEnabled.collectAsState(initial = true)
     val autoSkipLoadout by settings.autoSkipLoadout.collectAsState(initial = true)
     val difficulty by settings.difficulty.collectAsState(initial = Difficulty.NORMAL)
-    val shipSkin by settings.shipSkin.collectAsState(initial = ShipSkin.AURA_CYAN)
-    // Wave 12 round 3 — shop-gated skins. allRanks keyed by ShopItem.persistKey.
-    val shopRanks by meta.allRanks.collectAsState(initial = emptyMap())
     // Round 70 (Issue 2) — SecondaryWeapon picker đã chuyển sang LoadoutPicker
     // duy nhất. Settings không còn read/write SECONDARY_WEAPON key.
     // Round 27 — lastMode / lastModifier reads removed; that info now lives in MenuScreen.
@@ -188,34 +183,9 @@ fun DialogSettings(
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(10.dp))
-                ControlGroup {
-                    // Round 38 — Ship aura color picker. Each Pill uses its own
-                    // skin's glow color so the swatch IS the color preview.
-                    LabelledPillRow(label = "Hào quang tàu", color = palette.gold) {
-                        ShipSkin.entries.forEach { s ->
-                            val locked = !com.tranphuloi.neon.data.ShopItem
-                                .isShopUnlocked(shopRanks, s.shopUnlockId)
-                            Pill(
-                                // A locked skin can still be the active glow for
-                                // a legacy save (gating was added later); show it
-                                // selected + 🔒 rather than highlighting nothing —
-                                // the cosmetic is genuinely applied in-game.
-                                label = if (locked) "🔒 ${s.displayName}" else s.displayName,
-                                selected = s == shipSkin,
-                                color = Color(s.glowColorHex),
-                                locked = locked,
-                                onClick = {
-                                    if (locked) {
-                                        Logger.d("Settings: skin ${s.name} locked — buy in shop")
-                                    } else {
-                                        scope.launch { settings.setShipSkin(s) }
-                                    }
-                                },
-                            )
-                        }
-                    }
-                }
+                // Wave 13 (#1) — "Hào quang tàu" (skin mua + chọn) đã chuyển hẳn
+                // sang Cửa hàng → tab Skin (mua + chọn cùng chỗ, nhất quán với tab
+                // Tàu). Gỡ khỏi Cài đặt để tránh tách đôi luồng.
                 // Round 70 (Issue 2) — SecondaryWeapon picker removed. Loadout
                 // bottom sheet (TRANG BỊ button trong menu) là duy nhất quản lý
                 // bullet + secondary weapon per-run.

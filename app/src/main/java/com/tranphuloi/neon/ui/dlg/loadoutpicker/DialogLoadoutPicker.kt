@@ -346,6 +346,14 @@ private fun colorForBullet(b: BulletType, palette: NeonPalette): Color = when (b
     BulletType.KAMEHAMEHA -> palette.cyan
     BulletType.ATOMIC -> palette.gold
     BulletType.SPLIT -> palette.violet
+    // Wave 16 — đạn trào phúng.
+    BulletType.LOTTERY -> palette.gold
+    BulletType.FIREWORK -> palette.magenta
+    BulletType.BRICK -> palette.redAlert
+    // Wave 16 batch 2.
+    BulletType.BANH_MI -> palette.gold
+    BulletType.DURIAN -> palette.cyan
+    BulletType.HEART -> palette.magenta
 }
 
 // Round 71 (Issue 3) — multi-line subtitle: line 1 = combat stats, line 2 = description.
@@ -362,6 +370,14 @@ private fun subtitleForBullet(b: BulletType): String = when (b) {
     BulletType.KAMEHAMEHA -> "Sát thương ×3.0 · ⏱8s · Pierce-all\nTia năng lượng xuyên thấu vô hạn."
     BulletType.ATOMIC -> "Sát thương ×1.5 · ⏱10s · AoE 150px\nNổ nguyên tử AoE khổng lồ."
     BulletType.SPLIT -> "Sát thương ×0.6 · ⏱12s · Tách 3\nVa chạm phân tách thành 3 mảnh nhỏ."
+    // Wave 16 — đạn trào phúng.
+    BulletType.LOTTERY -> "Sát thương NGẪU NHIÊN (0.3×–3×) · ⏱12s\nVé số hên xui — mỗi viên trúng số khác nhau."
+    BulletType.FIREWORK -> "Sát thương ×1.1 · ⏱10s · Nổ chùm AoE 130px\nPháo hoa nổ toé rộng khi va chạm."
+    BulletType.BRICK -> "Sát thương ×2.2 · ⏱12s · To + nặng\nCục gạch Nokia 1280 — đập là chết, nồi đồng cối đá."
+    // Wave 16 batch 2.
+    BulletType.BANH_MI -> "Sát thương ×1.0 · ⏱12s · Xuyên 3 địch\nBánh mì giòn rụm, xuyên thủng nhiều địch."
+    BulletType.DURIAN -> "Sát thương ×1.2 · ⏱10s · Nổ mùi AoE 110px\nSầu riêng nổ toé, sát thương lan vùng nặng mùi."
+    BulletType.HEART -> "Sát thương ×0.9 · ⏱10s · Tự đuổi\nThả tim tự đuổi theo địch, không cần aim."
 }
 
 // Round 71 (Issue 3) — tooltip 1-line explaining game mechanic.
@@ -378,6 +394,14 @@ private fun tipForBullet(b: BulletType): String = when (b) {
     BulletType.KAMEHAMEHA -> "Damage ×3 cực mạnh — luôn ưu tiên khi gặp boss."
     BulletType.ATOMIC -> "AoE rộng — hợp khi enemy cụm dày đặc."
     BulletType.SPLIT -> "Damage thấp nhưng phủ rộng — dọn enemy yếu."
+    // Wave 16 — đạn trào phúng.
+    BulletType.LOTTERY -> "Hên xui — có viên 3× chí mạng, có viên hụt."
+    BulletType.FIREWORK -> "Hợp khi enemy cụm dày — nổ chùm dọn cả đám."
+    BulletType.BRICK -> "Damage cao + hitbox to — combo với boss."
+    // Wave 16 batch 2.
+    BulletType.BANH_MI -> "Xuyên nhiều địch xếp hàng dọc."
+    BulletType.DURIAN -> "Nổ mùi AoE rộng — dọn cụm enemy."
+    BulletType.HEART -> "Auto-aim — tốt cho người mới."
 }
 
 // Round 71 (Issue 3) — damage tier mapping cho border thickness.
@@ -541,6 +565,81 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBulletPreview(
                     strokeWidth = capsuleW * 0.4f,
                     cap = androidx.compose.ui.graphics.StrokeCap.Round)
             }
+        }
+        // Wave 16 — đạn trào phúng (preview tile gọn).
+        BulletType.LOTTERY -> {
+            // Ô số: ô vuông bo góc + chấm trắng (số bí ẩn).
+            drawRoundRect(color = color,
+                topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.22f, cy - w * 0.22f),
+                size = androidx.compose.ui.geometry.Size(w * 0.44f, w * 0.44f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.08f))
+            drawCircle(Color.White.copy(alpha = 0.9f), w * 0.07f,
+                androidx.compose.ui.geometry.Offset(cx, cy))
+        }
+        BulletType.FIREWORK -> {
+            // Sao toé: tâm + 8 nan.
+            drawCircle(color, w * 0.10f, androidx.compose.ui.geometry.Offset(cx, cy))
+            for (i in 0 until 8) {
+                val a = i * 45.0 * Math.PI / 180.0
+                drawLine(color = color,
+                    start = androidx.compose.ui.geometry.Offset(cx, cy),
+                    end = androidx.compose.ui.geometry.Offset(
+                        cx + (w * 0.36f * kotlin.math.cos(a)).toFloat(),
+                        cy + (w * 0.36f * kotlin.math.sin(a)).toFloat()),
+                    strokeWidth = w * 0.05f,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            }
+        }
+        BulletType.BRICK -> {
+            // Viên gạch: chữ nhật + 1 vạch chia (mạch gạch).
+            drawRoundRect(color = color,
+                topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.26f, cy - w * 0.18f),
+                size = androidx.compose.ui.geometry.Size(w * 0.52f, w * 0.36f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.04f))
+            drawLine(color = Color.Black.copy(alpha = 0.35f),
+                start = androidx.compose.ui.geometry.Offset(cx, cy - w * 0.18f),
+                end = androidx.compose.ui.geometry.Offset(cx, cy + w * 0.18f),
+                strokeWidth = w * 0.04f)
+        }
+        // Wave 16 batch 2 — preview tile riêng.
+        BulletType.BANH_MI -> {
+            // Ổ bánh mì: oval ngang + 1 vạch chéo (mặt cắt).
+            drawOval(color = color,
+                topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.30f, cy - w * 0.14f),
+                size = androidx.compose.ui.geometry.Size(w * 0.60f, w * 0.28f))
+            drawLine(color = Color.White.copy(alpha = 0.6f),
+                start = androidx.compose.ui.geometry.Offset(cx - w * 0.12f, cy - w * 0.06f),
+                end = androidx.compose.ui.geometry.Offset(cx + w * 0.12f, cy - w * 0.06f),
+                strokeWidth = w * 0.03f)
+        }
+        BulletType.DURIAN -> {
+            // Sầu riêng: tròn + nhiều gai.
+            drawCircle(color, w * 0.22f, androidx.compose.ui.geometry.Offset(cx, cy))
+            for (i in 0 until 10) {
+                val a = i * 36.0 * Math.PI / 180.0
+                drawLine(color = color,
+                    start = androidx.compose.ui.geometry.Offset(
+                        cx + (w * 0.22f * kotlin.math.cos(a)).toFloat(),
+                        cy + (w * 0.22f * kotlin.math.sin(a)).toFloat()),
+                    end = androidx.compose.ui.geometry.Offset(
+                        cx + (w * 0.40f * kotlin.math.cos(a)).toFloat(),
+                        cy + (w * 0.40f * kotlin.math.sin(a)).toFloat()),
+                    strokeWidth = w * 0.04f,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            }
+        }
+        BulletType.HEART -> {
+            // Trái tim: 2 thuỳ tròn + đáy nhọn.
+            val lobe = w * 0.16f
+            drawCircle(color, lobe, androidx.compose.ui.geometry.Offset(cx - lobe * 0.8f, cy - lobe * 0.5f))
+            drawCircle(color, lobe, androidx.compose.ui.geometry.Offset(cx + lobe * 0.8f, cy - lobe * 0.5f))
+            val tri = androidx.compose.ui.graphics.Path().apply {
+                moveTo(cx - lobe * 1.7f, cy - lobe * 0.2f)
+                lineTo(cx + lobe * 1.7f, cy - lobe * 0.2f)
+                lineTo(cx, cy + lobe * 1.9f)
+                close()
+            }
+            drawPath(tri, color)
         }
     }
 }

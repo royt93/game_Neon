@@ -45,6 +45,10 @@ class BulletTypeTest {
     fun `non-NORMAL types differ from NORMAL on at least one combat axis`() {
         BulletType.entries
             .filter { it != BulletType.NORMAL }
+            // Wave 16 — LOTTERY's enum stats equal NORMAL on purpose: its
+            // differentiator is RANDOM per-shot damage set on impactPower at
+            // spawn (LasersController.buildOneLaser), not an enum combat axis.
+            .filter { it != BulletType.LOTTERY }
             .forEach { t ->
                 val diff = t.damageMultiplier != BulletType.NORMAL.damageMultiplier ||
                         t.pierceCount != BulletType.NORMAL.pierceCount ||

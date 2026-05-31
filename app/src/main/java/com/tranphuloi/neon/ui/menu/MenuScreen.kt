@@ -310,6 +310,25 @@ fun MenuScreen(
                 }
             }
 
+            // Wave 13 (#5) — build version label, sourced from Gradle
+            // `versionName` (app/build.gradle) via PackageManager at runtime.
+            EntryAnim(stepIndex = 5) {
+                val ctx = androidx.compose.ui.platform.LocalContext.current
+                val versionName = remember {
+                    runCatching {
+                        ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName
+                    }.getOrNull().orEmpty()
+                }
+                if (versionName.isNotEmpty()) {
+                    Text(
+                        text = "Phiên bản $versionName",
+                        color = Color.White.copy(alpha = 0.45f),
+                        fontSize = 11.sp,
+                        style = TextStyle(letterSpacing = 1.sp),
+                    )
+                }
+            }
+
         }
         }       // end BoxWithConstraints (round 31)
     }

@@ -97,7 +97,11 @@ enum class ShipSkin(
     AURA_GOLD(key = "aura_gold", displayName = "Vàng", glowColorHex = 0xFFFFCB47),
     AURA_MAGENTA(key = "aura_magenta", displayName = "Hồng", glowColorHex = 0xFFFF2DE0),
     AURA_VIOLET(key = "aura_violet", displayName = "Tím", glowColorHex = 0xFFB14CFF, shopUnlockId = "skin_aura_violet"),
-    AURA_REDALERT(key = "aura_red", displayName = "Đỏ", glowColorHex = 0xFFFF2D55, shopUnlockId = "skin_aura_red");
+    AURA_REDALERT(key = "aura_red", displayName = "Đỏ", glowColorHex = 0xFFFF2D55, shopUnlockId = "skin_aura_red"),
+    // Wave 16 — 3 hào quang mới (màu riêng, shop-gated).
+    AURA_EMERALD(key = "aura_emerald", displayName = "Lục Bảo", glowColorHex = 0xFF2EE6A6, shopUnlockId = "skin_aura_emerald"),
+    AURA_AMBER(key = "aura_amber", displayName = "Hổ Phách", glowColorHex = 0xFFFF8A1E, shopUnlockId = "skin_aura_amber"),
+    AURA_ICE(key = "aura_ice", displayName = "Băng Giá", glowColorHex = 0xFFAEE8FF, shopUnlockId = "skin_aura_ice");
 
     companion object {
         fun fromKey(key: String?): ShipSkin =

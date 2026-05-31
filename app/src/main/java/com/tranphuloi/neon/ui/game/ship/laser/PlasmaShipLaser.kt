@@ -15,6 +15,9 @@ data class PlasmaShipLaser(
     override var yOffset: Float,
     private val yRange: Float,
     override var width: Float = PLASMA_WIDTH,
+    // Wave 14 — overridable so ATOMIC reuses this AoE body while keeping its own
+    // bulletType (→ atomic shape + bigger AoE via ATOMIC.aoeRadius=150).
+    override val bulletType: BulletType = BulletType.PLASMA,
 ) : Laser {
 
     override val xOffsetMovementSpeed: Float = 0f
@@ -24,8 +27,6 @@ data class PlasmaShipLaser(
     override var impactPower: Float = 40f                   // 25 × 1.6 = 40 baseline
     override val drawableId: Int = R.drawable.ic_laser_blue_7
     override var destroyed: Boolean = false
-
-    override val bulletType: BulletType = BulletType.PLASMA
 
     /**
      * Round 52 (40x Item combos) — multiplier applied to [BulletType.PLASMA.aoeRadius]
