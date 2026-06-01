@@ -55,8 +55,8 @@ class MidBossSignatureTest {
     }
 
     @Test
-    fun `HEN drops a 4-egg cluster`() {
-        assertEquals(4, boss(MidBossType.HEN_MOTHER).generateLasers().size)
+    fun `HEN drops a 3-egg cluster`() {
+        assertEquals(3, boss(MidBossType.HEN_MOTHER).generateLasers().size)
     }
 
     @Test
@@ -149,8 +149,105 @@ class MidBossSignatureTest {
     }
 
     @Test
-    fun `SWARM haunt scatter is a 5-bullet erratic spray`() {
-        assertEquals(5, boss(MidBossType.SWARM).generateLasers().size)
+    fun `SWARM haunt scatter is a 6-bullet erratic spray`() {
+        assertEquals(6, boss(MidBossType.SWARM).generateLasers().size)
+    }
+
+    // ── Wave 17 — quỹ đạo phi tuyến: 3 boss có chiêu chuyển động riêng ──
+
+    @Test
+    fun `boss recoils (knockback) even on a y-setting movement pattern`() {
+        // SEXY_DIVA dùng pattern 4 (strafe) SET yOffset=entryTargetY mỗi frame.
+        // Trước Wave 17 fix: knockback bị ghi đè → không giật lùi. Nay recoil cộng
+        // sau movement-base nên boss vẫn bật lên khi trúng đòn.
+        val diva = boss(MidBossType.SEXY_DIVA)
+        repeat(120) { diva.process() }                 // thoát entry, ổn định
+        val ySettled = diva.yOffset
+        diva.onObjectImpact(100f)
+        diva.process()
+        assertTrue("boss phải giật lùi (lên) khi trúng đòn (was $ySettled, now ${diva.yOffset})",
+            diva.yOffset < ySettled - 1f)
+    }
+
+    @Test
+    fun `eyeBeam (OFFENSIVE) fires HOMING bullets that chase the ship`() {
+        val l = boss(MidBossType.OFFENSIVE).generateLasers()
+        assertTrue("tất cả tia mắt phải HOMING", l.all {
+            (it as com.tranphuloi.neon.ui.game.enemy.laser.EnemyLaser).motion ==
+                com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.HOMING
+        })
+    }
+
+    @Test
+    fun `hornCharge is ACCEL and hairWhip is CURVE while roarWall stays LINEAR`() {
+        val horns = boss(MidBossType.BUFFALO_RAGE).generateLasers()
+        assertTrue("húc sừng phải GIA TỐC", horns.all {
+            (it as com.tranphuloi.neon.ui.game.enemy.laser.EnemyLaser).motion ==
+                com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.ACCEL
+        })
+        val whip = boss(MidBossType.SEXY_DIVA).generateLasers()
+        assertTrue("quất tóc phải bay CONG", whip.all {
+            (it as com.tranphuloi.neon.ui.game.enemy.laser.EnemyLaser).motion ==
+                com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.CURVE
+        })
+        // Đối chứng: đòn thường vẫn LINEAR (không phải mọi boss đều phi tuyến).
+        val wall = boss(MidBossType.FIERCE_TIGER).generateLasers()
+        assertTrue("roarWall vẫn tuyến tính", wall.all {
+            (it as com.tranphuloi.neon.ui.game.enemy.laser.EnemyLaser).motion ==
+                com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.LINEAR
+        })
+    }
+
+    // ── Wave 17 — de-dup: 3 cụm attack trùng nay phải KHÁC cơ chế rõ rệt ──
+
+    @Test
+    fun `HEN egg-cluster vs SWARM haunt-scatter are now mechanically distinct`() {
+        val egg = boss(MidBossType.HEN_MOTHER).generateLasers()
+        val haunt = boss(MidBossType.SWARM).generateLasers()
+        // HEN: ít, TO, chụm (x-spread nhỏ). SWARM: nhiều, NHỎ, toé ngang rộng.
+        assertTrue("haunt has more bullets than egg", haunt.size > egg.size)
+        assertTrue("eggs are bigger than haunt motes", egg.first().width > haunt.first().width)
+        val eggMaxX = egg.maxOf { kotlin.math.abs(it.xOffsetMovementSpeed) }
+        val hauntMaxX = haunt.maxOf { kotlin.math.abs(it.xOffsetMovementSpeed) }
+        assertTrue("haunt sprays far wider than the tight egg cluster ($hauntMaxX vs $eggMaxX)", hauntMaxX > eggMaxX * 3f)
+    }
+
+    @Test
+    fun `GIANT_CONDOM inflate is a TWO-speed shockwave (not a single ring)`() {
+        val l = boss(MidBossType.GIANT_CONDOM).generateLasers()
+        val xMag = l.map { kotlin.math.abs(it.xOffsetMovementSpeed) }
+        // Vòng trong chậm (|x| ≤ ~0.32) + vòng ngoài nhanh (|x| ≥ ~0.7) cùng tồn tại.
+        assertTrue("must have a SLOW inner ring", xMag.any { it <= 0.4f })
+        assertTrue("must have a FAST outer ring", xMag.any { it >= 0.7f })
+    }
+
+    @Test
+    fun `CORRUPTION gap SWEEPS across consecutive volleys (not random or fixed)`() {
+        val b = boss(MidBossType.CORRUPTION)
+        val startX = 400f * 0.03f
+        val spacing = (400f * 0.94f) / 7
+        fun gapIndexOf(lasers: List<com.tranphuloi.neon.ui.game.laser.Laser>): Int {
+            val present = lasers.map { Math.round((it.xOffset - startX) / spacing) }.toSet()
+            return (0 until 7).first { it !in present }
+        }
+        val gaps = (0 until 6).map { gapIndexOf(b.generateLasers()) }
+        // Khe phải di chuyển: ≥3 vị trí khác nhau trong 6 loạt liên tiếp.
+        assertTrue("gap must sweep, saw $gaps", gaps.toSet().size >= 3)
+    }
+
+    @Test
+    fun `movement patterns differ on the Y axis (dive-bomb descends, sine does not)`() {
+        val tiger = boss(MidBossType.FIERCE_TIGER)   // pattern 3 = lao-bổ
+        val offensive = boss(MidBossType.OFFENSIVE)  // pattern 0 = sine ngang
+        var tigerMaxY = -1e9f
+        var offMaxY = -1e9f
+        repeat(700) {
+            tiger.process(); offensive.process()
+            tigerMaxY = maxOf(tigerMaxY, tiger.yOffset)
+            offMaxY = maxOf(offMaxY, offensive.yOffset)
+        }
+        // Dive-bomb lao xuống sâu; sine giữ nguyên độ cao → chênh rõ rệt.
+        assertTrue("dive-bomb must descend far below the sine boss ($tigerMaxY vs $offMaxY)", tigerMaxY > offMaxY + 100f)
     }
 
     @Test
@@ -219,6 +316,36 @@ class MidBossSignatureTest {
         }
     }
 
+    // ── Wave 16 — roster + size variety ──
+
+    @Test
+    fun `MidBossType ALL lists all 21 distinct variants`() {
+        assertEquals(21, MidBossType.ALL.size)
+        assertEquals("no duplicates in ALL", 21, MidBossType.ALL.toSet().size)
+    }
+
+    @Test
+    fun `all 21 boss SIZES are distinct (no two bosses share width)`() {
+        // Wave 17 — size = f(baseHp). Trước có 4 cặp baseHp trùng → trùng size
+        // (DEFENSIVE=GOLDEN_TYCOON, DIVA=SKULL, BUFFALO=VENOM, TROLL=CONDOM).
+        // Nay 21 baseHp duy nhất → 21 size duy nhất.
+        val widths = MidBossType.ALL.map { boss(it).width }
+        assertEquals("mỗi boss phải có size riêng", widths.size, widths.toSet().size)
+        val heights = MidBossType.ALL.map { boss(it).height }
+        assertEquals("và height riêng", heights.size, heights.toSet().size)
+    }
+
+    @Test
+    fun `boss size scales with baseHp (tanky bosses are bigger)`() {
+        val tanky = boss(MidBossType.WHITE_DRAGON)   // baseHp 3200
+        val frail = boss(MidBossType.SWARM)          // baseHp 1200
+        assertTrue("high-HP boss must be physically bigger", tanky.width > frail.width)
+        assertTrue("and taller", tanky.height > frail.height)
+        // Size is no longer the fixed 130×90 for everyone.
+        assertTrue("frail boss shrinks below base 130", frail.width < 130f)
+        assertTrue("tanky boss grows above base 130", tanky.width > 130f)
+    }
+
     // ── Wave 16 Wave B — marquee mechanics (SHIELD / TELEPORT) ──
 
     @Test
@@ -265,10 +392,13 @@ class MidBossSignatureTest {
     fun `VENOM_SPIDER teleports to a side on its first eligible tick`() {
         val venom = boss(MidBossType.VENOM_SPIDER)
         venom.yOffset = 100f                           // exit entry
-        val x0 = venom.xOffset                         // centered ≈ 135
+        val x0 = venom.xOffset                         // centered
         venom.process()                                // lastTeleport=0 → teleports now
-        // side 0 = 0.18 → 400*0.18 - 130/2 = 72 - 65 = 7, held (movement suppressed).
-        assertEquals("teleported to left side", 7f, venom.xOffset, 0.5f)
+        // side 0 = 0.18 → screenWidth*0.18 - width/2, clamped to [0, screenWidth-width].
+        // Width is now baseHp-scaled (Wave 16 size variety), so derive from venom.width
+        // instead of hardcoding — landing x shifts with the boss's actual size.
+        val expectedLeft = (400f * 0.18f - venom.width / 2f).coerceIn(0f, 400f - venom.width)
+        assertEquals("teleported to left side", expectedLeft, venom.xOffset, 0.5f)
         assertTrue("position actually changed", venom.xOffset != x0)
     }
 

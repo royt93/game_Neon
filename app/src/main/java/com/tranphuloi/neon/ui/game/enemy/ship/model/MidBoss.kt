@@ -5,6 +5,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import com.tranphuloi.neon.R
 import com.tranphuloi.neon.ui.game.enemy.laser.EnemyLaser
+import com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion
 import com.tranphuloi.neon.ui.game.laser.Laser
 import com.tranphuloi.neon.ui.game.ship.ship.Ship
 import java.util.*
@@ -32,8 +33,13 @@ data class MidBoss(
 ) : Enemy {
 
     override val enemyId: String = UUID.randomUUID().toString()
-    override val width: Float = 130f
-    override val height: Float = 90f
+    // Wave 16 — SIZE biến thiên theo baseHp (HP cao = boss to hơn) thay vì
+    // 130×90 cố định cho mọi variant. baseHp 1200→×0.8, 3300→×1.3 (kẹp).
+    // Tương quan size↔độ trâu → boss khác nhau rõ về kích cỡ.
+    private val sizeScale: Float =
+        (0.8f + (variant.baseHp - 1200f) / 2100f * 0.5f).coerceIn(0.8f, 1.3f)
+    override val width: Float = 130f * sizeScale
+    override val height: Float = 90f * sizeScale
     override var hp: Float = variant.baseHp
     override val initialHp: Float = hp
     override val impactPower: Float = 10f
@@ -64,7 +70,9 @@ data class MidBoss(
     private val entrySpeed: Float = 2.5f
     override val isInEntryPhase: Boolean get() = yOffset < entryTargetY
 
-    private var knockbackVel: Float = 0f
+    // Wave 17 — knockback dạng OFFSET bền (px, âm = giật lùi lên), cộng sau
+    // movement-base mỗi frame rồi suy giảm về 0 → recoil đồng đều mọi pattern.
+    private var knockbackY: Float = 0f
     private var movementTime: Float = 0f              // accumulates per process() call
     // Wave 16 — increments each generateLasers() call; drives rotating /
     // alternating signature patterns (e.g. SKULL spinning bone fan).
@@ -109,30 +117,32 @@ data class MidBoss(
         // - Aggressive (HEN/BUFFALO/TIGER/TROLL/DIVA/SATAN/SICKLE/TYCOON) → sine
         // - Defensive (RAT/DRAGON/MONEY/SUMMITS/GLOBES) → slow patrol
         movementTime += 1f
+        // Wave 17 — 7 movement pattern (trước chỉ 3) gán theo TÍNH CÁCH boss để
+        // mỗi con di chuyển khác nhau rõ rệt, không còn 7 boss đi sine y hệt:
+        //   0 sine ngang · 1 patrol quét · 2 figure-8 · 3 lao-bổ (dive) ·
+        //   4 lướt-giật (strafe) · 5 vòng-lượn (loop) · 6 trôi-thấp ì ạch.
         val patternForVariant: Int = when (variant) {
             MidBossType.OFFENSIVE -> 0           // sine
-            MidBossType.DEFENSIVE -> 1           // patrol
-            MidBossType.SWARM -> 2               // figure-8
-            MidBossType.HEN_MOTHER -> 2          // erratic
-            MidBossType.BUFFALO_RAGE -> 0        // sine
-            MidBossType.DUMB_RAT -> 1            // patrol
-            MidBossType.FIERCE_TIGER -> 0        // sine
-            MidBossType.SEXY_DIVA -> 2           // erratic
-            MidBossType.TROLL_TOWER -> 1         // patrol slow
-            MidBossType.TWIN_SUMMITS -> 1        // patrol
-            MidBossType.VOID_GLOBES -> 1         // patrol slow heavy
-            MidBossType.WHITE_DRAGON -> 0        // sine sinuous
+            MidBossType.WHITE_DRAGON -> 0        // sine uốn lượn (rồng)
             MidBossType.HAMMER_SICKLE -> 0       // sine
-            MidBossType.MONEY_TYCOON -> 1        // patrol
-            MidBossType.GOLDEN_TYCOON -> 2       // erratic
-            // Wave 15 batch 1
-            MidBossType.SKULL_CROSSBONES -> 0    // sine (cướp biển hung hãn)
-            MidBossType.VAMPIRE -> 2             // erratic (lượn như dơi)
-            MidBossType.COSMIC_CENTIPEDE -> 1    // patrol (bò dài)
-            // Wave 16 batch 2
-            MidBossType.GIANT_CONDOM -> 1        // patrol (phình to ì ạch)
-            MidBossType.VENOM_SPIDER -> 2        // erratic (nhện bò giật)
-            MidBossType.CORRUPTION -> 1          // patrol (béo ục ịch)
+            MidBossType.DEFENSIVE -> 1           // patrol thủ
+            MidBossType.TROLL_TOWER -> 1         // patrol (tháp ì)
+            MidBossType.COSMIC_CENTIPEDE -> 1    // patrol (rết bò dài)
+            MidBossType.SWARM -> 2               // figure-8
+            MidBossType.VAMPIRE -> 2             // figure-8 (dơi lượn)
+            MidBossType.VENOM_SPIDER -> 2        // figure-8 (nhện giật)
+            MidBossType.BUFFALO_RAGE -> 3        // lao-bổ (trâu húc)
+            MidBossType.FIERCE_TIGER -> 3        // lao-bổ (cọp vồ)
+            MidBossType.SKULL_CROSSBONES -> 3    // lao-bổ (cướp biển xông)
+            MidBossType.SEXY_DIVA -> 4           // lướt-giật (nhảy múa)
+            MidBossType.GOLDEN_TYCOON -> 4       // lướt-giật
+            MidBossType.DUMB_RAT -> 4            // lướt-giật (chuột chạy lắt nhắt)
+            MidBossType.HEN_MOTHER -> 5          // vòng-lượn (gà xòe)
+            MidBossType.TWIN_SUMMITS -> 5        // vòng-lượn
+            MidBossType.VOID_GLOBES -> 5         // vòng-lượn (cầu quay)
+            MidBossType.MONEY_TYCOON -> 6        // trôi-thấp
+            MidBossType.GIANT_CONDOM -> 6        // trôi-thấp ì ạch
+            MidBossType.CORRUPTION -> 6          // trôi-thấp (béo ục ịch)
         }
         // Marquee TELEPORT — nhảy sang một bên (luân phiên) + GIỮ vị trí một
         // lúc (chặn movement trong cửa sổ hold) để cú nhảy "ăn" được.
@@ -145,35 +155,69 @@ data class MidBoss(
             xOffset = (screenWidth * side - width / 2f).coerceIn(0f, screenWidth - width)
         }
         // Chỉ chạy movement thường khi KHÔNG đang giữ vị trí teleport.
-        if (now >= teleportHoldUntil) when (patternForVariant) {
-            0 -> {
-                // Sine wave horizontal: ±100px around center, 3s cycle.
-                val t = movementTime / 600f
-                val targetX = (screenWidth - width) / 2f + sin(t.toDouble()).toFloat() * 100f
-                xOffset += (targetX - xOffset) * 0.05f
+        if (now >= teleportHoldUntil) {
+            when (patternForVariant) {
+                0 -> {
+                    // Sine wave horizontal: ±100px around center, 3s cycle.
+                    val t = movementTime / 600f
+                    val targetX = (screenWidth - width) / 2f + sin(t.toDouble()).toFloat() * 100f
+                    xOffset += (targetX - xOffset) * 0.05f
+                    yOffset = entryTargetY                         // base y (recoil cộng sau)
+                }
+                1 -> {
+                    // Slow horizontal patrol — left ↔ right.
+                    val cycle = (movementTime / 1200f) % 2f
+                    val phase = if (cycle < 1f) cycle else 2f - cycle
+                    xOffset = phase * (screenWidth - width)
+                    yOffset = entryTargetY                         // base y (recoil cộng sau)
+                }
+                2 -> {
+                    // Erratic figure-8 motion.
+                    val t = movementTime / 400f
+                    xOffset = (screenWidth - width) / 2f + sin(t.toDouble()).toFloat() * 120f
+                    yOffset = entryTargetY + cos((t * 2.0)).toFloat() * 40f
+                }
+                3 -> {
+                    // Lao-bổ (dive): lao xuống sâu rồi rút lên, đảo ngang chậm —
+                    // hung hãn (trâu/cọp/cướp biển). y: 0→220 mượt theo cos.
+                    val t = movementTime / 460f
+                    val targetX = (screenWidth - width) / 2f + sin(t.toDouble()).toFloat() * 70f
+                    xOffset += (targetX - xOffset) * 0.04f
+                    yOffset = entryTargetY + (0.5f - 0.5f * cos((t * 1.6))).toFloat() * 230f
+                }
+                4 -> {
+                    // Lướt-giật (strafe): biên độ ngang lớn, TẦN SỐ cao → giật sang
+                    // 2 bên dứt khoát (diva nhảy / chuột chạy). Giữ y trên cao.
+                    val t = movementTime / 200f
+                    xOffset = (screenWidth - width) / 2f + sin(t.toDouble()).toFloat() * 135f
+                    yOffset = entryTargetY
+                }
+                5 -> {
+                    // Vòng-lượn (loop): x sine + y sine khác tần → quỹ đạo bầu dục.
+                    val t = movementTime / 500f
+                    xOffset = (screenWidth - width) / 2f + sin(t.toDouble()).toFloat() * 110f
+                    yOffset = entryTargetY + 70f + sin((t * 2.0)).toFloat() * 60f
+                }
+                6 -> {
+                    // Trôi-thấp ì ạch: ngồi THẤP hơn, trôi ngang rất chậm (nặng nề).
+                    val t = movementTime / 900f
+                    xOffset = (screenWidth - width) / 2f + sin(t.toDouble()).toFloat() * 70f
+                    yOffset = entryTargetY + 120f + sin((t * 0.5)).toFloat() * 30f
+                }
             }
-            1 -> {
-                // Slow horizontal patrol — left ↔ right.
-                val cycle = (movementTime / 1200f) % 2f
-                val phase = if (cycle < 1f) cycle else 2f - cycle
-                xOffset = phase * (screenWidth - width)
-            }
-            2 -> {
-                // Erratic figure-8 motion.
-                val t = movementTime / 400f
-                xOffset = (screenWidth - width) / 2f + sin(t.toDouble()).toFloat() * 120f
-                yOffset = entryTargetY + cos((t * 2.0)).toFloat() * 40f
+            // Wave 17 — knockback (giật lùi khi trúng đòn) là OFFSET BỀN cộng SAU
+            // movement-base + tự suy giảm về 0. Trước đây các pattern set thẳng
+            // yOffset (erratic/dive/loop/hover) ghi đè knockback → 12 boss không
+            // giật lùi. Nay mọi boss đều recoil đồng đều.
+            if (knockbackY != 0f) {
+                yOffset += knockbackY
+                knockbackY *= 0.85f
+                if (kotlin.math.abs(knockbackY) < 0.1f) knockbackY = 0f
             }
         }
 
         // Coerce horizontal bounds.
         xOffset = xOffset.coerceIn(0f, screenWidth - width)
-
-        if (knockbackVel != 0f) {
-            yOffset += knockbackVel
-            knockbackVel *= 0.92f
-            if (kotlin.math.abs(knockbackVel) < 0.05f) knockbackVel = 0f
-        }
 
         // Engage phase 2 transition once.
         if (!phase2Engaged && hp < initialHp * 0.5f) {
@@ -235,6 +279,9 @@ data class MidBoss(
         w: Float = 26f,
         spawnX: Float = xOffset + width / 2f - w / 2f,
         drawable: Int = R.drawable.ic_laser_red_8,
+        // Wave 17 — quỹ đạo phi tuyến (HOMING/ACCEL/CURVE) cho skill boss khác biệt.
+        motion: com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion =
+            com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.LINEAR,
     ): EnemyLaser = EnemyLaser(
         xOffset = spawnX,
         yOffset = yOffset + height,
@@ -244,6 +291,7 @@ data class MidBoss(
         xOffsetMovementSpeed = xSpeed,
         yOffsetMovementSpeed = ySpeed,
         drawableId = drawable,
+        motion = motion,
     )
 
     /** Đầu Lâu Xương Chéo — quạt "xương" xoay trái-phải theo thời gian. */
@@ -294,20 +342,23 @@ data class MidBoss(
         }
     }
 
-    /** Gà Mái Dầu — cụm "trứng" rơi chậm, tản mác ngẫu nhiên. */
+    /** Gà Mái Dầu — "ổ trứng": cụm trứng TO, CHẬM, chụm sát nhau rơi gần thẳng
+     *  (khác hauntScatter: ít + to + chậm + có trật tự, không tản loạn). */
     private fun eggLobCluster(phase2: Boolean): List<Laser> {
-        val n = if (phase2) 6 else 4
-        return (0 until n).map {
+        val n = if (phase2) 5 else 3
+        return (0 until n).map { i ->
+            val frac = if (n == 1) 0.5f else i.toFloat() / (n - 1)
             bossBullet(
-                xSpeed = (Math.random().toFloat() - 0.5f) * 0.7f,
-                ySpeed = 0.55f + Math.random().toFloat() * 0.25f,
-                w = 24f,
-                spawnX = xOffset + width * (0.2f + 0.6f * Math.random().toFloat()),
+                xSpeed = (frac - 0.5f) * 0.12f,                   // chụm, gần thẳng
+                ySpeed = 0.45f,                                   // trứng nặng = chậm
+                w = 32f,                                          // trứng TO
+                spawnX = xOffset + width * (0.32f + 0.36f * frac),
             )
         }
     }
 
-    /** Trâu Hung Hãn — "húc sừng": vài tia nặng, nhanh, song song nhắm tàu. */
+    /** Trâu Hung Hãn — "húc sừng GIA TỐC": tia nặng nhắm tàu, càng bay càng NHANH
+     *  (ACCEL) như cú húc lao tới → khó né lúc cận. (Wave 17 — quỹ đạo phi tuyến.) */
     private fun hornCharge(ship: Ship, phase2: Boolean): List<Laser> {
         val baseDx = ship.xOffset - xOffset
         val baseDy = (ship.yOffset - yOffset).coerceAtLeast(1f)
@@ -319,6 +370,7 @@ data class MidBoss(
                 ySpeed = 1.3f,
                 w = 34f,
                 spawnX = xOffset + width * (0.5f + off) - 17f,
+                motion = LaserMotion.ACCEL,
             )
         }
     }
@@ -396,13 +448,20 @@ data class MidBoss(
         }
     }
 
-    /** Cô Gái Sexy — "quất tóc": loạt nghiêng, đổi bên trái-phải luân phiên mỗi nhịp. */
+    /** Cô Gái Sexy — "quất tóc UỐN LƯỢN": loạt đạn bay CONG hình sin (CURVE), đổi
+     *  bên luân phiên mỗi nhịp → lọn tóc quật ngoằn ngoèo, khó đoán đường rơi.
+     *  (Wave 17 — quỹ đạo phi tuyến.) */
     private fun hairWhip(phase2: Boolean): List<Laser> {
         val side = if (fireTick % 2 == 0) -1f else 1f
         val n = if (phase2) 4 else 3
         return (0 until n).map { i ->
             val frac = i.toFloat() / n
-            bossBullet(xSpeed = side * (0.25f + frac * 0.5f), ySpeed = 0.7f, w = 22f)
+            bossBullet(
+                xSpeed = side * (0.25f + frac * 0.5f),
+                ySpeed = 0.7f,
+                w = 22f,
+                motion = LaserMotion.CURVE,
+            )
         }
     }
 
@@ -425,7 +484,9 @@ data class MidBoss(
 
     // ── Wave 16 batch 3 (final) ──
 
-    /** Lính Gác Mắt Sát Thủ / Chúa Tể Địa Ngục — "tia mắt": chùm nhắm sát, nhanh. */
+    /** Lính Gác Mắt Sát Thủ / Chúa Tể Địa Ngục — "tia mắt SĂN ĐUỔI": phóng về
+     *  phía tàu rồi TỰ BÁM theo (HOMING) → buộc người chơi né liên tục, khác hẳn
+     *  mọi đòn bay thẳng. (Wave 17 — quỹ đạo phi tuyến.) */
     private fun eyeBeam(ship: Ship, phase2: Boolean): List<Laser> {
         val dx = ship.xOffset - xOffset
         val dy = (ship.yOffset - yOffset).coerceAtLeast(1f)
@@ -437,11 +498,12 @@ data class MidBoss(
                 ySpeed = 1.0f,
                 w = 22f,
                 spawnX = xOffset + width / 2f - 11f + (i - n / 2) * 6f,
+                motion = LaserMotion.HOMING,
             )
         }.toMutableList()
         if (phase2) {
-            out.add(bossBullet(xSpeed = aim - 0.3f, ySpeed = 0.9f, w = 20f))
-            out.add(bossBullet(xSpeed = aim + 0.3f, ySpeed = 0.9f, w = 20f))
+            out.add(bossBullet(xSpeed = aim - 0.3f, ySpeed = 0.9f, w = 20f, motion = LaserMotion.HOMING))
+            out.add(bossBullet(xSpeed = aim + 0.3f, ySpeed = 0.9f, w = 20f, motion = LaserMotion.HOMING))
         }
         return out
     }
@@ -463,15 +525,18 @@ data class MidBoss(
         }
     }
 
-    /** Hồn Ma Trẻ Em — "ám": đạn tản loạn hỗn loạn từ vị trí ngẫu nhiên (eerie). */
+    /** Hồn Ma Trẻ Em — "ám khắp màn": nhiều viên NHỎ, NHANH, toé NGANG mạnh,
+     *  hiện ra từ vị trí ngẫu nhiên KHẮP ĐỈNH màn (không phải từ thân boss) →
+     *  cảm giác ma trơi vây quanh. Khác eggLob (ít/to/chậm/chụm) và moneyRain
+     *  (rơi gần thẳng); haunt bay xiên mạnh. */
     private fun hauntScatter(phase2: Boolean): List<Laser> {
-        val n = if (phase2) 7 else 5
+        val n = if (phase2) 9 else 6
         return (0 until n).map {
             bossBullet(
-                xSpeed = (Math.random().toFloat() - 0.5f) * 1.0f,
-                ySpeed = 0.45f + Math.random().toFloat() * 0.4f,
-                w = 20f,
-                spawnX = xOffset + width * Math.random().toFloat(),
+                xSpeed = (Math.random().toFloat() - 0.5f) * 1.6f,    // toé ngang MẠNH
+                ySpeed = 0.55f + Math.random().toFloat() * 0.5f,     // nhanh
+                w = 15f,                                             // nhỏ
+                spawnX = screenWidth * Math.random().toFloat(),       // khắp đỉnh màn
             )
         }
     }
@@ -512,19 +577,36 @@ data class MidBoss(
 
     // ── Wave 16 batch 2 (3 boss user nêu đích danh, nốt) ──
 
-    /** Bao Cao Su Khổng Lồ — "phình nổ": vòng đạn dày toả tròn, nhịp phình/xẹp. */
+    /** Bao Cao Su Khổng Lồ — "sóng xung kích": HAI vòng đồng tâm bắn cùng lúc,
+     *  vòng trong CHẬM + vòng ngoài NHANH → lan ra như nổ. Khác hẳn atomOrbit
+     *  (1 vòng quay đều) và venomWeb (lưới nan cố định). */
     private fun inflateBurst(phase2: Boolean): List<Laser> {
-        // Pulse: alternate dense/less-dense rings (phình rồi xẹp) mỗi nhịp bắn.
-        val n = if (fireTick % 2 == 0) (if (phase2) 14 else 10) else (if (phase2) 10 else 7)
-        val off = if (fireTick % 2 == 0) 0f else 18f
-        return (0 until n).map { i ->
-            val rad = Math.toRadians((off + i * 360f / n).toDouble())
-            bossBullet(
-                xSpeed = (kotlin.math.cos(rad) * 0.6).toFloat(),
-                ySpeed = (kotlin.math.sin(rad) * 0.45).toFloat() + 0.55f,   // all drift down
-                w = 22f,
+        val out = mutableListOf<Laser>()
+        val inner = if (phase2) 10 else 7
+        val outer = if (phase2) 14 else 10
+        // Vòng trong: dày, chậm (sóng đầu).
+        for (i in 0 until inner) {
+            val rad = Math.toRadians((i * 360f / inner).toDouble())
+            out.add(
+                bossBullet(
+                    xSpeed = (kotlin.math.cos(rad) * 0.32).toFloat(),
+                    ySpeed = (kotlin.math.sin(rad) * 0.28).toFloat() + 0.42f,
+                    w = 24f,
+                ),
             )
         }
+        // Vòng ngoài: lệch pha 12°, nhanh hơn ~2.4× → tách khỏi vòng trong khi bay.
+        for (i in 0 until outer) {
+            val rad = Math.toRadians((i * 360f / outer + 12f).toDouble())
+            out.add(
+                bossBullet(
+                    xSpeed = (kotlin.math.cos(rad) * 0.8).toFloat(),
+                    ySpeed = (kotlin.math.sin(rad) * 0.6).toFloat() + 0.6f,
+                    w = 18f,
+                ),
+            )
+        }
+        return out
     }
 
     /** Nhện Venom — "tơ độc": 8 nan cố định toả ra (như chân nhện) + phase2 nhả thẳng. */
@@ -542,12 +624,17 @@ data class MidBoss(
         return out
     }
 
-    /** Tham Nhũng — "tiền đè": tường ngang DÀY, CHẬM, gần kín (chỉ 1 khe) để đè người. */
+    /** Tham Nhũng — "tiền đè": tường ngang DÀY, CHẬM, gần kín. Khe an toàn DI
+     *  CHUYỂN tuần tự mỗi loạt (fireTick) → ép người chơi rượt theo làn, không
+     *  đứng yên được. Khác roarWall (khe NGẪU NHIÊN, tường nhanh). */
     private fun corruptionWall(phase2: Boolean): List<Laser> {
         val count = if (phase2) 10 else 7
         val spacing = (screenWidth * 0.94f) / count
         val startX = screenWidth * 0.03f
-        val gap = (Math.random() * count).toInt()                     // chỉ 1 khe duy nhất
+        // Khe quét qua-lại: 0,1,2,…,count-1,count-2,… (tam giác) theo fireTick.
+        val period = (count - 1) * 2
+        val t = if (period == 0) 0 else fireTick % period
+        val gap = if (t < count) t else period - t
         return (0 until count).filter { it != gap }.map { i ->
             bossBullet(
                 xSpeed = 0f,
@@ -567,7 +654,8 @@ data class MidBoss(
         hp -= impactPower
         lastImpactMillis = System.currentTimeMillis()
         if (!isInEntryPhase) {
-            knockbackVel = (knockbackVel - 1.2f).coerceAtLeast(-2.5f)
+            // Cộng dồn offset giật lùi (âm = lên), kẹp -22px; suy giảm 0.85/frame.
+            knockbackY = (knockbackY - 6f).coerceAtLeast(-22f)
         }
     }
 

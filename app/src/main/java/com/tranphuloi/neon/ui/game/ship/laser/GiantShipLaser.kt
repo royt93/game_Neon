@@ -32,6 +32,9 @@ data class GiantShipLaser(
     override var destroyed: Boolean = false
     // Round 71 fix (Issue 4a audit) — surface bulletType cho LaserCanvas dispatch.
     override val bulletType: BulletType = BulletType.GIANT
+    // Wave 17 — "cày xuyên": GIANT giờ xuyên nhiều địch. Cần field THẬT (interface
+    // mặc định pierceRemaining là no-op) để collision decrement được.
+    override var pierceRemaining: Int = BulletType.GIANT.pierceCount
 
     override fun moveLaser() {
         yOffset -= yOffsetMovementSpeed

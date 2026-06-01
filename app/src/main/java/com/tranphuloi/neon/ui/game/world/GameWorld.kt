@@ -423,12 +423,11 @@ fun GameWorld(
                     .width(ship.width.dp)
                     .height(ship.height.dp)
                     .graphicsLayer {
+                        // Wave 17 — chỉ NGHIÊNG quanh tâm (đối xứng). Bỏ scaleX
+                        // wing-roll Wave 16: scale phi-tuyến lúc xoay gây méo thân +
+                        // lệch với engine-flame (pivot khác) → ship "không cân đối"
+                        // khi di chuyển (user báo). Flame nay cũng xoay quanh tâm.
                         rotationZ = ship.spawnRotation + ship.bankRotation
-                        // Wave 16 — wing-roll giả-3D: bóp ngang (scaleX) theo độ
-                        // nghiêng → cánh "lật vào cua" như máy bay thật, không chỉ
-                        // xoay phẳng. Ở bank tối đa (±26°) scaleX ≈ 0.78.
-                        val bankFrac = (kotlin.math.abs(ship.bankRotation) / 26f).coerceIn(0f, 1f)
-                        scaleX = 1f - bankFrac * 0.22f
                     }
                     .neonGlow(
                         color = shipGlowColor,

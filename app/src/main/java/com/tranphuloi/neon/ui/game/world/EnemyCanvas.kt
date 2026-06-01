@@ -104,32 +104,11 @@ private fun DrawScope.drawEnemy(
         // with drawSoftHalo (3 drawCircles, no Brush/Shader). Visually equivalent
         // at typical halo sizes.
         drawSoftHalo(haloColor, glowIntensity, glowR, Offset(cx, cy))
-        // Round 77 (R77d) — Boss inner secondary aura ring (rotating effect via animation deferred).
-        if (enemy.isBoss) {
-            drawCircle(
-                color = haloColor.copy(alpha = 0.45f + hitFlash * 0.3f),
-                radius = (minOf(wPx, hPx) / 2f) * 1.35f,
-                center = Offset(cx, cy),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = wPx * 0.06f),
-            )
-            // 4 corner markers — small glowing diamonds at NE/SE/SW/NW của bounding ring
-            val markerR = (minOf(wPx, hPx) / 2f) * 1.55f
-            val markerSize = wPx * 0.10f
-            for (i in 0 until 4) {
-                val ang = (45.0 + i * 90.0) * Math.PI / 180.0
-                val mx = cx + (markerR * kotlin.math.cos(ang)).toFloat()
-                val my = cy + (markerR * kotlin.math.sin(ang)).toFloat()
-                val path = PathPool.acquire().apply {
-                    moveTo(mx, my - markerSize)
-                    lineTo(mx + markerSize, my)
-                    lineTo(mx, my + markerSize)
-                    lineTo(mx - markerSize, my)
-                    close()
-                }
-                drawPath(path, haloColor.copy(alpha = 0.85f))
-                PathPool.release(path)
-            }
-        }
+        // Wave 17 — ĐÃ BỎ vòng aura phụ (1.35×) + 4 kim cương góc (1.55×) của boss.
+        // Chúng vẽ theo bán kính TRÒN quanh tâm nên với boss KHÔNG tròn (cọp/rồng/
+        // búa-liềm) trông như shape lạ tách rời, lại SÁNG BỪNG khi trúng đạn
+        // (hitFlash) → user báo "boss bị overlay shape khi trúng đạn". Giờ chỉ
+        // còn halo mềm ôm theo thân → sạch, đọc rõ boss.
 
         // Body color, blended with hit flash white + status effect tint.
         val baseBody = bodyColorFor(enemy.drawableId)
@@ -168,6 +147,67 @@ private fun DrawScope.drawEnemy(
             isBoss = enemy.isBoss,
             bossKind = enemy.bossKind,
         )
+
+        // Wave 16 — status overlay RÕ RÀNG (trước chỉ tint mờ vào thân → user
+        // "đạn lửa chả thấy lửa"). BURN → ngọn lửa nhấp nháy; SLOW → tinh thể
+        // băng; STUN → vòng sao xoay. Vẽ trên thân để đọc được hiệu ứng.
+        if (enemy.activeStatusEffectTints.isNotEmpty()) {
+            drawStatusOverlay(enemy.activeStatusEffectTints, cx, cy, wPx, hPx, nowMillis)
+        }
+    }
+}
+
+/** Wave 16 — hiệu ứng status vẽ đè lên địch (lửa / băng / sao) theo tint. */
+private fun DrawScope.drawStatusOverlay(
+    tints: List<Long>,
+    cx: Float, cy: Float, wPx: Float, hPx: Float, nowMillis: Long,
+) {
+    val burn = com.tranphuloi.neon.ui.game.status.StatusEffect.BURN.tintColorArgb
+    val slow = com.tranphuloi.neon.ui.game.status.StatusEffect.SLOW.tintColorArgb
+    val stun = com.tranphuloi.neon.ui.game.status.StatusEffect.STUN.tintColorArgb
+    if (tints.any { it == burn }) {
+        // Ngọn lửa nhấp nháy ở mép trên.
+        val topY = cy - hPx * 0.42f
+        val n = 4
+        for (i in 0 until n) {
+            val fx = cx + (i - (n - 1) / 2f) * wPx * 0.28f
+            val flick = 0.7f + 0.3f * sin(nowMillis / 90.0 + i * 1.7).toFloat()
+            val h = hPx * 0.45f * flick
+            val w = wPx * 0.18f
+            val flame = PathPool.acquire().apply {
+                moveTo(fx, topY - h)
+                cubicTo(fx + w, topY - h * 0.4f, fx + w * 0.5f, topY, fx, topY)
+                cubicTo(fx - w * 0.5f, topY, fx - w, topY - h * 0.4f, fx, topY - h)
+                close()
+            }
+            drawPath(flame, Color(0xFFFF6A00).copy(alpha = 0.9f))
+            PathPool.release(flame)
+            drawCircle(Color(0xFFFFD040), w * 0.45f, Offset(fx, topY - h * 0.35f))
+        }
+    }
+    if (tints.any { it == slow }) {
+        // Tinh thể băng 6 cánh ở tâm.
+        val r = minOf(wPx, hPx) * 0.32f
+        for (i in 0 until 6) {
+            val a = i * Math.PI / 3.0
+            drawLine(
+                Color(0xFF8AE6FF).copy(alpha = 0.85f), Offset(cx, cy),
+                Offset(cx + (r * cos(a)).toFloat(), cy + (r * sin(a)).toFloat()),
+                strokeWidth = wPx * 0.05f, cap = androidx.compose.ui.graphics.StrokeCap.Round,
+            )
+        }
+        drawCircle(Color.White.copy(alpha = 0.8f), wPx * 0.06f, Offset(cx, cy))
+    }
+    if (tints.any { it == stun }) {
+        // Vòng sao xoay quanh đầu.
+        val ringR = minOf(wPx, hPx) * 0.5f
+        val base = nowMillis / 220.0
+        for (i in 0 until 3) {
+            val a = base + i * 2.094
+            val sx = cx + (ringR * cos(a)).toFloat()
+            val sy = cy - hPx * 0.4f + (ringR * 0.4f * sin(a)).toFloat()
+            drawCircle(Color(0xFFFFE34D), wPx * 0.07f, Offset(sx, sy))
+        }
     }
 }
 

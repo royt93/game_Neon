@@ -34,6 +34,17 @@ import com.tranphuloi.neon.common.PathPool
 
 private const val MAX_HP: Int = 1000
 
+/**
+ * Top-left HUD. Round 77 (R77b) — 2-column layout: COMBAT (left) + PROGRESSION
+ * (right).
+ *
+ * Wave 16 (perf) — split the former 15-param monolith into [CombatColumn] +
+ * [ProgressionColumn]. Two wins: (1) smaller functions → less JIT at cold-start
+ * (the monolith cost ~6.8MB to compile → a Choreographer skip on first frame);
+ * (2) the flash-timer + pulse state now lives inside [CombatColumn], so the
+ * frequently-recomposing combat half no longer drags the rarely-changing
+ * progression half (and vice-versa). Public signature unchanged.
+ */
 @Composable
 fun IndicatorStatus(
     gameTime: String,
@@ -45,8 +56,7 @@ fun IndicatorStatus(
     lastMineralPickupMillis: Long,
     lastBoosterPickupMillis: Long,
     hasReviveToken: Boolean = false,
-    // Round 76 (R76d) — user audit: HUD xấu + ít info. Add chapter / stage /
-    // enemies killed / bosses defeated / ship shape badge.
+    // Round 76 (R76d) — chapter / stage / enemies killed / bosses / ship badge.
     currentChapterId: Int = 0,
     currentChapterName: String = "",
     stagesReached: Int = 0,
@@ -55,6 +65,47 @@ fun IndicatorStatus(
     shipShape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape =
         com.tranphuloi.neon.ui.game.ship.shape.ShipShape.FIGHTER,
     modifier: Modifier = Modifier,
+) {
+    val buttonPaddingEnd = dimensionResource(id = R.dimen.button_padding)
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier.padding(start = buttonPaddingEnd, top = 8.dp),
+    ) {
+        CombatColumn(
+            gameTime = gameTime,
+            hp = hp,
+            mineralsEarnedTotal = mineralsEarnedTotal,
+            comboCount = comboCount,
+            comboTier = comboTier,
+            lastEnemyKillMillis = lastEnemyKillMillis,
+            lastMineralPickupMillis = lastMineralPickupMillis,
+            lastBoosterPickupMillis = lastBoosterPickupMillis,
+            hasReviveToken = hasReviveToken,
+        )
+        ProgressionColumn(
+            currentChapterId = currentChapterId,
+            currentChapterName = currentChapterName,
+            stagesReached = stagesReached,
+            enemiesKilledTotal = enemiesKilledTotal,
+            bossesDefeatedTotal = bossesDefeatedTotal,
+            shipShape = shipShape,
+        )
+    }
+}
+
+/** Left column — HP capsule + bar, mineral counter, revive token, combo. Owns
+ *  the pickup-flash pulse timer (ticks only while a flash is in flight). */
+@Composable
+private fun CombatColumn(
+    gameTime: String,
+    hp: Int,
+    mineralsEarnedTotal: String,
+    comboCount: Int,
+    comboTier: ComboTier,
+    lastEnemyKillMillis: Long,
+    lastMineralPickupMillis: Long,
+    lastBoosterPickupMillis: Long,
+    hasReviveToken: Boolean,
 ) {
     // Per-stat flash timer ticks at 50ms only while a flash is in flight (350ms each).
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -72,7 +123,6 @@ fun IndicatorStatus(
     }
     val mineralPulse = if (lastMineralPickupMillis > 0L && mineralFlashElapsed in 0L..350L) {
         val t = mineralFlashElapsed.toFloat() / 350f
-        // Scale 1.0 → 1.3 (0..0.2), settle 1.3 → 1.0 (0.2..1.0).
         if (t < 0.2f) 1f + (t / 0.2f) * 0.3f else 1.3f - ((t - 0.2f) / 0.8f) * 0.3f
     } else 1f
     val hpPulse = if (lastBoosterPickupMillis > 0L && boosterFlashElapsed in 0L..350L) {
@@ -82,14 +132,8 @@ fun IndicatorStatus(
     val mineralFlashIntensity = if (mineralPulse > 1f) (mineralPulse - 1f) * 1.5f else 0f
     val hpFlashIntensity = if (hpPulse > 1f) (hpPulse - 1f) * 1.5f else 0f
 
-    val buttonPaddingEnd = dimensionResource(id = R.dimen.button_padding)
-    // Wave 11d Bug #2 fix — HUD top-left was visually oversized on tall device
-    // (Pixel 7 Pro). Reduced by ~25% across the board: capsule height 60→44dp,
-    // width 150→120dp, HP fontSize 16→14sp, time 14→11sp, padding-top 16→8dp.
-    // Combat info (hp/time) still readable; spec audit prefers compact HUD.
-    val buttonPaddingTop = 8.dp
+    // Wave 11d Bug #2 fix — compact HUD on tall device (Pixel 7 Pro).
     val height = 44.dp
-
     val hpRatio = (hp.toFloat() / MAX_HP).coerceIn(0f, 1f)
     val hpColor = when {
         hp >= 700 -> NeonCyan
@@ -97,19 +141,9 @@ fun IndicatorStatus(
         else -> NeonRedAlert
     }
 
-    // Round 77 (R77b) — 2-column layout. Left = COMBAT (HP/mineral/combo/revive).
-    // Right = PROGRESSION (chapter/stage/kills/ship). User feedback "HUD to + ít info"
-    // mâu thuẫn → giải bằng cách chia layout 2 cột (compact horizontally) + giữ
-    // all info (mỗi cột riêng category dễ scan).
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = modifier.padding(start = buttonPaddingEnd, top = buttonPaddingTop),
-    ) {
-        // ── Left column: COMBAT ──
-        Column {
+    Column {
         Box(modifier = Modifier.height(height = height)) {
-            // Round 67.6 — Vector HP frame replacing button_hp_indicator.webp.
-            // Stadium (capsule) outline + neon glow, color tracks HP tier.
+            // Round 67.6 — Vector HP frame (stadium outline + neon glow, color tracks HP tier).
             androidx.compose.foundation.Canvas(
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -154,8 +188,7 @@ fun IndicatorStatus(
                     .padding(start = 6.dp, bottom = 6.dp)
             )
         }
-        // Visual HP bar — 110dp wide segmented bar showing hp/MAX_HP ratio,
-        // glow intensity scales with hp deficit so low HP "screams".
+        // Visual HP bar — glow intensity scales with hp deficit so low HP "screams".
         Spacer(modifier = Modifier.height(3.dp))
         Box(
             modifier = Modifier
@@ -183,8 +216,7 @@ fun IndicatorStatus(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Round 67.6 — Vector mineral gem replacing ic_mineral.webp.
-            // Diamond/rhombus filled gold with bright cyan core highlight.
+            // Round 67.6 — Vector mineral gem (diamond gold + cyan core sparkle).
             androidx.compose.foundation.Canvas(
                 modifier = Modifier
                     .size(22.dp)
@@ -198,7 +230,6 @@ fun IndicatorStatus(
                         radiusFactor = 1.6f + mineralFlashIntensity * 0.5f,
                     ),
             ) {
-                // Diamond/rhombus gem with cyan core sparkle.
                 val cx = size.width / 2f
                 val cy = size.height / 2f
                 val halfW = size.width * 0.42f
@@ -214,7 +245,6 @@ fun IndicatorStatus(
                 drawPath(path, NeonCyan,
                     style = androidx.compose.ui.graphics.drawscope.Stroke(width = size.width * 0.08f))
                 PathPool.release(path)
-                // Inner sparkle line
                 drawLine(
                     color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.85f),
                     start = androidx.compose.ui.geometry.Offset(cx - halfW * 0.3f, cy - halfH * 0.3f),
@@ -233,7 +263,6 @@ fun IndicatorStatus(
                 },
             )
         }
-        // ── Left column: Revive + Combo (combat continued) ──
         if (hasReviveToken) {
             Spacer(modifier = Modifier.height(4.dp))
             ReviveTokenBadge()
@@ -244,11 +273,21 @@ fun IndicatorStatus(
             tier = comboTier,
             lastKillMillis = lastEnemyKillMillis,
         )
-        } // end Left column
+    }
+}
 
-        // ── Right column: PROGRESSION ──
-        Column {
-        // Round 77 (R77b) — chapter/stage/kills/ship badge stacked vertically.
+/** Right column — chapter / stage / kills / boss-defeats / ship-shape badge.
+ *  Pure read-only stats; recomposes only when progression actually advances. */
+@Composable
+private fun ProgressionColumn(
+    currentChapterId: Int,
+    currentChapterName: String,
+    stagesReached: Int,
+    enemiesKilledTotal: Int,
+    bossesDefeatedTotal: Int,
+    shipShape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape,
+) {
+    Column {
         if (currentChapterId > 0) {
             Text(
                 text = "Ch.$currentChapterId",
@@ -273,7 +312,6 @@ fun IndicatorStatus(
                 )
             }
         }
-        // Combat counter (right col, stacked).
         if (enemiesKilledTotal > 0 || bossesDefeatedTotal > 0) {
             Spacer(modifier = Modifier.height(6.dp))
             Text(
@@ -291,7 +329,6 @@ fun IndicatorStatus(
                 )
             }
         }
-        // Round 76 (R76d) — Ship shape badge.
         if (shipShape != com.tranphuloi.neon.ui.game.ship.shape.ShipShape.FIGHTER) {
             Spacer(modifier = Modifier.height(4.dp))
             Text(
@@ -305,8 +342,7 @@ fun IndicatorStatus(
                     .padding(horizontal = 6.dp, vertical = 2.dp),
             )
         }
-        } // end Right column
-    } // end Row
+    }
 }
 
 @Composable

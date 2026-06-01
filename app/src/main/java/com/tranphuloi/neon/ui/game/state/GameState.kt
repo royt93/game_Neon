@@ -437,6 +437,9 @@ fun rememberGameState(): GameState {
     var lastBossHitMillis by remember { androidx.compose.runtime.mutableLongStateOf(0L) }
     var lastBossHitX by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
     var lastBossHitY by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
+    // Wave 17b — throttle nổ trên boss: rapid-fire + đa-đạn dồn vào boss khiến GIF
+    // nổ xếp chồng dày che cả thân (user báo "nhiều hình overlay").
+    var lastBossExplosionMillis by remember { androidx.compose.runtime.mutableLongStateOf(0L) }
     val hitStopController = remember {
         HitStopController(onBossKillFlash = { bossKillFlashMillis = System.currentTimeMillis() })
     }
@@ -793,10 +796,19 @@ fun rememberGameState(): GameState {
                     lastBossHitY = y
                 }
                 // Mini explosion at hit point — reuses the GIF explosion system so the
-                // hit reads as a real "pháo hoa nổ tung" not just sparks. Smaller size
-                // (45-55dp) so it doesn't dwarf small enemies; bigger on boss.
-                val miniSize = if (isBoss) 60f else 45f
-                explosionsController.addExplosion(x, y, miniSize, miniSize)
+                // hit reads as a real "pháo hoa nổ tung" not just sparks.
+                // Wave 17b — trên BOSS: nổ nhỏ hơn (40dp) + GIÃN NHỊP ≥120ms/lần để
+                // GIF không xếp chồng dày che thân boss (đọc rõ shape). Địch thường
+                // giữ nguyên 45dp mỗi viên (chết nhanh nên không tích tụ).
+                if (isBoss) {
+                    val nowExp = System.currentTimeMillis()
+                    if (nowExp - lastBossExplosionMillis >= 120L) {
+                        lastBossExplosionMillis = nowExp
+                        explosionsController.addExplosion(x, y, 40f, 40f)
+                    }
+                } else {
+                    explosionsController.addExplosion(x, y, 45f, 45f)
+                }
                 hitStopController.freezeForHit()
                 // Round 34 (41x) — 10% chance to apply random status effect per hit.
                 // Boss has reduced chance (5%) so they don't burn-stack-die unfairly.
@@ -809,6 +821,17 @@ fun rememberGameState(): GameState {
                 // on hit (100% chance during the FIRE buff window). This is
                 // the GUARANTEED effect, separate from the random 10% above.
                 if (ship.activeBulletType == com.tranphuloi.neon.ui.game.ship.laser.BulletType.FIRE) {
+                    statusEffectController.apply(
+                        targetId,
+                        com.tranphuloi.neon.ui.game.status.StatusEffect.BURN,
+                        System.currentTimeMillis(),
+                    )
+                }
+                // Wave 17 — ATOMIC: ngoài splash AoE 150, để lại "phóng xạ" =
+                // gây BURN (DoT) cho MỌI địch trúng (kể cả nạn nhân splash, vì
+                // onLaserHit được gọi cho từng nạn nhân với bulletType=ATOMIC).
+                // → phân biệt hẳn PLASMA (chỉ splash tức thời, không DoT).
+                if (bulletType == com.tranphuloi.neon.ui.game.ship.laser.BulletType.ATOMIC) {
                     statusEffectController.apply(
                         targetId,
                         com.tranphuloi.neon.ui.game.status.StatusEffect.BURN,
@@ -1219,10 +1242,13 @@ fun rememberGameState(): GameState {
     val enemyLaserController = remember {
         EnemyLasersController(
             screenHeight = screenHeight,
+            screenWidth = screenWidth,
             initialEnemyLasers = enemyLasers,
             setEnemyLasers = { enemyLasers = it },
             // Round 34 (41x) — STUN: skip fire if enemy is stunned this tick.
             isEnemyStunned = { enemyId -> statusEffectController.isStunned(enemyId) },
+            // Wave 17 — center tàu (px) cho đạn HOMING bám theo.
+            shipPosition = { (ship.xOffset + ship.width / 2f) to (ship.yOffset + ship.height / 2f) },
         )
     }
 

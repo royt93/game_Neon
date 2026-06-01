@@ -46,7 +46,10 @@ sealed class MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 1200f,
         displayName = "TIỂU BOSS BẦY ĐÀN",
-        defaultBossKind = BossKind.FRACTAL,
+        // Wave 17 — trước là FRACTAL (trùng shape DEFENSIVE) nhưng giá trị này
+        // CHẾT: BossKindResolver luôn map SWARM→HAUNTED_KID nên render đã khác.
+        // Đặt default đúng = HAUNTED_KID để code nói thật, không gây hiểu lầm.
+        defaultBossKind = BossKind.HAUNTED_KID,
     )
 
     // ── Round 82 (boss wire) — 12 new variants per R81 roster ──
@@ -132,7 +135,7 @@ sealed class MidBossType(
 
     object GOLDEN_TYCOON : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
-        baseHp = 2500f,
+        baseHp = 2550f,                                 // Wave 17 — né trùng size DEFENSIVE(2500)
         displayName = "TYCOON VÀNG",
         defaultBossKind = BossKind.GOLDEN_TYCOON,
     )
@@ -142,7 +145,7 @@ sealed class MidBossType(
     /** Đầu lâu + xương chéo — bắn xương xoay. HP trung bình. */
     object SKULL_CROSSBONES : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
-        baseHp = 2000f,
+        baseHp = 2050f,                                 // Wave 17 — né trùng size SEXY_DIVA(2000)
         displayName = "ĐẦU LÂU XƯƠNG CHÉO",
         defaultBossKind = BossKind.SKULL_CROSSBONES,
     )
@@ -168,7 +171,7 @@ sealed class MidBossType(
     /** Bao cao su khổng lồ — phình rồi nổ ra vòng đạn. */
     object GIANT_CONDOM : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
-        baseHp = 2400f,
+        baseHp = 2450f,                                 // Wave 17 — né trùng size TROLL_TOWER(2400)
         displayName = "BAO CAO SU KHỔNG LỒ",
         defaultBossKind = BossKind.GIANT_CONDOM,
     )
@@ -176,7 +179,7 @@ sealed class MidBossType(
     /** Nhện Venom — cực nguy hiểm: tơ độc 8 hướng. */
     object VENOM_SPIDER : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
-        baseHp = 2800f,
+        baseHp = 2850f,                                 // Wave 17 — né trùng size BUFFALO_RAGE(2800)
         displayName = "NHỆN VENOM",
         defaultBossKind = BossKind.VENOM_SPIDER,
     )
@@ -188,4 +191,24 @@ sealed class MidBossType(
         displayName = "THAM NHŨNG",
         defaultBossKind = BossKind.CORRUPTION,
     )
+
+    companion object {
+        /**
+         * Wave 16 — đủ 21 mid-boss variant. Dùng cho Boss Rush (roster đầy đủ
+         * thay vì chỉ vài StageBoss cuối chương) + pin test đếm số variant.
+         */
+        // NB: phải là `get()` — KHÔNG phải `val` khởi tạo sớm. Companion <clinit>
+        // build list này lại trigger init các object con (extends MidBossType),
+        // mà init object con cần class MidBossType đã load → vòng khởi tạo tĩnh
+        // khiến một số object null (HEN_MOTHER null tại idx 3). Tính tại call-time
+        // né hẳn vòng này; object là singleton nên identity vẫn ổn định.
+        val ALL: List<MidBossType>
+            get() = listOf(
+                OFFENSIVE, DEFENSIVE, SWARM,
+                HEN_MOTHER, BUFFALO_RAGE, DUMB_RAT, FIERCE_TIGER, SEXY_DIVA, TROLL_TOWER,
+                TWIN_SUMMITS, VOID_GLOBES, WHITE_DRAGON, HAMMER_SICKLE, MONEY_TYCOON, GOLDEN_TYCOON,
+                SKULL_CROSSBONES, VAMPIRE, COSMIC_CENTIPEDE,
+                GIANT_CONDOM, VENOM_SPIDER, CORRUPTION,
+            )
+    }
 }

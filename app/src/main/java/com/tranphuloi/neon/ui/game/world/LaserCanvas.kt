@@ -279,17 +279,30 @@ private fun DrawScope.drawHeartBody(xPx: Float, yPx: Float, wPx: Float, hPx: Flo
 }
 
 private fun DrawScope.drawFireBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {
-    drawCapsuleBody(xPx, yPx, wPx, hPx * 0.75f, wPx / 2f, glow)
-    // Flame trail at bottom
+    // Wave 16 — đầu đạn nhỏ hơn, NGỌN LỬA TO HƠN (đuôi lửa cam→vàng) cho "thấy lửa".
+    drawCapsuleBody(xPx, yPx, wPx, hPx * 0.5f, wPx / 2f, glow)
     val cx = xPx + wPx / 2f
-    val path = PathPool.acquire().apply {
-        moveTo(xPx, yPx + hPx * 0.75f)
-        lineTo(cx, yPx + hPx)
-        lineTo(xPx + wPx, yPx + hPx * 0.75f)
+    val flameW = wPx * 2.2f                              // lửa rộng hơn thân đạn
+    val flameTop = yPx + hPx * 0.42f
+    val flameBot = yPx + hPx * 1.35f                     // tràn xuống dưới đạn
+    // Outer orange flame.
+    val outer = PathPool.acquire().apply {
+        moveTo(cx, flameBot)
+        cubicTo(cx + flameW / 2f, flameTop + (flameBot - flameTop) * 0.4f, cx + flameW * 0.28f, flameTop, cx, flameTop - hPx * 0.1f)
+        cubicTo(cx - flameW * 0.28f, flameTop, cx - flameW / 2f, flameTop + (flameBot - flameTop) * 0.4f, cx, flameBot)
         close()
     }
-    drawPath(path, Color(0xFFFFD040).copy(alpha = 0.9f))
-    PathPool.release(path)
+    drawPath(outer, Color(0xFFFF6A00).copy(alpha = 0.9f))
+    PathPool.release(outer)
+    // Inner yellow core.
+    val inner = PathPool.acquire().apply {
+        moveTo(cx, flameBot - hPx * 0.18f)
+        cubicTo(cx + flameW * 0.28f, flameTop + (flameBot - flameTop) * 0.45f, cx + flameW * 0.14f, flameTop + hPx * 0.1f, cx, flameTop + hPx * 0.05f)
+        cubicTo(cx - flameW * 0.14f, flameTop + hPx * 0.1f, cx - flameW * 0.28f, flameTop + (flameBot - flameTop) * 0.45f, cx, flameBot - hPx * 0.18f)
+        close()
+    }
+    drawPath(inner, Color(0xFFFFD040))
+    PathPool.release(inner)
 }
 
 private fun DrawScope.drawSmokeBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {

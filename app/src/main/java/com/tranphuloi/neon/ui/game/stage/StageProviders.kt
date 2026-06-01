@@ -15,9 +15,27 @@ internal val chapter1GameStages: List<StageGame> by lazy {
     stages.filterIsInstance<StageGame>().filter { it.chapterId == 1 }
 }
 
-/** All StageBoss entries across the entire campaign, in order. */
+/**
+ * Wave 16 — Boss Rush roster ĐẦY ĐỦ. Trước đây = `stages.filterIsInstance<StageBoss>()`
+ * → chỉ ~2-3 boss cuối chương; 21 mid-boss variant (spawn qua Chapter.midBossTypes
+ * giữa chương, KHÔNG phải StageBoss) bị bỏ sót khỏi boss-rush (user báo). Nay dựng
+ * trực tiếp: 21 mid-boss + boss cuối/biến-thể-chương → đủ 27 BossKind.
+ */
 private val allBosses: List<StageBoss> by lazy {
-    stages.filterIsInstance<StageBoss>()
+    buildList {
+        com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType.ALL.forEachIndexed { i, mb ->
+            // OFFENSIVE giữ chapter 1 (→ ORB); HELL_LORD (OFFENSIVE@ch4) thêm riêng bên dưới.
+            val ch = if (mb == com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType.OFFENSIVE) 1 else (i % 5) + 1
+            add(StageBoss(bossId = "rush_${mb.displayName}", enemyType = mb, chapterId = ch))
+        }
+        // Boss cuối chương + biến thể chương (phủ nốt STAR/DEATH_MOON/CROSS/SATAN/HELL_LORD/SPIDER).
+        add(StageBoss("rush_star", com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBossType, chapterId = 1))
+        add(StageBoss("rush_deathmoon", com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBossType, chapterId = 3))
+        add(StageBoss("rush_cross", com.tranphuloi.neon.ui.game.enemy.ship.model.LevelTwoBossType, chapterId = 2))
+        add(StageBoss("rush_satan", com.tranphuloi.neon.ui.game.enemy.ship.model.LevelTwoBossType, chapterId = 4))
+        add(StageBoss("rush_hell", com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType.OFFENSIVE, chapterId = 4))
+        add(StageBoss("rush_final", com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBossType, chapterId = 5))
+    }
 }
 
 /**

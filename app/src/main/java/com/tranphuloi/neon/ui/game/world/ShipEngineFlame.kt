@@ -54,6 +54,9 @@ fun ShipEngineFlame(
         val cxPx = (ship.xOffset + ship.width / 2f) * density
         // Place flame START just above ship's bottom edge (so it appears to come from engines).
         val topY = (ship.yOffset + ship.height * 0.85f) * density
+        // Wave 17 — pivot xoay = TÂM ship (khớp body Canvas xoay quanh tâm). Trước
+        // xoay quanh đuôi (topY) → khi bank, lửa tách khỏi đuôi đã xoay của thân.
+        val cyPx = (ship.yOffset + ship.height / 2f) * density
 
         // Per-layer flicker phases — staggered so the 3 layers don't pulse in sync.
         val outerLenFactor = 1f + 0.35f * sin(flicker)
@@ -79,7 +82,7 @@ fun ShipEngineFlame(
         val coreBulgeHalf = 5.5f * density
 
         val totalRotation = ship.bankRotation + ship.spawnRotation
-        rotate(degrees = totalRotation, pivot = androidx.compose.ui.geometry.Offset(cxPx, topY)) {
+        rotate(degrees = totalRotation, pivot = androidx.compose.ui.geometry.Offset(cxPx, cyPx)) {
             // Layer 1: outer cyan halo — teardrop with lateral sway.
             // Cubic bezier curves give smooth rounded sides (was sharp 5-point polygon
             // per user "thô, nhiều góc cạnh"). Two cubics: top-left → bulge-left →

@@ -98,7 +98,11 @@ enum class BulletType(
         displayName = "Khổng lồ",
         activeDurationMillis = 10_000L,
         damageMultiplier = 2f,
-        pierceCount = 0,
+        // Wave 17 — CƠ CHẾ RIÊNG: "cày xuyên". Trước GIANT chỉ là đạn to + ×2 dmg
+        // (stat thuần, không cơ chế) → trùng cảm giác với mọi đạn thường to. Nay
+        // xuyên 4 địch như xe lu cày qua đội hình, khác hẳn PIERCING (xuyên 3,
+        // ×1 dmg, thân mảnh) và KAMEHAMEHA (beam xuyên-tất, ×3).
+        pierceCount = 4,
         aoeRadius = 0f,
         glyph = "⬤",                               // large filled circle
         shopUnlockId = "bullet_giant",             // Wave 14a — shop-gated (×2 dmg premium)

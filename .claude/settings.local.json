@@ -178,7 +178,12 @@
       "Bash(awk 'NR>=420 && NR<=470' app/src/main/java/com/tranphuloi/neon/ui/dlg/loadoutpicker/DialogLoadoutPicker.kt)",
       "Bash(awk '/BulletType.BRICK -> \\\\{/{f=1} f{print NR\": \"$0} /drawLine\\\\\\(color = Color.Black/{if\\(f\\)c++} c>=1 && f && /^        \\\\}/{print \"END@\"NR; exit}' app/src/main/java/com/tranphuloi/neon/ui/dlg/loadoutpicker/DialogLoadoutPicker.kt)",
       "Bash(awk '/ -> / && /BulletType/')",
-      "Bash(adb install *)"
+      "Bash(adb install *)",
+      "Bash(sed -n '56,110p' app/src/main/java/com/tranphuloi/neon/ui/game/stage/StageProviders.kt)",
+      "Bash(sed -n '281,312p' app/src/main/java/com/tranphuloi/neon/ui/game/world/LaserCanvas.kt)",
+      "Bash(echo \"pid: $\\(adb shell pidof com.tranphuloi.neon\\)\")",
+      "Bash(echo \"fg: $\\(adb shell dumpsys activity activities)",
+      "Bash(awk '/private fun DrawScope.drawBossHammerSickle|fun drawBossHammerSickle/{f=1} f{print} /^}/{if\\(f\\)c++} f&&c>=1&&/^}/{exit}' app/src/main/java/com/tranphuloi/neon/ui/game/world/EnemyCanvas.kt)"
     ]
   }
 }

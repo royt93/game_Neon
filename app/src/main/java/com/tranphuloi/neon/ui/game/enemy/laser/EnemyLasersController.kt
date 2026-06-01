@@ -9,12 +9,21 @@ import java.util.*
 class EnemyLasersController(
     private val screenHeight: Float,
     initialEnemyLasers: List<Laser>,
+    /** Wave 17 — bề ngang màn (px) để side-cull đạn phi tuyến bay lệch ra ngoài.
+     *  Mặc định +∞ → không side-cull (test cũ / khi chưa wire). */
+    private val screenWidth: Float = Float.MAX_VALUE,
     private val setEnemyLasers: (List<Laser>) -> Unit,
     /**
      * Round 34 (41x) — STUN status effect check. If true, skip fire-laser for
      * the picked enemy this tick. Default = false → no stun gating.
      */
     private val isEnemyStunned: (enemyId: String) -> Boolean = { false },
+    /**
+     * Wave 17 — vị trí tàu (center, px) để đạn [LaserMotion.HOMING] bám theo.
+     * Cập nhật mỗi tick trong [processLasers]. Mặc định trỏ xa khỏi màn để khi
+     * chưa wire (test) homing chỉ bay xuống.
+     */
+    private val shipPosition: () -> Pair<Float, Float> = { 0f to Float.MAX_VALUE },
 ) {
 
     init {
@@ -68,6 +77,12 @@ class EnemyLasersController(
     companion object {
         /** Round 47 — max in-flight enemy lasers. Above this, new fire is dropped. */
         const val MAX_ENEMY_LASERS = 30
+
+        /** Wave 17 — ngưỡng cull đỉnh cho đạn HOMING bay ngược lên (tránh leak). */
+        private const val TOP_CULL_Y = -250f
+
+        /** Wave 17 — biên cull lệch ngang cho đạn phi tuyến (HOMING/CURVE). */
+        private const val SIDE_CULL = 250f
     }
 
     val processLasersId = UUID.randomUUID().toString()
@@ -81,9 +96,28 @@ class EnemyLasersController(
         // lasers reach the device-bottom band at FAR zoom (where the ship can
         // now park after Pixel-3 #4 fix).
         val effectiveHeight = screenHeight + extraYSpan
+        // Wave 17 — cập nhật target cho đạn HOMING (bám tàu) trước khi di chuyển.
+        // Chỉ tính shipPosition() 1 lần/tick nếu có đạn homing.
+        val homingActive = enemyLasers.any { it is EnemyLaser && it.motion == LaserMotion.HOMING }
+        if (homingActive) {
+            val (sx, sy) = shipPosition()
+            enemyLasers.forEach {
+                if (it is EnemyLaser && it.motion == LaserMotion.HOMING) {
+                    it.targetX = sx
+                    it.targetY = sy
+                }
+            }
+        }
         enemyLasers.forEach {
             it.moveLaser()
-            if (it.yOffset > effectiveHeight || it.destroyed) destroyEnemyLaser(it)
+            // Cull đáy (mọi đạn) + Wave 17: cull ĐỈNH cho đạn HOMING quay đầu bay
+            // ngược lên khi người chơi né qua — nếu không, chúng chui khỏi đỉnh,
+            // KHÔNG bao giờ bị xoá → tích tụ tới MAX_ENEMY_LASERS làm nghẽn fire.
+            // Đạn thường spawn ~y170 đi xuống nên ngưỡng -250 không giết nhầm.
+            val offSide = it.xOffset < -SIDE_CULL || it.xOffset > screenWidth + SIDE_CULL
+            if (it.yOffset > effectiveHeight || it.yOffset < TOP_CULL_Y || offSide || it.destroyed) {
+                destroyEnemyLaser(it)
+            }
         }
         updateShipLasers()
     }

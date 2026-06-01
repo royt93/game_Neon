@@ -5,6 +5,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import com.tranphuloi.neon.ui.game.enemy.ship.model.Enemy
 import com.tranphuloi.neon.ui.game.laser.Laser
+import com.tranphuloi.neon.ui.game.ship.ship.Ship
 import com.tranphuloi.neon.utils.UuidUtils
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -214,5 +215,64 @@ class BulletSlice3Test {
         heart.moveLaser()
         assertTrue("heart nudges toward target", heart.xOffset > x0)
         assertTrue("heart also rises", heart.yOffset < 500f)
+    }
+
+    // ── Wave 17 — de-dup đạn: mỗi loại 1 cơ chế riêng ──
+
+    @Test
+    fun `GIANT now PLOWS through enemies (pierces, not single-hit)`() {
+        // Trước GIANT là đạn to ×2 dmg single-hit (stat thuần). Nay xuyên 4.
+        assertEquals("GIANT carries a pierce count", 4, BulletType.GIANT.pierceCount)
+        val giant = GiantShipLaser(id = "g", xOffset = 50f, yOffset = 50f, yRange = 800f)
+        assertEquals("GiantShipLaser seeds pierceRemaining from enum", 4, giant.pierceRemaining)
+        var captured: List<Laser> = listOf(giant)
+        controllerWith(listOf(giant)) { captured = it }
+            .monitorLaserCollision(emptyList(), listOf(FakeEnemy()))
+        assertTrue("GIANT survives the first hit (plows on)", captured.any { it.id == "g" })
+        assertEquals("pierce decremented to 3", 3, giant.pierceRemaining)
+    }
+
+    @Test
+    fun `FIREWORK both splashes AND bursts into child bullets (vs PLASMA splash-only, SPLIT children-only)`() {
+        val primary = FakeEnemy("a", hp = 500f, xOffset = 40f, yOffset = 40f, width = 40f, height = 40f)
+        val bystander = FakeEnemy("b", hp = 500f, xOffset = 100f, yOffset = 100f, width = 40f, height = 40f)
+        var captured: List<Laser> = emptyList()
+        val firework = PlasmaShipLaser(
+            id = "fw", xOffset = 50f, yOffset = 50f, yRange = 800f, bulletType = BulletType.FIREWORK,
+        )
+        controllerWith(listOf(firework)) { captured = it }
+            .monitorLaserCollision(emptyList(), listOf(primary, bystander))
+        assertTrue("splash hits the bystander", bystander.hp < 500f)        // AoE leg
+        val children = captured.filter { it.id != "fw" }
+        assertEquals("bursts into 5 children", 5, children.size)            // re-fire leg
+        assertTrue("children are NORMAL (no recursion)", children.all { it.bulletType == BulletType.NORMAL })
+        assertTrue("parent consumed", captured.none { it.id == "fw" })
+    }
+
+    @Test
+    fun `all 18 bullet types spawn with a DISTINCT width (size riêng)`() {
+        val base = Ship(xOffset = 200f, yOffset = 700f)
+        val widthByType = BulletType.entries.associateWith { type ->
+            var captured: List<Laser> = emptyList()
+            LasersController(
+                screenWidth = 400f, screenHeight = 800f, uuidUtils = UuidUtils(),
+                initialShipLasers = emptyList(),
+                setShipLasers = { captured = it }, setUltimateLasers = {},
+                onLaserHit = { _, _, _, _, _, _ -> }, damageMultiplier = { 1f },
+            ).fireLasers(base.copy(activeBulletType = type))
+            captured.first().width
+        }
+        assertEquals(
+            "mỗi loại đạn phải có width riêng; trùng: ${widthByType.entries.groupBy { it.value }.filter { it.value.size > 1 }}",
+            widthByType.size, widthByType.values.toSet().size,
+        )
+    }
+
+    @Test
+    fun `KAMEHAMEHA is a WIDE beam, PIERCING is a thin needle (distinct bodies)`() {
+        // Cả hai cùng xuyên, nhưng KAMEHAMEHA = beam bản rộng + xuyên-tất + ×3,
+        // PIERCING = kim mảnh xuyên 3 ×1 → khác hẳn cảm giác.
+        assertTrue("kamehameha pierces far more", BulletType.KAMEHAMEHA.pierceCount > BulletType.PIERCING.pierceCount + 50)
+        assertTrue("kamehameha hits much harder", BulletType.KAMEHAMEHA.damageMultiplier >= BulletType.PIERCING.damageMultiplier * 2f)
     }
 }
