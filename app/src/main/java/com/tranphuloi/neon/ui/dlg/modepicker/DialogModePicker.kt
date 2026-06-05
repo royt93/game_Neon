@@ -114,7 +114,7 @@ fun DialogModePicker(onPicked: () -> Unit) {
                     GameMode.CAMPAIGN -> "5 chương · 100 màn"
                     GameMode.SURVIVAL -> "Vô tận · scaling +15%/wave"
                     GameMode.TIME_ATTACK -> "60 giây"
-                    GameMode.BOSS_RUSH -> "~9 boss"
+                    GameMode.BOSS_RUSH -> "${com.tranphuloi.neon.ui.game.stage.bossRushRosterSize} boss"
                     GameMode.ENDLESS -> "Vô tận · scaling exp"
                     else -> ""
                 }

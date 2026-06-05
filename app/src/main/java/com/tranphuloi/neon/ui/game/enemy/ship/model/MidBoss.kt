@@ -36,8 +36,10 @@ data class MidBoss(
     // Wave 16 — SIZE biến thiên theo baseHp (HP cao = boss to hơn) thay vì
     // 130×90 cố định cho mọi variant. baseHp 1200→×0.8, 3300→×1.3 (kẹp).
     // Tương quan size↔độ trâu → boss khác nhau rõ về kích cỡ.
-    private val sizeScale: Float =
-        (0.8f + (variant.baseHp - 1200f) / 2100f * 0.5f).coerceIn(0.8f, 1.3f)
+    // Wave 17h — nới biên tương phản size (0.8–1.3 → 0.62–1.65) để boss máu thấp
+    // NHỎ rõ (~80px) vs trùm máu cao TO rõ (~215px) → dễ phân biệt kích cỡ.
+    // Wave 17j — đọc từ MODEL (MidBossType.sizeScale) thay vì tính tại chỗ.
+    private val sizeScale: Float = variant.sizeScale
     override val width: Float = 130f * sizeScale
     override val height: Float = 90f * sizeScale
     override var hp: Float = variant.baseHp
@@ -79,13 +81,11 @@ data class MidBoss(
     private var fireTick: Int = 0
 
     // ── Wave 16 Wave B — MARQUEE mechanics (vài boss đỉnh) ──
+    // Wave 17j — đọc từ MODEL (variant.specialAbility) thay vì liệt kê tại chỗ.
     /** SHIELD: bất tử 1 cửa sổ khi vào phase 2 (Bạch Long, Bao Cao Su). */
-    private val hasShield: Boolean =
-        variant == MidBossType.WHITE_DRAGON || variant == MidBossType.GIANT_CONDOM
+    private val hasShield: Boolean = variant.specialAbility == BossAbility.SHIELD
     /** TELEPORT: nhảy chỗ định kỳ + giữ vị trí (Venom, Tham Nhũng, Hell Lord/OFFENSIVE). */
-    private val hasTeleport: Boolean =
-        variant == MidBossType.VENOM_SPIDER || variant == MidBossType.CORRUPTION ||
-            variant == MidBossType.OFFENSIVE
+    private val hasTeleport: Boolean = variant.specialAbility == BossAbility.TELEPORT
     private var shieldedUntilMillis: Long = 0L
     private var lastTeleportMillis: Long = 0L
     private var teleportHoldUntil: Long = 0L
@@ -143,6 +143,19 @@ data class MidBoss(
             MidBossType.MONEY_TYCOON -> 6        // trôi-thấp
             MidBossType.GIANT_CONDOM -> 6        // trôi-thấp ì ạch
             MidBossType.CORRUPTION -> 6          // trôi-thấp (béo ục ịch)
+            // Wave 18 batch 1
+            MidBossType.TRAFFIC_JAM -> 6         // trôi-thấp (xe kẹt ì ạch)
+            MidBossType.KPI_BOSS -> 1            // patrol (sếp đi qua lại soi)
+            MidBossType.TIKTOKER -> 4            // lướt-giật (nhảy nhót quay clip)
+            // Wave 19 batch 2
+            MidBossType.ATM_BANKRUPT -> 1        // patrol (máy ATM đứng)
+            MidBossType.NOKIA_BRICK -> 6         // trôi-thấp (cục gạch nặng)
+            MidBossType.INFLATION_STORM -> 4     // lướt-giật (giá nhảy loạn)
+            // Wave 20 batch 3
+            MidBossType.SOCIAL_DRAMA -> 2        // figure-8 (drama lượn loạn)
+            MidBossType.PYRAMID_SCHEME -> 1      // patrol (trùm đứng chỉ tay)
+            MidBossType.FORTUNE_TELLER -> 5      // vòng-lượn (huyền bí)
+            MidBossType.KITCHEN_GOD -> 0         // sine (cưỡi cá bơi)
         }
         // Marquee TELEPORT — nhảy sang một bên (luân phiên) + GIỮ vị trí một
         // lúc (chặn movement trong cửa sổ hold) để cú nhảy "ăn" được.
@@ -248,7 +261,7 @@ data class MidBoss(
             MidBossType.BUFFALO_RAGE -> hornCharge(ship, phase2)
             MidBossType.FIERCE_TIGER -> roarWall(phase2)
             MidBossType.WHITE_DRAGON -> fireBreath(phase2)
-            MidBossType.HAMMER_SICKLE -> hammerSickle(ship, phase2)
+            MidBossType.HAMMER_SICKLE -> hammerSickle(phase2)
             MidBossType.MONEY_TYCOON -> moneyRain(phase2)
             MidBossType.GOLDEN_TYCOON -> dollarSpiral(phase2)
             MidBossType.SEXY_DIVA -> hairWhip(phase2)
@@ -256,13 +269,26 @@ data class MidBoss(
             MidBossType.OFFENSIVE -> eyeBeam(ship, phase2)
             MidBossType.DEFENSIVE -> atomOrbit(phase2)
             MidBossType.SWARM -> hauntScatter(phase2)
-            MidBossType.DUMB_RAT -> ratNibble(ship, phase2)
+            MidBossType.DUMB_RAT -> ratNibble(phase2)
             MidBossType.TWIN_SUMMITS -> twinColumns(phase2)
             MidBossType.VOID_GLOBES -> voidOrbs(phase2)
             // Wave 16 batch 2
             MidBossType.GIANT_CONDOM -> inflateBurst(phase2)
             MidBossType.VENOM_SPIDER -> venomWeb(phase2)
             MidBossType.CORRUPTION -> corruptionWall(phase2)
+            // Wave 18 batch 1
+            MidBossType.TRAFFIC_JAM -> trafficGridlock(phase2)
+            MidBossType.KPI_BOSS -> kpiColumns(ship, phase2)
+            MidBossType.TIKTOKER -> heartSpam(phase2)
+            // Wave 19 batch 2
+            MidBossType.ATM_BANKRUPT -> atmCashSpit(phase2)
+            MidBossType.NOKIA_BRICK -> brickToss(phase2)
+            MidBossType.INFLATION_STORM -> inflationWave(phase2)
+            // Wave 20 batch 3
+            MidBossType.SOCIAL_DRAMA -> dramaPileOn(phase2)
+            MidBossType.PYRAMID_SCHEME -> pyramidScheme(phase2)
+            MidBossType.FORTUNE_TELLER -> prophecyFan(ship, phase2)
+            MidBossType.KITCHEN_GOD -> carpLeap(phase2)
         }
     }
 
@@ -309,7 +335,9 @@ data class MidBoss(
         }
     }
 
-    /** Ma Cà Rồng — bầy "dơi" hội tụ về tàu + HÚT MÁU (hồi HP, chặn ở HP spawn). */
+    /** Ma Cà Rồng — bầy "dơi" hướng về tàu nhưng bay LƯỢN (CURVE) như dơi thật +
+     *  HÚT MÁU (hồi HP, chặn ở HP spawn). Wave 17 — thêm CURVE để tách bạch khỏi
+     *  ratNibble (ngắm thẳng lệch) — không còn chung archetype "ngắm tàu". */
     private fun batSwarmLifesteal(ship: Ship, phase2: Boolean): List<Laser> {
         hp = (hp + if (phase2) 28f else 16f).coerceAtMost(initialHp)     // lifesteal
         val count = if (phase2) 5 else 3
@@ -323,6 +351,7 @@ data class MidBoss(
                 ySpeed = 0.75f,
                 w = 22f,
                 spawnX = xOffset + width * (0.15f + 0.7f * frac),
+                motion = LaserMotion.CURVE,                  // bay lượn như dơi
             )
         }
     }
@@ -407,16 +436,17 @@ data class MidBoss(
         }
     }
 
-    /** Cộng Sản Lên Ngôi — quăng "búa & liềm": 2 vật nặng văng 2 bên (+ tâm ở phase 2). */
-    private fun hammerSickle(ship: Ship, phase2: Boolean): List<Laser> {
+    /** Cộng Sản Lên Ngôi — quăng "búa & liềm": 2 vật nặng văng 2 bên + phase 2
+     *  thêm cú "đập búa" CHÍNH GIỮA rơi thẳng nặng (Wave 17 — bỏ tia ngắm-tàu để
+     *  không dính archetype "ngắm tàu"). */
+    private fun hammerSickle(phase2: Boolean): List<Laser> {
         val out = mutableListOf<Laser>(
             bossBullet(xSpeed = -0.6f, ySpeed = 0.7f, w = 32f, spawnX = xOffset + width * 0.30f - 16f),
             bossBullet(xSpeed = 0.6f, ySpeed = 0.7f, w = 32f, spawnX = xOffset + width * 0.70f - 16f),
         )
         if (phase2) {
-            val dx = ship.xOffset - xOffset
-            val dy = (ship.yOffset - yOffset).coerceAtLeast(1f)
-            out.add(bossBullet(xSpeed = (dx / dy) * 0.8f, ySpeed = 0.9f, w = 30f))
+            // Đập búa giữa: tạ nặng rơi THẲNG, nhanh (không ngắm).
+            out.add(bossBullet(xSpeed = 0f, ySpeed = 1.2f, w = 38f))
         }
         return out
     }
@@ -541,15 +571,17 @@ data class MidBoss(
         }
     }
 
-    /** Chuột Ngu Si — "gặm": nhắm tàu nhưng lệch lung tung (ngắm dở). */
-    private fun ratNibble(ship: Ship, phase2: Boolean): List<Laser> {
-        val dx = ship.xOffset - xOffset
-        val dy = (ship.yOffset - yOffset).coerceAtLeast(1f)
-        val aim = dx / dy
-        val n = if (phase2) 3 else 2
+    /** Chuột Ngu Si — "gặm nhấm": vài viên NHỎ, NHANH, thất thường rơi gần thẳng
+     *  (Wave 17 — bỏ ngắm-tàu, thành erratic thuần → ra khỏi archetype "ngắm tàu".
+     *  Khác hauntScatter: ít hơn, hẹp hơn, tỏa từ thân boss). */
+    private fun ratNibble(phase2: Boolean): List<Laser> {
+        val n = if (phase2) 4 else 2
         return (0 until n).map {
-            val misaim = (Math.random().toFloat() - 0.5f) * 0.6f
-            bossBullet(xSpeed = aim * 0.7f + misaim, ySpeed = 0.8f, w = 24f)
+            bossBullet(
+                xSpeed = (Math.random().toFloat() - 0.5f) * 0.5f,   // jitter hẹp, KHÔNG ngắm
+                ySpeed = 0.9f + Math.random().toFloat() * 0.3f,     // tốc độ thất thường
+                w = 16f,                                            // răng chuột nhỏ
+            )
         }
     }
 
@@ -643,6 +675,199 @@ data class MidBoss(
                 spawnX = startX + i * spacing,
             )
         }
+    }
+
+    // ── Wave 18 batch 1 — 3 chiêu trào phúng ──
+
+    /** Trùm Kẹt Xe — "tắc đường": lấp DÀY một NỬA màn (trái/phải luân phiên theo
+     *  fireTick), nửa kia để trống làm làn thoát → ép người chơi đổi làn liên tục.
+     *  Khác corruptionWall (tường KÍN cả màn, khe nhỏ quét) — đây bỏ trống hẳn 1 nửa. */
+    private fun trafficGridlock(phase2: Boolean): List<Laser> {
+        val count = if (phase2) 7 else 5
+        val leftLane = fireTick % 2 == 0
+        val laneStart = if (leftLane) screenWidth * 0.02f else screenWidth * 0.52f
+        val span = screenWidth * 0.46f
+        val spacing = span / count
+        return (0 until count).map { i ->
+            bossBullet(
+                xSpeed = 0f,
+                ySpeed = if (phase2) 0.6f else 0.48f,                  // xe bò chậm
+                w = 22f,
+                spawnX = laneStart + i * spacing,
+            )
+        }
+    }
+
+    /** Sếp KPI — "chỉ tiêu": 3-4 cột đạn TĂNG TỐC (ACCEL = KPI leo dốc) rơi thẳng;
+     *  phase2 thêm 1 "deadline" HOMING đuổi theo người chơi. */
+    private fun kpiColumns(ship: Ship, phase2: Boolean): List<Laser> {
+        val cols = if (phase2) 4 else 3
+        val out = mutableListOf<Laser>()
+        for (i in 0 until cols) {
+            val frac = if (cols == 1) 0.5f else i.toFloat() / (cols - 1)
+            val fx = screenWidth * (0.18f + 0.64f * frac)
+            out.add(
+                bossBullet(
+                    xSpeed = 0f, ySpeed = 0.32f, w = 22f, spawnX = fx,
+                    motion = com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.ACCEL,
+                ),
+            )
+        }
+        if (phase2) {
+            val aim = ((ship.xOffset + ship.width / 2f) - (xOffset + width / 2f)) / screenHeight
+            out.add(
+                bossBullet(
+                    xSpeed = aim, ySpeed = 0.85f, w = 26f,
+                    motion = com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.HOMING,
+                ),
+            )
+        }
+        return out
+    }
+
+    /** Hot TikToker — "spam tim": quạt đối xứng nhiều đạn BAY CONG (CURVE = tim lượn
+     *  qua lại); phase2 dày hơn. Khác hairWhip (Diva, CURVE 1 chiều quất) — đây toả đều 2 bên. */
+    private fun heartSpam(phase2: Boolean): List<Laser> {
+        val n = if (phase2) 7 else 5
+        return (0 until n).map { i ->
+            val frac = if (n == 1) 0.5f else i.toFloat() / (n - 1)
+            val xs = (frac - 0.5f) * 0.7f                              // toả đều quanh trục
+            bossBullet(
+                xSpeed = xs, ySpeed = 0.55f, w = 22f,
+                motion = com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.CURVE,
+            )
+        }
+    }
+
+    // ── Wave 19 batch 2 — 3 chiêu trào phúng (nốt) ──
+
+    /** ATM Hết Tiền — "nhả tiền": luồng đạn HẸP rơi thẳng dồn dập 4 loạt liền, rồi
+     *  KẸT (1 loạt rỗng = "hết tiền") theo chu kỳ fireTick. Khác mọi chiều rộng-toả. */
+    private fun atmCashSpit(phase2: Boolean): List<Laser> {
+        // Chu kỳ 5: 4 nhịp nhả + 1 nhịp kẹt (rỗng).
+        if (fireTick % 5 == 4) return emptyList()
+        val lanes = if (phase2) 3 else 2
+        val gap = width * 0.22f
+        return (0 until lanes).map { i ->
+            val dx = (i - (lanes - 1) / 2f) * gap
+            bossBullet(xSpeed = 0f, ySpeed = 0.95f, w = 18f,
+                spawnX = xOffset + width / 2f - 9f + dx)            // luồng hẹp, nhanh
+        }
+    }
+
+    /** Cục Gạch Nokia — "ném gạch": 2-3 viên CỰC TO (w=42) + CHẬM, lệch nhau → ít khe
+     *  nhưng né được bằng đi ngang. Khác hẳn các đạn nhỏ-nhanh. */
+    private fun brickToss(phase2: Boolean): List<Laser> {
+        val n = if (phase2) 3 else 2
+        return (0 until n).map { i ->
+            val frac = if (n == 1) 0.5f else i.toFloat() / (n - 1)
+            bossBullet(
+                xSpeed = (frac - 0.5f) * 0.25f,                       // toả nhẹ
+                ySpeed = 0.34f,                                       // nặng = chậm
+                w = 42f,
+                spawnX = screenWidth * (0.2f + 0.6f * frac) - 21f,
+            )
+        }
+    }
+
+    /** Bão Giá Lạm Phát — "lạm phát": SỐ đạn TĂNG DẦN mỗi loạt (4→7 theo fireTick) +
+     *  TĂNG TỐC (ACCEL). Càng về sau càng dày = giá leo thang. */
+    private fun inflationWave(phase2: Boolean): List<Laser> {
+        val base = if (phase2) 6 else 4
+        val n = base + (fireTick % 4)                                // 4..7 (hoặc 6..9)
+        return (0 until n).map { i ->
+            val frac = if (n == 1) 0.5f else i.toFloat() / (n - 1)
+            bossBullet(
+                xSpeed = (frac - 0.5f) * 0.6f,
+                ySpeed = 0.3f,                                        // chậm lúc đầu, ACCEL tăng tốc sau
+                w = 20f,
+                motion = com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.ACCEL,
+            )
+        }
+    }
+
+    // ── Wave 20 batch 3 — 4 chiêu trào phúng (hết batch 1) ──
+
+    /** Drama MXH — "ném đá hội đồng": 2 CỤM lệch hướng theo fireTick (góc xoay) →
+     *  cảm giác bị vây từ nhiều phía, thất thường. */
+    private fun dramaPileOn(phase2: Boolean): List<Laser> {
+        val perCluster = if (phase2) 4 else 3
+        val baseAng = (fireTick * 37) % 360                          // hướng cụm xoay mỗi loạt
+        val out = mutableListOf<Laser>()
+        for (c in 0..1) {
+            val centerDeg = baseAng + c * 180                        // 2 cụm đối nhau
+            for (i in 0 until perCluster) {
+                val deg = centerDeg + (i - (perCluster - 1) / 2) * 14
+                val rad = Math.toRadians(deg.toDouble())
+                out.add(
+                    bossBullet(
+                        xSpeed = (kotlin.math.cos(rad) * 0.5).toFloat(),
+                        ySpeed = (kotlin.math.sin(rad) * 0.4).toFloat() + 0.45f,  // luôn trôi xuống
+                        w = 18f,
+                    ),
+                )
+            }
+        }
+        return out
+    }
+
+    /** Trùm Đa Cấp — "tuyến dưới": spread hình KIM TỰ THÁP — mỗi loạt phình 1 tầng
+     *  rộng hơn (1,2,3 viên… theo fireTick) toả xuống. */
+    private fun pyramidScheme(phase2: Boolean): List<Laser> {
+        val tiers = (fireTick % (if (phase2) 4 else 3)) + 1          // 1..3 (hoặc 1..4) tầng
+        val out = mutableListOf<Laser>()
+        for (row in 0 until tiers) {
+            val count = row + 1                                       // tầng dưới rộng hơn
+            for (i in 0 until count) {
+                val frac = if (count == 1) 0.5f else i.toFloat() / (count - 1)
+                out.add(
+                    bossBullet(
+                        xSpeed = (frac - 0.5f) * 0.5f * (row + 1),    // tầng càng dưới toả càng rộng
+                        ySpeed = 0.55f,
+                        w = 18f,
+                    ),
+                )
+            }
+        }
+        return out
+    }
+
+    /** Thầy Bói Online — "tiên tri": quạt đối xứng 5/7 viên LINEAR + 1 viên HOMING
+     *  "lời tiên tri" đoán đường người chơi. */
+    private fun prophecyFan(ship: Ship, phase2: Boolean): List<Laser> {
+        val n = if (phase2) 7 else 5
+        val out = (0 until n).map { i ->
+            val frac = if (n == 1) 0.5f else i.toFloat() / (n - 1)
+            bossBullet(xSpeed = (frac - 0.5f) * 0.8f, ySpeed = 0.6f, w = 18f)
+        }.toMutableList()
+        val aim = ((ship.xOffset + ship.width / 2f) - (xOffset + width / 2f)) / screenHeight
+        out.add(
+            bossBullet(
+                xSpeed = aim, ySpeed = 0.85f, w = 24f,
+                motion = com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.HOMING,
+            ),
+        )
+        return out
+    }
+
+    /** Ông Táo Cưỡi Cá Chép — "cá nhảy + lửa": vài viên BAY CONG (CURVE = cá vượt vũ
+     *  môn) 2 bên + 1 luồng lửa thẳng giữa. */
+    private fun carpLeap(phase2: Boolean): List<Laser> {
+        val side = if (phase2) 3 else 2
+        val out = mutableListOf<Laser>()
+        for (s in listOf(-1, 1)) {
+            for (i in 0 until side) {
+                out.add(
+                    bossBullet(
+                        xSpeed = s * (0.2f + i * 0.12f),
+                        ySpeed = 0.5f, w = 20f,
+                        motion = com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.CURVE,
+                    ),
+                )
+            }
+        }
+        out.add(bossBullet(xSpeed = 0f, ySpeed = 0.9f, w = 22f))      // luồng lửa thẳng giữa
+        return out
     }
 
     override fun onObjectImpact(impactPower: Float) {

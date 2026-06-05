@@ -152,7 +152,11 @@ class LasersController(
      * `pierceRemaining`).
      */
     private fun buildOneLaser(ship: Ship, dx: Float, dy: Float): Laser {
-        return when (ship.activeBulletType) {
+        // Wave 17q — SIZE đạn là SINGLE-SOURCE từ model (BulletType.bodyWidth):
+        // ép width + căn giữa sau when nên đổi size chỉ ở model, buildOneLaser
+        // không còn hardcode lệch. (width từng nhánh dưới chỉ là khởi tạo, bị ghi đè.)
+        val bw = ship.activeBulletType.bodyWidth
+        return (when (ship.activeBulletType) {
             BulletType.PIERCING -> PiercingShipLaser(
                 id = uuidUtils.getUuid(),
                 xOffset = ship.xOffset + ship.width / 2 - 3f + dx,
@@ -164,9 +168,10 @@ class LasersController(
             }
             BulletType.PLASMA -> PlasmaShipLaser(
                 id = uuidUtils.getUuid(),
-                xOffset = ship.xOffset + ship.width / 2 - PlasmaShipLaser.PLASMA_WIDTH / 2 + dx,
+                xOffset = ship.xOffset + ship.width / 2 - 22f / 2 + dx,
                 yOffset = ship.yOffset - 34f + dy,                  // -22 - 12
                 yRange = screenHeight,
+                width = 22f,                             // Wave 17h — orb plasma rõ
             ).also {
                 it.aoeRadiusMultiplier =
                     BulletType.plasmaAoeMultiplierForRarity(ship.activeBulletTypeRarity)
@@ -214,7 +219,7 @@ class LasersController(
             // BulletType.damageMultiplier in damageMultiplier lambda).
             BulletType.GIANT -> GiantShipLaser(
                 id = uuidUtils.getUuid(),
-                xOffset = ship.xOffset + ship.width / 2 - ShipLaser.SHIP_LASER_WIDTH + dx,
+                xOffset = ship.xOffset + ship.width / 2 - 17f + dx,   // căn giữa theo width 34
                 yOffset = ship.yOffset - 40f + dy,
                 yRange = screenHeight,
             )
@@ -225,38 +230,38 @@ class LasersController(
                 id = uuidUtils.getUuid(),
                 // Wave 17 — BEAM to bản (width 22 vs PIERCING 6) → đọc rõ là "chùm
                 // sóng" xuyên-tất (×3 dmg, pierce 99), khác hẳn PIERCING thân mảnh.
-                xOffset = ship.xOffset + ship.width / 2 - 11f + dx,
+                xOffset = ship.xOffset + ship.width / 2 - 18f + dx,
                 yOffset = ship.yOffset - 22f + dy,
                 yRange = screenHeight,
-                width = 22f,
+                width = 36f,                             // Wave 17h — beam bản RẤT RỘNG
                 bulletType = BulletType.KAMEHAMEHA,
             )
             // Wave 14 — ATOMIC: AoE 150 (reuse PlasmaShipLaser body with its own
             // bulletType → atomic shape + AoE uses ATOMIC.aoeRadius=150).
             BulletType.ATOMIC -> PlasmaShipLaser(
                 id = uuidUtils.getUuid(),
-                xOffset = ship.xOffset + ship.width / 2 - 20f / 2 + dx,
+                xOffset = ship.xOffset + ship.width / 2 - 28f / 2 + dx,
                 yOffset = ship.yOffset - 34f + dy,
                 yRange = screenHeight,
-                width = 20f,                             // Wave 17 — size riêng (to nhất nhóm nổ)
+                width = 28f,                             // Wave 17h — to nhất nhóm nổ
                 bulletType = BulletType.ATOMIC,
             )
             // Wave 16 (Slice 3) — ZIGZAG: sine-weaving path (dedicated class).
             BulletType.ZIGZAG -> ZigZagShipLaser(
                 id = uuidUtils.getUuid(),
-                xOffset = ship.xOffset + ship.width / 2 - 4f / 2 + dx,
+                xOffset = ship.xOffset + ship.width / 2 - 3f / 2 + dx,
                 yOffset = ship.yOffset - 20f + dy,
                 yRange = screenHeight,
-                width = 4f,                              // Wave 17 — size riêng (mảnh, né lắt léo)
+                width = 3f,                              // Wave 17h — kim mảnh nhất
             )
             // Wave 16 (Slice 3) — SMOKE: slow fat puff, small AoE on hit
             // (splash handled in the PLASMA/ATOMIC/SMOKE collision arm).
             BulletType.SMOKE -> SmokeShipLaser(
                 id = uuidUtils.getUuid(),
-                xOffset = ship.xOffset + ship.width / 2 - 24f / 2 + dx,
+                xOffset = ship.xOffset + ship.width / 2 - 38f / 2 + dx,
                 yOffset = ship.yOffset - 25f + dy,
                 yRange = screenHeight,
-                width = 24f,                             // Wave 17 — size riêng (cuộn khói bự nhất)
+                width = 38f,                             // Wave 17h — cuộn khói bự nhất
             )
             // Wave 16 (Slice 3) — SPLIT: normal body; on hit it spawns 3 NORMAL
             // children (handled in the SPLIT collision arm). Keeps booster look.
@@ -290,10 +295,10 @@ class LasersController(
             // Wave 16 — Pháo Hoa: nổ chùm AoE (reuse Plasma body + FIREWORK.aoeRadius=130).
             BulletType.FIREWORK -> PlasmaShipLaser(
                 id = uuidUtils.getUuid(),
-                xOffset = ship.xOffset + ship.width / 2 - 18f / 2 + dx,
+                xOffset = ship.xOffset + ship.width / 2 - 24f / 2 + dx,
                 yOffset = ship.yOffset - 34f + dy,
                 yRange = screenHeight,
-                width = 18f,                             // Wave 17 — size riêng
+                width = 24f,                             // Wave 17h
                 bulletType = BulletType.FIREWORK,
             )
             // Wave 16 — Cục Gạch: to + nặng (damage ×2.2 via BulletType), thân rộng.
@@ -317,10 +322,10 @@ class LasersController(
             // Wave 16 batch 2 — Sầu Riêng: nổ mùi AoE 110 (reuse Plasma body).
             BulletType.DURIAN -> PlasmaShipLaser(
                 id = uuidUtils.getUuid(),
-                xOffset = ship.xOffset + ship.width / 2 - 19f / 2 + dx,
+                xOffset = ship.xOffset + ship.width / 2 - 26f / 2 + dx,
                 yOffset = ship.yOffset - 34f + dy,
                 yRange = screenHeight,
-                width = 19f,                             // Wave 17 — size riêng (gai sầu riêng)
+                width = 26f,                             // Wave 17h — gai sầu riêng to
                 bulletType = BulletType.DURIAN,
             )
             // Wave 16 batch 2 — Like/Tim: tự đuổi (reuse Missile homing body).
@@ -347,6 +352,9 @@ class LasersController(
                     yRange = screenHeight,
                 )
             }
+        }).also {
+            it.width = bw
+            it.xOffset = ship.xOffset + ship.width / 2f - bw / 2f + dx
         }
     }
 
@@ -506,6 +514,11 @@ class LasersController(
             if (enemyRectList.any { it.overlaps(laserRect) }) {
                 val index = enemyRectList.indexOfFirst { it.overlaps(laserRect) }
                 val target = enemies[index]
+                // Wave 17m — ĐIỂM VA CHẠM thật = vị trí đạn (tâm-x + mép trên đang
+                // bay lên), KHÔNG phải tâm/đỉnh boss. Trước đây nổ ở đỉnh boss nên
+                // lệch khỏi nơi đạn thực sự trúng (user báo). Dùng cho explosion.
+                val laserHitX = laser.xOffset + laser.width / 2f
+                val laserHitY = laser.yOffset
                 // Wave 14b — ChargeShot ultimate must NOT one-shot bosses.
                 // The beam persists (never destroyed on hit) and re-overlaps
                 // every Millis(1) tick, so at impactPower=1000 a boss in its
@@ -520,8 +533,8 @@ class LasersController(
                         onLaserHit(
                             target.enemyId,
                             bossDmg.toInt(),
-                            target.xOffset + target.width / 2f,
-                            target.yOffset,
+                            laserHitX,
+                            laserHitY,
                             true,
                             laser.bulletType,
                         )
@@ -532,8 +545,8 @@ class LasersController(
                 onLaserHit(
                     target.enemyId,
                     effectiveDamage.toInt(),
-                    target.xOffset + target.width / 2f,
-                    target.yOffset,
+                    laserHitX,
+                    laserHitY,
                     target.isBoss,
                     laser.bulletType,
                 )

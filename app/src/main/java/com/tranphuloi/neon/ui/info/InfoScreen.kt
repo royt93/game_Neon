@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.graphics.drawscope.withTransform
 import com.tranphuloi.neon.ui.game.world.drawBoosterShape
+import com.tranphuloi.neon.ui.game.world.drawBossShapeByKind
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.TextStyle
 import com.tranphuloi.neon.ui.game.world.drawShipVector
@@ -54,6 +55,8 @@ import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.NeonViolet
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.ui.game.booster.BoosterToBoosterUIMapper
+import com.tranphuloi.neon.ui.game.ship.laser.BulletShape
+import com.tranphuloi.neon.ui.game.enemy.ship.model.BossAbility
 import com.tranphuloi.neon.ui.game.booster.BoosterType
 import com.tranphuloi.neon.ui.game.ship.laser.BulletType
 import com.tranphuloi.neon.ui.game.ship.laser.BulletTypeColorMap
@@ -196,8 +199,9 @@ private fun BulletsTab() {
             InfoCard(
                 color = bulletColor(bullet),
                 title = bullet.displayName,
-                subtitle = "Dmg ×${bullet.damageMultiplier} · ${bullet.activeDurationMillis / 1000}s",
-                description = bulletDescription(bullet),
+                // Wave 17j — nhãn thân thiện: hình · cỡ · sát thương (màu qua card).
+                subtitle = "${bulletShapeLabel(bullet.shape)} · Cỡ ${sizeTierByWidth(bullet.bodyWidth)} · Sát thương ×${bullet.damageMultiplier}",
+                description = "★ ${bullet.special}\n${bulletDescription(bullet)}",
                 iconDraw = { c -> drawBulletCapsule(c, bullet) },
             )
         }
@@ -208,6 +212,51 @@ private fun BulletsTab() {
 // activation popup, and Booster preview tab share one color source. Inline
 // hex literals here would silently drift when a tint constant shifts.
 private fun bulletColor(b: BulletType): Color = Color(BulletTypeColorMap.argbFor(b))
+
+// Wave 17j (UI polish) — DỊCH nhãn model kỹ thuật → tiếng Việt thân thiện cho
+// người chơi. Model (enum/số) ở trong; màn Bách Khoa hiển nhãn dễ đọc, không
+// phơi "ORB/HAUNTED_KID/0.70×/5px" thô kệch.
+private fun bulletShapeLabel(s: BulletShape): String = when (s) {
+    BulletShape.CAPSULE -> "Viên nang"
+    BulletShape.NEEDLE -> "Kim xuyên"
+    BulletShape.ORB -> "Cầu plasma"
+    BulletShape.FLAME -> "Ngọn lửa"
+    BulletShape.HOMING_DART -> "Phi tiêu dò"
+    BulletShape.RICOCHET -> "Đạn nảy"
+    BulletShape.GIANT_DISC -> "Đĩa khổng lồ"
+    BulletShape.PUFF -> "Cuộn khói"
+    BulletShape.ZIGZAG -> "Tia zigzag"
+    BulletShape.BEAM -> "Luồng beam"
+    BulletShape.ATOM -> "Hạt nguyên tử"
+    BulletShape.TRIDENT -> "Đinh ba"
+    BulletShape.TICKET -> "Vé số"
+    BulletShape.FIREWORK -> "Pháo hoa"
+    BulletShape.BRICK -> "Cục gạch"
+    BulletShape.BAGUETTE -> "Ổ bánh mì"
+    BulletShape.DURIAN -> "Sầu riêng"
+    BulletShape.HEART -> "Trái tim"
+}
+
+private fun sizeTierByWidth(w: Float): String = when {
+    w < 7f -> "Nhỏ"
+    w < 14f -> "Vừa"
+    w < 26f -> "Lớn"
+    else -> "Khổng lồ"
+}
+
+private fun sizeTierByScale(s: Float): String = when {
+    s < 0.8f -> "Nhỏ"
+    s < 1.1f -> "Vừa"
+    s < 1.45f -> "To"
+    else -> "Khổng lồ"
+}
+
+private fun bossAbilityLabel(a: BossAbility): String = when (a) {
+    BossAbility.NONE -> "Không"
+    BossAbility.SHIELD -> "Khiên bất tử"
+    BossAbility.TELEPORT -> "Dịch chuyển"
+    BossAbility.LIFESTEAL -> "Hút máu"
+}
 
 private fun bulletDescription(b: BulletType): String = when (b) {
     BulletType.NORMAL -> "Đạn cơ bản. Tốc độ 7 px/tick. Không buff khởi đầu."
@@ -1127,6 +1176,43 @@ private fun BossesTab() {
     val violet = NeonViolet; val violetAcc = Color(0xFF8855CC)
     val magenta = NeonMagenta
     Column(modifier = Modifier.padding(horizontal = 12.dp).verticalScroll(rememberScrollState())) {
+        // Wave 17j — MODEL data-driven: 21 mid-boss với ĐẦY ĐỦ thuộc tính khai
+        // báo (HP · size · shape · skill · special · màu). Đọc trực tiếp từ
+        // MidBossType nên luôn khớp game + không bao giờ lệch.
+        Text(
+            text = "📖 27 MID-BOSS (model)",
+            color = NeonGold, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(vertical = 6.dp),
+        )
+        com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType.ALL.forEach { b ->
+            val bc = com.tranphuloi.neon.ui.game.world.bossColorFor(b.defaultBossKind)
+            val special = bossAbilityLabel(b.specialAbility)
+            InfoCard(
+                color = bc,
+                // Tên gợi hình theo BossKind (vd "Lính Gác Mắt Sát Thủ") thay tên
+                // chung "TIỂU BOSS ..."; nhãn cỡ + chiêu + kỹ năng tiếng Việt.
+                title = b.defaultBossKind.displayName,
+                subtitle = "HP ${b.baseHp.toInt()} · Cỡ ${sizeTierByScale(b.sizeScale)}" +
+                    if (b.specialAbility != BossAbility.NONE) " · $special" else "",
+                description = "Chiêu thức: ${b.attackName}",
+                // Wave 18 — vẽ SHAPE THẬT của boss (xe/biểu-đồ/đèn-ring/sọ…) qua
+                // drawBossShapeByKind thay vì hình tròn chung → hết "shape y chang nhau".
+                iconDraw = { s ->
+                    drawBossShapeByKind(
+                        kind = b.defaultBossKind,
+                        cx = s.width / 2f, cy = s.height / 2f,
+                        wPx = s.width, hPx = s.height,
+                        body = bc, accent = androidx.compose.ui.graphics.Color.White,
+                    )
+                },
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+        }
+        Text(
+            text = "🏆 BOSS CHƯƠNG (cốt truyện)",
+            color = NeonGold, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(vertical = 6.dp),
+        )
         // Ch 1 — Vành Đai Tiểu Hành Tinh
         InfoCard(
             color = gold,

@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.tranphuloi.neon.R
 import com.tranphuloi.neon.common.NeonMagenta
 import com.tranphuloi.neon.common.drawSoftHalo
+import com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind
 import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyUI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -94,11 +95,21 @@ private fun DrawScope.drawEnemy(
         } else 0f
 
         // Glow halo — Magenta. Round 77 (R77d): boss có 2 aura layers + corner markers.
-        val glowIntensity = 0.45f + hitFlash * 0.4f
-        val glowRadiusFactor = if (enemy.isBoss) 2.2f + hitFlash * 0.4f
+        // Wave 17h — halo ĐẬM hơn cho boss (0.45→0.66) để màu nhận diện theo kind
+        // nổi bật, "viền màu đậm" dễ thấy.
+        val glowIntensity = (if (enemy.isBoss) 0.66f else 0.45f) + hitFlash * 0.4f
+        val glowRadiusFactor = if (enemy.isBoss) 2.5f + hitFlash * 0.4f
             else 1.4f + hitFlash * 0.4f                    // Boss aura BIGGER halo
         val glowR = (minOf(wPx, hPx) / 2f) * glowRadiusFactor
-        val haloColor = if (enemy.isBoss) Color(0xFFFF2D55) else NeonMagenta
+        // Wave 17h — halo boss theo BossKind (trước MỌI boss cùng đỏ 0xFFFF2D55 →
+        // nhìn giống nhau). Mỗi boss 1 tông riêng → phân biệt từ xa.
+        val haloColor = if (enemy.isBoss && enemy.bossKind != null) {
+            bossColorFor(enemy.bossKind)
+        } else if (enemy.isBoss) {
+            Color(0xFFFF2D55)
+        } else {
+            NeonMagenta
+        }
         // Round 78 (#6 perf) — was Brush.radialGradient per-enemy per-frame.
         // 30 enemies × ~5 allocs each → 150 allocs/frame just for halo. Replaced
         // with drawSoftHalo (3 drawCircles, no Brush/Shader). Visually equivalent
@@ -111,7 +122,13 @@ private fun DrawScope.drawEnemy(
         // còn halo mềm ôm theo thân → sạch, đọc rõ boss.
 
         // Body color, blended with hit flash white + status effect tint.
-        val baseBody = bodyColorFor(enemy.drawableId)
+        // Wave 17h — boss lấy màu thân theo BossKind (trước chỉ đỏ/xanh theo
+        // drawable → 27 boss chỉ 2 màu). Địch thường vẫn theo drawable.
+        val baseBody = if (enemy.isBoss && enemy.bossKind != null) {
+            bossColorFor(enemy.bossKind)
+        } else {
+            bodyColorFor(enemy.drawableId)
+        }
         val accent = accentColorFor(enemy.drawableId)
         val bodyColor = blendForFlash(baseBody, hitFlash, enemy.activeStatusEffectTints, nowMillis)
 
@@ -214,6 +231,51 @@ private fun DrawScope.drawStatusOverlay(
 /**
  * Map drawableId → primary body color. Preserves original sprite family hue.
  */
+/**
+ * Wave 17h — màu nhận diện RIÊNG cho từng boss (dùng cho cả halo + thân) để 27
+ * boss không còn chung tông đỏ/xanh. Exhaustive over BossKind (thiếu = lỗi
+ * compile). Tông gắn theo chủ đề từng boss.
+ */
+internal fun bossColorFor(kind: BossKind): Color = when (kind) {
+    BossKind.STAR -> Color(0xFFFFD23F)
+    BossKind.CROSS -> Color(0xFFE6E6FF)
+    BossKind.ORB -> Color(0xFF00E5FF)
+    BossKind.FRACTAL -> Color(0xFF5CFF7A)
+    BossKind.SPIDER -> Color(0xFF9B5CFF)
+    BossKind.DEATH_MOON -> Color(0xFFB0C4DE)
+    BossKind.HAUNTED_KID -> Color(0xFFAEEFC0)
+    BossKind.HELL_LORD -> Color(0xFFFF5A1E)
+    BossKind.SATAN_GLYPH -> Color(0xFFB3002D)
+    BossKind.HEN_MOTHER -> Color(0xFFFFD740)
+    BossKind.BUFFALO_RAGE -> Color(0xFF8B4A2F)
+    BossKind.DUMB_RAT -> Color(0xFFA0A0A8)
+    BossKind.FIERCE_TIGER -> Color(0xFFFF8A1E)
+    BossKind.SEXY_DIVA -> Color(0xFFFF4FA3)
+    BossKind.TROLL_TOWER -> Color(0xFF2E8B57)
+    BossKind.TWIN_SUMMITS -> Color(0xFF1FC8C8)
+    BossKind.VOID_GLOBES -> Color(0xFF6A5ACD)
+    BossKind.WHITE_DRAGON -> Color(0xFFCFF0FF)
+    BossKind.HAMMER_SICKLE -> Color(0xFFE02020)
+    BossKind.MONEY_TYCOON -> Color(0xFF35C759)
+    BossKind.GOLDEN_TYCOON -> Color(0xFFFFC400)
+    BossKind.SKULL_CROSSBONES -> Color(0xFFE8E2D0)
+    BossKind.VAMPIRE -> Color(0xFFC4123B)
+    BossKind.COSMIC_CENTIPEDE -> Color(0xFFB6FF3A)
+    BossKind.GIANT_CONDOM -> Color(0xFFFFB6D5)
+    BossKind.VENOM_SPIDER -> Color(0xFF7CFF2A)
+    BossKind.CORRUPTION -> Color(0xFFD23FFF)
+    BossKind.TRAFFIC_JAM -> Color(0xFFFFA000)         // hổ phách đèn giao thông
+    BossKind.KPI_BOSS -> Color(0xFF2D7DFF)            // xanh công sở
+    BossKind.TIKTOKER -> Color(0xFFFF2E63)            // hồng-đỏ tiktok
+    BossKind.ATM_BANKRUPT -> Color(0xFF2BD4A8)        // teal tiền-mặt
+    BossKind.NOKIA_BRICK -> Color(0xFF3A5BA0)         // xanh Nokia cổ
+    BossKind.INFLATION_STORM -> Color(0xFFFF6F3D)     // cam-đỏ giá nóng
+    BossKind.SOCIAL_DRAMA -> Color(0xFFFF1493)        // hồng drama nóng
+    BossKind.PYRAMID_SCHEME -> Color(0xFFE8B923)      // vàng-mù tạt đa cấp
+    BossKind.FORTUNE_TELLER -> Color(0xFF9D4EDD)      // tím huyền bí
+    BossKind.KITCHEN_GOD -> Color(0xFFE63A2B)         // đỏ lễ Tết
+}
+
 private fun bodyColorFor(drawableId: Int): Color = when (drawableId) {
     R.drawable.enemy_light_blue_1, R.drawable.enemy_light_blue_2,
     R.drawable.enemy_light_blue_3, R.drawable.enemy_light_blue_4,
@@ -314,6 +376,96 @@ private fun blendForFlash(
  * `(cx, cy)` ± `wPx × hPx`. Variant within family modulates a small detail
  * (rotation / vertex count) to break up monotony.
  */
+/**
+ * Wave 18 — shape THẬT của boss theo [kind], trích từ dispatch trong
+ * [drawEnemyShape] để dùng chung: vừa render in-game vừa preview ở Bách Khoa
+ * (trước Bách Khoa chỉ vẽ hình tròn → mọi boss "shape y chang nhau"). Exhaustive
+ * over BossKind nên thêm boss mới buộc khai báo shape (compile error nếu sót).
+ */
+internal fun DrawScope.drawBossShapeByKind(
+    kind: com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind,
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    when (kind) {
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.STAR ->
+            drawBossSun(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.CROSS ->
+            drawBossCross(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.ORB ->
+            drawBossEye(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.FRACTAL ->
+            drawBossAtom(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SPIDER ->
+            drawBossSpider(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.DEATH_MOON ->
+            drawBossDeathMoon(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HAUNTED_KID ->
+            drawBossHauntedKid(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HELL_LORD ->
+            drawBossHellLord(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SATAN_GLYPH ->
+            drawBossSatanGlyph(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HEN_MOTHER ->
+            drawBossHenMother(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.BUFFALO_RAGE ->
+            drawBossBuffalo(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.DUMB_RAT ->
+            drawBossRat(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.FIERCE_TIGER ->
+            drawBossTiger(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SEXY_DIVA ->
+            drawBossDiva(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.TROLL_TOWER ->
+            drawBossTrollTower(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.TWIN_SUMMITS ->
+            drawBossTwinSummits(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.VOID_GLOBES ->
+            drawBossVoidGlobes(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.WHITE_DRAGON ->
+            drawBossWhiteDragon(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HAMMER_SICKLE ->
+            drawBossHammerSickle(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.MONEY_TYCOON ->
+            drawBossMoneyTycoon(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.GOLDEN_TYCOON ->
+            drawBossGoldenTycoon(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SKULL_CROSSBONES ->
+            drawBossSkull(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.VAMPIRE ->
+            drawBossVampire(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.COSMIC_CENTIPEDE ->
+            drawBossCentipede(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.GIANT_CONDOM ->
+            drawBossCondom(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.VENOM_SPIDER ->
+            drawBossVenomSpider(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.CORRUPTION ->
+            drawBossCorruption(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.TRAFFIC_JAM ->
+            drawBossTrafficJam(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.KPI_BOSS ->
+            drawBossKpi(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.TIKTOKER ->
+            drawBossTiktoker(cx, cy, wPx, hPx, body, accent)
+        // Wave 19 batch 2.
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.ATM_BANKRUPT ->
+            drawBossAtm(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.NOKIA_BRICK ->
+            drawBossNokia(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.INFLATION_STORM ->
+            drawBossInflation(cx, cy, wPx, hPx, body, accent)
+        // Wave 20 batch 3.
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SOCIAL_DRAMA ->
+            drawBossDrama(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.PYRAMID_SCHEME ->
+            drawBossPyramid(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.FORTUNE_TELLER ->
+            drawBossFortune(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.KITCHEN_GOD ->
+            drawBossKitchenGod(cx, cy, wPx, hPx, body, accent)
+    }
+}
+
 private fun DrawScope.drawEnemyShape(
     drawableId: Int,
     cx: Float, cy: Float, wPx: Float, hPx: Float,
@@ -323,72 +475,7 @@ private fun DrawScope.drawEnemyShape(
     // Round 71 (Issue 4d) — Boss dispatch via bossKind nếu boss, else family
     // dispatch theo drawableId.
     if (isBoss && bossKind != null) {
-        when (bossKind) {
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.STAR ->
-                // Round 78 (#2 spec follow-up) — STAR now renders as SUN (corona +
-                // disc + radial flares). "A star is a sun" — fitting reinterpretation.
-                drawBossSun(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.CROSS ->
-                drawBossCross(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.ORB ->
-                // Round 78 (#2) — was drawBossOrb (orb + satellites). User asked
-                // for "killer eye" — much more menacing/memorable silhouette.
-                drawBossEye(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.FRACTAL ->
-                // Round 78 (#2 spec follow-up) — FRACTAL renders as ATOM (electron
-                // orbits + nucleus). User listed "atom" as menacing boss shape.
-                drawBossAtom(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SPIDER ->
-                drawBossSpider(cx, cy, wPx, hPx, body, accent)
-            // Round 79 (#1) — 4 new boss shapes for chapter visual uniqueness.
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.DEATH_MOON ->
-                drawBossDeathMoon(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HAUNTED_KID ->
-                drawBossHauntedKid(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HELL_LORD ->
-                drawBossHellLord(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SATAN_GLYPH ->
-                drawBossSatanGlyph(cx, cy, wPx, hPx, body, accent)
-            // Round 81 — 12 new bosses dispatch.
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HEN_MOTHER ->
-                drawBossHenMother(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.BUFFALO_RAGE ->
-                drawBossBuffalo(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.DUMB_RAT ->
-                drawBossRat(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.FIERCE_TIGER ->
-                drawBossTiger(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SEXY_DIVA ->
-                drawBossDiva(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.TROLL_TOWER ->
-                drawBossTrollTower(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.TWIN_SUMMITS ->
-                drawBossTwinSummits(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.VOID_GLOBES ->
-                drawBossVoidGlobes(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.WHITE_DRAGON ->
-                drawBossWhiteDragon(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HAMMER_SICKLE ->
-                drawBossHammerSickle(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.MONEY_TYCOON ->
-                drawBossMoneyTycoon(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.GOLDEN_TYCOON ->
-                drawBossGoldenTycoon(cx, cy, wPx, hPx, body, accent)
-            // Wave 15 batch 1 — 3 boss user nêu đích danh.
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SKULL_CROSSBONES ->
-                drawBossSkull(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.VAMPIRE ->
-                drawBossVampire(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.COSMIC_CENTIPEDE ->
-                drawBossCentipede(cx, cy, wPx, hPx, body, accent)
-            // Wave 16 batch 2 — 3 boss user nêu đích danh (nốt).
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.GIANT_CONDOM ->
-                drawBossCondom(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.VENOM_SPIDER ->
-                drawBossVenomSpider(cx, cy, wPx, hPx, body, accent)
-            com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.CORRUPTION ->
-                drawBossCorruption(cx, cy, wPx, hPx, body, accent)
-        }
+        drawBossShapeByKind(bossKind, cx, cy, wPx, hPx, body, accent)
         return
     }
     when (drawableId) {
@@ -904,6 +991,300 @@ private fun DrawScope.drawBossCorruption(
     for (s in listOf(-1f, 1f)) {
         drawCircle(accent, r * 0.10f, Offset(cx + s * r * 0.26f, cy - r * 0.38f))
     }
+}
+
+// ─────────── Wave 18 batch 1 — 3 boss trào phúng ───────────
+
+/** Trùm Kẹt Xe — chiếc ô tô: thân + nóc + 2 bánh + 2 đèn pha. */
+private fun DrawScope.drawBossTrafficJam(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val bw = unit * 0.62f
+    val bh = unit * 0.30f
+    // Thân xe.
+    drawRect(body, topLeft = Offset(cx - bw / 2f, cy - bh / 2f), size = Size(bw, bh))
+    drawRect(accent, topLeft = Offset(cx - bw / 2f, cy - bh / 2f), size = Size(bw, bh),
+        style = Stroke(width = unit * 0.03f))
+    // Nóc/cabin (hình thang đơn giản bằng path).
+    val roof = PathPool.acquire().apply {
+        moveTo(cx - bw * 0.26f, cy - bh / 2f)
+        lineTo(cx - bw * 0.14f, cy - bh / 2f - unit * 0.16f)
+        lineTo(cx + bw * 0.14f, cy - bh / 2f - unit * 0.16f)
+        lineTo(cx + bw * 0.26f, cy - bh / 2f)
+        close()
+    }
+    drawPath(roof, body)
+    drawPath(roof, accent, style = Stroke(width = unit * 0.025f))
+    PathPool.release(roof)
+    // 2 bánh.
+    for (s in listOf(-1f, 1f)) {
+        drawCircle(accent, unit * 0.09f, Offset(cx + s * bw * 0.3f, cy + bh / 2f))
+    }
+    // 2 đèn pha (phía dưới = hướng tấn công).
+    for (s in listOf(-1f, 1f)) {
+        drawCircle(accent, unit * 0.05f, Offset(cx + s * bw * 0.4f, cy + bh * 0.2f))
+    }
+}
+
+/** Sếp KPI — biểu đồ cột tăng dần + mũi tên đi lên. */
+private fun DrawScope.drawBossKpi(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val baseY = cy + unit * 0.28f
+    val barW = unit * 0.14f
+    val heights = listOf(0.20f, 0.34f, 0.48f)            // cột tăng dần
+    heights.forEachIndexed { i, hf ->
+        val bx = cx + (i - 1) * (barW + unit * 0.06f)
+        val bh = unit * hf
+        drawRect(body, topLeft = Offset(bx - barW / 2f, baseY - bh), size = Size(barW, bh))
+        drawRect(accent, topLeft = Offset(bx - barW / 2f, baseY - bh), size = Size(barW, bh),
+            style = Stroke(width = unit * 0.02f))
+    }
+    // Trục đáy.
+    drawLine(accent, Offset(cx - unit * 0.34f, baseY), Offset(cx + unit * 0.34f, baseY),
+        strokeWidth = unit * 0.03f)
+    // Mũi tên đi lên (KPI tăng) phía trên cột cao nhất.
+    val ax = cx + (barW + unit * 0.06f)
+    val ay = baseY - unit * 0.48f - unit * 0.04f
+    val arrow = PathPool.acquire().apply {
+        moveTo(ax, ay - unit * 0.12f)
+        lineTo(ax - unit * 0.09f, ay + unit * 0.02f)
+        lineTo(ax + unit * 0.09f, ay + unit * 0.02f)
+        close()
+    }
+    drawPath(arrow, accent)
+    PathPool.release(arrow)
+}
+
+/** Hot TikToker — đèn ring (vòng) + trái tim + điện thoại nhỏ. */
+private fun DrawScope.drawBossTiktoker(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    // Đèn ring (vòng tròn rỗng).
+    drawCircle(body, unit * 0.34f, Offset(cx, cy), style = Stroke(width = unit * 0.07f))
+    drawCircle(accent, unit * 0.34f, Offset(cx, cy), style = Stroke(width = unit * 0.02f))
+    // Trái tim ở giữa.
+    val r = unit * 0.16f
+    val heart = PathPool.acquire().apply {
+        moveTo(cx, cy + r * 0.9f)
+        cubicTo(cx - r * 1.4f, cy - r * 0.2f, cx - r * 0.5f, cy - r * 1.1f, cx, cy - r * 0.35f)
+        cubicTo(cx + r * 0.5f, cy - r * 1.1f, cx + r * 1.4f, cy - r * 0.2f, cx, cy + r * 0.9f)
+        close()
+    }
+    drawPath(heart, accent)
+    PathPool.release(heart)
+    // Điện thoại nhỏ góc dưới (đang livestream).
+    val pw = unit * 0.12f
+    val ph = unit * 0.20f
+    drawRect(accent, topLeft = Offset(cx + unit * 0.18f, cy + unit * 0.16f), size = Size(pw, ph),
+        style = Stroke(width = unit * 0.02f))
+}
+
+// ─────────── Wave 19 batch 2 — 3 boss trào phúng (nốt) ───────────
+
+/** ATM Hết Tiền — máy ATM: thân + màn hình + khe thẻ + bàn phím + ký hiệu $. */
+private fun DrawScope.drawBossAtm(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val bw = unit * 0.5f
+    val bh = unit * 0.62f
+    // Thân máy.
+    drawRect(body, topLeft = Offset(cx - bw / 2f, cy - bh / 2f), size = Size(bw, bh))
+    drawRect(accent, topLeft = Offset(cx - bw / 2f, cy - bh / 2f), size = Size(bw, bh),
+        style = Stroke(width = unit * 0.03f))
+    // Màn hình (trên).
+    drawRect(accent, topLeft = Offset(cx - bw * 0.32f, cy - bh * 0.40f), size = Size(bw * 0.64f, bh * 0.26f),
+        style = Stroke(width = unit * 0.02f))
+    // Ký hiệu $ trên màn hình.
+    drawLine(accent, Offset(cx, cy - bh * 0.40f), Offset(cx, cy - bh * 0.14f), strokeWidth = unit * 0.025f)
+    // Khe thẻ (giữa).
+    drawLine(accent, Offset(cx - bw * 0.26f, cy + bh * 0.02f), Offset(cx + bw * 0.26f, cy + bh * 0.02f),
+        strokeWidth = unit * 0.04f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    // Bàn phím 2×3 (dưới).
+    for (r in 0..1) for (c in 0..2) {
+        drawCircle(accent, unit * 0.022f,
+            Offset(cx + (c - 1) * bw * 0.22f, cy + bh * 0.18f + r * bh * 0.14f))
+    }
+}
+
+/** Cục Gạch Nokia — điện thoại "cục gạch": thân bo + màn hình + bàn phím + ăng-ten. */
+private fun DrawScope.drawBossNokia(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val bw = unit * 0.4f
+    val bh = unit * 0.66f
+    val corner = androidx.compose.ui.geometry.CornerRadius(unit * 0.08f)
+    // Thân máy (bo góc).
+    drawRoundRect(body, topLeft = Offset(cx - bw / 2f, cy - bh / 2f), size = Size(bw, bh), cornerRadius = corner)
+    drawRoundRect(accent, topLeft = Offset(cx - bw / 2f, cy - bh / 2f), size = Size(bw, bh),
+        cornerRadius = corner, style = Stroke(width = unit * 0.03f))
+    // Màn hình.
+    drawRect(accent, topLeft = Offset(cx - bw * 0.3f, cy - bh * 0.38f), size = Size(bw * 0.6f, bh * 0.22f),
+        style = Stroke(width = unit * 0.02f))
+    // Bàn phím 3×3.
+    for (r in 0..2) for (c in 0..2) {
+        drawCircle(accent, unit * 0.02f,
+            Offset(cx + (c - 1) * bw * 0.26f, cy + bh * 0.02f + r * bh * 0.15f))
+    }
+    // Ăng-ten cụt trên đỉnh.
+    drawLine(accent, Offset(cx + bw * 0.3f, cy - bh / 2f), Offset(cx + bw * 0.3f, cy - bh * 0.62f),
+        strokeWidth = unit * 0.04f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+}
+
+/** Bão Giá Lạm Phát — mũi tên ĐI LÊN to + thẻ giá (% lạm phát). */
+private fun DrawScope.drawBossInflation(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val r = unit * 0.36f
+    // Mũi tên đi lên (thân + đầu) = giá tăng.
+    drawLine(body, Offset(cx, cy + r * 0.7f), Offset(cx, cy - r * 0.4f),
+        strokeWidth = unit * 0.12f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    val head = PathPool.acquire().apply {
+        moveTo(cx, cy - r * 0.85f)
+        lineTo(cx - r * 0.42f, cy - r * 0.25f)
+        lineTo(cx + r * 0.42f, cy - r * 0.25f)
+        close()
+    }
+    drawPath(head, body)
+    drawPath(head, accent, style = Stroke(width = unit * 0.025f))
+    PathPool.release(head)
+    // Thẻ giá nhỏ (góc) + lỗ treo.
+    val tw = unit * 0.26f
+    val th = unit * 0.18f
+    val tag = PathPool.acquire().apply {
+        moveTo(cx + r * 0.5f, cy + r * 0.15f)
+        lineTo(cx + r * 0.5f + tw, cy + r * 0.15f)
+        lineTo(cx + r * 0.5f + tw, cy + r * 0.15f + th)
+        lineTo(cx + r * 0.5f + th * 0.5f, cy + r * 0.15f + th)
+        close()
+    }
+    drawPath(tag, accent)
+    PathPool.release(tag)
+    drawCircle(body, unit * 0.022f, Offset(cx + r * 0.5f + th * 0.5f, cy + r * 0.15f + th * 0.35f))
+}
+
+// ─────────── Wave 20 batch 3 — 4 boss trào phúng (hết batch 1) ───────────
+
+/** Drama MXH — bong bóng chat + dấu "!" (drama bùng). */
+private fun DrawScope.drawBossDrama(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val bw = unit * 0.62f
+    val bh = unit * 0.46f
+    val corner = androidx.compose.ui.geometry.CornerRadius(unit * 0.14f)
+    // Thân bong bóng.
+    drawRoundRect(body, topLeft = Offset(cx - bw / 2f, cy - bh / 2f - unit * 0.05f),
+        size = Size(bw, bh), cornerRadius = corner)
+    drawRoundRect(accent, topLeft = Offset(cx - bw / 2f, cy - bh / 2f - unit * 0.05f),
+        size = Size(bw, bh), cornerRadius = corner, style = Stroke(width = unit * 0.03f))
+    // Đuôi bong bóng (tam giác dưới-trái).
+    val tail = PathPool.acquire().apply {
+        moveTo(cx - bw * 0.22f, cy + bh / 2f - unit * 0.05f)
+        lineTo(cx - bw * 0.34f, cy + bh / 2f + unit * 0.14f)
+        lineTo(cx - bw * 0.04f, cy + bh / 2f - unit * 0.05f)
+        close()
+    }
+    drawPath(tail, body)
+    PathPool.release(tail)
+    // Dấu "!" giữa bong bóng.
+    val ey = cy - unit * 0.05f
+    drawLine(accent, Offset(cx, ey - bh * 0.28f), Offset(cx, ey + bh * 0.08f), strokeWidth = unit * 0.05f,
+        cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    drawCircle(accent, unit * 0.03f, Offset(cx, ey + bh * 0.24f))
+}
+
+/** Trùm Đa Cấp — kim tự tháp 3 tầng + $ trên đỉnh (mô hình tuyến dưới). */
+private fun DrawScope.drawBossPyramid(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val r = unit * 0.4f
+    val tri = PathPool.acquire().apply {
+        moveTo(cx, cy - r)
+        lineTo(cx + r * 0.95f, cy + r * 0.7f)
+        lineTo(cx - r * 0.95f, cy + r * 0.7f)
+        close()
+    }
+    drawPath(tri, body)
+    drawPath(tri, accent, style = Stroke(width = unit * 0.03f))
+    PathPool.release(tri)
+    // 2 đường tầng ngang.
+    drawLine(accent, Offset(cx - r * 0.32f, cy - r * 0.05f), Offset(cx + r * 0.32f, cy - r * 0.05f),
+        strokeWidth = unit * 0.025f)
+    drawLine(accent, Offset(cx - r * 0.64f, cy + r * 0.32f), Offset(cx + r * 0.64f, cy + r * 0.32f),
+        strokeWidth = unit * 0.025f)
+    // $ trên đỉnh.
+    drawLine(accent, Offset(cx, cy - r * 0.85f), Offset(cx, cy - r * 0.4f), strokeWidth = unit * 0.022f)
+}
+
+/** Thầy Bói Online — quả cầu pha lê (vòng) + ngôi sao bên trong + chân đế. */
+private fun DrawScope.drawBossFortune(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val rad = unit * 0.32f
+    // Quả cầu.
+    drawCircle(body.copy(alpha = 0.55f), rad, Offset(cx, cy - unit * 0.04f))
+    drawCircle(accent, rad, Offset(cx, cy - unit * 0.04f), style = Stroke(width = unit * 0.03f))
+    // Chân đế (hình thang dưới).
+    val base = PathPool.acquire().apply {
+        moveTo(cx - rad * 0.5f, cy + rad * 0.85f)
+        lineTo(cx + rad * 0.5f, cy + rad * 0.85f)
+        lineTo(cx + rad * 0.7f, cy + rad * 1.15f)
+        lineTo(cx - rad * 0.7f, cy + rad * 1.15f)
+        close()
+    }
+    drawPath(base, accent)
+    PathPool.release(base)
+    // Ngôi sao 4 cánh (tia tiên tri) bên trong.
+    val sy = cy - unit * 0.04f
+    for (a in 0 until 4) {
+        val ang = Math.toRadians((a * 90.0))
+        drawLine(accent,
+            Offset(cx, sy),
+            Offset(cx + (kotlin.math.cos(ang) * rad * 0.6).toFloat(), sy + (kotlin.math.sin(ang) * rad * 0.6).toFloat()),
+            strokeWidth = unit * 0.02f)
+    }
+}
+
+/** Ông Táo Cưỡi Cá Chép — cá chép (thân + đuôi) + mũ cánh chuồn + lửa nhỏ. */
+private fun DrawScope.drawBossKitchenGod(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val r = unit * 0.34f
+    // Thân cá (ellipse ~ dùng path cong).
+    val fish = PathPool.acquire().apply {
+        moveTo(cx - r, cy + r * 0.3f)
+        cubicTo(cx - r * 0.4f, cy - r * 0.5f, cx + r * 0.4f, cy - r * 0.5f, cx + r, cy + r * 0.3f)
+        cubicTo(cx + r * 0.4f, cy + r * 0.9f, cx - r * 0.4f, cy + r * 0.9f, cx - r, cy + r * 0.3f)
+        close()
+    }
+    drawPath(fish, body)
+    drawPath(fish, accent, style = Stroke(width = unit * 0.03f))
+    PathPool.release(fish)
+    // Đuôi cá (tam giác trái).
+    val tail = PathPool.acquire().apply {
+        moveTo(cx - r, cy + r * 0.3f)
+        lineTo(cx - r * 1.4f, cy)
+        lineTo(cx - r * 1.4f, cy + r * 0.7f)
+        close()
+    }
+    drawPath(tail, body)
+    PathPool.release(tail)
+    // Mắt cá.
+    drawCircle(accent, unit * 0.03f, Offset(cx + r * 0.45f, cy + r * 0.15f))
+    // Mũ Ông Táo (cánh chuồn) trên lưng cá.
+    drawLine(accent, Offset(cx - r * 0.3f, cy - r * 0.45f), Offset(cx + r * 0.3f, cy - r * 0.45f),
+        strokeWidth = unit * 0.05f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    drawCircle(accent, unit * 0.05f, Offset(cx, cy - r * 0.6f))
 }
 
 // ─────────── Shape recipes ───────────
@@ -1959,7 +2340,7 @@ private fun DrawScope.drawBossRat(cx: Float, cy: Float, w: Float, h: Float, body
 /** Fierce Tiger — fierce tiger head với stripes + fangs + mane fluff. */
 private fun DrawScope.drawBossTiger(cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color) {
     val headR = w * 0.34f
-    val tigerOrange = Color(0xFFFF9020)
+    val tigerOrange = body                               // Wave 17q — thân theo bossColorFor (per-kind); chi tiết (sọc/mắt) giữ nguyên
     val stripeBlack = Color(0xFF202020)
     // Mane fluff (8 spikes around)
     for (i in 0 until 8) {
@@ -2253,7 +2634,7 @@ private fun DrawScope.drawBossWhiteDragon(cx: Float, cy: Float, w: Float, h: Flo
 
 /** Hammer and Sickle — combined symbol Boss (cộng sản). Red star background. */
 private fun DrawScope.drawBossHammerSickle(cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color) {
-    val red = Color(0xFFCC0000)
+    val red = body                                       // Wave 17q — đĩa nền theo bossColorFor; búa-liềm vàng giữ nguyên
     val gold = Color(0xFFFFD700)
     // Red circular background
     drawCircle(red, w * 0.42f, Offset(cx, cy))

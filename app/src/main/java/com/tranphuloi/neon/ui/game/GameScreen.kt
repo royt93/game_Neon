@@ -391,6 +391,14 @@ fun GameScreen(
                 com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.GIANT_CONDOM -> 1.10f
                 com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.VENOM_SPIDER -> 0.70f
                 com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.CORRUPTION -> 0.85f
+                // Wave 18 batch 1
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.TRAFFIC_JAM -> 0.95f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.KPI_BOSS -> 1.08f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.TIKTOKER -> 1.45f
+                // Wave 19 batch 2
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.ATM_BANKRUPT -> 1.02f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.NOKIA_BRICK -> 0.62f
+                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.INFLATION_STORM -> 1.28f
                 null -> 1.0f
             }
             sfx.play(SfxEvent.EXPLOSION, rate)
@@ -551,6 +559,10 @@ fun GameScreen(
             enemiesKilledTotal = gameState.enemiesKilledTotal,
             bossesDefeatedTotal = gameState.bossesDefeatedTotal,
             shipShape = gameState.shipShape,
+            // Wave 18 — nhãn đạn dời vào cột trái (hàng khoáng) trong IndicatorStatus,
+            // hết đè thanh HP boss ở TopCenter/TopEnd (user: "top view to quá che UI").
+            activeBulletName = gameState.ship.activeBulletType.displayName,
+            activeBulletColorArgb = gameState.ship.activeBulletType.colorArgb,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .zIndex(300f)

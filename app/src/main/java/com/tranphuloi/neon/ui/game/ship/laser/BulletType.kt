@@ -16,6 +16,15 @@ import androidx.compose.runtime.Immutable
  * HOMING bullet (auto-target nearest enemy) was scoped but deferred — needs
  * per-tick target tracking via x/yVelocity refactor of Laser.
  */
+/**
+ * Wave 17j — hình dáng vẽ của đạn (1:1 với hàm draw trong LaserCanvas). Tách
+ * enum để model BulletType khai báo shape tường minh, không lẫn vào dispatch.
+ */
+enum class BulletShape {
+    CAPSULE, NEEDLE, ORB, FLAME, HOMING_DART, RICOCHET, GIANT_DISC, PUFF,
+    ZIGZAG, BEAM, ATOM, TRIDENT, TICKET, FIREWORK, BRICK, BAGUETTE, DURIAN, HEART,
+}
+
 @Immutable
 @androidx.annotation.Keep
 enum class BulletType(
@@ -211,6 +220,85 @@ enum class BulletType(
         aoeRadius = 0f,
         glyph = "♡",
     );
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Wave 17j — MODEL NHẬN DIỆN gom 1 chỗ. Mỗi đạn khai báo ĐẦY ĐỦ: shape /
+    // size (bodyWidth) / color / special. Render (LaserCanvas) + spawn
+    // (LasersController.buildOneLaser) ĐỌC từ đây → 1 nguồn sự thật, không còn
+    // rải rác → bảo đảm khác biệt (có test chốt mọi field duy nhất).
+    // ════════════════════════════════════════════════════════════════════════
+
+    /** SHAPE — hình dáng vẽ (1:1 với hàm draw trong LaserCanvas). */
+    val shape: BulletShape
+        get() = when (this) {
+            NORMAL -> BulletShape.CAPSULE
+            PIERCING -> BulletShape.NEEDLE
+            PLASMA -> BulletShape.ORB
+            FIRE -> BulletShape.FLAME
+            HOMING -> BulletShape.HOMING_DART
+            BOUNCE -> BulletShape.RICOCHET
+            GIANT -> BulletShape.GIANT_DISC
+            SMOKE -> BulletShape.PUFF
+            ZIGZAG -> BulletShape.ZIGZAG
+            KAMEHAMEHA -> BulletShape.BEAM
+            ATOMIC -> BulletShape.ATOM
+            SPLIT -> BulletShape.TRIDENT
+            LOTTERY -> BulletShape.TICKET
+            FIREWORK -> BulletShape.FIREWORK
+            BRICK -> BulletShape.BRICK
+            BANH_MI -> BulletShape.BAGUETTE
+            DURIAN -> BulletShape.DURIAN
+            HEART -> BulletShape.HEART
+        }
+
+    /** SIZE — bề rộng thân (px). Dải 3 (kim) → 38 (khói khổng lồ). */
+    val bodyWidth: Float
+        get() = when (this) {
+            ZIGZAG -> 3f
+            NORMAL -> 5f
+            PIERCING -> 6f
+            FIRE -> 7f
+            HOMING -> 8f
+            BOUNCE -> 9f
+            SPLIT -> 11f
+            HEART -> 12f
+            LOTTERY -> 13f
+            BRICK -> 14f
+            BANH_MI -> 15f
+            PLASMA -> 22f
+            FIREWORK -> 24f
+            DURIAN -> 26f
+            ATOMIC -> 28f
+            GIANT -> 34f
+            KAMEHAMEHA -> 36f
+            SMOKE -> 38f
+        }
+
+    /** COLOR — màu nhận diện (signature). Ghép với booster gốc qua [BulletTypeColorMap]. */
+    val colorArgb: Long get() = BulletTypeColorMap.argbFor(this)
+
+    /** SPECIAL — kỹ năng đặc biệt (mô tả ngắn, đọc được trên UI/Bách Khoa). */
+    val special: String
+        get() = when (this) {
+            NORMAL -> "Bắn thẳng, 1 hit"
+            PIERCING -> "Xuyên 3 địch"
+            PLASMA -> "Nổ vùng AoE 80px"
+            FIRE -> "Gây cháy DoT 3 giây"
+            HOMING -> "Tự đuổi địch gần nhất"
+            BOUNCE -> "Nảy 3 lần khỏi mép màn"
+            GIANT -> "Cày xuyên 4 địch + ×2 sát thương"
+            SMOKE -> "Khói AoE 60px, bay chậm"
+            ZIGZAG -> "Bay zigzag lượn né"
+            KAMEHAMEHA -> "Beam xuyên-tất ×3 sát thương"
+            ATOMIC -> "Nổ AoE 150 + phóng xạ cháy"
+            SPLIT -> "Trúng → tách 3 đạn con"
+            LOTTERY -> "Sát thương ngẫu nhiên 0.3–3×"
+            FIREWORK -> "Nổ AoE 130 + bắn ra 5 đạn con"
+            BRICK -> "Nặng ×2.2 + hất văng địch"
+            BANH_MI -> "Xuyên 3 + hồi máu mỗi hit"
+            DURIAN -> "Nổ AoE 110 + làm chậm địch"
+            HEART -> "Tự đuổi + gây choáng (stun)"
+        }
 
     companion object {
         /**

@@ -84,15 +84,30 @@ private fun DrawScope.drawLaser(
         val cy = yPx + hPx / 2f
         val glowR = (minOf(wPx, hPx) / 2f) * radiusFactor
 
+        // Wave 17h — MÀU theo LOẠI đạn (signature) thay vì 1 màu ship chung cho
+        // mọi đạn (gốc rễ "đạn nhìn giống nhau"). NORMAL giữ màu skin (`glow`) để
+        // đạn mặc định khớp tàu; đạn đặc biệt hiện màu riêng (Lửa cam, Plasma
+        // xanh, Atomic lục, Pháo Hoa hồng…) → nhìn phát biết ngay loại.
+        val bulletColor =
+            if (laser.bulletType == com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL) glow
+            else Color(
+                com.tranphuloi.neon.ui.game.ship.laser.BulletTypeColorMap.argbFor(laser.bulletType),
+            )
+
         // Round 78 (#6 perf) — was Brush.radialGradient per-laser per-frame.
         // Up to 30 ship + 30 enemy + ultimate lasers = ~80 brush allocs/frame.
         // Replaced with drawSoftHalo (3 drawCircles, no Brush/Shader allocation).
-        drawSoftHalo(glow, intensity, glowR, Offset(cx, cy))
+        // Wave 17h — đạn đặc biệt: halo ĐẬM hơn (×1.6) để màu signature "viền đậm"
+        // bật rõ; NORMAL giữ intensity gốc (khớp tông tàu).
+        val haloIntensity =
+            if (laser.bulletType == com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL) intensity
+            else (intensity * 1.6f).coerceAtMost(1f)
+        drawSoftHalo(bulletColor, haloIntensity, glowR, Offset(cx, cy))
 
         // Round 71 (Issue 4a) — dispatch per BulletType. Each laser has unique
         // vector silhouette in-game matching InfoScreen Bullets tab.
         val drawBody: DrawScope.() -> Unit = {
-            drawLaserBody(laser.bulletType, xPx, yPx, wPx, hPx, glow)
+            drawLaserBody(laser.bulletType, xPx, yPx, wPx, hPx, bulletColor)
         }
         if (laser.rotation != 0f) {
             rotate(degrees = laser.rotation, pivot = Offset(cx, cy)) { drawBody() }

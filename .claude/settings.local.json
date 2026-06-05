@@ -183,7 +183,32 @@
       "Bash(sed -n '281,312p' app/src/main/java/com/tranphuloi/neon/ui/game/world/LaserCanvas.kt)",
       "Bash(echo \"pid: $\\(adb shell pidof com.tranphuloi.neon\\)\")",
       "Bash(echo \"fg: $\\(adb shell dumpsys activity activities)",
-      "Bash(awk '/private fun DrawScope.drawBossHammerSickle|fun drawBossHammerSickle/{f=1} f{print} /^}/{if\\(f\\)c++} f&&c>=1&&/^}/{exit}' app/src/main/java/com/tranphuloi/neon/ui/game/world/EnemyCanvas.kt)"
+      "Bash(awk '/private fun DrawScope.drawBossHammerSickle|fun drawBossHammerSickle/{f=1} f{print} /^}/{if\\(f\\)c++} f&&c>=1&&/^}/{exit}' app/src/main/java/com/tranphuloi/neon/ui/game/world/EnemyCanvas.kt)",
+      "mcp__android__get_uilayout",
+      "Bash(awk 'NR>=598 && NR<=760 && /^    }/{print NR\": \"$0; c++; if\\(c>=1\\) exit}' app/src/main/java/com/tranphuloi/neon/ui/game/state/GameState.kt)",
+      "Bash(sed -n '745,760p' app/src/main/java/com/tranphuloi/neon/ui/game/state/GameState.kt)",
+      "Bash(sed -n '516,530p' app/src/main/java/com/tranphuloi/neon/ui/game/ship/laser/LasersController.kt)",
+      "Bash(awk '/private fun DrawScope.drawBossHammerSickle|private fun DrawScope.drawBossTiger|private fun DrawScope.drawBossVampire/{p=1} p{print} /^}/{if\\(p\\){p=0; print \"----\"}}' app/src/main/java/com/tranphuloi/neon/ui/game/world/EnemyCanvas.kt)",
+      "Bash(awk '/private fun DrawScope.draw[A-Za-z]+Body/{name=$0; cnt=0; prim=0} /draw\\(Circle|Path|Line|Rect|RoundRect|Arc|Points|Oval\\)\\\\\\(/{prim++} /private fun DrawScope.draw[A-Za-z]+Body/{getline; while\\($0 !~ /^private fun/ && NF>=0\\){if\\($0 ~ /^}/\\){break}; if\\($0 ~ /draw\\(Circle|Path|Line|Rect|RoundRect|Arc|Points|Oval\\)\\\\\\(/\\)cnt++; getline}; gsub\\(/private fun DrawScope.|\\\\\\(.*/,\"\",name\\); print name\": \"cnt\" draw-calls\"}' app/src/main/java/com/tranphuloi/neon/ui/game/world/LaserCanvas.kt)",
+      "Bash(awk '/private fun DrawScope.drawCapsuleBody|private fun DrawScope.drawNeedleBody|private fun DrawScope.drawOrbBody|private fun DrawScope.drawSmokeBody|private fun DrawScope.drawZigzagBody|private fun DrawScope.drawSplitBody|private fun DrawScope.drawHomingBody/{p=1} p{print} p&&/^    }$/{p=0; print \"  ----\"}' app/src/main/java/com/tranphuloi/neon/ui/game/world/LaserCanvas.kt)",
+      "Bash(adb disconnect *)",
+      "Bash(adb connect *)",
+      "Bash(sed -n '848,856p' app/src/main/java/com/tranphuloi/neon/ui/game/state/GameState.kt)",
+      "Bash(sed -n '1404,1414p' app/src/main/java/com/tranphuloi/neon/ui/game/state/GameState.kt)",
+      "Bash(sed -n '1,120p' app/src/main/java/com/tranphuloi/neon/ui/game/story/StoryRegistry.kt)",
+      "Bash(sed -n '362,400p' app/src/main/java/com/tranphuloi/neon/ui/game/GameScreen.kt)",
+      "Bash(sed -n '80,130p' app/src/test/java/com/tranphuloi/neon/ui/game/enemy/ship/model/BossKindTest.kt)",
+      "Bash(sed -n '195,235p' app/src/test/java/com/tranphuloi/neon/data/MetaProgressionKeysTest.kt)",
+      "Bash(sed -n '100,150p' app/src/test/java/com/tranphuloi/neon/data/MetaProgressionKeysTest.kt)",
+      "Bash(sed -n '85,110p' app/src/test/java/com/tranphuloi/neon/ui/game/story/StoryRegistryBossTauntTest.kt)",
+      "Bash(adb -s 192.168.21.185:35625 shell \"pm path com.tranphuloi.neon\")",
+      "Bash(adb -s 192.168.21.185:35625 install -r app/build/outputs/apk/dev/debug/app-dev-debug.apk)",
+      "Bash(awk 'NR>=1168 && /^private fun / && NR>1168 {print NR\": \"$0; exit} END{}' app/src/main/java/com/tranphuloi/neon/ui/info/InfoScreen.kt)",
+      "Bash(awk -F: '$1>1168')",
+      "Bash(rm -f fr_*.png)",
+      "Bash(ffmpeg -i bossrec.mp4 -vf fps=2 fr_%02d.png -hide_banner -loglevel error)",
+      "Bash(rm -f g_*.png)",
+      "Bash(ffmpeg -i r2.mp4 -vf fps=2 g_%02d.png -hide_banner -loglevel error)"
     ]
   }
 }

@@ -22,6 +22,8 @@ class ShipController(
     screenHeight: Float,
     private var ship: Ship,
     private val setShip: (Ship) -> Unit,
+    /** Wave 17o — test injection: ép thời điểm bắt đầu spawn (default = now). */
+    private val spawnStartMillisOverride: Long? = null,
     private val onShipDestroyed: () -> Unit = {},
     private val onShipDamaged: () -> Unit = {},
     private val onBoosterPickedUp: (xOffset: Float, yOffset: Float) -> Unit = { _, _ -> },
@@ -186,7 +188,7 @@ class ShipController(
     // Cinematic spawn animation: bottom → fly up to center → sway → fly down to play.
     // Total 3s. During spawn: damage absorbed (see updateHp), player input ignored,
     // ship position fully driven by the choreographed path below.
-    private val spawnStartMillis: Long = System.currentTimeMillis()
+    private val spawnStartMillis: Long = spawnStartMillisOverride ?: System.currentTimeMillis()
     private val spawnFlyUpMillis: Long = 800L
     private val spawnSwayMillis: Long = 1400L
     private val spawnFlyDownMillis: Long = 800L
@@ -204,6 +206,15 @@ class ShipController(
         if (elapsed < spawnTotalMillis) {
             applySpawnPath(elapsed)
             return
+        }
+        // Wave 17o — FIX "ship luôn nghiêng phải": spawn-anim (sway phase 2 dùng
+        // -cos*14) có thể bị GIÁN ĐOẠN (boss-intro freeze / continue) trước khi
+        // phase 3 đặt rotation=0 → spawnRotation kẹt ở giá trị nghiêng. Phần
+        // movement sau spawn KHÔNG bao giờ chạm spawnRotation → nghiêng vĩnh viễn.
+        // Ép về 0 một lần khi spawn đã xong.
+        if (ship.spawnRotation != 0f) {
+            ship = ship.copy(spawnRotation = 0f)
+            setShip(ship)
         }
         var newX = ship.xOffset
         var newY = ship.yOffset
@@ -607,6 +618,24 @@ class ShipController(
      * (wired in GameState) with damage dealt. While ship.vampireEndMillis > now,
      * heals ship by `damage * 0.5` (silent — no log spam per hit).
      */
+    /**
+     * Wave 17r — heal QUA controller (cập nhật ship NỘI BỘ + setShip). GameState
+     * KHÔNG được `ship.copy(hp=...)` trực tiếp: tick moveShip kế tiếp ghi đè bằng
+     * internal ship → heal MẤT (cùng class bug loadout). Dùng cho BANH_MI heal.
+     */
+    fun healCapped(amount: Int, maxHp: Int = 1000) {
+        if (ship.hp <= 0 || amount <= 0) return
+        ship = ship.copy(hp = (ship.hp + amount).coerceIn(0, maxHp))
+        setShip(ship)
+    }
+
+    /** Wave 17r — đặt thẳng hp (vd BOSS_RUSH hồi đầy giữa boss) qua controller. */
+    fun setHp(value: Int) {
+        if (ship.hp <= 0) return
+        ship = ship.copy(hp = value.coerceAtLeast(0))
+        setShip(ship)
+    }
+
     fun applyVampireHeal(damageDealt: Int) {
         if (ship.vampireEndMillis <= System.currentTimeMillis() || damageDealt <= 0) return
         val heal = (damageDealt * 0.5f).toInt().coerceAtLeast(1)
@@ -676,6 +705,33 @@ class ShipController(
 
     /** Public read for LasersController + GameWorld. */
     fun isCloneActive(): Boolean = ship.cloneEndMillis > System.currentTimeMillis()
+
+    /**
+     * Wave 17l — FIX "đổi đạn vẫn y hệt": áp đạn loadout vào ship NỘI BỘ của
+     * controller. Trước đây GameState set `ship.copy(...)` TRỰC TIẾP lên state
+     * của nó, nhưng controller giữ `private var ship` riêng → tick movement/
+     * iframes kế tiếp ghi đè NORMAL trở lại. Phải đi qua đây để cả 2 đồng bộ.
+     */
+    /**
+     * Wave 17q — san phẳng tilt spawn (spawnRotation=0) NGAY, không qua moveShip.
+     * Dùng khi boss-intro freeze chặn moveShip → reset post-spawn không chạy →
+     * ship kẹt nghiêng suốt cinematic. Gọi lúc trigger intro.
+     */
+    fun settleSpawnRotation() {
+        if (ship.spawnRotation != 0f) {
+            ship = ship.copy(spawnRotation = 0f)
+            setShip(ship)
+        }
+    }
+
+    fun setLoadoutBullet(type: com.tranphuloi.neon.ui.game.ship.laser.BulletType) {
+        ship = ship.copy(
+            baseBulletType = type,
+            activeBulletType = type,
+            bulletTypeEndMillis = 0L,
+        )
+        setShip(ship)
+    }
 
     // Updaters for the 4 boosters that surface a Boolean on Ship.
     private fun updateSpreadShotEnabled(enable: Boolean) {

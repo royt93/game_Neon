@@ -312,8 +312,11 @@ private fun BulletBar(type: BulletType, count: Int, total: Int) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = type.name,
+            // Wave 18 — tên Việt (displayName) thay tên enum thô (user: "thô kệch").
+            text = type.displayName,
             style = TextStyle(color = Color.White, fontSize = 12.sp),
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             modifier = Modifier.width(96.dp),
         )
         Box(modifier = Modifier.weight(1f)) {

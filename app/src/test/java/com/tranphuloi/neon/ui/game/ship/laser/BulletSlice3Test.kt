@@ -139,6 +139,50 @@ class BulletSlice3Test {
     }
 
     @Test
+    fun `fireLasers spawns the EQUIPPED bullet type (PLASMA → plasma laser, width 22)`() {
+        // Wave 17l end-to-end — đạn trang bị phải RA ĐÚNG loại (gốc "đổi đạn vẫn
+        // y hệt": trước fireLasers nhận NORMAL bất kể trang bị).
+        var captured: List<Laser> = emptyList()
+        controllerWith(emptyList()) { captured = it }
+            .fireLasers(Ship(xOffset = 200f, yOffset = 700f, activeBulletType = BulletType.PLASMA))
+        val l = captured.firstOrNull { it.bulletType == BulletType.PLASMA }
+        assertTrue("phải spawn đạn PLASMA", l != null)
+        assertEquals("PLASMA width đúng model (22)", 22f, l!!.width, 0.5f)
+    }
+
+    @Test
+    fun `fireLasers GIANT spawns a giant-width laser (34) distinct from normal (5)`() {
+        var giant: List<Laser> = emptyList()
+        controllerWith(emptyList()) { giant = it }
+            .fireLasers(Ship(xOffset = 200f, yOffset = 700f, activeBulletType = BulletType.GIANT))
+        var normal: List<Laser> = emptyList()
+        controllerWith(emptyList()) { normal = it }
+            .fireLasers(Ship(xOffset = 200f, yOffset = 700f, activeBulletType = BulletType.NORMAL))
+        assertTrue("GIANT to hơn NORMAL rõ rệt", giant.first().width > normal.first().width * 3f)
+    }
+
+    @Test
+    fun `explosion hit position is the LASER collision point, not the boss center`() {
+        // Wave 17m — user báo nổ sai chỗ. Vị trí onLaserHit phải = vị trí ĐẠN
+        // (điểm va chạm), KHÔNG phải tâm/đỉnh boss.
+        var hitX = -1f
+        var hitY = -1f
+        val boss = FakeEnemy("boss", isBoss = true, hp = 5000f,
+            xOffset = 0f, yOffset = 0f, width = 200f, height = 200f)   // tâm (100,100), đỉnh y=0
+        val laser = ShipLaser(id = "l", xOffset = 40f, yOffset = 60f, yRange = 800f)  // width=5
+        LasersController(
+            screenWidth = 400f, screenHeight = 800f, uuidUtils = UuidUtils(),
+            initialShipLasers = listOf(laser),
+            setShipLasers = {}, setUltimateLasers = {},
+            onLaserHit = { _, _, x, y, _, _ -> hitX = x; hitY = y },
+            damageMultiplier = { 1f },
+        ).monitorLaserCollision(emptyList(), listOf(boss))
+        // ĐẠN: center-x = 40 + 5/2 = 42.5 ; y = 60. (Boss center-x=100, đỉnh=0 → KHÔNG dùng.)
+        assertEquals("nổ tại X của đạn (≠ tâm boss 100)", 42.5f, hitX, 1f)
+        assertEquals("nổ tại Y của đạn = điểm va chạm (≠ đỉnh boss 0)", 60f, hitY, 1f)
+    }
+
+    @Test
     fun `FIREWORK splashes a nearby second enemy (AoE)`() {
         val primary = FakeEnemy("a", hp = 500f, xOffset = 40f, yOffset = 40f, width = 40f, height = 40f)
         val bystander = FakeEnemy("b", hp = 500f, xOffset = 100f, yOffset = 100f, width = 40f, height = 40f)

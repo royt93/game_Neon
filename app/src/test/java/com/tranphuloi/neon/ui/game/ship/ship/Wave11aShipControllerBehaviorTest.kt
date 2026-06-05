@@ -30,6 +30,86 @@ class Wave11aShipControllerBehaviorTest {
         )
     }
 
+    // ── Wave 17r — heal QUA controller (fix clobber: BANH_MI + BOSS_RUSH heal) ──
+
+    @Test
+    fun `healCapped raises hp via controller and caps at max`() {
+        var captured = Ship(xOffset = 0f, yOffset = 0f, hp = 500)
+        val ctrl = ShipController(
+            screenWidth = 400f, screenHeight = 800f, ship = captured, setShip = { captured = it },
+        )
+        ctrl.healCapped(50, maxHp = 1000)
+        assertEquals("hp tăng qua controller", 550, captured.hp)
+        ctrl.healCapped(9999, maxHp = 1000)
+        assertEquals("cap ở maxHp", 1000, captured.hp)
+    }
+
+    @Test
+    fun `setHp sets hp via controller (BOSS_RUSH full heal)`() {
+        var captured = Ship(xOffset = 0f, yOffset = 0f, hp = 300)
+        ShipController(
+            screenWidth = 400f, screenHeight = 800f, ship = captured, setShip = { captured = it },
+        ).setHp(1000)
+        assertEquals(1000, captured.hp)
+    }
+
+    @Test
+    fun `heal does nothing when ship already dead`() {
+        var captured = Ship(xOffset = 0f, yOffset = 0f, hp = 0)
+        val ctrl = ShipController(
+            screenWidth = 400f, screenHeight = 800f, ship = captured, setShip = { captured = it },
+        )
+        ctrl.healCapped(50)
+        ctrl.setHp(1000)
+        assertEquals("đã chết thì không hồi", 0, captured.hp)
+    }
+
+    // ── Wave 17o — post-spawn spawnRotation reset (fix "ship nghiêng phải") ──
+
+    @Test
+    fun `post-spawn moveShip forces leftover spawnRotation back to 0 (no permanent tilt)`() {
+        var captured = Ship(xOffset = 0f, yOffset = 0f, spawnRotation = 9.3f)  // kẹt nghiêng phải
+        val ctrl = ShipController(
+            screenWidth = 400f, screenHeight = 800f,
+            ship = captured, setShip = { captured = it },
+            // Spawn đã xong từ lâu → moveShip vào nhánh post-spawn.
+            spawnStartMillisOverride = System.currentTimeMillis() - 10_000L,
+        )
+        ctrl.moveShip()
+        assertEquals(
+            "spawnRotation phải reset về 0 sau spawn (hết nghiêng vĩnh viễn)",
+            0f, captured.spawnRotation, 0.001f,
+        )
+    }
+
+    // ── Wave 17l — loadout bullet reaches the controller's internal ship ──
+
+    @Test
+    fun `setLoadoutBullet applies the equipped bullet to the ship (fix dual-state clobber)`() {
+        var captured = Ship(xOffset = 0f, yOffset = 0f)
+        val ctrl = ShipController(
+            screenWidth = 400f, screenHeight = 800f,
+            ship = captured, setShip = { captured = it },
+        )
+        assertEquals(
+            com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL,
+            captured.activeBulletType,
+        )
+        // Trang bị PLASMA → phải tới ship NỘI BỘ (trước fix chỉ set GameState.ship
+        // → tick sau controller ghi đè NORMAL → "đổi đạn vẫn y hệt").
+        ctrl.setLoadoutBullet(com.tranphuloi.neon.ui.game.ship.laser.BulletType.PLASMA)
+        assertEquals(
+            "đạn loadout phải tới ship (active)",
+            com.tranphuloi.neon.ui.game.ship.laser.BulletType.PLASMA,
+            captured.activeBulletType,
+        )
+        assertEquals(
+            "và là đạn nền (base) → không revert NORMAL",
+            com.tranphuloi.neon.ui.game.ship.laser.BulletType.PLASMA,
+            captured.baseBulletType,
+        )
+    }
+
     // ── GHOST behavior ──
 
     @Test

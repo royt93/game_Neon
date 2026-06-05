@@ -153,6 +153,37 @@ class MidBossSignatureTest {
         assertEquals(6, boss(MidBossType.SWARM).generateLasers().size)
     }
 
+    // ── Wave 17j — MODEL boss: mọi field nhận diện phải phân biệt ──
+
+    @Test
+    fun `every boss has a UNIQUE attackName (skill)`() {
+        val names = MidBossType.ALL.map { it.attackName }
+        assertEquals(
+            "attackName phải duy nhất; trùng: ${names.groupBy { it }.filter { it.value.size > 1 }.keys}",
+            MidBossType.ALL.size, names.toSet().size,
+        )
+        assertTrue("mọi boss có tên chiêu", names.all { it.isNotBlank() })
+    }
+
+    @Test
+    fun `every boss has a UNIQUE sizeScale (size) declared on the model`() {
+        val sizes = MidBossType.ALL.map { it.sizeScale }
+        assertEquals(MidBossType.ALL.size, sizes.toSet().size)
+        // dải tương phản rộng: nhỏ nhất ≤ 0.55, lớn nhất ≥ 1.85
+        assertTrue("có boss nhỏ", sizes.min() <= 0.55f)
+        assertTrue("có boss khổng lồ", sizes.max() >= 1.85f)
+    }
+
+    @Test
+    fun `marquee specialAbility wired on the model`() {
+        assertEquals(BossAbility.SHIELD, MidBossType.WHITE_DRAGON.specialAbility)
+        assertEquals(BossAbility.SHIELD, MidBossType.GIANT_CONDOM.specialAbility)
+        assertEquals(BossAbility.TELEPORT, MidBossType.VENOM_SPIDER.specialAbility)
+        assertEquals(BossAbility.TELEPORT, MidBossType.CORRUPTION.specialAbility)
+        assertEquals(BossAbility.LIFESTEAL, MidBossType.VAMPIRE.specialAbility)
+        assertEquals(BossAbility.NONE, MidBossType.HEN_MOTHER.specialAbility)
+    }
+
     // ── Wave 17 — quỹ đạo phi tuyến: 3 boss có chiêu chuyển động riêng ──
 
     @Test
@@ -187,6 +218,12 @@ class MidBossSignatureTest {
         })
         val whip = boss(MidBossType.SEXY_DIVA).generateLasers()
         assertTrue("quất tóc phải bay CONG", whip.all {
+            (it as com.tranphuloi.neon.ui.game.enemy.laser.EnemyLaser).motion ==
+                com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.CURVE
+        })
+        // Wave 17 — bầy dơi VAMPIRE cũng CURVE (tách khỏi archetype "ngắm thẳng").
+        val bats = boss(MidBossType.VAMPIRE).generateLasers()
+        assertTrue("bầy dơi phải bay lượn CURVE", bats.all {
             (it as com.tranphuloi.neon.ui.game.enemy.laser.EnemyLaser).motion ==
                 com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.CURVE
         })
@@ -251,8 +288,13 @@ class MidBossSignatureTest {
     }
 
     @Test
-    fun `DUMB_RAT nibble fires a small jittery aimed pair`() {
-        assertEquals(2, boss(MidBossType.DUMB_RAT).generateLasers().size)
+    fun `DUMB_RAT nibble fires a small erratic non-aimed pair`() {
+        val lasers = boss(MidBossType.DUMB_RAT).generateLasers()
+        assertEquals(2, lasers.size)
+        // Wave 17 — không còn ngắm tàu: jitter ngang hẹp (±0.25), nhỏ + rơi xuống.
+        assertTrue("nibble nhỏ", lasers.all { it.width <= 18f })
+        assertTrue("rơi xuống", lasers.all { it.yOffsetMovementSpeed > 0f })
+        assertTrue("jitter ngang hẹp (không ngắm xa)", lasers.all { kotlin.math.abs(it.xOffsetMovementSpeed) <= 0.25f })
     }
 
     @Test
@@ -319,9 +361,9 @@ class MidBossSignatureTest {
     // ── Wave 16 — roster + size variety ──
 
     @Test
-    fun `MidBossType ALL lists all 21 distinct variants`() {
-        assertEquals(21, MidBossType.ALL.size)
-        assertEquals("no duplicates in ALL", 21, MidBossType.ALL.toSet().size)
+    fun `MidBossType ALL lists all 27 distinct variants`() {
+        assertEquals(27, MidBossType.ALL.size)
+        assertEquals("no duplicates in ALL", 27, MidBossType.ALL.toSet().size)
     }
 
     @Test

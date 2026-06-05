@@ -89,5 +89,18 @@ object StoryRegistry {
         BossKind.GIANT_CONDOM -> "Ta bảo vệ tất cả... rồi nuốt chửng ngươi!"
         BossKind.VENOM_SPIDER -> "Tơ độc đã giăng. Ngươi chỉ là con mồi."
         BossKind.CORRUPTION -> "Có tiền mua tiên cũng được — kể cả mạng ngươi!"
+        // Wave 18 batch 1 — 3 boss trào phúng.
+        BossKind.TRAFFIC_JAM -> "Kẹt xe giờ cao điểm — đừng hòng nhúc nhích!"
+        BossKind.KPI_BOSS -> "Chưa đạt chỉ tiêu quý này — tăng ca tới chết đi!"
+        BossKind.TIKTOKER -> "Nhớ like share nha — à nhầm, ăn đạn nè!"
+        // Wave 19 batch 2 — 3 boss trào phúng (nốt).
+        BossKind.ATM_BANKRUPT -> "Số dư: 0đ. Giao dịch bị từ chối — và cả ngươi nữa!"
+        BossKind.NOKIA_BRICK -> "Pin ta trâu cả tuần. Ăn cục gạch này!"
+        BossKind.INFLATION_STORM -> "Hôm nay giá lại tăng! Đỡ nổi không?"
+        // Wave 20 batch 3 — 4 boss trào phúng (hết batch 1).
+        BossKind.SOCIAL_DRAMA -> "Phốt ngươi đây! Cả cõi mạng ném đá!"
+        BossKind.PYRAMID_SCHEME -> "Tham gia tuyến dưới đi — à thôi, ăn đạn trước!"
+        BossKind.FORTUNE_TELLER -> "Ta đã thấy trước cái chết của ngươi rồi."
+        BossKind.KITCHEN_GOD -> "Ta cưỡi cá về trời — tiễn ngươi xuống đất!"
     }
 }

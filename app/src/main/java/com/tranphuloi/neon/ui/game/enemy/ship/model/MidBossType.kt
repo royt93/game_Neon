@@ -3,6 +3,9 @@ package com.tranphuloi.neon.ui.game.enemy.ship.model
 import com.tranphuloi.neon.R
 import com.tranphuloi.neon.ui.game.common.Once
 
+/** Wave 17j — kỹ năng đặc biệt của boss (ngoài bắn đạn). Khai báo ở model. */
+enum class BossAbility { NONE, SHIELD, TELEPORT, LIFESTEAL }
+
 /**
  * 33c+d Wave 4 — Mid-boss variants spawned every ~6 stages within a chapter.
  * Each variant has distinct stats + behavior. Phase transition triggers at HP < 50%
@@ -192,6 +195,148 @@ sealed class MidBossType(
         defaultBossKind = BossKind.CORRUPTION,
     )
 
+    // ── Wave 18 batch 1 — 3 boss trào phúng đời sống VN ──
+
+    /** Trùm Kẹt Xe — tường xe lấp một làn, luân phiên trái/phải ép né. */
+    object TRAFFIC_JAM : MidBossType(
+        drawableId = R.drawable.enemy_red_boss,
+        baseHp = 1700f,                                 // size riêng (né trùng mọi baseHp khác)
+        displayName = "TRÙM KẸT XE",
+        defaultBossKind = BossKind.TRAFFIC_JAM,
+    )
+
+    /** Sếp KPI — cột chỉ tiêu tăng tốc (ACCEL) + deadline đuổi (HOMING). */
+    object KPI_BOSS : MidBossType(
+        drawableId = R.drawable.enemy_green_boss,
+        baseHp = 2150f,
+        displayName = "SẾP KPI",
+        defaultBossKind = BossKind.KPI_BOSS,
+    )
+
+    /** Hot TikToker — spam tim bay cong (CURVE) + livestream. */
+    object TIKTOKER : MidBossType(
+        drawableId = R.drawable.enemy_red_boss,
+        baseHp = 1950f,
+        displayName = "HOT TIKTOKER",
+        defaultBossKind = BossKind.TIKTOKER,
+    )
+
+    // ── Wave 19 batch 2 — 3 boss trào phúng (nốt) ──
+
+    /** ATM Hết Tiền — nhả luồng "tiền" dồn dập rồi kẹt (ngưng) theo nhịp. */
+    object ATM_BANKRUPT : MidBossType(
+        drawableId = R.drawable.enemy_green_boss,
+        baseHp = 1600f,
+        displayName = "ATM HẾT TIỀN",
+        defaultBossKind = BossKind.ATM_BANKRUPT,
+    )
+
+    /** Cục Gạch Nokia — ném vài "cục gạch" CỰC TO + chậm (nặng, ít khe). */
+    object NOKIA_BRICK : MidBossType(
+        drawableId = R.drawable.enemy_red_boss,
+        baseHp = 1850f,
+        displayName = "CỤC GẠCH NOKIA",
+        defaultBossKind = BossKind.NOKIA_BRICK,
+    )
+
+    /** Bão Giá Lạm Phát — mỗi loạt SỐ đạn tăng dần (lạm phát) + tăng tốc (ACCEL). */
+    object INFLATION_STORM : MidBossType(
+        drawableId = R.drawable.enemy_red_boss,
+        baseHp = 2250f,
+        displayName = "BÃO GIÁ LẠM PHÁT",
+        defaultBossKind = BossKind.INFLATION_STORM,
+    )
+
+    // ── Wave 20 batch 3 — 4 boss trào phúng (hết batch 1) ──
+
+    /** Drama MXH — "ném đá" nhiều cụm lệch hướng theo fireTick (hùa nhau). */
+    object SOCIAL_DRAMA : MidBossType(
+        drawableId = R.drawable.enemy_green_boss,
+        baseHp = 1550f,
+        displayName = "DRAMA MẠNG XÃ HỘI",
+        defaultBossKind = BossKind.SOCIAL_DRAMA,
+    )
+
+    /** Trùm Đa Cấp — spread hình KIM TỰ THÁP: hàng dưới rộng dần (tuyến dưới). */
+    object PYRAMID_SCHEME : MidBossType(
+        drawableId = R.drawable.enemy_red_boss,
+        baseHp = 2350f,
+        displayName = "TRÙM ĐA CẤP",
+        defaultBossKind = BossKind.PYRAMID_SCHEME,
+    )
+
+    /** Thầy Bói Online — quạt đối xứng + 1 tia "tiên tri" HOMING đoán vị trí. */
+    object FORTUNE_TELLER : MidBossType(
+        drawableId = R.drawable.enemy_green_boss,
+        baseHp = 1650f,
+        displayName = "THẦY BÓI ONLINE",
+        defaultBossKind = BossKind.FORTUNE_TELLER,
+    )
+
+    /** Ông Táo Cưỡi Cá Chép — cá nhảy vòng cung (CURVE) + luồng lửa giữa. */
+    object KITCHEN_GOD : MidBossType(
+        drawableId = R.drawable.enemy_red_boss,
+        baseHp = 2750f,
+        displayName = "ÔNG TÁO CƯỠI CÁ CHÉP",
+        defaultBossKind = BossKind.KITCHEN_GOD,
+    )
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Wave 17j — MODEL NHẬN DIỆN gom 1 chỗ. Mỗi boss khai báo ĐẦY ĐỦ: hp
+    // (baseHp) · name (displayName) · shape (defaultBossKind→drawBoss) · size
+    // (sizeScale) · skill (attackName) · special (specialAbility). MidBoss +
+    // EnemyCanvas ĐỌC từ đây → 1 nguồn sự thật, có test chốt khác biệt.
+    // ════════════════════════════════════════════════════════════════════════
+
+    /** SIZE — tỉ lệ ×(130×90). Suy từ baseHp (máu cao = to); 0.5 (~65px) → 1.9 (~247px). */
+    val sizeScale: Float
+        get() = (0.5f + (baseHp - 1200f) / 2100f * 1.4f).coerceIn(0.5f, 1.9f)
+
+    /** SKILL — tên chiêu thức (đọc được, khớp hàm trong MidBoss.generateLasers). */
+    val attackName: String
+        get() = when (this) {
+            OFFENSIVE -> "Tia mắt săn đuổi (homing)"
+            DEFENSIVE -> "Quỹ đạo nguyên tử"
+            SWARM -> "Ám khắp đỉnh màn"
+            HEN_MOTHER -> "Ổ trứng rơi chậm"
+            BUFFALO_RAGE -> "Húc sừng gia tốc"
+            DUMB_RAT -> "Gặm nhấm thất thường"
+            FIERCE_TIGER -> "Gầm: tường ngang có khe"
+            SEXY_DIVA -> "Quất tóc bay cong"
+            TROLL_TOWER -> "Tia dọc từ đỉnh tháp"
+            TWIN_SUMMITS -> "Tia kép song song"
+            VOID_GLOBES -> "Xé hư vô hình X"
+            WHITE_DRAGON -> "Thét luồng lửa"
+            HAMMER_SICKLE -> "Quăng búa & liềm"
+            MONEY_TYCOON -> "Mưa tiền khắp màn"
+            GOLDEN_TYCOON -> "Đô la xoáy ốc"
+            SKULL_CROSSBONES -> "Quạt xương xoay"
+            VAMPIRE -> "Bầy dơi bay cong hút máu"
+            COSMIC_CENTIPEDE -> "Phun độc vòng cung rộng"
+            GIANT_CONDOM -> "Sóng xung kích 2 vòng"
+            VENOM_SPIDER -> "Lưới tơ độc 8 hướng"
+            CORRUPTION -> "Tường tiền đè, khe quét"
+            TRAFFIC_JAM -> "Tắc đường: lấp làn trái/phải"
+            KPI_BOSS -> "Cột chỉ tiêu tăng tốc + deadline đuổi"
+            TIKTOKER -> "Spam tim bay cong + livestream"
+            ATM_BANKRUPT -> "Nhả tiền dồn dập rồi kẹt"
+            NOKIA_BRICK -> "Ném cục gạch nặng & chậm"
+            INFLATION_STORM -> "Giá tăng: đạn nhiều dần + tăng tốc"
+            SOCIAL_DRAMA -> "Ném đá hội đồng nhiều hướng"
+            PYRAMID_SCHEME -> "Spread hình tháp tăng tầng"
+            FORTUNE_TELLER -> "Quạt bài + tia tiên tri đuổi"
+            KITCHEN_GOD -> "Cá nhảy vòng cung + luồng lửa"
+        }
+
+    /** SPECIAL — kỹ năng đặc biệt ngoài bắn đạn. */
+    val specialAbility: BossAbility
+        get() = when (this) {
+            WHITE_DRAGON, GIANT_CONDOM -> BossAbility.SHIELD
+            VENOM_SPIDER, CORRUPTION, OFFENSIVE -> BossAbility.TELEPORT
+            VAMPIRE -> BossAbility.LIFESTEAL
+            else -> BossAbility.NONE
+        }
+
     companion object {
         /**
          * Wave 16 — đủ 21 mid-boss variant. Dùng cho Boss Rush (roster đầy đủ
@@ -209,6 +354,9 @@ sealed class MidBossType(
                 TWIN_SUMMITS, VOID_GLOBES, WHITE_DRAGON, HAMMER_SICKLE, MONEY_TYCOON, GOLDEN_TYCOON,
                 SKULL_CROSSBONES, VAMPIRE, COSMIC_CENTIPEDE,
                 GIANT_CONDOM, VENOM_SPIDER, CORRUPTION,
+                TRAFFIC_JAM, KPI_BOSS, TIKTOKER,
+                ATM_BANKRUPT, NOKIA_BRICK, INFLATION_STORM,
+                SOCIAL_DRAMA, PYRAMID_SCHEME, FORTUNE_TELLER, KITCHEN_GOD,
             )
     }
 }

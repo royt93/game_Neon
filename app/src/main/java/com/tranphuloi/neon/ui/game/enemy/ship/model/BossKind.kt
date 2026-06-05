@@ -56,4 +56,20 @@ enum class BossKind(val displayName: String) {
     GIANT_CONDOM(displayName = "Bao Cao Su Khổng Lồ"),
     VENOM_SPIDER(displayName = "Nhện Venom"),
     CORRUPTION(displayName = "Tham Nhũng"),
+
+    // ── Wave 18 batch 1 — 3 boss trào phúng (đời sống VN) ──
+    TRAFFIC_JAM(displayName = "Trùm Kẹt Xe"),
+    KPI_BOSS(displayName = "Sếp KPI"),
+    TIKTOKER(displayName = "Hot TikToker"),
+
+    // ── Wave 19 batch 2 — 3 boss trào phúng (nốt) ──
+    ATM_BANKRUPT(displayName = "ATM Hết Tiền"),
+    NOKIA_BRICK(displayName = "Cục Gạch Nokia 1280"),
+    INFLATION_STORM(displayName = "Bão Giá Lạm Phát"),
+
+    // ── Wave 20 batch 3 — 4 boss trào phúng (hết batch 1) ──
+    SOCIAL_DRAMA(displayName = "Drama Mạng Xã Hội"),
+    PYRAMID_SCHEME(displayName = "Trùm Đa Cấp"),
+    FORTUNE_TELLER(displayName = "Thầy Bói Online"),
+    KITCHEN_GOD(displayName = "Ông Táo Cưỡi Cá Chép"),
 }

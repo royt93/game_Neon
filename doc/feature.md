@@ -301,6 +301,108 @@ Test: +4 boss (`MidBossSignatureTest`: egg≠haunt, ring 2-tốc-độ, gap-qué
 - **Boss overlay shape khi trúng đạn (user báo)**: boss vẽ thêm vòng aura phụ (1.35×) + 4 kim cương góc (1.55×) theo bán kính TRÒN, **sáng bừng khi hit** → boss không-tròn trông như shape lạ chồng. Sửa (user pick): **bỏ hẳn vòng phụ + kim cương**, chỉ giữ halo mềm → boss sạch. Eyeball xác nhận (Vampire/Centipede).
 - **Eyeball quỹ đạo phi tuyến**: HOMING xác nhận rõ trên máy (đạn đỏ bẻ cong bám ship khi kéo); CURVE/ACCEL phủ unit-test. Test +3 (leak top-cull, side-cull, knockback recoil). **676 pass**, cài Pixel 7 Pro 0 crash.
 
+✅ **Wave 17e — 4 câu hỏi user (audit shape/size/count):**
+- **#4 Boss Rush "~9 boss" SAI**: nhãn `DialogModePicker:117` hardcode `"~9 boss"` trong khi roster thật 27. Sửa: phơi `bossRushRosterSize` (=allBosses.size) → nhãn động đúng. Test chống lệch (`BossRushRosterTest`: label == roster && >9).
+- **#1 Ship "luôn nghiêng phải"**: eyeball lúc đứng yên → THẲNG (spawnRotation→0, bank lerp→0, shape đối xứng). Bank chỉ khi di chuyển (đối xứng theo hướng). User pick: **giữ nghiêng nhẹ** → không đổi.
+- **#2 Boss chưa riêng (phản biện)**: CÓ riêng — 27 `drawBoss*` (shape), 21 baseHp duy nhất (size), 21 signature+7 movement+3 phi tuyến (skill). Caveat: ~5 boss chung archetype "ngắm tàu". **Sửa thêm**: VAMPIRE `batSwarmLifesteal` → **CURVE** (dơi bay lượn) để tách khỏi ratNibble (ngắm thẳng).
+- **#3 Đạn chưa riêng (phản biện)**: CÓ riêng (18 shape + 18 width + cơ chế riêng). Lý do user thấy "giống": mỗi run chỉ bắn 1 đạn = loại trang bị (mặc định NORMAL). **Mở khoá tạm toàn bộ đạn** (TODO `roy93~` revert ở DialogLoadoutPicker + GameState) để user tự đổi & kiểm chứng.
+- **677 pass**, cài Pixel 7 Pro, eyeball loadout: mọi đạn mở khoá OK.
+
+✅ **Wave 17f — hardening sau audit (user pick 3 việc):**
+- **`EnemyLaser.equals` bỏ-id (latent bug, đã sửa)**: EnemyLaser là data class với `id` ở BODY (không thuộc equals); `destroyEnemyLaser` dùng `enemyLasers - laser` (value-equals) → 2 đạn cùng tham số trùng vị trí sau khi bay bị xoá NHẦM con còn sống. Sửa: lọc theo `id` (`filterNot { it.id == laser.id }`). ShipLaser/UltimateLaser có id trong ctor → equals đã unique, không dính. Test +1 (2 đạn cùng param khác id → diệt đúng con destroyed).
+- **Dứt điểm archetype "ngắm tàu"**: `hammerSickle` phase2 (bỏ tia ngắm → "đập búa" giữa rơi thẳng nặng); `ratNibble` (bỏ ngắm → "gặm nhấm" erratic nhỏ-nhanh hẹp). Cùng VAMPIRE→CURVE (17e) → còn lại OFFENSIVE(HOMING)/BUFFALO(ACCEL)/DIVA(CURVE) là các chiêu CỐ Ý đặc trưng, không còn boss "ngắm thẳng" trùng nhau. Cập nhật test (DUMB_RAT non-aim: width≤18, |x|≤0.25).
+- **Eyeball quỹ đạo phi tuyến**: HOMING (rõ — đạn bẻ cong bám ship), ACCEL (rõ — giãn cách tăng dần khi rơi). CURVE weave ±16px quá tinh tế + boss chết nhanh → **chưa bắt rõ trên máy**, chỉ unit-test (lệch 2 bên + vẫn rơi). *(Thành thật: nếu muốn CURVE đọc rõ hơn cần tăng biên độ — đánh đổi độ khó né.)*
+- **678 pass**, build sạch (DEBUG force-variant đã gỡ; `TODO roy93~` mở-khoá-tạm GIỮ lại để user test).
+
+✅ **Wave 17g — BUG THẬT: đổi đạn không ăn khi TIẾP TỤC (root cause "#2 đạn không riêng"):**
+Điều tra thực nghiệm (thay vì rebut): chọn đạn ở TRANG BỊ → ✓ đổi OK (DataStore lưu), NHƯNG `loadoutApplied` (rememberSaveable) chặn `LaunchedEffect` áp dụng lại khi **TIẾP TỤC run đã lưu** → ship giữ đạn cũ. User đổi đạn rồi bấm TIẾP TỤC (nút to nhất) → đạn KHÔNG đổi → tưởng "đạn không có skill riêng". Đây là root cause thật.
+- Sửa: bỏ guard `if (loadoutApplied) return`, thay bằng **re-apply nếu `ship.baseBulletType != resolved`** → đạn loadout áp dụng MỖI lần vào run kể cả continue (an toàn vì đạn giờ cả-run, no expiry).
+- Cấu trúc boss xác nhận KHÔNG lặp: mỗi chương 4-5 mid-boss khác nhau (Ch1: OFFENSIVE/HEN/BUFFALO/SKULL; Ch2: DEFENSIVE/RAT/TIGER/VAMPIRE; …), 27 tổng. Shape 27 drawBoss riêng (eyeball xác nhận nhiều con). → boss/đạn CÓ riêng; vấn đề là (a) bug continue trên + (b) phải đổi đạn ở TRANG BỊ (mặc định NORMAL).
+- **678 pass**, cài máy. *(Mở khoá tạm `roy93~` vẫn giữ để user đổi thử mọi đạn.)*
+
+✅ **Wave 17h — KHUẾCH ĐẠI tương phản màu+size (user pick: đạn+boss dễ cảm hơn):**
+- **GỐC RỄ "nhìn giống nhau" (màu)**: `LaserCanvas` truyền 1 màu `glow` chung (màu ship) cho MỌI đạn → bất kể loại đều cùng màu, dù `BulletTypeColorMap` có màu riêng nhưng KHÔNG dùng khi vẽ. Boss: halo TẤT CẢ cùng đỏ `0xFFFF2D55` + thân chỉ đỏ/xanh theo drawable.
+  - **Đạn**: dùng `BulletTypeColorMap.argbFor(type)` làm màu halo+thân (NORMAL giữ màu skin) → Lửa cam / Plasma xanh / Atomic lục / Pháo Hoa hồng… nhìn phát biết loại. Eyeball: đạn HOMING hiện magenta (≠ cyan-NORMAL).
+  - **Boss**: thêm `bossColorFor(BossKind)` — 27 màu RIÊNG (exhaustive) cho cả halo + thân. Eyeball: boss Ch5 halo TÍM (không còn đỏ đồng loạt).
+- **Size tương phản**: boss `sizeScale` 0.8–1.3 → **0.62–1.65** (nhỏ ~80px ↔ trùm ~215px); đạn GIANT 10→**22** (khổng lồ thật), KAMEHAMEHA 22→**28** (beam rộng), SMOKE 24→**30** (khói bự nhất) → dải width 4–30 (kim↔khổng-lồ rõ rệt).
+- **678 pass** (`bullet width distinct` vẫn 18 giá trị duy nhất; `boss size distinct` vẫn 21), cài Pixel 7 Pro, eyeball boss-màu + đạn-màu OK. *(Mục "nhịp/kiểu bắn tương phản" CHƯA làm — rủi ro balance, để verify màu+size trước.)*
+
+✅ **Wave 17i — khuếch đại MẠNH hơn (user pick):**
+- Boss size 0.62–1.65 → **0.5–1.9** (~65px ↔ ~247px). Đạn: GIANT 22→**34**, KAMEHAMEHA 28→**36**, SMOKE 30→**38**, ATOMIC→28, PLASMA→22, FIREWORK→24, DURIAN→26, ZIGZAG 4→**3** → dải **3–38px** (kim↔khổng-lồ cực rõ).
+- Halo "viền màu đậm": boss intensity 0.45→**0.66** + radius 2.2→2.5; đạn đặc biệt halo ×1.6. Eyeball: boss Ch5 halo TÍM to đậm.
+- 678 pass (18 width + 21 size vẫn duy nhất). *(Nhịp/kiểu bắn tương phản vẫn chưa làm.)*
+
+✅ **Wave 17j — MODEL NHẬN DIỆN rõ ràng (user: "tạo model rõ ràng" cho boss + đạn):**
+Gốc vấn đề: thuộc tính phân biệt RẢI RÁC nhiều file (hp/name ở Type, skill ở MidBoss, shape/màu ở Canvas, size suy ra) → khó kiểm soát, dễ trùng. Gom thành MODEL 1 chỗ:
+- **ĐẠN (`BulletType`)** + enum `BulletShape`: mỗi đạn khai báo `shape / bodyWidth (size 3–38px) / colorArgb (signature) / special (mô tả kỹ năng)` + sẵn có name/damage/pierce/aoe. Render đọc: LaserCanvas màu = `colorArgb`, shape 1:1; width = bodyWidth.
+- **BOSS (`MidBossType`)** + enum `BossAbility`: mỗi boss khai báo `sizeScale (size) / attackName (skill) / specialAbility (SHIELD/TELEPORT/LIFESTEAL/NONE)` + sẵn có baseHp/displayName/defaultBossKind(shape). MidBoss đọc `variant.sizeScale` + `variant.specialAbility` (thay vì liệt kê tại chỗ); màu theo `bossColorFor(BossKind)`.
+- **Test chốt (+9)**: `BulletModelTest` (18 đạn: shape/size/color/special đều DUY NHẤT + dải 3–38px) + `MidBossSignatureTest` (21 boss: attackName/sizeScale DUY NHẤT + marquee ability wired). → thêm/sửa làm trùng = vỡ test → bảo đảm không "đụng hàng".
+- **687 pass**, cài Pixel 7 Pro 0 crash. *(Có thể surface model lên Bách Khoa/InfoScreen để user xem tận mắt — chưa làm.)*
+
+✅ **Wave 17k — surface MODEL lên Bách Khoa + polish nhãn (user: "mô tả thô kệch"):**
+- Tab ĐẠN: mỗi đạn hiện `hình · cỡ · sát thương` + `★ special` + icon màu/hình riêng (đọc từ model).
+- Tab BOSS: thêm mục data-driven **"21 MID-BOSS"** từ `MidBossType.ALL` (tên gợi hình theo BossKind · HP · cỡ · kỹ năng đặc biệt · chiêu thức), giữ phần boss-chương cốt-truyện bên dưới.
+- **User báo "thô kệch" — ĐÚNG, không phản biện**: tôi đã phơi giá trị MODEL kỹ thuật ("ORB/HAUNTED_KID", "0.70×", "5px", "TELEPORT/NONE") thẳng lên UI. Sửa: thêm lớp DỊCH nhãn tiếng Việt (`bulletShapeLabel`, `sizeTierByWidth/Scale`, `bossAbilityLabel`) + dùng `bossKind.displayName` (tên gợi hình) thay tên chung. Model (enum/số) ở trong; UI hiển nhãn thân thiện. `bossColorFor` → internal để InfoScreen tô màu boss.
+- 687 pass, cài Pixel 7 Pro, eyeball 2 tab OK (nhãn Việt sạch sẽ).
+
+🔴✅ **Wave 17l — BUG GỐC "đổi đạn vẫn y hệt / không work" (CHẨN ĐOÁN qua logcat):**
+User kiên trì báo đạn "không work" — ĐÚNG, và là **bug chức năng thật**, không phải perception:
+- **Chẩn đoán đáng tin** (thêm log `DBG fireLasers`): dù loadout log "bullet=PLASMA áp dụng", `fireLasers` lại nhận `active=NORMAL w=5.0` → **ship BẮN NORMAL bất kể trang bị gì**.
+- **Gốc rễ — DUAL-STATE**: `ShipController` giữ `private var ship` RIÊNG (khởi tạo NORMAL). Loadout cũ set `ship.copy(...)` TRỰC TIẾP lên `GameState.ship`, KHÔNG đụng ship nội bộ controller → tick movement/iframes kế tiếp `setShip(internalShip NORMAL)` ghi đè lại → PLASMA bị xóa trong 1 frame. **Mọi run luôn bắn NORMAL** → toàn bộ công sức màu/size/shape/model cho các đạn KHÁC chưa từng hiện ra (vì loại đó không bao giờ được bắn).
+- **Fix**: thêm `ShipController.setLoadoutBullet(type)` (cập nhật ship NỘI BỘ + setShip); LaunchedEffect loadout dời xuống SAU `shipController`, gọi qua nó. Verify: log `active=PLASMA w=22.0` + **eyeball: đạn giờ là cột ORB XANH TO** (≠ magenta nhỏ trước).
+- Test +1 (`Wave11aShipControllerBehaviorTest`: setLoadoutBullet → ship.active/base = PLASMA). **688 pass**, cài Pixel 7 Pro 0 crash.
+→ Giờ đổi đạn ở TRANG BỊ + TIẾP TỤC = đạn ĐỔI THẬT (màu/size/shape/skill riêng từng loại hiện đúng).
+
+✅ **Wave 17m — sửa vị trí nổ khi đạn trúng (user báo) + audit lại #1:**
+- **#2 vị trí nổ SAI**: `onLaserHit` truyền `target.xOffset+w/2, target.yOffset` = TÂM/ĐỈNH boss → nổ ở giữa boss, không phải nơi đạn chạm. Sửa: tính `laserHitX/Y` = vị trí ĐẠN (tâm-x + mép trên đang bay lên = điểm tiếp xúc) → nổ ngay chỗ va chạm. Áp cho cả hit thường + ultimate chip. Eyeball: nổ cam nằm đúng nơi orb chạm boss (trước che giữa boss → cũng góp phần "boss khó phân biệt").
+- **#1 (đạn) — nay đã thật sự riêng** sau fix loadout 17l: PLASMA = cột orb XANH TO (eyeball). Trước 17l mọi đạn bắn ra đều NORMAL → KHÔNG THỂ thấy khác biệt dù code có. Cần user re-test sau fix.
+- **#1 (boss)**: shape 27 `drawBoss*` (nhiều con hardcode palette riêng-theo-chủ-đề: Cọp cam, Búa-Liềm đỏ/vàng → vẫn khác nhau), halo per-kind, size khác (0.5–1.9), skill + quỹ đạo riêng. Bách Khoa liệt kê đủ. 688 pass.
+
+✅ **Wave 17n — overlay tên+chiêu boss (user pick 4) giúp nhận diện:**
+`BossHpBar` thêm dòng **"⚔ <chiêu thức>"** dưới tên boss (`bossSkillLabel(bossKind)` phủ 27 kind). Eyeball: boss SPIDER hiện "Bá Vương Thiên Hà / ⚔ Tơ nhện đa hướng". Cùng đạn PLASMA = orb xanh to + nổ đúng điểm va chạm (17m) → boss/đạn nay phân biệt rõ khi chơi. 688 pass.
+
+🔴✅ **Wave 17o — FIX "ship LUÔN nghiêng phải" (user báo nhiều lần, nay bắt được):**
+- **Chẩn đoán logcat** (log `spawnRot`/`bank` lúc đứng yên): `spawn=9.3 bank=0.0` → `spawnRotation` KẸT ở ~7-9° (phải), không về 0.
+- **Gốc rễ**: spawn-anim 3 phase — phase 2 "sway" dùng `rotation=-cos(swayPhase)*14`, phase 3 mới đặt `rotation=0`. Khi spawn bị GIÁN ĐOẠN trước phase 3 (boss-intro freeze gate cả loop / continue run) → phase 3 không chạy → `spawnRotation` đứng ở giá trị sway nghiêng. Phần `moveShip` sau-spawn KHÔNG bao giờ chạm `spawnRotation` (chỉ sửa `bankRotation`) → nghiêng VĨNH VIỄN. (Đây là lý do các lần trước tôi đo "lúc đứng yên thẳng" nhầm — phụ thuộc spawn có bị ngắt hay không.)
+- **Fix**: trong `moveShip`, nhánh post-spawn ép `spawnRotation=0` một lần nếu còn dư. Verify: log `spawnRot=0.0` lúc đứng yên. Test +1 (`spawnStartMillisOverride` inject → post-spawn reset). **689 pass**, cài Pixel 7 Pro.
+- (Wave 17n) Thêm nhãn HUD "⦿ <tên đạn>" (màu theo loại) để người chơi thấy đạn đang bắn + biết nó đổi khi trang bị khác.
+
+✅ **Wave 17p — bổ sung test cho MỌI case Wave 17 (user yêu cầu):**
++6 test (689→**695 pass**):
+- **Integration (collision thật)**: `explosion hit position = LASER point ≠ boss center` (fix #2); `fireLasers spawns EQUIPPED type` (PLASMA→w22) + `GIANT≠NORMAL width` (fix loadout end-to-end — đạn trang bị ra đúng loại).
+- **Model/màu**: `bossColorFor` 27 màu DUY NHẤT + opaque (`BossColorTest`); `colorArgb == BulletTypeColorMap` (model↔map nhất quán).
+- Cộng coverage sẵn có: motion (LINEAR/HOMING/ACCEL/CURVE + leak/side cull + remove-by-id), boss de-dup (egg≠haunt/ring-2-speed/gap-sweep/dive≠sine), boss+bullet model distinct, setLoadoutBullet, spawnRotation reset, knockback recoil, GIANT pierce, FIREWORK splash+children.
+- **Widget test BỎ QUA** theo giới hạn toolchain AGP 9.1.1 (Compose+Robolectric "Unable to resolve activity" — xem memory) → thay bằng **integration (controller-driven) + eyeball on-device** (đã chụp xác nhận từng fix).
+
+✅ **Wave 17q — dọn 4 nợ sau audit (user pick cả 4):**
+- **#1 Revert mở-khoá-tạm `roy93~`** (3 chỗ): khôi phục gate shop (DialogLoadoutPicker + GameState run-start) — gameplay về đúng (đạn shop-gated phải mua). 0 marker còn sót.
+- **#2 Width SINGLE-SOURCE**: `buildOneLaser` ép `width` + căn-giữa từ `BulletType.bodyWidth` (qua `.also` sau when) → size đạn chỉ sửa ở model, hết dual-source.
+- **#3 Ship-tilt trong intro**: thêm `ShipController.settleSpawnRotation()` gọi lúc trigger boss-intro (moveShip bị freeze chặn) → ship thẳng cả trong cinematic.
+- **#4 Boss body per-kind**: audit thấy 28/30 drawBoss đã dùng `body`(=bossColorFor) cho thân; chỉ Tiger + HammerSickle hardcode main-fill → chuyển sang `body` (giữ chi tiết sọc/búa-liềm-vàng/mắt). Giờ mọi boss thân theo màu per-kind, detail giữ theme.
+- **695 test pass**, compile sạch. *(Install/eyeball CHỜ: thiết bị rớt kết nối USB+WiFi adb lúc làm — cần nối lại để verify on-device.)*
+
+🔴✅ **Wave 17r — audit sâu tìm bug CÙNG CLASS loadout (user pick):**
+Rà mọi `ship = ship.copy(...)` TRỰC TIẾP ở GameState (bypass ShipController) → tìm thêm **2 bug clobber giống loadout**:
+- **BANH_MI heal** (onLaserHit): `ship.copy(hp+1)` trực tiếp → moveShip ghi đè internal ship → **heal MẤT**. Sửa: `shipController.healCapped(1, maxHp=1000)`.
+- **BOSS_RUSH heal-giữa-boss**: `ship.copy(hp=1000)` trực tiếp → clobber → **không hồi đầy**. Sửa: `shipController.setHp(1000)`.
+- (599 destroyedAtMillis / 611 shipSpriteHidden KHÔNG clobber — đã được setShip-wrapper guard bảo vệ.)
+- Thêm `ShipController.healCapped()/setHp()` (cập nhật internal ship + setShip). Test +3 (heal cap / setHp / không hồi khi chết). Quét thêm: `@Suppress UNUSED` đều có chủ đích, enemies/spaceObjects qua setter (không clobber), `ship.copy` ngoài chỉ là Stage.copy. **Không còn dual-state ship khác.**
+- **698 pass**, compile sạch.
+- **Eyeball on-device (máy nối lại)**: ship THẲNG cả trong boss-intro lẫn khi chơi (fix tilt + intro-edge); gate-shop revert đúng (PLASMA shop-locked → fallback NORMAL, nhãn "⦿ Đạn thường"); boss tên+⚔chiêu hiện; 0 crash. (Heal BANH_MI/BOSS_RUSH + width-single-source + boss-per-kind-color phủ unit/integration test; khó cô lập eyeball nhưng test xanh.)
+
+✅ **Wave 17s — eyeball nốt 4 hạng mục còn nghi (user "bạn chắc không?" + "fix 2 cái cuối"):**
+- **Ship thẳng — SỐ LIỆU**: log tạm trong moveShip post-spawn → `spawnRot=0.0 bank=0.0` lúc đứng yên (rotationZ=0 tuyệt đối). Gỡ log, cài sạch.
+- **Heal BANH_MI — SỐ LIỆU**: ép tạm đạn BANH_MI + log healCapped → `hp 916→917→…→924` tăng đều **và giữ** qua từng cú trúng (không revert) ⇒ heal-qua-controller đúng, hết clobber. Gỡ DEBUG.
+- **Width đạn single-source + màu boss theo loại — eyeball Bách Khoa**: tab ĐẠN hiện mỗi loại 1 shape+cỡ (Nhỏ/Vừa/Lớn/Khổng lồ từ `bodyWidth`)+màu+×dmg+special khác; tab BOSS "21 MID-BOSS" mỗi boss 1 màu chấm (`bossColorFor`)+HP+cỡ+chiêu phân biệt. Render bằng đúng hàm in-game.
+- **698 pass**, `DBG sót: 0`, build sạch cài Pixel 7 Pro.
+
+✅ **Wave 18 — thu gọn top HUD che UI (user: "top view ship/chương/hp/đạn to quá che nhiều UI"; phản biện chọn "thu gọn + dọn chồng lấn"):**
+Phản biện: thủ phạm không phải kích thước HP mà là (a) cột chương 3 dòng dài dòng, (b) nhãn "⦿ Đạn thường" ở TopCenter **đè trùng** thanh HP boss (TopEnd, cùng top=92dp). Fix:
+- HP pill 120×44→**96×38dp** (chữ 14→12), thanh HP 88→**72dp**, gameTime 11→10.
+- Cột chương 3 dòng → **gộp "Ch.X · St.Y" 1 dòng** (12sp) + tên chương 9sp `maxLines=1 ellipsis width=110dp`.
+- **Dời nhãn đạn vào hàng khoáng cột trái** (`IndicatorStatus.activeBulletName/ColorArgb` mới, default rỗng) — bỏ block TopCenter ở GameScreen (gỡ luôn import `sp` thừa) ⇒ **hết đè thanh HP boss**.
+- **Eyeball on-device (có boss "Mả Cá Răng")**: top-left gọn 2 dòng, "◇0 ⦿Đạn thường" 1 hàng, thanh HP boss góc phải thông thoáng — không còn chồng lấn. Build+test pass, 1 caller (GameScreen) đã cập nhật. (Cosmetic layout → on-device eyeball thay widget test, theo giới hạn toolchain AGP 9.1.1.)
+
 *Hardening sau audit device (Wave 16, user pick 1>3>2):*
 - 🟡 **(1) Tách `IndicatorStatus`** 15-param → `CombatColumn` + `ProgressionColumn` (code-health + recompose isolation; HUD nguyên, 653 pass). NHƯNG **jank khởi động KHÔNG giảm rõ** — load-jank chủ yếu là first-composition của `GameScreen` (rememberGameState + ~12 controller + GameWorld), không phải IndicatorStatus. Gameplay vẫn mượt (0 skip giữa game). Fix triệt để = Baseline Profile (chưa làm — nặng).
 - ✅ **(3) Balance**: BANH_MI heal +2→**+1**/hit (pierce×3 + rapid-fire dễ gần-bất-tử) + đưa magic-number ra const đặt tên (`BANH_MI_HEAL_PER_HIT`, `BRICK_KNOCKBACK_PX`) cho dễ tinh chỉnh.
@@ -318,7 +420,18 @@ Test: +4 boss (`MidBossSignatureTest`: egg≠haunt, ring 2-tốc-độ, gap-qué
 *Boss mới user yêu cầu (≈24 — mỗi boss theo checklist trên):*
 - ✅ **Wave 15 batch 1 (3/6 do user nêu) — DONE + device-verified:** **Đầu Lâu Xương Chéo** (`SKULL_CROSSBONES`, Ch1, HP 2000, sọ+xương chéo X, sine+spread), **Ma Cà Rồng** (`VAMPIRE`, Ch2, HP 2900, cánh dơi+nanh, erratic+barrage), **Con Rết Vũ Trụ** (`COSMIC_CENTIPEDE`, Ch3, HP 3100, đầu+6 đốt+chân, patrol+spread). Mỗi boss full pipeline: BossKind enum + MidBossType variant + Chapter wire + StoryRegistry taunt + EnemyCanvas `drawBoss*` bespoke + GameScreen intro-pitch + MidBoss movement/fire pattern + InfoScreen Bách Khoa card + preview. Sửa luôn sót `MidBossType.HAMMER_SICKLE` displayName "BỊP BỢM"→"LÊN NGÔI". Test cập nhật: BossKind 21→24 (BossKindTest + MetaProgressionKeysTest count + name-set), ChapterMidBoss total 16→19, BossKindResolver + StoryRegistryTaunt + nhóm Wave15 mới. 601 pass; build+cài+chạy Pixel 7 Pro OK, 0 crash.
 - ✅ **3/6 còn lại do user nêu (Wave 16 batch 2) — DONE + eyeball:** **Bao Cao Su Khổng Lồ** (`GIANT_CONDOM`, Ch4, HP 2400, túi phình+núm+vòng cuộn, skill "phình nổ" vòng đạn nhịp phình/xẹp `inflateBurst`); **Nhện Venom** (`VENOM_SPIDER`, Ch4, HP 2800, 8 chân+thân 2 đốt+dấu độc+nanh, skill "tơ độc" 8 nan tỏa + phase2 nhả thẳng `venomWeb`); **Tham Nhũng** (`CORRUPTION`, Ch5, HP 3300 cao nhất, túi tiền+$+mắt tham, skill "tiền đè" tường dày-chậm 1 khe `corruptionWall`). Full pipeline (BossKind+MidBossType+Chapter+StoryRegistry taunt+EnemyCanvas draw+dispatch+GameScreen pitch+MidBoss movement+signature+InfoScreen card+preview). Test: BossKind 24→27, ChapterMidBoss 19→22, +nhóm Wave16 + 3 signature test. 637 pass; eyeball trên máy (inject VENOM → thấy render + bắn 8 nan tỏa) rồi xoá hardcode + cài sạch. → **đủ 6/6 boss user nêu đích danh.**
-- 📋 **10 trào phúng batch 1:** Trùm Kẹt Xe, Bão Giá Lạm Phát, ATM Hết Tiền, Drama MXH, Sếp KPI, Hot TikToker, Trùm Đa Cấp, Thầy Bói Online, Cục Gạch Nokia 1280, Ông Táo Cưỡi Cá Chép.
+- ✅ **Wave 18 batch 1 (3/10 trào phúng) — DONE + eyeball Bách Khoa:** **Trùm Kẹt Xe** (`TRAFFIC_JAM`, Ch1, HP 1700, màu hổ phách 0xFFFFA000, shape ô-tô [thân+nóc+2 bánh+2 đèn], skill `trafficGridlock`: lấp DÀY nửa màn trái/phải luân phiên theo fireTick, nửa kia trống làm làn thoát — khác corruptionWall tường-kín); **Sếp KPI** (`KPI_BOSS`, Ch2, HP 2150, xanh công sở 0xFF2D7DFF, shape biểu-đồ-cột tăng dần + mũi tên lên, skill `kpiColumns`: 3-4 cột đạn ACCEL [KPI leo dốc] + phase2 deadline HOMING đuổi); **Hot TikToker** (`TIKTOKER`, Ch3, HP 1950, hồng-đỏ 0xFFFF2E63, shape đèn-ring + tim + điện thoại, skill `heartSpam`: quạt đối xứng đạn CURVE bay cong). Full pipeline: BossKind 27→30 + MidBossType 21→24 (+attackName) + Chapter Ch1/2/3 (index 4 = Boss Rush+Bách Khoa, như CORRUPTION) + EnemyCanvas bossColorFor + drawBoss* + dispatch + MidBoss patternForVariant + generateLasers + 3 helper + StoryRegistry taunt + GameScreen pitch + BossHpBar bossSkillLabel + InfoScreen "24 MID-BOSS". Test: BossKindTest 27→30, MetaProgressionKeysTest count+name-set, MidBossSignatureTest 21→24, ChapterMidBossWireTest total 22→25 + nhóm Wave18, StoryRegistryBossTauntTest +3 pair. Build+full test PASS, cài Pixel 7 Pro. **Eyeball Bách Khoa: thấy đủ 3 card** (màu/HP/Cỡ Vừa/chiêu tiếng Việt phân biệt). NB: phát hiện "Tham Nhũng" hiện 2 lần trong BossesTab (forEach mid-boss + card hardcoded section "BOSS CHƯƠNG") → gây nhầm tưởng bug scroll-clip (thực ra scroll OK, chỉ là tên trùng). → còn **7/10** batch 1.
+- ✅ **Wave 19 batch 2 (3/7 còn lại) — DONE + eyeball Bách Khoa shape thật:** **ATM Hết Tiền** (`ATM_BANKRUPT`, Ch4, HP 1600, teal 0xFF2BD4A8, shape máy-ATM [thân+màn hình+khe thẻ+bàn phím+$], skill `atmCashSpit`: luồng hẹp nhả 4 nhịp rồi KẸT 1 nhịp rỗng theo fireTick%5); **Cục Gạch Nokia 1280** (`NOKIA_BRICK`, Ch5, HP 1850, xanh Nokia 0xFF3A5BA0, shape điện-thoại-cục-gạch [thân bo+màn hình+phím 3×3+ăng-ten], skill `brickToss`: 2-3 viên CỰC TO w=42 + chậm); **Bão Giá Lạm Phát** (`INFLATION_STORM`, Ch4, HP 2250, cam 0xFFFF6F3D, shape mũi-tên↑+thẻ-giá, skill `inflationWave`: số đạn TĂNG DẦN mỗi loạt 4→7 + ACCEL). Full pipeline (BossKind 30→33, MidBossType 24→27, bossColorFor, drawBossShapeByKind dispatch + 3 hàm vẽ, MidBoss movement+attack+3 helper, Chapter Ch4+2/Ch5+1, StoryRegistry, GameScreen pitch, BossHpBar). Test: BossKindTest 30→33, MetaProgression count+nameset, MidBossSignature 24→27, ChapterMidBoss 25→28 + nhóm Wave19, StoryRegistryTaunt +3. Build+full test PASS, cài (USB). Eyeball: 3 card shape/màu/HP/chiêu riêng. → còn **4/7** batch1.
+- 📋 **4 trào phúng batch 1 còn lại:** Drama MXH, Trùm Đa Cấp, Thầy Bói Online, Ông Táo Cưỡi Cá Chép.
+
+✅ **Wave 18 — eyeball in-game 3 boss mới (user "bạn chắc chưa?" — đúng: Bách Khoa icon chỉ là HÌNH TRÒN, chưa chứng minh shape):** inject tạm cycle 3 boss vào EnemyFactory + dùng save Boss Rush. Xác nhận LIVE: TRAFFIC_JAM (log hp1700 kind=TRAFFIC_JAM, khối đạn nửa màn); KPI_BOSS (HP bar "Sếp KPI · ⚔ Cột chỉ tiêu + deadline", bắn cột ACCEL); **TIKTOKER (ảnh rõ: shape đèn-ring vòng đồng tâm hồng + HP bar "Spam tim bay cong" + quạt đạn CURVE bay cong)**. Cả 3 spawn đúng danh tính + shape + pattern + tên/chiêu HP-bar + 0 crash. Gỡ inject (`DBG sót: 0`), build sạch.
+
+✅ **Wave 18 — audit UI/UX màn khác (#3, user pick "tên đạn Việt ở Thống Kê" + "tab Cửa Hàng không cắt"):**
+- **Thống Kê**: `BulletBar` dùng `type.name` (thô: NORMAL/KAMEHAMEHA/BANH_MI) → đổi `type.displayName` (Đạn thường/Kamehameha/Bánh Mì…) + maxLines=1 ellipsis. Cùng lỗi "thô kệch" user từng phàn nàn ở Bách Khoa, sót lại ở Stats. (Boss grid đã đúng displayName từ trước.)
+- **Cửa Hàng TabBar**: 6 tab (Tàu…Hiển thị) trong horizontalScroll, tab cuối "Hiển thị" bị cắt ở vị trí nghỉ → giảm padding 16→10 / spacing 8→6 / font 13→12 để vừa khít màn (≈1029px<1440px) → hiện đủ 6 tab không cắt, vẫn giữ scroll cho máy hẹp.
+- Eyeball on-device: Stats 18 đạn tên Việt; Shop đủ 6 tab. Cosmetic → eyeball thay widget test (giới hạn AGP 9.1.1).
+
+✅ **Wave 18 — #4 audit: Bách Khoa "24 MID-BOSS (model)" shape y chang nhau (user phát hiện):** mục model auto-list vẽ icon bằng `drawCircle` → MỌI boss chỉ là hình tròn cùng shape, khác mỗi màu ("shape y chang nhau"). Fix: **trích `when(bossKind)` dispatch shape từ `drawEnemyShape` thành `internal fun DrawScope.drawBossShapeByKind`** (dùng chung in-game + preview), gọi trong BossesTab `iconDraw` → mỗi card vẽ SHAPE THẬT (xe/biểu-đồ/đèn-ring/sọ/rết/túi-tiền…). Exhaustive over 30 BossKind (compiler ép thêm boss mới phải khai báo shape). Eyeball: 24 card shape + màu riêng biệt, gồm 3 boss Wave 18 (Trùm Kẹt Xe=xe, Sếp KPI=biểu đồ, Hot TikToker=đèn ring). Refactor behavior-preserving (in-game render gọi cùng hàm). NB phụ: phần audit #4 (dual-state ship.copy, div-by-zero trong attack mới) — KHÔNG có bug (3 chỗ ship.copy còn lại đã guard từ Wave 17r; mọi `/(n-1)`/`/count`/`%period` có guard).
 - 📋 **8 trào phúng batch 2:** Ông Chú Crypto, Đại Gia Phông Bạt, Trẻ Trâu Toxic, Thánh Cuồng Sale, Trùm Karaoke Lạc Tông, Cô Hồn Tháng 7, Hoàng Thượng Mèo, Bác Sĩ Google.
 
 ⚠️ **Ghi chú scope:** đây là **>40 hạng mục content**, mỗi cái cần code behavior + art/shape + test + Bách Khoa. KHÔNG thể build hết 1 session — cần làm theo wave ưu tiên, mỗi wave vài món + verify on-device.

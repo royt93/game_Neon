@@ -64,6 +64,9 @@ fun IndicatorStatus(
     bossesDefeatedTotal: Int = 0,
     shipShape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape =
         com.tranphuloi.neon.ui.game.ship.shape.ShipShape.FIGHTER,
+    // Wave 18 — nhãn đạn đang bắn dời vào cột trái (hàng khoáng) để hết đè boss HP bar.
+    activeBulletName: String = "",
+    activeBulletColorArgb: Long = 0L,
     modifier: Modifier = Modifier,
 ) {
     val buttonPaddingEnd = dimensionResource(id = R.dimen.button_padding)
@@ -81,6 +84,8 @@ fun IndicatorStatus(
             lastMineralPickupMillis = lastMineralPickupMillis,
             lastBoosterPickupMillis = lastBoosterPickupMillis,
             hasReviveToken = hasReviveToken,
+            activeBulletName = activeBulletName,
+            activeBulletColorArgb = activeBulletColorArgb,
         )
         ProgressionColumn(
             currentChapterId = currentChapterId,
@@ -106,6 +111,8 @@ private fun CombatColumn(
     lastMineralPickupMillis: Long,
     lastBoosterPickupMillis: Long,
     hasReviveToken: Boolean,
+    activeBulletName: String = "",
+    activeBulletColorArgb: Long = 0L,
 ) {
     // Per-stat flash timer ticks at 50ms only while a flash is in flight (350ms each).
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -133,7 +140,8 @@ private fun CombatColumn(
     val hpFlashIntensity = if (hpPulse > 1f) (hpPulse - 1f) * 1.5f else 0f
 
     // Wave 11d Bug #2 fix — compact HUD on tall device (Pixel 7 Pro).
-    val height = 44.dp
+    // Wave 18 — thu gọn thêm (user: "top view to quá che UI"): 44→38dp.
+    val height = 38.dp
     val hpRatio = (hp.toFloat() / MAX_HP).coerceIn(0f, 1f)
     val hpColor = when {
         hp >= 700 -> NeonCyan
@@ -147,7 +155,7 @@ private fun CombatColumn(
             androidx.compose.foundation.Canvas(
                 modifier = Modifier
                     .align(Alignment.Center)
-                    .size(width = 120.dp, height = height)
+                    .size(width = 96.dp, height = height)
                     .graphicsLayer {
                         scaleX = hpPulse
                         scaleY = hpPulse
@@ -172,16 +180,16 @@ private fun CombatColumn(
             Text(
                 text = "${hp}hp",
                 color = hpColor,
-                fontSize = 14.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 5.dp, end = 10.dp)
+                    .padding(top = 4.dp, end = 8.dp)
             )
             Text(
                 text = gameTime,
                 color = Color.White.copy(alpha = 0.85f),
-                fontSize = 11.sp,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -193,7 +201,7 @@ private fun CombatColumn(
         Box(
             modifier = Modifier
                 .padding(start = 4.dp)
-                .width(88.dp)
+                .width(72.dp)
                 .height(6.dp)
                 .clip(MaterialTheme.shapes.small)
                 .background(Color.White.copy(alpha = 0.12f))
@@ -262,6 +270,15 @@ private fun CombatColumn(
                     scaleY = mineralPulse
                 },
             )
+            // Wave 18 — nhãn đạn dời về đây (trước ở TopCenter, đè thanh HP boss).
+            if (activeBulletName.isNotEmpty()) {
+                Text(
+                    text = "⦿ $activeBulletName",
+                    color = Color(activeBulletColorArgb),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Black,
+                )
+            }
         }
         if (hasReviveToken) {
             Spacer(modifier = Modifier.height(4.dp))
@@ -289,26 +306,24 @@ private fun ProgressionColumn(
 ) {
     Column {
         if (currentChapterId > 0) {
+            // Wave 18 — gộp "Ch.X" + "Stage Y" về 1 dòng (trước 3 dòng → chật top-center).
             Text(
-                text = "Ch.$currentChapterId",
+                text = if (stagesReached > 0) "Ch.$currentChapterId · St.$stagesReached"
+                else "Ch.$currentChapterId",
                 color = NeonGold,
-                fontSize = 13.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Black,
                 modifier = Modifier.neonGlow(NeonGold, intensity = 0.4f, radiusFactor = 1.2f),
             )
             if (currentChapterName.isNotEmpty()) {
                 Text(
                     text = currentChapterName,
-                    color = Color.White.copy(alpha = 0.75f),
-                    fontSize = 10.sp,
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
-                )
-            }
-            if (stagesReached > 0) {
-                Text(
-                    text = "Stage $stagesReached",
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 10.sp,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.width(110.dp),
                 )
             }
         }

@@ -1,6 +1,7 @@
 package com.tranphuloi.neon.ui.game.stage
 
 import com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -34,5 +35,13 @@ class BossRushRosterTest {
     fun `Boss Rush has at least 24 boss stages (was ~3 before)`() {
         val bossCount = bossEnemyTypes().size
         assertTrue("expected the full roster (≥24), got $bossCount", bossCount >= 24)
+    }
+
+    @Test
+    fun `mode-picker boss count label matches the real roster (no stale ~9)`() {
+        // Nhãn DialogModePicker dùng bossRushRosterSize; phải khớp số StageBoss
+        // thật và KHÔNG còn là ~9 (hardcode cũ sai mà user bắt được).
+        assertEquals(bossEnemyTypes().size, bossRushRosterSize)
+        assertTrue("label phải > 9 boss, got $bossRushRosterSize", bossRushRosterSize > 9)
     }
 }

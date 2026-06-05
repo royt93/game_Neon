@@ -92,6 +92,14 @@ class StoryRegistryBossTauntTest {
             MidBossType.GIANT_CONDOM to BossKind.GIANT_CONDOM,
             MidBossType.VENOM_SPIDER to BossKind.VENOM_SPIDER,
             MidBossType.CORRUPTION to BossKind.CORRUPTION,
+            // Wave 18 batch 1
+            MidBossType.TRAFFIC_JAM to BossKind.TRAFFIC_JAM,
+            MidBossType.KPI_BOSS to BossKind.KPI_BOSS,
+            MidBossType.TIKTOKER to BossKind.TIKTOKER,
+            // Wave 19 batch 2
+            MidBossType.ATM_BANKRUPT to BossKind.ATM_BANKRUPT,
+            MidBossType.NOKIA_BRICK to BossKind.NOKIA_BRICK,
+            MidBossType.INFLATION_STORM to BossKind.INFLATION_STORM,
         )
         for ((variant, expectedKind) in pairs) {
             val taunt = StoryRegistry.bossTaunt(variant, chapterId = 5)

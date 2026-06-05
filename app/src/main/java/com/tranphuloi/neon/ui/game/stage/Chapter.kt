@@ -49,6 +49,8 @@ enum class Chapter(
             MidBossType.HEN_MOTHER,
             MidBossType.BUFFALO_RAGE,
             MidBossType.SKULL_CROSSBONES,
+            // Wave 18 — Trùm Kẹt Xe (vành đai đông như "kẹt xe thiên thạch").
+            MidBossType.TRAFFIC_JAM,
         ),
         finalBossType = LevelOneBossType,
     ),
@@ -73,6 +75,10 @@ enum class Chapter(
             MidBossType.DUMB_RAT,
             MidBossType.FIERCE_TIGER,
             MidBossType.VAMPIRE,
+            // Wave 18 — Sếp KPI (mây mù = "không thấy đường về, chỉ thấy deadline").
+            MidBossType.KPI_BOSS,
+            // Wave 20 — Thầy Bói Online (mây mù huyền bí hợp bói toán).
+            MidBossType.FORTUNE_TELLER,
         ),
         finalBossType = LevelTwoBossType,
     ),
@@ -98,6 +104,10 @@ enum class Chapter(
             MidBossType.SEXY_DIVA,
             MidBossType.TROLL_TOWER,
             MidBossType.COSMIC_CENTIPEDE,
+            // Wave 18 — Hot TikToker (lên sóng giữa băng giá, "trend lạnh người").
+            MidBossType.TIKTOKER,
+            // Wave 20 — Drama MXH (băng giá = "drama lạnh sống lưng").
+            MidBossType.SOCIAL_DRAMA,
         ),
         finalBossType = LevelOneBossType,             // reuse — palette change handled visually
     ),
@@ -129,6 +139,11 @@ enum class Chapter(
             MidBossType.VOID_GLOBES,
             MidBossType.GIANT_CONDOM,
             MidBossType.VENOM_SPIDER,
+            // Wave 19 — ATM Hết Tiền + Bão Giá Lạm Phát (trạm = kinh tế sụp đổ).
+            MidBossType.ATM_BANKRUPT,
+            MidBossType.INFLATION_STORM,
+            // Wave 20 — Trùm Đa Cấp (trạm thù địch = ổ lừa đảo tuyến dưới).
+            MidBossType.PYRAMID_SCHEME,
         ),
         finalBossType = LevelTwoBossType,
     ),
@@ -158,6 +173,10 @@ enum class Chapter(
             MidBossType.GOLDEN_TYCOON,
             // Wave 16 — Tham Nhũng ngự ở Lõi Thiên Hà (climax).
             MidBossType.CORRUPTION,
+            // Wave 19 — Cục Gạch Nokia (bất tử như pin Nokia) ở lõi.
+            MidBossType.NOKIA_BRICK,
+            // Wave 20 — Ông Táo Cưỡi Cá Chép (về trời qua Lõi Thiên Hà).
+            MidBossType.KITCHEN_GOD,
         ),
         finalBossType = FinalBossType,                // 34d 3-phase final boss
     );

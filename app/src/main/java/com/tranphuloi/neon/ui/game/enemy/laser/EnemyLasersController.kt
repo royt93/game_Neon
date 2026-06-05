@@ -125,7 +125,11 @@ class EnemyLasersController(
     fun hasEnemyLasers() = enemyLasers.isNotEmpty()
 
     private fun destroyEnemyLaser(laser: Laser) {
-        enemyLasers = enemyLasers - laser
+        // Wave 17 — xoá theo ID (duy nhất/UUID), KHÔNG dùng `- laser` (value-equals).
+        // EnemyLaser là data class với `id` ở body (không thuộc equals) → 2 đạn
+        // cùng tham số mà trùng vị trí sau khi bay sẽ bị `- laser` xoá NHẦM con
+        // còn sống. Lọc theo id diệt đúng instance.
+        enemyLasers = enemyLasers.filterNot { it.id == laser.id }
     }
 
     private fun updateShipLasers() {

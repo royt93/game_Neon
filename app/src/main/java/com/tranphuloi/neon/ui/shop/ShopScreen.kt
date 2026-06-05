@@ -267,12 +267,14 @@ private fun ConfirmInfoLine(label: String, value: String, valueColor: Color) {
 
 @Composable
 private fun TabBar(current: ShopTab, onSelect: (ShopTab) -> Unit) {
+    // Wave 18 — giảm padding/spacing/font để 6 tab (Tàu…Hiển thị) vừa khít màn,
+    // không bị cắt tab cuối ở vị trí nghỉ; vẫn giữ horizontalScroll cho máy hẹp.
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = 12.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         ShopTab.entries.forEach { t ->
             val selected = t == current
@@ -286,13 +288,14 @@ private fun TabBar(current: ShopTab, onSelect: (ShopTab) -> Unit) {
                         RoundedCornerShape(10.dp),
                     )
                     .clickable { onSelect(t) }
-                    .padding(horizontal = 16.dp, vertical = 9.dp),
+                    .padding(horizontal = 10.dp, vertical = 9.dp),
             ) {
                 Text(
                     text = t.label,
+                    maxLines = 1,
                     style = TextStyle(
                         color = if (selected) Color.White else t.accent.copy(alpha = 0.8f),
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Black,
                     ),
                 )

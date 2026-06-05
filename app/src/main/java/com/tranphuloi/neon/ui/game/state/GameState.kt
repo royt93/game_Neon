@@ -320,35 +320,10 @@ fun rememberGameState(): GameState {
     // effect with NORMAL on frame 1 and then "loses" the real value because
     // we'd already flag loadoutApplied=true). rememberSaveable<Boolean>
     // ensures a mid-run config-change rotation doesn't grant a fresh 10s.
+    // Wave 17l — đạn loadout áp dụng QUA shipController.setLoadoutBullet (xem
+    // LaunchedEffect đặt SAU shipController, vì phải gọi nó). Trước đây set
+    // ship.copy trực tiếp ở đây → controller ghi đè NORMAL → "đổi đạn vẫn y hệt".
     var loadoutApplied by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        if (loadoutApplied) return@LaunchedEffect
-        val preferred = settingsRepo.preferredBulletType.first()
-        // Wave 12 round 3 — a shop-gated bullet (KAMEHAMEHA/ATOMIC) that the
-        // player selected before it became gated must not still apply for free
-        // at run start. Fall back to NORMAL if the unlock isn't owned. Uses the
-        // run-start allRanks snapshot already captured in runContext.
-        val resolved = if (com.tranphuloi.neon.data.ShopItem
-                .isShopUnlocked(runContext.metaUpgrades, preferred.shopUnlockId)
-        ) {
-            preferred
-        } else {
-            Logger.d("Loadout: preferred=$preferred is shop-locked → falling back to NORMAL")
-            com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL
-        }
-        // Wave 14 (đạn cả run) — đạn loadout giờ là VŨ KHÍ CHÍNH suốt run, không
-        // còn head-start 10s. Set `baseBulletType` (đạn nền cố định) +
-        // `activeBulletType` = resolved, `bulletTypeEndMillis = 0L` (không tự
-        // hết). Booster đạn vẫn ghi đè tạm thời; khi hết, ShipController revert
-        // về `baseBulletType` (không phải NORMAL nữa) → giữ đạn loadout.
-        Logger.d("Loadout: bullet=$resolved áp dụng CẢ RUN (base+active, no expiry)")
-        ship = ship.copy(
-            baseBulletType = resolved,
-            activeBulletType = resolved,
-            bulletTypeEndMillis = 0L,
-        )
-        loadoutApplied = true
-    }
     var gameStatus by rememberSaveable { mutableStateOf(GameStatus.RUNNING) }
     fun setGameStatus(gameStt: GameStatus) {
         if (gameStatus != gameStt) {
@@ -752,6 +727,26 @@ fun rememberGameState(): GameState {
         )
     }
 
+    // Wave 17l — áp đạn loadout SAU khi shipController tồn tại, QUA setLoadoutBullet
+    // (đồng bộ ship nội bộ controller). Re-apply mỗi lần vào run nếu khác đạn nền
+    // → đổi đạn ở TRANG BỊ rồi TIẾP TỤC là đổi ngay. (Fix gốc "đổi đạn vẫn y hệt".)
+    LaunchedEffect(Unit) {
+        val preferred = settingsRepo.preferredBulletType.first()
+        // Wave 17q — đã revert mở-khoá-tạm roy93~: đạn shop-gated chưa mua → về
+        // NORMAL ở run-start (khớp gate ở DialogLoadoutPicker).
+        val resolved = if (com.tranphuloi.neon.data.ShopItem
+                .isShopUnlocked(runContext.metaUpgrades, preferred.shopUnlockId)
+        ) {
+            preferred
+        } else {
+            com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL
+        }
+        if (loadoutApplied && ship.baseBulletType == resolved) return@LaunchedEffect
+        Logger.d("Loadout: bullet=$resolved áp dụng CẢ RUN qua ShipController")
+        shipController.setLoadoutBullet(resolved)
+        loadoutApplied = true
+    }
+
     var shipLasers: List<Laser> by remember { mutableStateOf(emptyList()) }
     var ultimateLasers: List<Laser> by remember { mutableStateOf(emptyList()) }
     var damageNumbers: List<DamageNumber> by remember { mutableStateOf(emptyList()) }
@@ -853,10 +848,10 @@ fun rememberGameState(): GameState {
                             System.currentTimeMillis(),
                         )
                     // Bánh Mì — HỒI MÁU tàu mỗi phát trúng (giòn rụm, ăn no).
+                    // Wave 17r — QUA shipController (trước set ship.copy trực tiếp →
+                    // moveShip ghi đè → heal MẤT, cùng bug loadout).
                     com.tranphuloi.neon.ui.game.ship.laser.BulletType.BANH_MI ->
-                        if (damage > 0 && ship.hp in 1..999) {
-                            ship = ship.copy(hp = (ship.hp + BANH_MI_HEAL_PER_HIT).coerceAtMost(1000))
-                        }
+                        if (damage > 0) shipController.healCapped(BANH_MI_HEAL_PER_HIT, maxHp = 1000)
                     // Cục Gạch — HẤT VĂNG địch ra sau.
                     com.tranphuloi.neon.ui.game.ship.laser.BulletType.BRICK ->
                         knockbackRef.run(targetId)
@@ -1361,6 +1356,10 @@ fun rememberGameState(): GameState {
                     // existing hit-stop loop gate so the boss fight starts only
                     // after the intro (player tap can skip → endBossIntroFreeze).
                     hitStopController.freezeForBossIntro(HitStopController.BOSS_INTRO_FREEZE_MS)
+                    // Wave 17q — san phẳng tilt spawn NGAY khi vào cinematic: freeze
+                    // chặn moveShip → reset post-spawn không chạy → ship kẹt nghiêng
+                    // suốt 2.4s intro. Gọi trực tiếp để ship thẳng trong cinematic.
+                    shipController.settleSpawnRotation()
                     Logger.d("Boss intro: $bossIntroName cinematic triggered (hpSnapshot=${ship.hp})")
                     if (taunt != null) {
                         coroutineScope.launch {
@@ -1408,7 +1407,7 @@ fun rememberGameState(): GameState {
                     newStage.message == com.tranphuloi.neon.ui.game.stage.BossRushProvider.BOSS_RUSH_GAP_MESSAGE
                 ) {
                     val before = ship.hp
-                    ship = ship.copy(hp = 1000)
+                    shipController.setHp(1000)   // Wave 17r — qua controller (tránh clobber)
                     Logger.d("BOSS_RUSH: heal ship between bosses (hp $before → 1000)")
                 }
                 // Round 25 — persist checkpoint so cold-launch can resume here.

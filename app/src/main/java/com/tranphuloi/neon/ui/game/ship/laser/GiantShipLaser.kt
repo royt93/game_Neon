@@ -20,12 +20,14 @@ data class GiantShipLaser(
     override var xOffset: Float,
     override var yOffset: Float,
     private val yRange: Float,
-    override var width: Float = ShipLaser.SHIP_LASER_WIDTH * 2f,
+    // Wave 17h — to RÕ hơn (×~4.4 NORMAL) để "khổng lồ" đọc được bằng mắt, tương
+    // phản mạnh với đạn kim/mảnh. (Trước ×2 = 10px, nhìn không "khổng lồ".)
+    override var width: Float = 34f,
 ) : Laser {
 
     override val xOffsetMovementSpeed: Float = 0f
     override val yOffsetMovementSpeed: Float = 7f
-    override var height: Float = 40f                                // ×2 the 20 of ShipLaser
+    override var height: Float = 64f
     override var rotation: Float = 0f
     override var impactPower: Float = 25f                            // base; ×2 applied via BulletType mul
     override val drawableId: Int = R.drawable.ic_laser_blue_7        // legacy, unused (Round 66 vector)

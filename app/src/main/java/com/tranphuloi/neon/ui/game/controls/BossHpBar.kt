@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.neonGlow
+import com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind
 import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyUI
 
 /**
@@ -73,6 +74,17 @@ fun BossHpBar(
                 fontWeight = FontWeight.Bold,
             )
         }
+        // Wave 17m — hiện CHIÊU THỨC dưới tên để người chơi nhận ra từng boss khác
+        // nhau (user: "không thấy boss riêng biệt"). Đọc theo bossKind.
+        val skill = bossSkillLabel(boss.bossKind)
+        if (skill.isNotEmpty()) {
+            Text(
+                text = "⚔ $skill",
+                color = Color(0xFFFFC400).copy(alpha = 0.9f),
+                fontSize = 8.sp,
+                fontWeight = FontWeight.Bold,
+            )
+        }
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -94,4 +106,43 @@ fun BossHpBar(
             )
         }
     }
+}
+
+/** Wave 17m — chiêu thức ngắn theo BossKind (hiện dưới tên trên HP bar) để
+ *  người chơi nhận ra từng boss khác nhau. Phủ cả 33 kind (mid + final). */
+private fun bossSkillLabel(kind: BossKind?): String = when (kind) {
+    null -> ""
+    BossKind.STAR -> "Vòng tia 8 hướng"
+    BossKind.CROSS -> "Quét trục luân phiên"
+    BossKind.ORB -> "Tia mắt săn đuổi"
+    BossKind.FRACTAL -> "Quỹ đạo nguyên tử"
+    BossKind.SPIDER -> "Tơ nhện đa hướng"
+    BossKind.DEATH_MOON -> "Lực hấp dẫn kéo"
+    BossKind.HAUNTED_KID -> "Ám khắp đỉnh màn"
+    BossKind.HELL_LORD -> "Tia mắt địa ngục"
+    BossKind.SATAN_GLYPH -> "Ấn quỷ tỏa"
+    BossKind.HEN_MOTHER -> "Ổ trứng rơi chậm"
+    BossKind.BUFFALO_RAGE -> "Húc sừng gia tốc"
+    BossKind.DUMB_RAT -> "Gặm nhấm thất thường"
+    BossKind.FIERCE_TIGER -> "Gầm: tường có khe"
+    BossKind.SEXY_DIVA -> "Quất tóc bay cong"
+    BossKind.TROLL_TOWER -> "Tia dọc từ đỉnh"
+    BossKind.TWIN_SUMMITS -> "Tia kép song song"
+    BossKind.VOID_GLOBES -> "Xé hư vô hình X"
+    BossKind.WHITE_DRAGON -> "Thét luồng lửa"
+    BossKind.HAMMER_SICKLE -> "Quăng búa & liềm"
+    BossKind.MONEY_TYCOON -> "Mưa tiền khắp màn"
+    BossKind.GOLDEN_TYCOON -> "Đô la xoáy ốc"
+    BossKind.SKULL_CROSSBONES -> "Quạt xương xoay"
+    BossKind.VAMPIRE -> "Bầy dơi hút máu"
+    BossKind.COSMIC_CENTIPEDE -> "Phun độc cung rộng"
+    BossKind.GIANT_CONDOM -> "Sóng xung kích"
+    BossKind.VENOM_SPIDER -> "Lưới tơ độc 8 hướng"
+    BossKind.CORRUPTION -> "Tường tiền đè, khe quét"
+    BossKind.TRAFFIC_JAM -> "Lấp làn trái/phải"
+    BossKind.KPI_BOSS -> "Cột chỉ tiêu + deadline"
+    BossKind.TIKTOKER -> "Spam tim bay cong"
+    BossKind.ATM_BANKRUPT -> "Nhả tiền dồn rồi kẹt"
+    BossKind.NOKIA_BRICK -> "Ném gạch nặng chậm"
+    BossKind.INFLATION_STORM -> "Đạn nhiều dần + tăng tốc"
 }

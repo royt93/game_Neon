@@ -84,6 +84,28 @@ class EnemyLaserMotionTest {
     }
 
     @Test
+    fun `destroying one of two identical-param lasers removes ONLY that instance (id-based)`() {
+        // Hai đạn cùng MỌI tham số ctor (data-equals coi bằng nhau) nhưng KHÁC id.
+        // Trước fix: `list - laser` value-equals xoá nhầm con còn sống. Sau fix:
+        // lọc theo id → diệt đúng con đã destroyed.
+        val a = EnemyLaser(
+            xOffset = 100f, yOffset = 100f, yRange = 800f, width = 20f,
+            xOffsetMovementSpeed = 0f, yOffsetMovementSpeed = 0f,
+        )
+        val b = EnemyLaser(
+            xOffset = 100f, yOffset = 100f, yRange = 800f, width = 20f,
+            xOffsetMovementSpeed = 0f, yOffsetMovementSpeed = 0f,
+        )
+        b.destroyed = true
+        val c = EnemyLasersController(
+            screenHeight = 800f, initialEnemyLasers = listOf(a, b), setEnemyLasers = {},
+        )
+        c.processLasers()
+        assertEquals("chỉ còn 1 đạn", 1, c.enemyLasers.size)
+        assertEquals("đạn SỐNG (a) phải còn, không bị xoá nhầm", a.id, c.enemyLasers.first().id)
+    }
+
+    @Test
     fun `bullet drifting off the SIDE is culled (no horizontal leak)`() {
         val drift = EnemyLaser(
             xOffset = 380f, yOffset = 100f, yRange = 800f, width = 20f,

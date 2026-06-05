@@ -38,6 +38,9 @@ private val allBosses: List<StageBoss> by lazy {
     }
 }
 
+/** Wave 17 — số boss thật trong Boss Rush (cho nhãn UI khỏi hardcode lệch). */
+val bossRushRosterSize: Int by lazy { allBosses.size }
+
 /**
  * Survival: chapter-1 stages cycled forever. Each cycle bumps spawn rate and
  * enemy HP slightly so the run gets gradually harder. No bosses, no story.

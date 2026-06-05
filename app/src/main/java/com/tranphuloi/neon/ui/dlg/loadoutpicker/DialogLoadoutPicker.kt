@@ -137,6 +137,7 @@ fun DialogLoadoutPicker(
                 BulletType.entries.forEach { b ->
                     val color = colorForBullet(b, palette)
                     // Wave 12 round 3 — shop-gated bullets stay locked until bought.
+                    // (Wave 17q — đã revert mở-khoá-tạm roy93~; gate shop khôi phục.)
                     val locked = !com.tranphuloi.neon.data.ShopItem
                         .isShopUnlocked(shopRanks, b.shopUnlockId)
                     // Round 71 (Issue 3) — animated bullet preview + multi-line +
