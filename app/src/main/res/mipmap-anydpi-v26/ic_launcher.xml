@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Wave 26b — adaptive icon từ ảnh user (phi thuyền tím full-bleed). Dùng ở
+     <background> (tĩnh, chỉ bị mask bo góc → giữ nguyên thân tàu) thay vì
+     <foreground> (sẽ bị parallax + mask cắt cánh/mũi). Foreground trong suốt. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@mipmap/ic_launcher_image" />
+    <foreground android:drawable="@android:color/transparent" />
+</adaptive-icon>
