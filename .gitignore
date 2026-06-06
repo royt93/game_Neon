@@ -10,4 +10,4 @@ documentation
 .externalNativeBuild
 .cxx
 local.properties
-
+.claude/
