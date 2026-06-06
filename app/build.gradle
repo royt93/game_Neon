@@ -14,8 +14,8 @@ android {
         // gỡ 4 lỗi NewApi; Android 6.0 ~<1% thị phần 2026.
         minSdk = 24
         targetSdk = 37
-        versionCode = 20260606
-        versionName = "2026.06.06"
+        versionCode = 20260607
+        versionName = "2026.06.07"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -40,16 +40,22 @@ android {
 
     // Wave 25d (#6 ship-readiness) — wire release signing qua keystore.properties
     // (root, GITIGNORED — không commit mật khẩu). Vắng file → release để UNSIGNED
-    // như cũ (dev/CI vẫn build được). Đọc lúc configuration → config-cache OK.
+    // như cũ (dev/CI vẫn build được).
     def keystorePropsFile = rootProject.file("keystore.properties")
     def hasReleaseKeystore = keystorePropsFile.exists()
     def keystoreProps = new Properties()
     if (hasReleaseKeystore) {
         keystorePropsFile.withInputStream { keystoreProps.load(it) }
     }
+
     signingConfigs {
-        if (hasReleaseKeystore) {
-            create("release") {
+        // Luôn khai báo signing config "release" để tránh lỗi Gradle configuration khi truy vấn
+        release {
+            if (hasReleaseKeystore &&
+                keystoreProps.getProperty("storePassword") &&
+                keystoreProps.getProperty("keyAlias") &&
+                keystoreProps.getProperty("keyPassword")) {
+                
                 storeFile = file(keystoreProps.getProperty("storeFile", "keystore.jks"))
                 storePassword = keystoreProps.getProperty("storePassword")
                 keyAlias = keystoreProps.getProperty("keyAlias")
@@ -64,9 +70,10 @@ android {
             shrinkResources = true
             debuggable = false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // Ký release nếu có keystore.properties; nếu không → unsigned (như trước).
-            if (hasReleaseKeystore) {
-                signingConfig = signingConfigs.getByName("release")
+            
+            // Ký release chỉ khi các cấu hình keystore được điền đầy đủ
+            if (signingConfigs.release.storeFile != null && signingConfigs.release.storePassword != null) {
+                signingConfig = signingConfigs.release
             }
         }
     }
