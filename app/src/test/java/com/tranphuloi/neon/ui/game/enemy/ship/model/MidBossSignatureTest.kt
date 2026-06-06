@@ -361,9 +361,9 @@ class MidBossSignatureTest {
     // ── Wave 16 — roster + size variety ──
 
     @Test
-    fun `MidBossType ALL lists all 27 distinct variants`() {
-        assertEquals(27, MidBossType.ALL.size)
-        assertEquals("no duplicates in ALL", 27, MidBossType.ALL.toSet().size)
+    fun `MidBossType ALL lists all 39 distinct variants`() {
+        assertEquals(39, MidBossType.ALL.size)
+        assertEquals("no duplicates in ALL", 39, MidBossType.ALL.toSet().size)
     }
 
     @Test

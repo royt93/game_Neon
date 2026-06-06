@@ -84,6 +84,8 @@ private enum class InfoTab(val label: String, val color: Color) {
 @Composable
 fun InfoScreen(
     onBack: () -> Unit,
+    // Wave 25 (#trial) — bấm card để chơi thử item (đạn/tàu/boss).
+    onTrial: (com.tranphuloi.neon.ui.game.trial.TrialSpec) -> Unit = {},
 ) {
     var selectedTab by remember { mutableStateOf(InfoTab.BULLETS) }
     // Round 67.7 — fade-in animation for tab content. Tăng dần alpha 0→1 trong
@@ -171,10 +173,10 @@ fun InfoScreen(
                         // No extra inset padding — outer Box already handles safeDrawing.
                 ) {
                     when (selectedTab) {
-                        InfoTab.BULLETS -> BulletsTab()
-                        InfoTab.SHIP -> ShipTab()
+                        InfoTab.BULLETS -> BulletsTab(onTrial = onTrial)
+                        InfoTab.SHIP -> ShipTab(onTrial = onTrial)
                         InfoTab.ENEMIES -> EnemiesTab()
-                        InfoTab.BOSSES -> BossesTab()
+                        InfoTab.BOSSES -> BossesTab(onTrial = onTrial)
                         InfoTab.ITEMS -> ItemsTab()
                     }
                 }
@@ -188,7 +190,9 @@ fun InfoScreen(
 // ─────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun BulletsTab() {
+private fun BulletsTab(
+    onTrial: (com.tranphuloi.neon.ui.game.trial.TrialSpec) -> Unit = {},
+) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -203,6 +207,8 @@ private fun BulletsTab() {
                 subtitle = "${bulletShapeLabel(bullet.shape)} · Cỡ ${sizeTierByWidth(bullet.bodyWidth)} · Sát thương ×${bullet.damageMultiplier}",
                 description = "★ ${bullet.special}\n${bulletDescription(bullet)}",
                 iconDraw = { c -> drawBulletCapsule(c, bullet) },
+                // Wave 25 — bấm card đạn → chơi thử đạn đó.
+                onTrial = { onTrial(com.tranphuloi.neon.ui.game.trial.TrialSpec.Bullet(bullet)) },
             )
         }
     }
@@ -573,7 +579,9 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSplitBullet(
 // ─────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun ShipTab() {
+private fun ShipTab(
+    onTrial: (com.tranphuloi.neon.ui.game.trial.TrialSpec) -> Unit = {},
+) {
     // Wave 13a (slice D) — Bách Khoa Tàu là TRANG TRA CỨU read-only. Việc
     // mở khoá + chọn tàu đã chuyển sang Cửa hàng (tab Tàu). Banner tĩnh trỏ
     // người chơi sang đó thay cho CTA mở ShipPicker (đã gỡ).
@@ -613,7 +621,7 @@ private fun ShipTab() {
         SectionLabel(label = "1. CHỌN LOẠI TÀU", color = NeonCyan)
         Spacer(modifier = Modifier.height(6.dp))
         com.tranphuloi.neon.ui.game.ship.shape.ShipShape.entries.forEach { shape ->
-            ShipShapeCard(shape)
+            ShipShapeCard(shape, onTrial = onTrial)
             Spacer(modifier = Modifier.height(6.dp))
         }
         Spacer(modifier = Modifier.height(8.dp))
@@ -706,7 +714,10 @@ private fun SectionLabel(label: String, color: Color) {
 }
 
 @Composable
-private fun ShipShapeCard(shape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape) {
+private fun ShipShapeCard(
+    shape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape,
+    onTrial: (com.tranphuloi.neon.ui.game.trial.TrialSpec) -> Unit = {},
+) {
     // Delegates to ShipShapeColorMap so the accent here matches the ship
     // picker grid 1:1. Inline hex literals would drift over time.
     val color = Color(com.tranphuloi.neon.ui.game.ship.shape.ShipShapeColorMap.argbFor(shape))
@@ -718,6 +729,8 @@ private fun ShipShapeCard(shape: com.tranphuloi.neon.ui.game.ship.shape.ShipShap
         subtitle = unlockText,
         description = "Máu ×${shape.hpMul} · Tốc độ ×${shape.speedMul} · Sát thương ×${shape.damageMul}",
         iconDraw = { c -> drawShipPreview(c, color, laserBoosted = false, shape = shape) },
+        // Wave 25 — bấm card tàu → bay thử tàu đó (bỏ qua khoá).
+        onTrial = { onTrial(com.tranphuloi.neon.ui.game.trial.TrialSpec.Ship(shape)) },
     )
 }
 
@@ -1166,21 +1179,23 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyDiamond(
 // ─────────────────────────────────────────────────────────────────────────
 
 @Composable
-private fun BossesTab() {
-    // Round 76 (R76c) — Per-CHAPTER ENCOUNTER breakdown thay summary. User
-    // wants more entries. 5 chapter × (1 mid + 1 final) = 10 boss encounters,
-    // mapped to 5 BossKind silhouettes. Mỗi chapter có 1-2 encounter card.
+private fun BossesTab(
+    onTrial: (com.tranphuloi.neon.ui.game.trial.TrialSpec) -> Unit = {},
+) {
+    // Wave 24 — 2 mục: data-driven "MID-BOSS (model)" auto từ MidBossType.ALL
+    // (39, mỗi card shape thật qua drawBossShapeByKind + bấm "▶ THỬ" để chơi thử)
+    // + "BOSS CHƯƠNG" hardcode (boss cuối/cốt truyện). Màu/chiêu đọc từ BossMeta.
     val red = Color(0xFFFF5555); val redAcc = Color(0xFFCC1144)
     val green = Color(0xFF6EFFAA); val greenAcc = Color(0xFF24B86E)
     val gold = NeonGold; val goldAcc = Color(0xFFCC9900)
     val violet = NeonViolet; val violetAcc = Color(0xFF8855CC)
     val magenta = NeonMagenta
     Column(modifier = Modifier.padding(horizontal = 12.dp).verticalScroll(rememberScrollState())) {
-        // Wave 17j — MODEL data-driven: 21 mid-boss với ĐẦY ĐỦ thuộc tính khai
+        // Wave 17j — MODEL data-driven: mid-boss với ĐẦY ĐỦ thuộc tính khai
         // báo (HP · size · shape · skill · special · màu). Đọc trực tiếp từ
         // MidBossType nên luôn khớp game + không bao giờ lệch.
         Text(
-            text = "📖 27 MID-BOSS (model)",
+            text = "📖 39 MID-BOSS (model)",
             color = NeonGold, fontSize = 13.sp, fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(vertical = 6.dp),
         )
@@ -1205,6 +1220,8 @@ private fun BossesTab() {
                         body = bc, accent = androidx.compose.ui.graphics.Color.White,
                     )
                 },
+                // Wave 25 — bấm card boss → đấu trường luyện boss đó.
+                onTrial = { onTrial(com.tranphuloi.neon.ui.game.trial.TrialSpec.Boss(b)) },
             )
             Spacer(modifier = Modifier.height(6.dp))
         }
@@ -2199,12 +2216,15 @@ private fun InfoCard(
     iconDraw: androidx.compose.ui.graphics.drawscope.DrawScope.(
         canvasSize: androidx.compose.ui.geometry.Size,
     ) -> Unit,
+    // Wave 25 (#trial) — nếu non-null, card bấm được để "chơi thử".
+    onTrial: (() -> Unit)? = null,
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .border(BorderStroke(1.dp, color.copy(alpha = 0.4f)), RoundedCornerShape(10.dp))
             .background(color.copy(alpha = 0.06f), RoundedCornerShape(10.dp))
+            .then(if (onTrial != null) Modifier.clickable { onTrial() } else Modifier)
             .padding(12.dp),
     ) {
         Row(verticalAlignment = Alignment.Top) {
@@ -2222,7 +2242,24 @@ private fun InfoCard(
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, color = color, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = title, color = color, fontSize = 16.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f, fill = false))
+                    // Wave 25 — chip "▶ THỬ" báo card bấm được để chơi thử.
+                    if (onTrial != null) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "▶ THỬ",
+                            color = color,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(color.copy(alpha = 0.2f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp),
+                        )
+                    }
+                }
                 Text(text = subtitle, color = color.copy(alpha = 0.7f), fontSize = 11.sp)
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(text = description, color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp)

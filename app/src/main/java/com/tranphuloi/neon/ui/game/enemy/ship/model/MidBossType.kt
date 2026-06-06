@@ -281,6 +281,78 @@ sealed class MidBossType(
         defaultBossKind = BossKind.KITCHEN_GOD,
     )
 
+    // ── Wave 21 batch 4 — 2 boss trào phúng (mở màn batch 2) ──
+
+    /** Ông Chú Crypto — "pump & dump": loạt dồn dày rồi loạt tản loạn xen kẽ. */
+    object CRYPTO_BRO : MidBossType(
+        drawableId = R.drawable.enemy_red_boss,
+        baseHp = 2480f,
+        displayName = "ÔNG CHÚ CRYPTO",
+        defaultBossKind = BossKind.CRYPTO_BRO,
+    )
+
+    /** Trẻ Trâu Toxic — "khẩu nghiệp": spam đạn nhỏ nhanh hướng loạn theo fireTick. */
+    object TOXIC_KID : MidBossType(
+        drawableId = R.drawable.enemy_green_boss,
+        baseHp = 1450f,
+        displayName = "TRẺ TRÂU TOXIC",
+        defaultBossKind = BossKind.TOXIC_KID,
+    )
+
+    // ── Wave 22 batch 5 — 2 boss trào phúng ──
+
+    /** Trùm Karaoke Lạc Tông — "sóng âm": vòng cung đồng tâm lan ra như tiếng hát. */
+    object KARAOKE_BOSS : MidBossType(
+        drawableId = R.drawable.enemy_red_boss,
+        baseHp = 1880f,
+        displayName = "TRÙM KARAOKE LẠC TÔNG",
+        defaultBossKind = BossKind.KARAOKE_BOSS,
+    )
+
+    /** Đại Gia Phông Bạt — "flex": loạt đạn rộng chói loè phô trương, nhịp phô diễn. */
+    object FLASHY_TYCOON : MidBossType(
+        drawableId = R.drawable.enemy_red_boss,
+        baseHp = 2680f,
+        displayName = "ĐẠI GIA PHÔNG BẠT",
+        defaultBossKind = BossKind.FLASHY_TYCOON,
+    )
+
+    // ── Wave 23 batch 6 — 2 boss trào phúng ──
+
+    /** Bác Sĩ Google — "chẩn đoán bừa": 4 luồng đạn chéo hình X (kết quả lung tung). */
+    object DR_GOOGLE : MidBossType(
+        drawableId = R.drawable.enemy_green_boss,
+        baseHp = 1750f,
+        displayName = "BÁC SĨ GOOGLE",
+        defaultBossKind = BossKind.DR_GOOGLE,
+    )
+
+    /** Hoàng Thượng Mèo — "vuốt mèo": 2 cụm vuốt 3 tia lệch, luân phiên 2 bên. */
+    object CAT_EMPEROR : MidBossType(
+        drawableId = R.drawable.enemy_red_boss,
+        baseHp = 2330f,
+        displayName = "HOÀNG THƯỢNG MÈO",
+        defaultBossKind = BossKind.CAT_EMPEROR,
+    )
+
+    // ── Wave 24 batch 7 — 2 boss trào phúng (HẾT batch 2 = đủ 18) ──
+
+    /** Thánh Cuồng Sale — "flash sale": loạt dồn dày bùng 1 nhịp rồi nghỉ (đổ xô mua). */
+    object SALE_FANATIC : MidBossType(
+        drawableId = R.drawable.enemy_red_boss,
+        baseHp = 1980f,
+        displayName = "THÁNH CUỒNG SALE",
+        defaultBossKind = BossKind.SALE_FANATIC,
+    )
+
+    /** Cô Hồn Tháng 7 — "hồn lang thang": đạn CHẬM bay cong vật vờ, thưa mà khó đoán. */
+    object GHOST_MONTH : MidBossType(
+        drawableId = R.drawable.enemy_green_boss,
+        baseHp = 2230f,
+        displayName = "CÔ HỒN THÁNG 7",
+        defaultBossKind = BossKind.GHOST_MONTH,
+    )
+
     // ════════════════════════════════════════════════════════════════════════
     // Wave 17j — MODEL NHẬN DIỆN gom 1 chỗ. Mỗi boss khai báo ĐẦY ĐỦ: hp
     // (baseHp) · name (displayName) · shape (defaultBossKind→drawBoss) · size
@@ -326,6 +398,14 @@ sealed class MidBossType(
             PYRAMID_SCHEME -> "Spread hình tháp tăng tầng"
             FORTUNE_TELLER -> "Quạt bài + tia tiên tri đuổi"
             KITCHEN_GOD -> "Cá nhảy vòng cung + luồng lửa"
+            CRYPTO_BRO -> "Pump & dump: dồn rồi tản"
+            TOXIC_KID -> "Khẩu nghiệp: spam hướng loạn"
+            KARAOKE_BOSS -> "Sóng âm vòng cung lan ra"
+            FLASHY_TYCOON -> "Flex: loạt rộng chói loè"
+            DR_GOOGLE -> "Chẩn đoán bừa: 4 luồng chéo X"
+            CAT_EMPEROR -> "Vuốt mèo: 2 cụm 3 tia"
+            SALE_FANATIC -> "Flash sale: dồn dày rồi nghỉ"
+            GHOST_MONTH -> "Hồn lang thang: đạn cong chậm"
         }
 
     /** SPECIAL — kỹ năng đặc biệt ngoài bắn đạn. */
@@ -339,8 +419,8 @@ sealed class MidBossType(
 
     companion object {
         /**
-         * Wave 16 — đủ 21 mid-boss variant. Dùng cho Boss Rush (roster đầy đủ
-         * thay vì chỉ vài StageBoss cuối chương) + pin test đếm số variant.
+         * Toàn bộ mid-boss variant (Wave 24: 39). Dùng cho Boss Rush (roster đầy
+         * đủ thay vì chỉ vài StageBoss cuối chương) + pin test đếm số variant.
          */
         // NB: phải là `get()` — KHÔNG phải `val` khởi tạo sớm. Companion <clinit>
         // build list này lại trigger init các object con (extends MidBossType),
@@ -357,6 +437,10 @@ sealed class MidBossType(
                 TRAFFIC_JAM, KPI_BOSS, TIKTOKER,
                 ATM_BANKRUPT, NOKIA_BRICK, INFLATION_STORM,
                 SOCIAL_DRAMA, PYRAMID_SCHEME, FORTUNE_TELLER, KITCHEN_GOD,
+                CRYPTO_BRO, TOXIC_KID,
+                KARAOKE_BOSS, FLASHY_TYCOON,
+                DR_GOOGLE, CAT_EMPEROR,
+                SALE_FANATIC, GHOST_MONTH,
             )
     }
 }

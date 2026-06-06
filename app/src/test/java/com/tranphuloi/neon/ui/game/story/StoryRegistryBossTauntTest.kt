@@ -100,6 +100,23 @@ class StoryRegistryBossTauntTest {
             MidBossType.ATM_BANKRUPT to BossKind.ATM_BANKRUPT,
             MidBossType.NOKIA_BRICK to BossKind.NOKIA_BRICK,
             MidBossType.INFLATION_STORM to BossKind.INFLATION_STORM,
+            // Wave 20 batch 3
+            MidBossType.SOCIAL_DRAMA to BossKind.SOCIAL_DRAMA,
+            MidBossType.PYRAMID_SCHEME to BossKind.PYRAMID_SCHEME,
+            MidBossType.FORTUNE_TELLER to BossKind.FORTUNE_TELLER,
+            MidBossType.KITCHEN_GOD to BossKind.KITCHEN_GOD,
+            // Wave 21 batch 4
+            MidBossType.CRYPTO_BRO to BossKind.CRYPTO_BRO,
+            MidBossType.TOXIC_KID to BossKind.TOXIC_KID,
+            // Wave 22 batch 5
+            MidBossType.KARAOKE_BOSS to BossKind.KARAOKE_BOSS,
+            MidBossType.FLASHY_TYCOON to BossKind.FLASHY_TYCOON,
+            // Wave 23 batch 6
+            MidBossType.DR_GOOGLE to BossKind.DR_GOOGLE,
+            MidBossType.CAT_EMPEROR to BossKind.CAT_EMPEROR,
+            // Wave 24 batch 7
+            MidBossType.SALE_FANATIC to BossKind.SALE_FANATIC,
+            MidBossType.GHOST_MONTH to BossKind.GHOST_MONTH,
         )
         for ((variant, expectedKind) in pairs) {
             val taunt = StoryRegistry.bossTaunt(variant, chapterId = 5)

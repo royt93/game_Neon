@@ -156,6 +156,18 @@ data class MidBoss(
             MidBossType.PYRAMID_SCHEME -> 1      // patrol (trùm đứng chỉ tay)
             MidBossType.FORTUNE_TELLER -> 5      // vòng-lượn (huyền bí)
             MidBossType.KITCHEN_GOD -> 0         // sine (cưỡi cá bơi)
+            // Wave 21 batch 4
+            MidBossType.CRYPTO_BRO -> 4          // lướt-giật (giá biến động)
+            MidBossType.TOXIC_KID -> 2           // figure-8 (trẻ trâu lăng xăng)
+            // Wave 22 batch 5
+            MidBossType.KARAOKE_BOSS -> 5        // vòng-lượn (lắc lư hát)
+            MidBossType.FLASHY_TYCOON -> 4       // lướt-giật (phô diễn)
+            // Wave 23 batch 6
+            MidBossType.DR_GOOGLE -> 1           // patrol (ngồi tra cứu)
+            MidBossType.CAT_EMPEROR -> 5         // vòng-lượn (mèo dạo bệ rồng)
+            // Wave 24 batch 7
+            MidBossType.SALE_FANATIC -> 3        // lao-bổ (đổ xô mua)
+            MidBossType.GHOST_MONTH -> 2         // figure-8 (hồn vật vờ)
         }
         // Marquee TELEPORT — nhảy sang một bên (luân phiên) + GIỮ vị trí một
         // lúc (chặn movement trong cửa sổ hold) để cú nhảy "ăn" được.
@@ -289,6 +301,18 @@ data class MidBoss(
             MidBossType.PYRAMID_SCHEME -> pyramidScheme(phase2)
             MidBossType.FORTUNE_TELLER -> prophecyFan(ship, phase2)
             MidBossType.KITCHEN_GOD -> carpLeap(phase2)
+            // Wave 21 batch 4
+            MidBossType.CRYPTO_BRO -> cryptoVolatility(phase2)
+            MidBossType.TOXIC_KID -> toxicSpam(phase2)
+            // Wave 22 batch 5
+            MidBossType.KARAOKE_BOSS -> soundWaves(phase2)
+            MidBossType.FLASHY_TYCOON -> flexBurst(phase2)
+            // Wave 23 batch 6
+            MidBossType.DR_GOOGLE -> misdiagnosisX(phase2)
+            MidBossType.CAT_EMPEROR -> royalPaws(phase2)
+            // Wave 24 batch 7
+            MidBossType.SALE_FANATIC -> flashSale(phase2)
+            MidBossType.GHOST_MONTH -> wanderingSpirits(phase2)
         }
     }
 
@@ -868,6 +892,139 @@ data class MidBoss(
         }
         out.add(bossBullet(xSpeed = 0f, ySpeed = 0.9f, w = 22f))      // luồng lửa thẳng giữa
         return out
+    }
+
+    // ── Wave 21 batch 4 — 2 chiêu trào phúng (batch 2 mở màn) ──
+
+    /** Ông Chú Crypto — "pump & dump": loạt CHẴN dồn dày 1 cột nhanh (pump), loạt
+     *  LẺ tản loạn toả rộng chậm (dump). Xen kẽ theo fireTick → nhịp thất thường. */
+    private fun cryptoVolatility(phase2: Boolean): List<Laser> {
+        return if (fireTick % 2 == 0) {
+            // Pump: cột dồn dày, nhanh.
+            val n = if (phase2) 5 else 4
+            (0 until n).map { bossBullet(xSpeed = 0f, ySpeed = 0.95f, w = 16f) }
+        } else {
+            // Dump: tản rộng, chậm.
+            val n = if (phase2) 9 else 7
+            (0 until n).map { i ->
+                val frac = if (n == 1) 0.5f else i.toFloat() / (n - 1)
+                bossBullet(xSpeed = (frac - 0.5f) * 1.1f, ySpeed = 0.4f, w = 18f)
+            }
+        }
+    }
+
+    /** Trẻ Trâu Toxic — "khẩu nghiệp": spam đạn nhỏ NHANH hướng PSEUDO-NGẪU theo
+     *  fireTick (góc xoay theo công thức), cảm giác cãi loạn xạ. */
+    private fun toxicSpam(phase2: Boolean): List<Laser> {
+        val n = if (phase2) 6 else 4
+        return (0 until n).map { i ->
+            // Góc xoay theo fireTick + index → trải khắp nửa dưới, thất thường.
+            val deg = 60 + ((fireTick * 53 + i * 91) % 60)            // 60..119° (toả xuống)
+            val rad = Math.toRadians(deg.toDouble())
+            bossBullet(
+                xSpeed = (kotlin.math.cos(rad) * 0.7).toFloat(),
+                ySpeed = (kotlin.math.sin(rad) * 0.7).toFloat() + 0.25f,
+                w = 14f,
+            )
+        }
+    }
+
+    // ── Wave 22 batch 5 — 2 chiêu trào phúng ──
+
+    /** Trùm Karaoke Lạc Tông — "sóng âm": 1 VÒNG tròn đều toả ra, lệch pha mỗi loạt
+     *  (fireTick) → nhiều vòng đan nhau như gợn sóng. Khác inflateBurst (2 vòng cùng
+     *  lúc) — đây 1 vòng/loạt nhưng liên tục tạo gợn. */
+    private fun soundWaves(phase2: Boolean): List<Laser> {
+        val n = if (phase2) 14 else 11
+        val phase = (fireTick % 2) * (180f / n)                      // lệch nửa bước mỗi loạt
+        return (0 until n).map { i ->
+            val rad = Math.toRadians((i * 360f / n + phase).toDouble())
+            bossBullet(
+                xSpeed = (kotlin.math.cos(rad) * 0.5).toFloat(),
+                ySpeed = (kotlin.math.sin(rad) * 0.42).toFloat() + 0.45f,   // bias xuống
+                w = 18f,
+            )
+        }
+    }
+
+    /** Đại Gia Phông Bạt — "flex": quạt CỰC RỘNG gần ngang (phô trương), 2 nhịp lệch
+     *  pha. Bao trùm bề ngang → ép người chơi xuống thấp. */
+    private fun flexBurst(phase2: Boolean): List<Laser> {
+        val n = if (phase2) 11 else 8
+        val skew = if (fireTick % 2 == 0) -0.06f else 0.06f          // lệch pha 2 nhịp
+        return (0 until n).map { i ->
+            val frac = if (n == 1) 0.5f else i.toFloat() / (n - 1)
+            bossBullet(
+                xSpeed = (frac - 0.5f) * 1.4f + skew,                // toả rất rộng
+                ySpeed = 0.4f,
+                w = 18f,
+            )
+        }
+    }
+
+    // ── Wave 23 batch 6 — 2 chiêu trào phúng ──
+
+    /** Bác Sĩ Google — "chẩn đoán bừa": 4 luồng chéo hình X (2 trái-2 phải) + phase2
+     *  thêm 2 luồng dọc. Kết quả lung tung khắp nơi. */
+    private fun misdiagnosisX(phase2: Boolean): List<Laser> {
+        val out = mutableListOf<Laser>()
+        // 4 tia chéo: ±35°, ±60° quanh phương xuống.
+        for (deg in listOf(55, 75, 105, 125)) {
+            val rad = Math.toRadians(deg.toDouble())
+            out.add(
+                bossBullet(
+                    xSpeed = (kotlin.math.cos(rad) * 0.7).toFloat(),
+                    ySpeed = (kotlin.math.sin(rad) * 0.7).toFloat() + 0.2f,
+                    w = 18f,
+                ),
+            )
+        }
+        if (phase2) {
+            out.add(bossBullet(xSpeed = -0.12f, ySpeed = 0.8f, w = 16f))
+            out.add(bossBullet(xSpeed = 0.12f, ySpeed = 0.8f, w = 16f))
+        }
+        return out
+    }
+
+    /** Hoàng Thượng Mèo — "vuốt mèo": 2 CỤM 3 tia sát nhau (vết vuốt) lệch nhau, luân
+     *  phiên 2 bên theo fireTick → như móng cào chéo. */
+    private fun royalPaws(phase2: Boolean): List<Laser> {
+        val side = if (fireTick % 2 == 0) -1f else 1f
+        val centers = if (phase2) listOf(side * 0.18f, side * 0.45f) else listOf(side * 0.3f)
+        val out = mutableListOf<Laser>()
+        for (c in centers) {
+            for (k in -1..1) {                                       // 3 tia/cụm (vết vuốt)
+                out.add(bossBullet(xSpeed = c + k * 0.08f, ySpeed = 0.62f, w = 16f))
+            }
+        }
+        return out
+    }
+
+    // ── Wave 24 batch 7 — 2 chiêu trào phúng (HẾT 18) ──
+
+    /** Thánh Cuồng Sale — "flash sale": chu kỳ 3 — 2 nhịp BÙNG dồn dày (đổ xô mua)
+     *  rồi 1 nhịp NGHỈ rỗng (hết sale). Khác atmCashSpit (luồng hẹp 4-nhả-1-kẹt) —
+     *  đây dồn RỘNG dày từng đợt. */
+    private fun flashSale(phase2: Boolean): List<Laser> {
+        if (fireTick % 3 == 2) return emptyList()                    // nhịp nghỉ
+        val n = if (phase2) 9 else 7
+        return (0 until n).map { i ->
+            val frac = if (n == 1) 0.5f else i.toFloat() / (n - 1)
+            bossBullet(xSpeed = (frac - 0.5f) * 0.9f, ySpeed = 0.75f, w = 16f)   // dồn dày, nhanh
+        }
+    }
+
+    /** Cô Hồn Tháng 7 — "hồn lang thang": ÍT đạn (3-4) BAY CONG (CURVE) CHẬM, lệch
+     *  hướng nhẹ theo fireTick → vật vờ, khó đoán. Khác heartSpam (quạt đối xứng nhanh). */
+    private fun wanderingSpirits(phase2: Boolean): List<Laser> {
+        val n = if (phase2) 4 else 3
+        return (0 until n).map { i ->
+            val drift = ((fireTick * 31 + i * 67) % 100) / 100f - 0.5f   // -0.5..0.5 vật vờ
+            bossBullet(
+                xSpeed = drift * 0.5f, ySpeed = 0.32f, w = 22f,             // chậm
+                motion = com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.CURVE,
+            )
+        }
     }
 
     override fun onObjectImpact(impactPower: Float) {

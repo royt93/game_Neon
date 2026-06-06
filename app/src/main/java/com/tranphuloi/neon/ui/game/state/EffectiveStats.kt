@@ -28,6 +28,7 @@ data class EffectiveStats(
     val scoreMul: Float,
     val noShieldDrops: Boolean,
     val bossesOnly: Boolean,
+    val noBoosters: Boolean = false,
 ) {
     /**
      * Round 36 — merge roguelike buffs onto already-computed stats. Same caps as
@@ -122,6 +123,7 @@ data class EffectiveStats(
                 scoreMul = (mod.scoreMul * metaLife).coerceIn(0.5f, 4.0f),
                 noShieldDrops = mod.noShieldDrops,
                 bossesOnly = mod.bossesOnly,
+                noBoosters = mod.noBoosters,
             )
         }
     }

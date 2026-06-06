@@ -51,6 +51,8 @@ enum class Chapter(
             MidBossType.SKULL_CROSSBONES,
             // Wave 18 — Trùm Kẹt Xe (vành đai đông như "kẹt xe thiên thạch").
             MidBossType.TRAFFIC_JAM,
+            // Wave 22 — Trùm Karaoke Lạc Tông (hát vang cả vành đai).
+            MidBossType.KARAOKE_BOSS,
         ),
         finalBossType = LevelOneBossType,
     ),
@@ -79,6 +81,10 @@ enum class Chapter(
             MidBossType.KPI_BOSS,
             // Wave 20 — Thầy Bói Online (mây mù huyền bí hợp bói toán).
             MidBossType.FORTUNE_TELLER,
+            // Wave 23 — Bác Sĩ Google (mây mù = tra cứu mịt mờ).
+            MidBossType.DR_GOOGLE,
+            // Wave 24 — Cô Hồn Tháng 7 (mây tinh vân âm u hợp cô hồn).
+            MidBossType.GHOST_MONTH,
         ),
         finalBossType = LevelTwoBossType,
     ),
@@ -108,6 +114,10 @@ enum class Chapter(
             MidBossType.TIKTOKER,
             // Wave 20 — Drama MXH (băng giá = "drama lạnh sống lưng").
             MidBossType.SOCIAL_DRAMA,
+            // Wave 21 — Trẻ Trâu Toxic (băng giá = "lạnh lùng cà khịa").
+            MidBossType.TOXIC_KID,
+            // Wave 23 — Hoàng Thượng Mèo (mèo băng lãnh cung).
+            MidBossType.CAT_EMPEROR,
         ),
         finalBossType = LevelOneBossType,             // reuse — palette change handled visually
     ),
@@ -144,6 +154,10 @@ enum class Chapter(
             MidBossType.INFLATION_STORM,
             // Wave 20 — Trùm Đa Cấp (trạm thù địch = ổ lừa đảo tuyến dưới).
             MidBossType.PYRAMID_SCHEME,
+            // Wave 21 — Ông Chú Crypto (trạm = sàn giao dịch ảo).
+            MidBossType.CRYPTO_BRO,
+            // Wave 24 — Thánh Cuồng Sale (trạm = trung tâm thương mại vũ trụ).
+            MidBossType.SALE_FANATIC,
         ),
         finalBossType = LevelTwoBossType,
     ),
@@ -177,6 +191,8 @@ enum class Chapter(
             MidBossType.NOKIA_BRICK,
             // Wave 20 — Ông Táo Cưỡi Cá Chép (về trời qua Lõi Thiên Hà).
             MidBossType.KITCHEN_GOD,
+            // Wave 22 — Đại Gia Phông Bạt (phô trương ở lõi thiên hà).
+            MidBossType.FLASHY_TYCOON,
         ),
         finalBossType = FinalBossType,                // 34d 3-phase final boss
     );

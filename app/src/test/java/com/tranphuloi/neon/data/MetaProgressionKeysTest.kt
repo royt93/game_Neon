@@ -33,8 +33,8 @@ class MetaProgressionKeysTest {
     }
 
     @Test
-    fun `BossKind has 33 entries`() {
-        assertEquals(33, BossKind.entries.size)
+    fun `BossKind has 45 entries`() {
+        assertEquals(45, BossKind.entries.size)
     }
 
     @Test
@@ -199,6 +199,16 @@ class MetaProgressionKeysTest {
             "TRAFFIC_JAM", "KPI_BOSS", "TIKTOKER",
             // Wave 19 batch 2
             "ATM_BANKRUPT", "NOKIA_BRICK", "INFLATION_STORM",
+            // Wave 20 batch 3
+            "SOCIAL_DRAMA", "PYRAMID_SCHEME", "FORTUNE_TELLER", "KITCHEN_GOD",
+            // Wave 21 batch 4
+            "CRYPTO_BRO", "TOXIC_KID",
+            // Wave 22 batch 5
+            "KARAOKE_BOSS", "FLASHY_TYCOON",
+            // Wave 23 batch 6
+            "DR_GOOGLE", "CAT_EMPEROR",
+            // Wave 24 batch 7
+            "SALE_FANATIC", "GHOST_MONTH",
         )
         val actual = BossKind.entries.map { it.name }.toSet()
         assertEquals(

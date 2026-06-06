@@ -216,7 +216,11 @@ fun rememberGameState(): GameState {
             difficulty = kotlinx.coroutines.runBlocking { settingsRepo.difficulty.first() },
             metaUpgrades = kotlinx.coroutines.runBlocking { metaRepo.allRanks.first() },
             // Round 73 (Wave 8) — wire selectedShipShape vào EffectiveStats.
-            shipShape = kotlinx.coroutines.runBlocking { settingsRepo.selectedShipShape.first() },
+            // Wave 25 (#trial) — thử TÀU: dùng shape đang thử (bỏ qua khoá), KHÔNG
+            // ghi đè selectedShipShape đã lưu.
+            shipShape = (com.tranphuloi.neon.ui.game.trial.TrialSession.spec
+                as? com.tranphuloi.neon.ui.game.trial.TrialSpec.Ship)?.shape
+                ?: kotlinx.coroutines.runBlocking { settingsRepo.selectedShipShape.first() },
         )
     }
     // Round 34 (42x) — activeBuffs is a reactive MutableState. Reads here so
@@ -244,6 +248,12 @@ fun rememberGameState(): GameState {
         merged
     }
     val stageProvider = remember(runMode) {
+        // Wave 25 (#trial) — thử BOSS: đấu trường luyện riêng boss đó (vô hạn).
+        val trial = com.tranphuloi.neon.ui.game.trial.TrialSession.spec
+        if (trial is com.tranphuloi.neon.ui.game.trial.TrialSpec.Boss) {
+            Logger.d("rememberGameState: TRIAL boss arena = ${trial.variant.displayName}")
+            return@remember com.tranphuloi.neon.ui.game.stage.TrialBossArenaProvider(trial.variant)
+        }
         Logger.d("rememberGameState: building stageProvider for mode=${runMode.key}")
         when (runMode) {
             com.tranphuloi.neon.ui.game.mode.GameMode.SURVIVAL ->
@@ -363,6 +373,8 @@ fun rememberGameState(): GameState {
     val achievementsRepo = com.tranphuloi.neon.data.LocalAchievements.current
     suspend fun unlockAchievement(achievement: Achievement) {
         if (achievementsRepo.unlock(achievement)) {
+            // Wave 22 (#4) — thưởng khoáng theo bậc khi mở mới.
+            metaRepo.addMinerals(com.tranphuloi.neon.data.achievementReward(achievement.tier))
             achievementUnlocked = achievement
             achievementShownAtMillis = System.currentTimeMillis()
             Logger.d("Achievement unlocked: id=${achievement.id} tier=${achievement.tier} title=\"${achievement.title}\" desc=\"${achievement.description}\"")
@@ -731,6 +743,15 @@ fun rememberGameState(): GameState {
     // (đồng bộ ship nội bộ controller). Re-apply mỗi lần vào run nếu khác đạn nền
     // → đổi đạn ở TRANG BỊ rồi TIẾP TỤC là đổi ngay. (Fix gốc "đổi đạn vẫn y hệt".)
     LaunchedEffect(Unit) {
+        // Wave 25 (#trial) — nếu đang "chơi thử" 1 loại đạn từ Bách Khoa: dùng thẳng
+        // đạn đó (BỎ QUA khoá shop — mục đích là dùng thử), KHÔNG ghi đè loadout đã lưu.
+        val trial = com.tranphuloi.neon.ui.game.trial.TrialSession.spec
+        if (trial is com.tranphuloi.neon.ui.game.trial.TrialSpec.Bullet) {
+            Logger.d("Loadout: TRIAL bullet=${trial.type} (bỏ qua khoá shop)")
+            shipController.setLoadoutBullet(trial.type)
+            loadoutApplied = true
+            return@LaunchedEffect
+        }
         val preferred = settingsRepo.preferredBulletType.first()
         // Wave 17q — đã revert mở-khoá-tạm roy93~: đạn shop-gated chưa mua → về
         // NORMAL ở run-start (khớp gate ở DialogLoadoutPicker).
@@ -908,6 +929,8 @@ fun rememberGameState(): GameState {
             updateBoosters = { boosters = it },
             // 25x NO_SHIELDS modifier: filter SHIELD_BOOSTER spawns.
             noShieldDrops = { effectiveStats.noShieldDrops },
+            // Wave 21 (#3) — TAY KHÔNG modifier: bỏ hết buff rơi.
+            noBoosters = { effectiveStats.noBoosters },
             // Round 75 (R75c) — wire REVIVE_DROP meta upgrade.
             reviveDropRank = {
                 runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_REVIVE_DROP] ?: 0

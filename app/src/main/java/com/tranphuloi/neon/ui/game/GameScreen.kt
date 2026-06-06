@@ -271,33 +271,39 @@ fun GameScreen(
             // single emission from each Flow; suspend keeps us inside this
             // LaunchedEffect's scope. Idempotent — repository.unlock returns
             // false if already unlocked.
+            // Wave 22 (#4) — mở thành tựu lifetime cũng thưởng khoáng theo bậc.
+            suspend fun awardLifetime(a: com.tranphuloi.neon.data.Achievement) {
+                if (achievementsRepo.unlock(a)) {
+                    metaRepo.addMinerals(com.tranphuloi.neon.data.achievementReward(a.tier))
+                }
+            }
             val plasmaTotal = metaRepo.bulletKills(com.tranphuloi.neon.ui.game.ship.laser.BulletType.PLASMA)
                 .first()
             if (plasmaTotal >= 100) {
-                achievementsRepo.unlock(com.tranphuloi.neon.data.Achievement.PLASMA_MASTER)
+                awardLifetime(com.tranphuloi.neon.data.Achievement.PLASMA_MASTER)
             }
             val homingTotal = metaRepo.bulletKills(com.tranphuloi.neon.ui.game.ship.laser.BulletType.HOMING)
                 .first()
             if (homingTotal >= 100) {
-                achievementsRepo.unlock(com.tranphuloi.neon.data.Achievement.HOMING_VETERAN)
+                awardLifetime(com.tranphuloi.neon.data.Achievement.HOMING_VETERAN)
             }
             val allBossKindKills = metaRepo.allBossKills.first()
             if (allBossKindKills.values.all { it >= 1 }) {
-                achievementsRepo.unlock(com.tranphuloi.neon.data.Achievement.BOSS_ALL_KINDS)
+                awardLifetime(com.tranphuloi.neon.data.Achievement.BOSS_ALL_KINDS)
             }
             val sRankCount = metaRepo.rankCount(com.tranphuloi.neon.ui.game.controls.BossRank.S)
                 .first()
             if (sRankCount >= 10) {
-                achievementsRepo.unlock(com.tranphuloi.neon.data.Achievement.S_RANK_10)
+                awardLifetime(com.tranphuloi.neon.data.Achievement.S_RANK_10)
             }
             val cyanTime = metaRepo.shipTimeMillis(com.tranphuloi.neon.data.ShipSkin.AURA_CYAN)
                 .first()
             if (cyanTime >= 3_600_000L) {
-                achievementsRepo.unlock(com.tranphuloi.neon.data.Achievement.CYAN_HOUR)
+                awardLifetime(com.tranphuloi.neon.data.Achievement.CYAN_HOUR)
             }
             val lifetimeEnemies = metaRepo.lifetimeEnemyKills.first()
             if (lifetimeEnemies >= 1000L) {
-                achievementsRepo.unlock(com.tranphuloi.neon.data.Achievement.LIFETIME_KILLS_1000)
+                awardLifetime(com.tranphuloi.neon.data.Achievement.LIFETIME_KILLS_1000)
             }
             Logger.d("Snapshot RunStats: score=${gameState.mineralsEarnedTotal}, time=${gameState.gameTimeSec}s, enemies=${gameState.enemiesKilledTotal}, bosses=${gameState.bossesDefeatedTotal}, maxCombo=${gameState.maxComboReached}, stages=${gameState.stagesReached}, mode=${gameState.gameMode.key}")
             // Round 26 — only CLEAR checkpoint on VICTORY (run truly complete).
@@ -354,53 +360,15 @@ fun GameScreen(
         }
     }
     // 21c → Round 74 (R73e): Boss intro alarm với PER-BOSS audio cue (pitch shift
-    // sfx_explosion). STAR=1.4 cao, CROSS=1.15 cao vừa, ORB=1.0 baseline,
-    // FRACTAL=0.85 trầm vừa, SPIDER=0.65 trầm sâu.
+    // sfx_explosion). Wave 25c — pitch per-boss giờ ở bảng `BossMeta.introPitch`
+    // (gom 4 when→1); đây chỉ đọc bảng.
     LaunchedEffect(gameState.bossIntroShownAtMillis) {
         if (gameState.bossIntroShownAtMillis > 0L) {
             if (vibrationEnabled) haptic.vibrate(HapticPattern.HEAVY)
-            val rate = when (gameState.bossIntroBossKind) {
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.STAR -> 1.4f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.CROSS -> 1.15f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.ORB -> 1.0f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.FRACTAL -> 0.85f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SPIDER -> 0.65f
-                // Round 79 (#1) — new boss kinds với pitch riêng để audio cue distinct.
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.DEATH_MOON -> 0.75f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HAUNTED_KID -> 1.55f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HELL_LORD -> 0.55f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SATAN_GLYPH -> 1.25f
-                // Round 81 — 12 new boss kinds.
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HEN_MOTHER -> 1.60f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.BUFFALO_RAGE -> 0.60f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.DUMB_RAT -> 1.40f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.FIERCE_TIGER -> 0.70f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SEXY_DIVA -> 1.20f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.TROLL_TOWER -> 0.85f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.TWIN_SUMMITS -> 1.10f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.VOID_GLOBES -> 0.65f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.WHITE_DRAGON -> 0.50f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.HAMMER_SICKLE -> 0.90f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.MONEY_TYCOON -> 1.05f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.GOLDEN_TYCOON -> 1.15f
-                // Wave 15 batch 1 — pitch cho sting intro 3 boss mới.
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SKULL_CROSSBONES -> 0.80f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.VAMPIRE -> 0.55f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.COSMIC_CENTIPEDE -> 1.30f
-                // Wave 16 batch 2
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.GIANT_CONDOM -> 1.10f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.VENOM_SPIDER -> 0.70f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.CORRUPTION -> 0.85f
-                // Wave 18 batch 1
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.TRAFFIC_JAM -> 0.95f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.KPI_BOSS -> 1.08f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.TIKTOKER -> 1.45f
-                // Wave 19 batch 2
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.ATM_BANKRUPT -> 1.02f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.NOKIA_BRICK -> 0.62f
-                com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.INFLATION_STORM -> 1.28f
-                null -> 1.0f
-            }
+            // Wave 25c — pitch đọc từ bảng chung `bossMetaFor` (gom 4 when → 1).
+            val rate = gameState.bossIntroBossKind
+                ?.let { com.tranphuloi.neon.ui.game.enemy.ship.model.bossMetaFor(it).introPitch }
+                ?: 1.0f
             sfx.play(SfxEvent.EXPLOSION, rate)
         }
     }

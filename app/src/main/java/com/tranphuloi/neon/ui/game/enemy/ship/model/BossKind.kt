@@ -72,4 +72,20 @@ enum class BossKind(val displayName: String) {
     PYRAMID_SCHEME(displayName = "Trùm Đa Cấp"),
     FORTUNE_TELLER(displayName = "Thầy Bói Online"),
     KITCHEN_GOD(displayName = "Ông Táo Cưỡi Cá Chép"),
+
+    // ── Wave 21 batch 4 — 2 boss trào phúng (batch 2 mở màn) ──
+    CRYPTO_BRO(displayName = "Ông Chú Crypto"),
+    TOXIC_KID(displayName = "Trẻ Trâu Toxic"),
+
+    // ── Wave 22 batch 5 — 2 boss trào phúng ──
+    KARAOKE_BOSS(displayName = "Trùm Karaoke Lạc Tông"),
+    FLASHY_TYCOON(displayName = "Đại Gia Phông Bạt"),
+
+    // ── Wave 23 batch 6 — 2 boss trào phúng ──
+    DR_GOOGLE(displayName = "Bác Sĩ Google"),
+    CAT_EMPEROR(displayName = "Hoàng Thượng Mèo"),
+
+    // ── Wave 24 batch 7 — 2 boss trào phúng (HẾT batch 2 = đủ 18) ──
+    SALE_FANATIC(displayName = "Thánh Cuồng Sale"),
+    GHOST_MONTH(displayName = "Cô Hồn Tháng 7"),
 }

@@ -11,8 +11,8 @@ android {
         applicationId = "com.tranphuloi.neon"
         minSdk = 23
         targetSdk = 37
-        versionCode = 20260530
-        versionName = "2026.05.30"
+        versionCode = 20260606
+        versionName = "2026.06.06"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -35,12 +35,36 @@ android {
         }
     }
 
+    // Wave 25d (#6 ship-readiness) — wire release signing qua keystore.properties
+    // (root, GITIGNORED — không commit mật khẩu). Vắng file → release để UNSIGNED
+    // như cũ (dev/CI vẫn build được). Đọc lúc configuration → config-cache OK.
+    def keystorePropsFile = rootProject.file("keystore.properties")
+    def hasReleaseKeystore = keystorePropsFile.exists()
+    def keystoreProps = new Properties()
+    if (hasReleaseKeystore) {
+        keystorePropsFile.withInputStream { keystoreProps.load(it) }
+    }
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            create("release") {
+                storeFile = file(keystoreProps.getProperty("storeFile", "keystore.jks"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled = true
             shrinkResources = true
             debuggable = false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            // Ký release nếu có keystore.properties; nếu không → unsigned (như trước).
+            if (hasReleaseKeystore) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     buildTypes.configureEach { crunchPngs = false }

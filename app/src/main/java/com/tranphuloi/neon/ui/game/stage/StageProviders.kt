@@ -17,9 +17,9 @@ internal val chapter1GameStages: List<StageGame> by lazy {
 
 /**
  * Wave 16 — Boss Rush roster ĐẦY ĐỦ. Trước đây = `stages.filterIsInstance<StageBoss>()`
- * → chỉ ~2-3 boss cuối chương; 21 mid-boss variant (spawn qua Chapter.midBossTypes
+ * → chỉ ~2-3 boss cuối chương; mid-boss variant (spawn qua Chapter.midBossTypes
  * giữa chương, KHÔNG phải StageBoss) bị bỏ sót khỏi boss-rush (user báo). Nay dựng
- * trực tiếp: 21 mid-boss + boss cuối/biến-thể-chương → đủ 27 BossKind.
+ * trực tiếp: toàn bộ `MidBossType.ALL` (Wave 24: 39) + boss cuối/biến-thể-chương.
  */
 private val allBosses: List<StageBoss> by lazy {
     buildList {
@@ -104,6 +104,24 @@ class BossRushProvider : StageProvider {
         }
     }
     override fun size(): Int = script.size
+}
+
+/**
+ * Wave 25 (#trial) — ĐẤU TRƯỜNG LUYỆN 1 boss: spawn lặp đúng [boss] đó (VÔ HẠN)
+ * để "chơi thử" boss từ Bách Khoa. index 0 = banner; lẻ = boss; chẵn>0 = "Lần nữa!".
+ * chapterId=1 cho tint (BossKindResolver suy BossKind từ MidBossType.defaultBossKind).
+ */
+class TrialBossArenaProvider(
+    private val boss: com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType,
+) : StageProvider {
+    override fun hasAt(index: Int): Boolean = true
+    override fun getAt(index: Int): Stage = when {
+        index == 0 -> StageMessage(message = "THỬ BOSS", durationMillis = 2, chapterId = 1)
+        index % 2 == 1 -> StageBoss(bossId = "trial_${boss.displayName}_$index", enemyType = boss, chapterId = 1)
+        else -> StageMessage(message = "Lần nữa!", durationMillis = 2, chapterId = 1)
+    }
+    override fun chapterAt(index: Int): Int = 1
+    override fun size(): Int = -1                                     // arena vô hạn
 }
 
 /**

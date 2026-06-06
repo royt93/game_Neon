@@ -18,6 +18,10 @@ internal val Context.metaDataStore by preferencesDataStore(name = "neon_meta")
 
 private val LIFETIME_MINERALS_KEY = intPreferencesKey("lifetime_minerals")
 private val LIFETIME_ENEMY_KILLS_KEY = longPreferencesKey("lifetime_enemy_kills")
+// Wave 21 (#4 kinh tế khoáng) — điểm danh hằng ngày: ngày claim gần nhất
+// (epoch-day) + chuỗi ngày liên tiếp (streak) để thưởng tăng dần.
+private val LAST_DAILY_CLAIM_KEY = longPreferencesKey("last_daily_claim_day")
+private val DAILY_STREAK_KEY = intPreferencesKey("daily_streak")
 private const val NODE_PREFIX = "node_"
 private const val BULLET_KILL_PREFIX = "bullet_kill_"
 private const val BOSS_KILL_PREFIX = "boss_kill_"
@@ -39,6 +43,19 @@ internal fun canSpendOnNode(balance: Int, cost: Int, currentRank: Int, maxRank: 
 /** Same idea for stockpile spend (consumables). */
 internal fun canSpendOnStockpile(balance: Int, cost: Int, addAmount: Int): Boolean =
     cost >= 0 && balance >= cost && addAmount > 0
+
+/**
+ * Wave 21 (#4) — thưởng điểm danh theo chuỗi ngày. Base 50◇, +25◇/ngày liên
+ * tiếp, trần ở ngày 7 (200◇). Hàm thuần để test pin con số.
+ */
+internal fun dailyRewardFor(streak: Int): Int = 50 + (streak.coerceIn(1, 7) - 1) * 25
+
+/**
+ * Wave 22 (#4) — thưởng mốc màn cuối run: mỗi 5 màn đạt = +30◇, trần 300◇
+ * (màn 50+). Cộng vào banking ở GAME_OVER, thưởng đi xa. Hàm thuần để test.
+ */
+internal fun stageMilestoneBonus(stagesReached: Int): Int =
+    ((stagesReached.coerceAtLeast(0) / 5) * 30).coerceAtMost(300)
 
 /**
  * Wave 5 (48x) — permanent meta progression. Tracks:
@@ -80,6 +97,37 @@ class MetaProgressionRepository(private val appContext: Context) {
             prefs[LIFETIME_MINERALS_KEY] = before + amount
             Logger.d("MetaProgressionRepository.addMinerals +$amount → ${before + amount}")
         }
+    }
+
+    // ── Wave 21 (#4) — điểm danh hằng ngày ──
+
+    /** Streak hiện tại (số ngày liên tiếp đã điểm danh). */
+    val dailyStreak: Flow<Int> = appContext.metaDataStore.data.map { it[DAILY_STREAK_KEY] ?: 0 }
+
+    /** Còn quà điểm danh hôm nay không (chưa claim trong ngày [today]). */
+    fun dailyClaimAvailable(today: Long): Flow<Boolean> =
+        appContext.metaDataStore.data.map { (it[LAST_DAILY_CLAIM_KEY] ?: -1L) != today }
+
+    /**
+     * Điểm danh ngày [today] (epoch-day). Trả về số khoáng được thưởng (0 nếu đã
+     * claim hôm nay). Streak +1 nếu claim đúng ngày kế tiếp, ngược lại reset về 1.
+     * Atomic: cộng thẳng vào balance trong cùng edit.
+     */
+    suspend fun claimDaily(today: Long): Int {
+        var granted = 0
+        appContext.metaDataStore.edit { prefs ->
+            val last = prefs[LAST_DAILY_CLAIM_KEY] ?: -1L
+            if (last == today) return@edit                       // đã điểm danh hôm nay
+            val prevStreak = prefs[DAILY_STREAK_KEY] ?: 0
+            val newStreak = if (last == today - 1L) prevStreak + 1 else 1
+            val reward = dailyRewardFor(newStreak)
+            prefs[LAST_DAILY_CLAIM_KEY] = today
+            prefs[DAILY_STREAK_KEY] = newStreak
+            prefs[LIFETIME_MINERALS_KEY] = (prefs[LIFETIME_MINERALS_KEY] ?: 0) + reward
+            granted = reward
+            Logger.d("MetaProgressionRepository.claimDaily day=$today streak=$newStreak +$reward◇")
+        }
+        return granted
     }
 
     /**

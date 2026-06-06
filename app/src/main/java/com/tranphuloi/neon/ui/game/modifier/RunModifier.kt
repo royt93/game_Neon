@@ -20,6 +20,8 @@ enum class RunModifier(
     val scoreMul: Float = 1f,
     val noShieldDrops: Boolean = false,
     val bossesOnly: Boolean = false,
+    // Wave 21 (#3) — TAY KHÔNG: không buff power-up nào rơi (thuần kỹ năng).
+    val noBoosters: Boolean = false,
 ) {
     NONE(
         key = "none",
@@ -85,6 +87,13 @@ enum class RunModifier(
         hpMul = 0.5f,
         damageMul = 2f,
         scoreMul = 2.5f,
+    ),
+    BARE_HANDED(
+        key = "bare_handed",
+        displayName = "TAY KHÔNG",
+        description = "Không có buff power-up nào rơi — thuần kỹ năng. Điểm ×2.2.",
+        noBoosters = true,
+        scoreMul = 2.2f,
     );
 
     companion object {

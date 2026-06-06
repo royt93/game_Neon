@@ -58,49 +58,7 @@ object StoryRegistry {
         return StoryLine(speaker = kind.displayName, text = text, durationMs = duration)
     }
 
-    /** BossKind-specific taunt (in-character voice, Vietnamese). */
-    private fun tauntText(kind: BossKind): String = when (kind) {
-        BossKind.STAR -> "Tiểu tốt vô danh. Không trụ nổi 1 phút đâu."
-        BossKind.CROSS -> "Đã nghiền nát phi công mạnh hơn ngươi nhiều."
-        BossKind.ORB -> "Mắt ta dõi theo mọi cử động của ngươi."
-        BossKind.FRACTAL -> "Phá khiên ta đi. Thách đó."
-        BossKind.SPIDER -> "Ngươi không nên đi xa đến vậy. Kết thúc ở đây."
-        BossKind.DEATH_MOON -> "Mặt trăng tử thần đã đến. Hết đường rồi."
-        BossKind.HAUNTED_KID -> "Hi hi... chơi với em không?"
-        BossKind.HELL_LORD -> "Địa ngục chào đón linh hồn ngươi."
-        BossKind.SATAN_GLYPH -> "Ngũ giác đã được vẽ. Linh hồn ngươi là vật tế."
-        BossKind.HEN_MOTHER -> "Cục tác! Ta đẻ trứng cho ngươi đó!"
-        BossKind.BUFFALO_RAGE -> "Sừng ta sẽ xuyên qua tàu ngươi!"
-        BossKind.DUMB_RAT -> "Phô-mai... à không, laser! Ta bắn đây!"
-        BossKind.FIERCE_TIGER -> "Gầm! Hú vang khắp dải Ngân Hà!"
-        BossKind.SEXY_DIVA -> "Tóc ta lấp lánh, đẹp lắm. Cẩn thận nhé."
-        BossKind.TROLL_TOWER -> "Cao chót vót, ánh sáng từ đỉnh thần thánh."
-        BossKind.TWIN_SUMMITS -> "Hai đỉnh kép, hai tia sữa song hành."
-        BossKind.VOID_GLOBES -> "Vô tận hư vô, hứng đòn của ta đi!"
-        BossKind.WHITE_DRAGON -> "Bạch Long Mắt Lam — thét ra lửa!"
-        BossKind.HAMMER_SICKLE -> "Búa liềm bịp bợm — vinh quang giai cấp!"
-        BossKind.MONEY_TYCOON -> "Tiền là sức mạnh, tàu trẻ con."
-        BossKind.GOLDEN_TYCOON -> "Tin ta đi, tàu ngươi sẽ chết tuyệt vời nhất."
-        // Wave 15 batch 1
-        BossKind.SKULL_CROSSBONES -> "Khặc khặc... xương ngươi sẽ chéo cùng ta!"
-        BossKind.VAMPIRE -> "Ta khát... chỉ một giọt máu tàu ngươi thôi!"
-        BossKind.COSMIC_CENTIPEDE -> "Trăm chân ta bò khắp Ngân Hà — không thoát đâu!"
-        // Wave 16 batch 2
-        BossKind.GIANT_CONDOM -> "Ta bảo vệ tất cả... rồi nuốt chửng ngươi!"
-        BossKind.VENOM_SPIDER -> "Tơ độc đã giăng. Ngươi chỉ là con mồi."
-        BossKind.CORRUPTION -> "Có tiền mua tiên cũng được — kể cả mạng ngươi!"
-        // Wave 18 batch 1 — 3 boss trào phúng.
-        BossKind.TRAFFIC_JAM -> "Kẹt xe giờ cao điểm — đừng hòng nhúc nhích!"
-        BossKind.KPI_BOSS -> "Chưa đạt chỉ tiêu quý này — tăng ca tới chết đi!"
-        BossKind.TIKTOKER -> "Nhớ like share nha — à nhầm, ăn đạn nè!"
-        // Wave 19 batch 2 — 3 boss trào phúng (nốt).
-        BossKind.ATM_BANKRUPT -> "Số dư: 0đ. Giao dịch bị từ chối — và cả ngươi nữa!"
-        BossKind.NOKIA_BRICK -> "Pin ta trâu cả tuần. Ăn cục gạch này!"
-        BossKind.INFLATION_STORM -> "Hôm nay giá lại tăng! Đỡ nổi không?"
-        // Wave 20 batch 3 — 4 boss trào phúng (hết batch 1).
-        BossKind.SOCIAL_DRAMA -> "Phốt ngươi đây! Cả cõi mạng ném đá!"
-        BossKind.PYRAMID_SCHEME -> "Tham gia tuyến dưới đi — à thôi, ăn đạn trước!"
-        BossKind.FORTUNE_TELLER -> "Ta đã thấy trước cái chết của ngươi rồi."
-        BossKind.KITCHEN_GOD -> "Ta cưỡi cá về trời — tiễn ngươi xuống đất!"
-    }
+    /** Wave 25c — taunt đọc từ bảng chung `bossMetaFor` (gom 4 when → 1 bảng). */
+    private fun tauntText(kind: BossKind): String =
+        com.tranphuloi.neon.ui.game.enemy.ship.model.bossMetaFor(kind).taunt
 }

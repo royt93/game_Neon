@@ -208,7 +208,12 @@
       "Bash(rm -f fr_*.png)",
       "Bash(ffmpeg -i bossrec.mp4 -vf fps=2 fr_%02d.png -hide_banner -loglevel error)",
       "Bash(rm -f g_*.png)",
-      "Bash(ffmpeg -i r2.mp4 -vf fps=2 g_%02d.png -hide_banner -loglevel error)"
+      "Bash(ffmpeg -i r2.mp4 -vf fps=2 g_%02d.png -hide_banner -loglevel error)",
+      "Bash(perl -0pi -e 's/achievementsRepo\\\\.unlock\\\\\\(com\\\\.tranphuloi\\\\.neon\\\\.data\\\\.Achievement\\\\.\\(PLASMA_MASTER|HOMING_VETERAN|BOSS_ALL_KINDS|S_RANK_10|CYAN_HOUR|LIFETIME_KILLS_1000\\)\\\\\\)/awardLifetime\\(com.tranphuloi.neon.data.Achievement.$1\\)/g' app/src/main/java/com/tranphuloi/neon/ui/game/GameScreen.kt)",
+      "Bash(sed -n '/internal fun bossColorFor/,/^}/p' app/src/main/java/com/tranphuloi/neon/ui/game/world/EnemyCanvas.kt)",
+      "Bash(sed -n '/private fun bossSkillLabel/,/^}/p' app/src/main/java/com/tranphuloi/neon/ui/game/controls/BossHpBar.kt)",
+      "Bash(sed -n '/private fun tauntText/,/^    }/p' app/src/main/java/com/tranphuloi/neon/ui/game/story/StoryRegistry.kt)",
+      "Bash(sed -n '362,402p' app/src/main/java/com/tranphuloi/neon/ui/game/GameScreen.kt)"
     ]
   }
 }

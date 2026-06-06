@@ -90,6 +90,16 @@ enum class Achievement(
     ;
 }
 
+/**
+ * Wave 22 (#4) — thưởng khoáng khi MỞ MỚI 1 thành tựu, theo bậc: Đồng 30◇,
+ * Bạc 60◇, Vàng 120◇. Hàm thuần để test + gọi ở nơi unlock trả true.
+ */
+internal fun achievementReward(tier: AchievementTier): Int = when (tier) {
+    AchievementTier.BRONZE -> 30
+    AchievementTier.SILVER -> 60
+    AchievementTier.GOLD -> 120
+}
+
 class AchievementsRepository(private val appContext: Context) {
 
     init {

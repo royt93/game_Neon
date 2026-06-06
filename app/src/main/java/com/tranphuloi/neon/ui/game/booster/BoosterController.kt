@@ -17,6 +17,8 @@ class BoosterController(
      * skip silently and let the next addBooster tick (4s) try again.
      */
     private val noShieldDrops: () -> Boolean = { false },
+    /** Wave 21 (#3) — TAY KHÔNG modifier: bỏ HẾT buff rơi (thuần kỹ năng). */
+    private val noBoosters: () -> Boolean = { false },
     /**
      * Round 75 (R75c) — REVIVE_DROP meta upgrade rank lookup. +2% mỗi rank to
      * override booster type về REVIVE_TOKEN. Max rank 2 = +4% chance bonus
@@ -35,6 +37,11 @@ class BoosterController(
     val addBoosterId = uuidUtils.getUuid()
     val addBoosterRepeatTime = Millis(4000)
     fun addBooster() {
+        // Wave 21 (#3) — TAY KHÔNG: không spawn buff nào cả.
+        if (noBoosters()) {
+            Logger.v { "BoosterController.addBooster: SKIPPED ALL (TAY KHÔNG modifier active)" }
+            return
+        }
         if (boosters.size >= MAX_BOOSTERS) {
             // Round 47 audit — was Logger.d but addBooster fires every 4s,
             // and when SHIELD modifier is active this skip-path can pump

@@ -15,8 +15,8 @@ import org.junit.Test
 class BossKindTest {
 
     @Test
-    fun `BossKind has expected 33 values across R71 R79 R81 Wave15 Wave16 Wave18 Wave19`() {
-        assertEquals(33, BossKind.values().size)
+    fun `BossKind has expected 45 values across R71 R79 R81 Wave15-24`() {
+        assertEquals(45, BossKind.values().size)
     }
 
     @Test

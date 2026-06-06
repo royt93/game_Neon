@@ -33,14 +33,13 @@ class ChapterMidBossWireTest {
     }
 
     @Test
-    fun `total mid-boss spawn slots across 5 chapters equals 28`() {
-        // R82=16; Wave15 +3 → 19; Wave16 +3 → 22; Wave18 +3 (Ch1/2/3) → 25;
-        // Wave19 +3 (Ch4 ATM+INFLATION, Ch5 NOKIA) → 28.
-        // Now: Ch1=5, Ch2=5, Ch3=5, Ch4=7, Ch5=6 → 28.
+    fun `total mid-boss spawn slots across 5 chapters equals 40`() {
+        // …Wave23 → 38; Wave24 +2 (Ch4 SALE_FANATIC, Ch2 GHOST_MONTH) → 40.
+        // Now: Ch1=6, Ch2=8, Ch3=8, Ch4=10, Ch5=8 → 40.
         val total = Chapter.values().sumOf { it.midBossTypes.size }
         assertEquals(
-            "Expected 28 mid-boss slots (5+5+5+7+6 per chapter). Got $total",
-            28, total,
+            "Expected 40 mid-boss slots (6+8+8+10+8 per chapter). Got $total",
+            40, total,
         )
     }
 
@@ -69,6 +68,44 @@ class ChapterMidBossWireTest {
         )
         val wired = Chapter.values().flatMap { it.midBossTypes }.map { it.defaultBossKind }.toSet()
         assertTrue("Wave19 BossKinds not wired: ${expected - wired}", (expected - wired).isEmpty())
+    }
+
+    @Test
+    fun `Wave20 4 new trao phung BossKinds are wired to chapters`() {
+        val expected = setOf(
+            BossKind.SOCIAL_DRAMA, BossKind.PYRAMID_SCHEME,
+            BossKind.FORTUNE_TELLER, BossKind.KITCHEN_GOD,
+        )
+        val wired = Chapter.values().flatMap { it.midBossTypes }.map { it.defaultBossKind }.toSet()
+        assertTrue("Wave20 BossKinds not wired: ${expected - wired}", (expected - wired).isEmpty())
+    }
+
+    @Test
+    fun `Wave21 2 new trao phung BossKinds are wired to chapters`() {
+        val expected = setOf(BossKind.CRYPTO_BRO, BossKind.TOXIC_KID)
+        val wired = Chapter.values().flatMap { it.midBossTypes }.map { it.defaultBossKind }.toSet()
+        assertTrue("Wave21 BossKinds not wired: ${expected - wired}", (expected - wired).isEmpty())
+    }
+
+    @Test
+    fun `Wave22 2 new trao phung BossKinds are wired to chapters`() {
+        val expected = setOf(BossKind.KARAOKE_BOSS, BossKind.FLASHY_TYCOON)
+        val wired = Chapter.values().flatMap { it.midBossTypes }.map { it.defaultBossKind }.toSet()
+        assertTrue("Wave22 BossKinds not wired: ${expected - wired}", (expected - wired).isEmpty())
+    }
+
+    @Test
+    fun `Wave23 2 new trao phung BossKinds are wired to chapters`() {
+        val expected = setOf(BossKind.DR_GOOGLE, BossKind.CAT_EMPEROR)
+        val wired = Chapter.values().flatMap { it.midBossTypes }.map { it.defaultBossKind }.toSet()
+        assertTrue("Wave23 BossKinds not wired: ${expected - wired}", (expected - wired).isEmpty())
+    }
+
+    @Test
+    fun `Wave24 2 new trao phung BossKinds are wired to chapters`() {
+        val expected = setOf(BossKind.SALE_FANATIC, BossKind.GHOST_MONTH)
+        val wired = Chapter.values().flatMap { it.midBossTypes }.map { it.defaultBossKind }.toSet()
+        assertTrue("Wave24 BossKinds not wired: ${expected - wired}", (expected - wired).isEmpty())
     }
 
     @Test

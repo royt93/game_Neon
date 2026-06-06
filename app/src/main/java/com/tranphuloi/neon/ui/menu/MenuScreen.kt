@@ -58,6 +58,7 @@ import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.common.NeonMagenta
 import com.tranphuloi.neon.common.NeonViolet
+import kotlinx.coroutines.launch
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.data.LocalMetaProgression
 import com.tranphuloi.neon.data.LocalRunPersistence
@@ -110,6 +111,13 @@ fun MenuScreen(
     val runModifier = com.tranphuloi.neon.ui.game.modifier.RunModifier.fromKey(modifierKey)
     val balance by meta.lifetimeMinerals.collectAsState(initial = 0)
     val checkpoint by runPersist.checkpointFor(lastModeKey).collectAsState(initial = 0)
+
+    // Wave 21 (#4) — điểm danh hằng ngày.
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val todayKey = remember { com.tranphuloi.neon.data.LeaderboardRepository.todayUtcDayKey() }
+    val dailyAvailable by meta.dailyClaimAvailable(todayKey).collectAsState(initial = false)
+    val dailyStreak by meta.dailyStreak.collectAsState(initial = 0)
+    var dailyClaimedAmount by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
 
     LaunchedEffect(Unit) {
         Logger.d("MenuScreen entered (mode=$mode, modifier=$runModifier, checkpoint=$checkpoint, balance=$balance)")
@@ -189,6 +197,28 @@ fun MenuScreen(
                         onPlay()
                     },
                 )
+            }
+
+            // Wave 21 (#4) — nút ĐIỂM DANH: hiện khi còn quà hôm nay; sau khi
+            // claim đổi thành thông báo "+X◇" (streak ngày liên tiếp).
+            if (dailyAvailable || dailyClaimedAmount > 0) {
+                EntryAnim(stepIndex = 3) {
+                    DailyCheckInButton(
+                        claimed = dailyClaimedAmount > 0,
+                        claimedAmount = dailyClaimedAmount,
+                        streak = dailyStreak,
+                        onClaim = {
+                            scope.launch {
+                                val granted = meta.claimDaily(todayKey)
+                                if (granted > 0) dailyClaimedAmount = granted
+                                Logger.d("MenuScreen: điểm danh +$granted◇")
+                            }
+                        },
+                    )
+                }
+                // Wave 25 fix — tách nút ĐIỂM DANH (CTA thưởng, thuộc cụm hero/PLAY)
+                // khỏi label nhóm "TRƯỚC TRẬN" bên dưới (user: "bị khít"). +~28dp tổng.
+                Spacer(modifier = Modifier.height(8.dp))
             }
 
             // Round 70 fix (Issue 1) — KHÔNG thêm Spacer riêng. Column outer
@@ -599,6 +629,45 @@ private fun PlayButton(
                 modifier = Modifier.neonGlow(Color.White, intensity = 0.35f, radiusFactor = 1.3f),
             )
         }
+    }
+}
+
+/** Wave 21 (#4) — nút điểm danh hằng ngày (vàng). Trước claim: bấm để nhận;
+ *  sau claim: hiện "+X◇" + chuỗi ngày, hết bấm được. */
+@Composable
+private fun DailyCheckInButton(
+    claimed: Boolean,
+    claimedAmount: Int,
+    streak: Int,
+    onClaim: () -> Unit,
+) {
+    val label = if (claimed) {
+        "✓ ĐÃ NHẬN +$claimedAmount◇" + if (streak > 1) "  ·  chuỗi $streak ngày" else ""
+    } else {
+        "🎁 ĐIỂM DANH HÔM NAY"
+    }
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(UNIFIED_BUTTON_HEIGHT)
+            .then(if (claimed) Modifier else Modifier.clickable(onClick = onClaim))
+            .clip(RoundedCornerShape(14.dp))
+            .background(NeonGold.copy(alpha = if (claimed) 0.12f else 0.2f))
+            .border(
+                BorderStroke(1.5.dp, NeonGold.copy(alpha = if (claimed) 0.5f else 1f)),
+                RoundedCornerShape(14.dp),
+            )
+            .neonGlow(NeonGold, intensity = if (claimed) 0.2f else 0.55f, radiusFactor = 1.4f)
+            .padding(horizontal = 16.dp),
+    ) {
+        Text(
+            text = label,
+            color = if (claimed) NeonGold else Color.White,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Black,
+            style = TextStyle(letterSpacing = 2.sp),
+        )
     }
 }
 

@@ -197,6 +197,8 @@ class MainActivity : ComponentActivity() {
                                 .collectAsState(initial = true)
                             MenuScreen(
                                 onPlay = {
+                                    // Wave 25 — run thường: xoá mọi trial đang treo.
+                                    com.tranphuloi.neon.ui.game.trial.TrialSession.clear()
                                     if (autoSkipLoadout) {
                                         Logger.d("Nav: Menu → Game (auto-skip LoadoutPicker)")
                                         navController.navigate(Game.route)
@@ -240,6 +242,12 @@ class MainActivity : ComponentActivity() {
                                 onBack = {
                                     Logger.d("Nav: Info → back")
                                     navController.popBackStack()
+                                },
+                                // Wave 25 (#trial) — bấm card → đặt trial + vào Game.
+                                onTrial = { spec ->
+                                    Logger.d("Nav: Info → Game (TRIAL $spec)")
+                                    com.tranphuloi.neon.ui.game.trial.TrialSession.spec = spec
+                                    navController.navigate(Game.route)
                                 },
                             )
                         }

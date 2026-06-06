@@ -99,8 +99,12 @@ fun DialogGameOver(
                     leaderboard.submitEndless(sec)
                 }
                 // 48x — bank earned minerals into lifetime balance.
-                Logger.d("DialogGameOver: banking $parsed lifetime minerals (meta)")
-                meta.addMinerals(parsed)
+                // Wave 22 (#4) — + thưởng mốc màn (mỗi 5 màn +30◇, trần 300).
+                val stageBonus = com.tranphuloi.neon.data.stageMilestoneBonus(
+                    runStatsState?.stagesReached ?: 0,
+                )
+                Logger.d("DialogGameOver: banking $parsed + mốc-màn $stageBonus lifetime minerals (meta)")
+                meta.addMinerals(parsed + stageBonus)
             }
             submitted = true
         }
@@ -471,6 +475,11 @@ private fun StatsPanel(stats: com.tranphuloi.neon.data.RunStats) {
         Spacer(modifier = Modifier.height(2.dp))
         StatLine(label = "THỜI GIAN", value = timeStr)
         StatLine(label = "MÀN ĐẠT", value = stats.stagesReached.toString())
+        // Wave 22 (#4) — thưởng mốc màn (hiện khi có).
+        val stageBonus = com.tranphuloi.neon.data.stageMilestoneBonus(stats.stagesReached)
+        if (stageBonus > 0) {
+            StatLine(label = "THƯỞNG MỐC MÀN", value = "+$stageBonus ◇")
+        }
         StatLine(label = "DIỆT ĐỊCH", value = stats.enemiesKilled.toString())
         if (stats.bossesDefeated > 0) {
             StatLine(label = "HẠ BOSS", value = stats.bossesDefeated.toString())

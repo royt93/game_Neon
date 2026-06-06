@@ -236,45 +236,9 @@ private fun DrawScope.drawStatusOverlay(
  * boss không còn chung tông đỏ/xanh. Exhaustive over BossKind (thiếu = lỗi
  * compile). Tông gắn theo chủ đề từng boss.
  */
-internal fun bossColorFor(kind: BossKind): Color = when (kind) {
-    BossKind.STAR -> Color(0xFFFFD23F)
-    BossKind.CROSS -> Color(0xFFE6E6FF)
-    BossKind.ORB -> Color(0xFF00E5FF)
-    BossKind.FRACTAL -> Color(0xFF5CFF7A)
-    BossKind.SPIDER -> Color(0xFF9B5CFF)
-    BossKind.DEATH_MOON -> Color(0xFFB0C4DE)
-    BossKind.HAUNTED_KID -> Color(0xFFAEEFC0)
-    BossKind.HELL_LORD -> Color(0xFFFF5A1E)
-    BossKind.SATAN_GLYPH -> Color(0xFFB3002D)
-    BossKind.HEN_MOTHER -> Color(0xFFFFD740)
-    BossKind.BUFFALO_RAGE -> Color(0xFF8B4A2F)
-    BossKind.DUMB_RAT -> Color(0xFFA0A0A8)
-    BossKind.FIERCE_TIGER -> Color(0xFFFF8A1E)
-    BossKind.SEXY_DIVA -> Color(0xFFFF4FA3)
-    BossKind.TROLL_TOWER -> Color(0xFF2E8B57)
-    BossKind.TWIN_SUMMITS -> Color(0xFF1FC8C8)
-    BossKind.VOID_GLOBES -> Color(0xFF6A5ACD)
-    BossKind.WHITE_DRAGON -> Color(0xFFCFF0FF)
-    BossKind.HAMMER_SICKLE -> Color(0xFFE02020)
-    BossKind.MONEY_TYCOON -> Color(0xFF35C759)
-    BossKind.GOLDEN_TYCOON -> Color(0xFFFFC400)
-    BossKind.SKULL_CROSSBONES -> Color(0xFFE8E2D0)
-    BossKind.VAMPIRE -> Color(0xFFC4123B)
-    BossKind.COSMIC_CENTIPEDE -> Color(0xFFB6FF3A)
-    BossKind.GIANT_CONDOM -> Color(0xFFFFB6D5)
-    BossKind.VENOM_SPIDER -> Color(0xFF7CFF2A)
-    BossKind.CORRUPTION -> Color(0xFFD23FFF)
-    BossKind.TRAFFIC_JAM -> Color(0xFFFFA000)         // hổ phách đèn giao thông
-    BossKind.KPI_BOSS -> Color(0xFF2D7DFF)            // xanh công sở
-    BossKind.TIKTOKER -> Color(0xFFFF2E63)            // hồng-đỏ tiktok
-    BossKind.ATM_BANKRUPT -> Color(0xFF2BD4A8)        // teal tiền-mặt
-    BossKind.NOKIA_BRICK -> Color(0xFF3A5BA0)         // xanh Nokia cổ
-    BossKind.INFLATION_STORM -> Color(0xFFFF6F3D)     // cam-đỏ giá nóng
-    BossKind.SOCIAL_DRAMA -> Color(0xFFFF1493)        // hồng drama nóng
-    BossKind.PYRAMID_SCHEME -> Color(0xFFE8B923)      // vàng-mù tạt đa cấp
-    BossKind.FORTUNE_TELLER -> Color(0xFF9D4EDD)      // tím huyền bí
-    BossKind.KITCHEN_GOD -> Color(0xFFE63A2B)         // đỏ lễ Tết
-}
+// Wave 25c — đọc màu từ bảng dữ liệu chung `bossMetaFor` (gom 4 when → 1).
+internal fun bossColorFor(kind: BossKind): Color =
+    Color(com.tranphuloi.neon.ui.game.enemy.ship.model.bossMetaFor(kind).colorArgb)
 
 private fun bodyColorFor(drawableId: Int): Color = when (drawableId) {
     R.drawable.enemy_light_blue_1, R.drawable.enemy_light_blue_2,
@@ -463,6 +427,26 @@ internal fun DrawScope.drawBossShapeByKind(
             drawBossFortune(cx, cy, wPx, hPx, body, accent)
         com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.KITCHEN_GOD ->
             drawBossKitchenGod(cx, cy, wPx, hPx, body, accent)
+        // Wave 21 batch 4.
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.CRYPTO_BRO ->
+            drawBossCrypto(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.TOXIC_KID ->
+            drawBossToxicKid(cx, cy, wPx, hPx, body, accent)
+        // Wave 22 batch 5.
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.KARAOKE_BOSS ->
+            drawBossKaraoke(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.FLASHY_TYCOON ->
+            drawBossFlashy(cx, cy, wPx, hPx, body, accent)
+        // Wave 23 batch 6.
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.DR_GOOGLE ->
+            drawBossDrGoogle(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.CAT_EMPEROR ->
+            drawBossCatEmperor(cx, cy, wPx, hPx, body, accent)
+        // Wave 24 batch 7.
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.SALE_FANATIC ->
+            drawBossSale(cx, cy, wPx, hPx, body, accent)
+        com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind.GHOST_MONTH ->
+            drawBossGhostMonth(cx, cy, wPx, hPx, body, accent)
     }
 }
 
@@ -1285,6 +1269,246 @@ private fun DrawScope.drawBossKitchenGod(
     drawLine(accent, Offset(cx - r * 0.3f, cy - r * 0.45f), Offset(cx + r * 0.3f, cy - r * 0.45f),
         strokeWidth = unit * 0.05f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
     drawCircle(accent, unit * 0.05f, Offset(cx, cy - r * 0.6f))
+}
+
+// ─────────── Wave 21 batch 4 — 2 boss trào phúng (batch 2 mở màn) ───────────
+
+/** Ông Chú Crypto — đồng coin tròn + ký hiệu ₿ + mũi tên biến động nhỏ. */
+private fun DrawScope.drawBossCrypto(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val rad = unit * 0.34f
+    // Đồng xu.
+    drawCircle(body, rad, Offset(cx, cy))
+    drawCircle(accent, rad, Offset(cx, cy), style = Stroke(width = unit * 0.04f))
+    // Ký hiệu ₿ (thân dọc + 2 bụng + 2 gạch trên/dưới).
+    drawLine(accent, Offset(cx - rad * 0.12f, cy - rad * 0.5f), Offset(cx - rad * 0.12f, cy + rad * 0.5f),
+        strokeWidth = unit * 0.045f)
+    for (yy in listOf(-0.22f, 0.22f)) {
+        drawArc(
+            color = accent, startAngle = -90f, sweepAngle = 180f, useCenter = false,
+            topLeft = Offset(cx - rad * 0.12f, cy + rad * yy - rad * 0.22f),
+            size = Size(rad * 0.42f, rad * 0.44f), style = Stroke(width = unit * 0.04f),
+        )
+    }
+    // 2 gạch nhô (chân/đầu chữ ₿).
+    for (yy in listOf(-0.62f, 0.62f)) {
+        drawLine(accent, Offset(cx - rad * 0.04f, cy + rad * yy), Offset(cx - rad * 0.04f, cy + rad * (yy * 0.7f)),
+            strokeWidth = unit * 0.035f)
+    }
+}
+
+/** Trẻ Trâu Toxic — mặt giận: đầu tròn + 2 chân mày chéo + miệng cau + "!!". */
+private fun DrawScope.drawBossToxicKid(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val rad = unit * 0.34f
+    // Đầu.
+    drawCircle(body, rad, Offset(cx, cy))
+    drawCircle(accent, rad, Offset(cx, cy), style = Stroke(width = unit * 0.03f))
+    // 2 chân mày chéo (giận dữ) ‾\ /‾.
+    drawLine(accent, Offset(cx - rad * 0.55f, cy - rad * 0.18f), Offset(cx - rad * 0.12f, cy - rad * 0.02f),
+        strokeWidth = unit * 0.04f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    drawLine(accent, Offset(cx + rad * 0.55f, cy - rad * 0.18f), Offset(cx + rad * 0.12f, cy - rad * 0.02f),
+        strokeWidth = unit * 0.04f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    // 2 mắt.
+    drawCircle(accent, unit * 0.028f, Offset(cx - rad * 0.32f, cy + rad * 0.12f))
+    drawCircle(accent, unit * 0.028f, Offset(cx + rad * 0.32f, cy + rad * 0.12f))
+    // Miệng cau (cung ngược).
+    drawArc(
+        color = accent, startAngle = 20f, sweepAngle = 140f, useCenter = false,
+        topLeft = Offset(cx - rad * 0.34f, cy + rad * 0.62f), size = Size(rad * 0.68f, rad * 0.5f),
+        style = Stroke(width = unit * 0.035f),
+    )
+}
+
+// ─────────── Wave 22 batch 5 — 2 boss trào phúng ───────────
+
+/** Trùm Karaoke Lạc Tông — micro (đầu tròn + cán) + 2 sóng âm vòng cung. */
+private fun DrawScope.drawBossKaraoke(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val headR = unit * 0.16f
+    val hx = cx - unit * 0.06f
+    val hy = cy - unit * 0.12f
+    // Đầu micro.
+    drawCircle(body, headR, Offset(hx, hy))
+    drawCircle(accent, headR, Offset(hx, hy), style = Stroke(width = unit * 0.025f))
+    // Lưới micro (2 gạch ngang).
+    for (g in listOf(-0.4f, 0.4f)) {
+        drawLine(accent, Offset(hx - headR * 0.7f, hy + headR * g), Offset(hx + headR * 0.7f, hy + headR * g),
+            strokeWidth = unit * 0.015f)
+    }
+    // Cán micro (chéo xuống phải).
+    drawLine(body, Offset(hx + headR * 0.5f, hy + headR * 0.7f),
+        Offset(hx + unit * 0.22f, hy + unit * 0.34f),
+        strokeWidth = unit * 0.06f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    // 2 sóng âm vòng cung (bên phải, lan ra).
+    for (i in 1..2) {
+        drawArc(
+            color = accent.copy(alpha = 1f - i * 0.25f), startAngle = -50f, sweepAngle = 100f, useCenter = false,
+            topLeft = Offset(cx + unit * 0.06f - unit * 0.1f * i, cy - unit * 0.2f - unit * 0.04f * i),
+            size = Size(unit * 0.2f * i, unit * 0.4f * i),
+            style = Stroke(width = unit * 0.025f),
+        )
+    }
+}
+
+/** Đại Gia Phông Bạt — kính râm (2 mắt kính + cầu) + dây chuyền $ phô trương. */
+private fun DrawScope.drawBossFlashy(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val lensR = unit * 0.16f
+    val ly = cy - unit * 0.1f
+    // 2 mắt kính.
+    for (s in listOf(-1f, 1f)) {
+        drawCircle(body, lensR, Offset(cx + s * unit * 0.2f, ly))
+        drawCircle(accent, lensR, Offset(cx + s * unit * 0.2f, ly), style = Stroke(width = unit * 0.03f))
+    }
+    // Cầu nối kính.
+    drawLine(accent, Offset(cx - unit * 0.04f, ly), Offset(cx + unit * 0.04f, ly), strokeWidth = unit * 0.03f)
+    // Càng kính 2 bên.
+    drawLine(accent, Offset(cx - unit * 0.36f, ly), Offset(cx - unit * 0.44f, ly - unit * 0.04f), strokeWidth = unit * 0.025f)
+    drawLine(accent, Offset(cx + unit * 0.36f, ly), Offset(cx + unit * 0.44f, ly - unit * 0.04f), strokeWidth = unit * 0.025f)
+    // Dây chuyền $ (cung dưới + ký hiệu).
+    drawArc(
+        color = accent, startAngle = 20f, sweepAngle = 140f, useCenter = false,
+        topLeft = Offset(cx - unit * 0.22f, ly + unit * 0.12f), size = Size(unit * 0.44f, unit * 0.34f),
+        style = Stroke(width = unit * 0.025f),
+    )
+    drawLine(accent, Offset(cx, ly + unit * 0.34f), Offset(cx, ly + unit * 0.5f), strokeWidth = unit * 0.03f)
+}
+
+// ─────────── Wave 23 batch 6 — 2 boss trào phúng ───────────
+
+/** Bác Sĩ Google — chữ thập y tế + kính lúp (tra cứu). */
+private fun DrawScope.drawBossDrGoogle(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val arm = unit * 0.22f
+    val th = unit * 0.12f
+    // Chữ thập (2 thanh).
+    drawRect(body, topLeft = Offset(cx - th / 2f, cy - arm), size = Size(th, arm * 2f))
+    drawRect(body, topLeft = Offset(cx - arm, cy - th / 2f), size = Size(arm * 2f, th))
+    drawRect(accent, topLeft = Offset(cx - th / 2f, cy - arm), size = Size(th, arm * 2f),
+        style = Stroke(width = unit * 0.02f))
+    drawRect(accent, topLeft = Offset(cx - arm, cy - th / 2f), size = Size(arm * 2f, th),
+        style = Stroke(width = unit * 0.02f))
+    // Kính lúp (vòng + cán) góc dưới-phải = tra Google.
+    val gx = cx + unit * 0.24f
+    val gy = cy + unit * 0.24f
+    drawCircle(accent, unit * 0.12f, Offset(gx, gy), style = Stroke(width = unit * 0.03f))
+    drawLine(accent, Offset(gx + unit * 0.085f, gy + unit * 0.085f),
+        Offset(gx + unit * 0.2f, gy + unit * 0.2f),
+        strokeWidth = unit * 0.04f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+}
+
+/** Hoàng Thượng Mèo — đầu mèo (tròn + 2 tai tam giác) + ria + vương miện nhỏ. */
+private fun DrawScope.drawBossCatEmperor(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val rad = unit * 0.3f
+    // Đầu.
+    drawCircle(body, rad, Offset(cx, cy + unit * 0.04f))
+    drawCircle(accent, rad, Offset(cx, cy + unit * 0.04f), style = Stroke(width = unit * 0.03f))
+    // 2 tai tam giác.
+    for (s in listOf(-1f, 1f)) {
+        val ear = PathPool.acquire().apply {
+            moveTo(cx + s * rad * 0.55f, cy - rad * 0.7f)
+            lineTo(cx + s * rad * 0.95f, cy - rad * 1.25f)
+            lineTo(cx + s * rad * 1.0f, cy - rad * 0.5f)
+            close()
+        }
+        drawPath(ear, body)
+        drawPath(ear, accent, style = Stroke(width = unit * 0.02f))
+        PathPool.release(ear)
+    }
+    // 2 mắt.
+    for (s in listOf(-1f, 1f)) drawCircle(accent, unit * 0.028f, Offset(cx + s * rad * 0.35f, cy))
+    // Ria (2 bên × 2 sợi).
+    for (s in listOf(-1f, 1f)) for (dy in listOf(-0.06f, 0.06f)) {
+        drawLine(accent, Offset(cx + s * rad * 0.2f, cy + rad * 0.25f + unit * dy),
+            Offset(cx + s * rad * 0.95f, cy + rad * 0.18f + unit * dy * 2f), strokeWidth = unit * 0.012f)
+    }
+    // Vương miện nhỏ trên đỉnh (3 chóp).
+    val cw = rad * 0.8f
+    val cyTop = cy - rad * 1.1f
+    val crown = PathPool.acquire().apply {
+        moveTo(cx - cw / 2f, cyTop + unit * 0.08f)
+        lineTo(cx - cw / 2f, cyTop)
+        lineTo(cx - cw * 0.25f, cyTop + unit * 0.05f)
+        lineTo(cx, cyTop - unit * 0.04f)
+        lineTo(cx + cw * 0.25f, cyTop + unit * 0.05f)
+        lineTo(cx + cw / 2f, cyTop)
+        lineTo(cx + cw / 2f, cyTop + unit * 0.08f)
+        close()
+    }
+    drawPath(crown, accent)
+    PathPool.release(crown)
+}
+
+// ─────────── Wave 24 batch 7 — 2 boss trào phúng (HẾT 18) ───────────
+
+/** Thánh Cuồng Sale — thẻ giá (có lỗ treo) + "%" to (giảm giá). */
+private fun DrawScope.drawBossSale(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val w = unit * 0.6f
+    val h = unit * 0.5f
+    // Thẻ giá (ngũ giác: chữ nhật + mũi nhọn trái).
+    val tag = PathPool.acquire().apply {
+        moveTo(cx - w * 0.5f, cy)
+        lineTo(cx - w * 0.18f, cy - h * 0.5f)
+        lineTo(cx + w * 0.5f, cy - h * 0.5f)
+        lineTo(cx + w * 0.5f, cy + h * 0.5f)
+        lineTo(cx - w * 0.18f, cy + h * 0.5f)
+        close()
+    }
+    drawPath(tag, body)
+    drawPath(tag, accent, style = Stroke(width = unit * 0.03f))
+    PathPool.release(tag)
+    // Lỗ treo.
+    drawCircle(accent, unit * 0.035f, Offset(cx - w * 0.28f, cy))
+    // "%" : 2 chấm + gạch chéo.
+    drawCircle(accent, unit * 0.045f, Offset(cx + w * 0.05f, cy - h * 0.2f))
+    drawCircle(accent, unit * 0.045f, Offset(cx + w * 0.3f, cy + h * 0.2f))
+    drawLine(accent, Offset(cx + w * 0.32f, cy - h * 0.28f), Offset(cx + w * 0.03f, cy + h * 0.28f),
+        strokeWidth = unit * 0.03f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+}
+
+/** Cô Hồn Tháng 7 — hồn lửa (giọt nước ngược + đáy lượn sóng) + 2 mắt rỗng. */
+private fun DrawScope.drawBossGhostMonth(
+    cx: Float, cy: Float, wPx: Float, hPx: Float, body: Color, accent: Color,
+) {
+    val unit = minOf(wPx, hPx)
+    val r = unit * 0.3f
+    // Thân hồn (đỉnh nhọn, phình dưới) + đáy lượn 3 múi.
+    val ghost = PathPool.acquire().apply {
+        moveTo(cx, cy - r * 1.2f)                                  // đỉnh nhọn
+        cubicTo(cx + r * 1.1f, cy - r * 0.6f, cx + r, cy + r * 0.6f, cx + r, cy + r * 0.9f)
+        // đáy lượn sóng (3 múi).
+        lineTo(cx + r * 0.55f, cy + r * 0.6f)
+        lineTo(cx + r * 0.2f, cy + r * 0.95f)
+        lineTo(cx - r * 0.2f, cy + r * 0.6f)
+        lineTo(cx - r * 0.55f, cy + r * 0.95f)
+        lineTo(cx - r, cy + r * 0.9f)
+        cubicTo(cx - r, cy + r * 0.6f, cx - r * 1.1f, cy - r * 0.6f, cx, cy - r * 1.2f)
+        close()
+    }
+    drawPath(ghost, body.copy(alpha = 0.85f))
+    drawPath(ghost, accent, style = Stroke(width = unit * 0.025f))
+    PathPool.release(ghost)
+    // 2 mắt rỗng (tối).
+    for (s in listOf(-1f, 1f)) {
+        drawCircle(Color(0xFF0A0A18), unit * 0.05f, Offset(cx + s * r * 0.4f, cy - r * 0.1f))
+    }
 }
 
 // ─────────── Shape recipes ───────────
