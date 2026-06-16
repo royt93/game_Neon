@@ -48,6 +48,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.R
@@ -145,38 +147,53 @@ fun MenuScreen(
         // Layer 1b: comet streak (round 28) — parabolic trajectory, 8-15s gap
         CometStreak(modifier = Modifier.fillMaxSize())
 
-        // Layer 2: content — round 31 adaptive layout via BoxWithConstraints.
-        //   - Tall screens (≥ 720dp): fillMaxSize + Spacer(weight=1f) push grid
-        //     to bottom edge, removing dead-space.
-        //   - Short screens (< 720dp, landscape, small phones): switch to
-        //     verticalScroll + spacedBy(12dp) so content can't clip.
+        // Layer 2: content — adaptive *scaling* layout via BoxWithConstraints.
+        //   Yêu cầu sản phẩm: menu KHÔNG scroll, mọi thứ phải vừa đúng 1 màn.
+        //   Trước đây dùng ngưỡng cứng 720dp + dp cố định → nội dung nội tại
+        //   ~810dp (≈900dp khi có nút ĐIỂM DANH / checkpoint) > màn hình tầm
+        //   trung (800–860dp) nhưng nhánh ≥720dp KHÔNG scroll → Compose clip
+        //   đáy (mất nút CÀI ĐẶT / version). Giờ tính 1 hệ số `s` từ maxHeight
+        //   rồi co tỉ lệ logo/nút/font/spacing để luôn vừa, không clip, không
+        //   scroll. `mustScroll` chỉ là lưới an toàn cho split-screen/multi-window
+        //   khi đã co tới sàn mà vẫn tràn.
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize(),
         ) {
-            val tallEnough = maxHeight >= 720.dp
+            val showDaily = dailyAvailable || dailyClaimedAmount > 0
+            // Chiều cao nội tại (dp) ở scale 1, đo từ tổng các phần tử cố định.
+            val neededH = 810f +
+                (if (showDaily) 72f else 0f) +
+                (if (checkpoint > 0) 23f else 0f)
+            val minScale = 0.72f
+            // *0.97f: chừa ~3% lề đáy để phần tử cuối không sát viền do làm tròn.
+            val rawScale = maxHeight.value * 0.97f / neededH
+            val s = rawScale.coerceIn(minScale, 1f)
+            val mustScroll = rawScale < minScale
+
             val baseColumnMod = Modifier
                 .fillMaxSize()
                 // Round 33 — windowInsetsPadding clears notch / status-bar cutout area
                 // so title isn't masked. Activity hides status bar (round 25)
                 // but display cutout still occupies layout space → must reserve.
                 .windowInsetsPadding(WindowInsets.displayCutout)
-                .padding(horizontal = 22.dp, vertical = 24.dp)
-            val columnMod = if (tallEnough) baseColumnMod
-            else baseColumnMod.verticalScroll(rememberScrollState())
+                .padding(horizontal = 22.dp, vertical = 24f.sdp(s))
+            val columnMod = if (mustScroll) baseColumnMod.verticalScroll(rememberScrollState())
+            else baseColumnMod
         Column(
             modifier = columnMod,
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12f.sdp(s)),
         ) {
             // ─── Title (stagger 0ms) ───
-            EntryAnim(stepIndex = 0) { TitleBlock() }
+            EntryAnim(stepIndex = 0) { TitleBlock(s = s) }
 
-            // Round 32 — small breathing spacer after title pushes logo into
-            // visual center area (was: title flush, logo touching).
-            if (tallEnough) Spacer(modifier = Modifier.weight(0.3f))
+            // Breathing spacer after title — chỉ khi có dư chỗ (s == 1f, màn
+            // cao hơn nội dung). Khi đang co (s < 1f) nội dung vừa khít nên
+            // không thêm spacer (tránh đẩy tràn → clip).
+            if (s >= 1f) Spacer(modifier = Modifier.weight(0.3f))
 
             // ─── Splash ship logo (stagger 120ms) ───
-            EntryAnim(stepIndex = 1) { ShipLogo() }
+            EntryAnim(stepIndex = 1) { ShipLogo(s = s) }
 
             // ─── Info card (stagger 240ms) ───
             EntryAnim(stepIndex = 2) {
@@ -185,6 +202,7 @@ fun MenuScreen(
                     runModifier = runModifier,
                     balance = balance,
                     checkpoint = checkpoint,
+                    s = s,
                 )
             }
 
@@ -192,6 +210,7 @@ fun MenuScreen(
             EntryAnim(stepIndex = 3) {
                 PlayButton(
                     hasCheckpoint = checkpoint > 0,
+                    s = s,
                     onClick = {
                         Logger.d("MenuScreen: PLAY tapped (checkpoint=$checkpoint)")
                         onPlay()
@@ -207,6 +226,7 @@ fun MenuScreen(
                         claimed = dailyClaimedAmount > 0,
                         claimedAmount = dailyClaimedAmount,
                         streak = dailyStreak,
+                        s = s,
                         onClaim = {
                             scope.launch {
                                 val granted = meta.claimDaily(todayKey)
@@ -218,7 +238,7 @@ fun MenuScreen(
                 }
                 // Wave 25 fix — tách nút ĐIỂM DANH (CTA thưởng, thuộc cụm hero/PLAY)
                 // khỏi label nhóm "TRƯỚC TRẬN" bên dưới (user: "bị khít"). +~28dp tổng.
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8f.sdp(s)))
             }
 
             // Round 70 fix (Issue 1) — KHÔNG thêm Spacer riêng. Column outer
@@ -237,12 +257,12 @@ fun MenuScreen(
             // nhầm với Nâng cấp (skill-tree vĩnh viễn).
             EntryAnim(stepIndex = 4) {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8f.sdp(s)),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    GroupHeader(label = "TRƯỚC TRẬN", color = NeonViolet)
+                    GroupHeader(label = "TRƯỚC TRẬN", color = NeonViolet, s = s)
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10f.sdp(s)),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         MenuButton(
@@ -251,6 +271,7 @@ fun MenuScreen(
                             color = NeonViolet,
                             modifier = Modifier.weight(1f),
                             compact = true,
+                            s = s,
                             onClick = {
                                 Logger.d("MenuScreen: MODE tapped")
                                 onOpenModePicker()
@@ -262,6 +283,7 @@ fun MenuScreen(
                             color = NeonGold,
                             modifier = Modifier.weight(1f),
                             compact = true,
+                            s = s,
                             onClick = {
                                 Logger.d("MenuScreen: CHALLENGE (modifier) tapped")
                                 onOpenModifierPicker()
@@ -273,6 +295,7 @@ fun MenuScreen(
                             color = NeonCyan,
                             modifier = Modifier.weight(1f),
                             compact = true,
+                            s = s,
                             onClick = {
                                 Logger.d("MenuScreen: LOADOUT tapped")
                                 onOpenLoadout()
@@ -280,10 +303,10 @@ fun MenuScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(2.dp))
-                    GroupHeader(label = "TIẾN TRÌNH", color = NeonGold)
+                    Spacer(modifier = Modifier.height(2f.sdp(s)))
+                    GroupHeader(label = "TIẾN TRÌNH", color = NeonGold, s = s)
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12f.sdp(s)),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         // Wave 13a (slice C) — NÂNG CẤP (skill-tree) đã gộp vào Cửa hàng
@@ -293,6 +316,7 @@ fun MenuScreen(
                             glyph = "◇",
                             color = NeonCyan,
                             modifier = Modifier.weight(1f),
+                            s = s,
                             onClick = {
                                 Logger.d("MenuScreen: SHOP tapped")
                                 onOpenShop()
@@ -303,6 +327,7 @@ fun MenuScreen(
                             glyph = "▦",
                             color = NeonGold,
                             modifier = Modifier.weight(1f),
+                            s = s,
                             onClick = {
                                 Logger.d("MenuScreen: STATS tapped")
                                 onOpenStats()
@@ -310,10 +335,10 @@ fun MenuScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(2.dp))
-                    GroupHeader(label = "KHÁC", color = NeonViolet)
+                    Spacer(modifier = Modifier.height(2f.sdp(s)))
+                    GroupHeader(label = "KHÁC", color = NeonViolet, s = s)
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12f.sdp(s)),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         MenuButton(
@@ -321,6 +346,7 @@ fun MenuScreen(
                             glyph = "❡",
                             color = NeonViolet,
                             modifier = Modifier.weight(1f),
+                            s = s,
                             onClick = {
                                 Logger.d("MenuScreen: INFO tapped")
                                 onOpenInfo()
@@ -331,6 +357,7 @@ fun MenuScreen(
                             glyph = "⚙",
                             color = NeonMagenta,
                             modifier = Modifier.weight(1f),
+                            s = s,
                             onClick = {
                                 Logger.d("MenuScreen: SETTINGS tapped")
                                 onOpenSettings()
@@ -353,7 +380,7 @@ fun MenuScreen(
                     Text(
                         text = "Phiên bản $versionName",
                         color = Color.White.copy(alpha = 0.45f),
-                        fontSize = 11.sp,
+                        fontSize = 11f.ssp(s),
                         style = TextStyle(letterSpacing = 1.sp),
                     )
                 }
@@ -398,7 +425,7 @@ private fun EntryAnim(stepIndex: Int, content: @Composable () -> Unit) {
 // ─────────────────────────── sub-components ───────────────────────────
 
 @Composable
-private fun TitleBlock() {
+private fun TitleBlock(s: Float) {
     val pulse = rememberInfiniteTransition(label = "titlePulse")
     val glow by pulse.animateFloat(
         initialValue = 0.55f,
@@ -414,7 +441,7 @@ private fun TitleBlock() {
             text = "SKY FORCE",
             color = NeonCyan,
             // Round 33 — title 36 → 44sp for stronger hero presence.
-            fontSize = 44.sp,
+            fontSize = 44f.ssp(s),
             fontWeight = FontWeight.Black,
             style = TextStyle(letterSpacing = 5.sp),
             modifier = Modifier
@@ -425,7 +452,7 @@ private fun TitleBlock() {
             text = "U*S*A",
             color = NeonMagenta,
             // Round 33 — subtitle 22 → 28sp, scales with main title.
-            fontSize = 28.sp,
+            fontSize = 28f.ssp(s),
             fontWeight = FontWeight.Black,
             style = TextStyle(letterSpacing = 7.sp),
             modifier = Modifier.neonGlow(NeonMagenta, intensity = 0.5f, radiusFactor = 1.4f),
@@ -434,7 +461,7 @@ private fun TitleBlock() {
 }
 
 @Composable
-private fun ShipLogo() {
+private fun ShipLogo(s: Float) {
     val pulse = rememberInfiniteTransition(label = "shipPulse")
     val scale by pulse.animateFloat(
         initialValue = 0.96f,
@@ -466,7 +493,7 @@ private fun ShipLogo() {
     )
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier.size(180.dp),
+        modifier = Modifier.size(180f.sdp(s)),
     ) {
         // Radial halo behind the ship
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -488,7 +515,7 @@ private fun ShipLogo() {
             painter = painterResource(id = R.drawable.splash_image),
             contentDescription = stringResource(id = R.string.splash),
             modifier = Modifier
-                .size(140.dp)
+                .size(140f.sdp(s))
                 .graphicsLayer {
                     scaleX = scale
                     scaleY = scale
@@ -504,16 +531,17 @@ private fun InfoCard(
     runModifier: com.tranphuloi.neon.ui.game.modifier.RunModifier,
     balance: Int,
     checkpoint: Int,
+    s: Float,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(6f.sdp(s)),
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
             .background(NeonBgMid.copy(alpha = 0.65f))
             .border(BorderStroke(1.5.dp, NeonViolet.copy(alpha = 0.7f)), RoundedCornerShape(14.dp))
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 12f.sdp(s)),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -524,14 +552,14 @@ private fun InfoCard(
                 Text(
                     text = "CHẾ ĐỘ",
                     color = NeonViolet.copy(alpha = 0.7f),
-                    fontSize = 11.sp,
+                    fontSize = 11f.ssp(s),
                     fontWeight = FontWeight.Bold,
                     style = TextStyle(letterSpacing = 3.sp),
                 )
                 Text(
                     text = mode.displayName,
                     color = NeonViolet,
-                    fontSize = 18.sp,
+                    fontSize = 18f.ssp(s),
                     fontWeight = FontWeight.Black,
                 )
             }
@@ -540,14 +568,14 @@ private fun InfoCard(
                 Text(
                     text = "♦",
                     color = NeonGold,
-                    fontSize = 20.sp,
+                    fontSize = 20f.ssp(s),
                     fontWeight = FontWeight.Black,
                 )
                 Spacer(modifier = Modifier.size(4.dp))
                 Text(
                     text = "$balance",
                     color = NeonGold,
-                    fontSize = 18.sp,
+                    fontSize = 18f.ssp(s),
                     fontWeight = FontWeight.Black,
                 )
             }
@@ -556,7 +584,7 @@ private fun InfoCard(
             Text(
                 text = "⚡ Thử thách: ${runModifier.displayName} (×${runModifier.scoreMul})",
                 color = NeonGold,
-                fontSize = 14.sp,
+                fontSize = 14f.ssp(s),
                 fontWeight = FontWeight.SemiBold,
             )
         }
@@ -564,7 +592,7 @@ private fun InfoCard(
             Text(
                 text = "▸ Đang ở màn $checkpoint",
                 color = NeonCyan,
-                fontSize = 14.sp,
+                fontSize = 14f.ssp(s),
                 fontWeight = FontWeight.Bold,
             )
         }
@@ -574,6 +602,7 @@ private fun InfoCard(
 @Composable
 private fun PlayButton(
     hasCheckpoint: Boolean,
+    s: Float,
     onClick: () -> Unit,
 ) {
     val pulse = rememberInfiniteTransition(label = "playPulse")
@@ -593,7 +622,7 @@ private fun PlayButton(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxWidth()
-            .height(UNIFIED_BUTTON_HEIGHT)
+            .height(UNIFIED_BUTTON_HEIGHT * s)
             .clickable(onClick = onClick)
             .clip(RoundedCornerShape(14.dp))
             .background(
@@ -616,14 +645,14 @@ private fun PlayButton(
             Text(
                 text = "▶",
                 color = NeonCyan,
-                fontSize = 22.sp,
+                fontSize = 22f.ssp(s),
                 fontWeight = FontWeight.Black,
             )
             Spacer(modifier = Modifier.size(10.dp))
             Text(
                 text = label,
                 color = Color.White,
-                fontSize = 18.sp,
+                fontSize = 18f.ssp(s),
                 fontWeight = FontWeight.Black,
                 style = TextStyle(letterSpacing = 3.sp),
                 modifier = Modifier.neonGlow(Color.White, intensity = 0.35f, radiusFactor = 1.3f),
@@ -639,6 +668,7 @@ private fun DailyCheckInButton(
     claimed: Boolean,
     claimedAmount: Int,
     streak: Int,
+    s: Float,
     onClaim: () -> Unit,
 ) {
     val label = if (claimed) {
@@ -650,7 +680,7 @@ private fun DailyCheckInButton(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .fillMaxWidth()
-            .height(UNIFIED_BUTTON_HEIGHT)
+            .height(UNIFIED_BUTTON_HEIGHT * s)
             .then(if (claimed) Modifier else Modifier.clickable(onClick = onClaim))
             .clip(RoundedCornerShape(14.dp))
             .background(NeonGold.copy(alpha = if (claimed) 0.12f else 0.2f))
@@ -664,7 +694,7 @@ private fun DailyCheckInButton(
         Text(
             text = label,
             color = if (claimed) NeonGold else Color.White,
-            fontSize = 15.sp,
+            fontSize = 15f.ssp(s),
             fontWeight = FontWeight.Black,
             style = TextStyle(letterSpacing = 2.sp),
         )
@@ -690,13 +720,14 @@ private fun MenuButton(
     // Wave 13b — compact = 3-wide row variant: nhỏ font/glyph + maxLines=1 để
     // label dài ("THỬ THÁCH", "BÁCH KHOA") không tràn ở 1/3 chiều rộng.
     compact: Boolean = false,
+    s: Float,
     onClick: () -> Unit,
 ) {
     Row(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
-            .height(UNIFIED_BUTTON_HEIGHT)
+            .height(UNIFIED_BUTTON_HEIGHT * s)
             .clickable(onClick = onClick)
             .clip(RoundedCornerShape(14.dp))
             .background(color.copy(alpha = 0.12f))
@@ -707,7 +738,7 @@ private fun MenuButton(
         Text(
             text = glyph,
             color = color,
-            fontSize = if (compact) 18.sp else 22.sp,
+            fontSize = (if (compact) 18f else 22f).ssp(s),
             fontWeight = FontWeight.Black,
             modifier = Modifier.neonGlow(color, intensity = 0.5f, radiusFactor = 1.2f),
         )
@@ -715,7 +746,7 @@ private fun MenuButton(
         Text(
             text = label,
             color = color,
-            fontSize = if (compact) 11.sp else 13.sp,
+            fontSize = (if (compact) 11f else 13f).ssp(s),
             fontWeight = FontWeight.Black,
             maxLines = 1,
             style = TextStyle(letterSpacing = if (compact) 0.5.sp else 1.5.sp),
@@ -728,14 +759,14 @@ private fun MenuButton(
  * Accent bar + dim label, matches LoadoutPicker.SectionHeader vibe.
  */
 @Composable
-private fun GroupHeader(label: String, color: Color) {
+private fun GroupHeader(label: String, color: Color, s: Float) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().padding(start = 2.dp),
     ) {
         Box(
             modifier = Modifier
-                .size(width = 3.dp, height = 12.dp)
+                .size(width = 3.dp, height = 12f.sdp(s))
                 .clip(RoundedCornerShape(2.dp))
                 .background(color),
         )
@@ -743,7 +774,7 @@ private fun GroupHeader(label: String, color: Color) {
         Text(
             text = label,
             color = color.copy(alpha = 0.85f),
-            fontSize = 11.sp,
+            fontSize = 11f.ssp(s),
             fontWeight = FontWeight.Black,
             style = TextStyle(letterSpacing = 2.sp),
         )
@@ -752,6 +783,14 @@ private fun GroupHeader(label: String, color: Color) {
 
 /** Round 70 (Issue 1) — single source of truth cho button height. */
 private val UNIFIED_BUTTON_HEIGHT = 64.dp
+
+/**
+ * Adaptive scaling helpers — nhân giá trị thiết kế (ở scale 1.0) với hệ số `s`
+ * tính từ maxHeight trong MenuScreen, để toàn bộ menu co tỉ lệ vừa đúng 1 màn
+ * mà không scroll/clip. `s` luôn trong [0.72f, 1f].
+ */
+private fun Float.sdp(s: Float): Dp = (this * s).dp
+private fun Float.ssp(s: Float): TextUnit = (this * s).sp
 
 // ─────────────────────────── starfield background ───────────────────────────
 
