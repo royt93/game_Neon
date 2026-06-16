@@ -2,15 +2,22 @@
 <!--
   Splash icon động (Android 12+ windowSplashScreenAnimatedIcon).
 
-  Thiết kế "Neon Launch": chiến cơ neon scale-in + overshoot vào giữa, vòng
-  tròn năng lượng tự "vẽ" (trimPath) và xoay, một cung teal quay quanh, lửa
-  động cơ phụt nhịp (scaleY reverse-loop) và các sao lấp lánh (alpha stagger).
+  Thiết kế ĐỒNG BỘ với Compose SplashScreen (ui/splash/SplashScreen.kt): cùng
+  ngôn ngữ thị giác "huy hiệu tròn neon + vầng sáng pulse cyan/magenta" để khi
+  splash hệ thống fade sang Compose splash (logo splash_image + tên app) trông
+  liền mạch, không nhảy hình.
 
-  Quy ước canvas splash Android 12+: viewport 1152x1152, chỉ vùng tròn ĐƯỜNG
-  KÍNH ~768 ở giữa (bán kính ~384 quanh tâm 576,576) là an toàn — mọi thứ
-  ngoài đó bị system mask cắt. Toàn bộ art ở đây nằm trong bán kính ~300.
+  Khớp với Compose:
+    • Vầng sáng radial pulse cyan↔magenta, nhịp 900ms reverse (y như pulse của
+      Compose: scale 0.92↔1.08).
+    • Bảng màu chính xác: NeonCyan #00F0FF, NeonMagenta #FF2DE0, nền #05010F.
+    • Chiến cơ chĩa lên-phải ~32° (cùng hướng phi thuyền trong splash_image).
 
-  Thuần vector + màu đặc (KHÔNG gradient) để render đúng từ minSdk 23 khi
+  Quy ước canvas splash Android 12+: viewport 1152x1152, chỉ vùng tròn đường
+  kính ~768 ở giữa (bán kính ~384 quanh tâm 576,576) là an toàn. Mọi phần tử ở
+  đây (kể cả lúc pulse phóng to 1.08 và overshoot) đều nằm trong bán kính ~370.
+
+  Thuần vector + màu ĐẶC (không gradient) để render đúng từ minSdk 23 khi
   framework SplashScreen nạp drawable (ngoài luồng support-lib của Compose).
 -->
 <animated-vector
@@ -25,109 +32,138 @@
             android:viewportWidth="1152"
             android:viewportHeight="1152">
 
-            <!-- Vòng năng lượng ngoài (nạp + xoay) -->
+            <!-- Vầng sáng radial (3 đĩa đồng tâm, đặc → mờ) — pulse cyan/magenta
+                 giả lập radialGradient của Compose splash -->
+            <group
+                android:name="pulse"
+                android:pivotX="576"
+                android:pivotY="576">
+                <path
+                    android:name="halo_out"
+                    android:pathData="M576,236 a340,340 0 1,0 0,680 a340,340 0 1,0 0,-680 Z"
+                    android:fillColor="#00F0FF"
+                    android:fillAlpha="0" />
+                <path
+                    android:name="halo_mid"
+                    android:pathData="M576,306 a270,270 0 1,0 0,540 a270,270 0 1,0 0,-540 Z"
+                    android:fillColor="#FF2DE0"
+                    android:fillAlpha="0" />
+                <path
+                    android:name="halo_in"
+                    android:pathData="M576,386 a190,190 0 1,0 0,380 a190,190 0 1,0 0,-380 Z"
+                    android:fillColor="#00F0FF"
+                    android:fillAlpha="0" />
+            </group>
+
+            <!-- Vòng emblem ngoài (nạp + xoay) — cyan -->
             <group
                 android:name="ring_rot"
                 android:pivotX="576"
                 android:pivotY="576">
                 <path
                     android:name="ring_glow"
-                    android:pathData="M576,246 a330,330 0 1,0 0,660 a330,330 0 1,0 0,-660 Z"
-                    android:strokeColor="#B26BFF"
-                    android:strokeWidth="30"
-                    android:strokeAlpha="0.28"
+                    android:pathData="M576,276 a300,300 0 1,0 0,600 a300,300 0 1,0 0,-600 Z"
+                    android:strokeColor="#00F0FF"
+                    android:strokeWidth="28"
+                    android:strokeAlpha="0.30"
                     android:trimPathEnd="0" />
                 <path
                     android:name="ring_core"
-                    android:pathData="M576,246 a330,330 0 1,0 0,660 a330,330 0 1,0 0,-660 Z"
-                    android:strokeColor="#CBA6FF"
+                    android:pathData="M576,276 a300,300 0 1,0 0,600 a300,300 0 1,0 0,-600 Z"
+                    android:strokeColor="#9FF8FF"
                     android:strokeWidth="9"
                     android:strokeLineCap="round"
                     android:trimPathEnd="0" />
             </group>
 
-            <!-- Cung teal quỹ đạo (đoạn 32%, quay ngược) -->
+            <!-- Cung quỹ đạo magenta (đoạn 30%, quay ngược) -->
             <group
                 android:name="ring_rot2"
                 android:pivotX="576"
                 android:pivotY="576">
                 <path
                     android:name="ring_arc"
-                    android:pathData="M576,276 a300,300 0 1,0 0,600 a300,300 0 1,0 0,-600 Z"
-                    android:strokeColor="#16E0C8"
+                    android:pathData="M576,316 a260,260 0 1,0 0,520 a260,260 0 1,0 0,-520 Z"
+                    android:strokeColor="#FF2DE0"
                     android:strokeWidth="6"
                     android:strokeLineCap="round"
                     android:strokeAlpha="0"
                     android:trimPathStart="0"
-                    android:trimPathEnd="0.32" />
+                    android:trimPathEnd="0.30" />
             </group>
 
-            <!-- Sao lấp lánh (4-point sparkle) -->
+            <!-- Sao lấp lánh (cyan + magenta) -->
             <path
                 android:name="star1"
                 android:pathData="M760,354 L767.3,372.7 L786,380 L767.3,387.3 L760,406 L752.7,387.3 L734,380 L752.7,372.7 Z"
-                android:fillColor="#E2D2FF"
+                android:fillColor="#6FF4FF"
                 android:fillAlpha="0.15" />
             <path
                 android:name="star2"
                 android:pathData="M430,500 L435.6,514.4 L450,520 L435.6,525.6 L430,540 L424.4,525.6 L410,520 L424.4,514.4 Z"
-                android:fillColor="#16E0C8"
+                android:fillColor="#FF6BEC"
                 android:fillAlpha="0.15" />
             <path
                 android:name="star3"
                 android:pathData="M700,724 L705,737 L718,742 L705,747 L700,760 L695,747 L682,742 L695,737 Z"
-                android:fillColor="#E2D2FF"
+                android:fillColor="#6FF4FF"
                 android:fillAlpha="0.15" />
             <path
                 android:name="star4"
                 android:pathData="M412,668 L418.2,683.8 L434,690 L418.2,696.2 L412,712 L396.2,696.2 L380,690 L396.2,683.8 Z"
-                android:fillColor="#C9A6FF"
+                android:fillColor="#FF6BEC"
                 android:fillAlpha="0.15" />
 
-            <!-- Lửa động cơ (phụt nhịp), pivot ở đỉnh lửa -->
-            <group
-                android:name="flame"
-                android:pivotX="576"
-                android:pivotY="716">
-                <path
-                    android:name="flame_glow"
-                    android:pathData="M552,716 L600,716 L590,772 L576,820 L562,772 Z"
-                    android:fillColor="#FF7AE0"
-                    android:fillAlpha="0" />
-                <path
-                    android:name="flame_core"
-                    android:pathData="M560,720 L592,720 L584,768 L576,808 L568,768 Z"
-                    android:fillColor="#FFE08A"
-                    android:fillAlpha="0" />
-            </group>
-
-            <!-- Chiến cơ neon (scale-in + overshoot) -->
+            <!-- Chiến cơ neon — chĩa lên-PHẢI khớp splash_image. Android xoay
+                 theo chiều kim đồng hồ với góc DƯƠNG (trục y hướng xuống), nên
+                 ship vẽ chĩa thẳng lên + rotation=35 → mũi hướng ~1 giờ.
+                 Lửa động cơ nằm trong group tàu để thừa hưởng góc xoay (phụt
+                 về dưới-trái, đúng phía đuôi). -->
             <group
                 android:name="ship"
                 android:pivotX="576"
                 android:pivotY="576"
+                android:rotation="35"
                 android:scaleX="0.5"
                 android:scaleY="0.5">
+
+                <!-- Lửa động cơ (phụt nhịp), pivot ở đỉnh lửa -->
+                <group
+                    android:name="flame"
+                    android:pivotX="576"
+                    android:pivotY="716">
+                    <path
+                        android:name="flame_glow"
+                        android:pathData="M552,716 L600,716 L590,772 L576,820 L562,772 Z"
+                        android:fillColor="#FF2DE0"
+                        android:fillAlpha="0" />
+                    <path
+                        android:name="flame_core"
+                        android:pathData="M560,720 L592,720 L584,768 L576,808 L568,768 Z"
+                        android:fillColor="#BFF9FF"
+                        android:fillAlpha="0" />
+                </group>
+
                 <path
                     android:name="ship_glow"
                     android:pathData="M576,352 L604,470 L604,556 L676,628 L700,660 L620,648 L606,700 L642,760 L590,742 L576,720 L562,742 L510,760 L546,700 L532,648 L452,660 L476,628 L548,556 L548,470 Z"
-                    android:strokeColor="#C77DFF"
+                    android:strokeColor="#00F0FF"
                     android:strokeWidth="30"
                     android:strokeAlpha="0"
                     android:strokeLineJoin="round" />
                 <path
                     android:name="ship_core"
                     android:pathData="M576,352 L604,470 L604,556 L676,628 L700,660 L620,648 L606,700 L642,760 L590,742 L576,720 L562,742 L510,760 L546,700 L532,648 L452,660 L476,628 L548,556 L548,470 Z"
-                    android:fillColor="#2C0B5E"
+                    android:fillColor="#2A0A4D"
                     android:fillAlpha="0"
-                    android:strokeColor="#ECD8FF"
+                    android:strokeColor="#8FF6FF"
                     android:strokeWidth="7"
                     android:strokeAlpha="0"
                     android:strokeLineJoin="round" />
                 <path
                     android:name="cockpit"
                     android:pathData="M576,398 L592,440 L588,512 L576,528 L564,512 L560,440 Z"
-                    android:fillColor="#17E3CC"
+                    android:fillColor="#FF2DE0"
                     android:fillAlpha="0" />
             </group>
         </vector>
@@ -135,7 +171,65 @@
 
     <!-- ============ ANIMATIONS ============ -->
 
-    <!-- Vòng ngoài: lõi tự vẽ -->
+    <!-- Vầng sáng: pulse scale 0.92↔1.08 (khớp Compose, 900ms reverse) -->
+    <target android:name="pulse">
+        <aapt:attr name="android:animation">
+            <set android:ordering="together">
+                <objectAnimator
+                    android:propertyName="scaleX"
+                    android:valueFrom="0.92"
+                    android:valueTo="1.08"
+                    android:duration="900"
+                    android:repeatCount="infinite"
+                    android:repeatMode="reverse"
+                    android:interpolator="@android:anim/linear_interpolator" />
+                <objectAnimator
+                    android:propertyName="scaleY"
+                    android:valueFrom="0.92"
+                    android:valueTo="1.08"
+                    android:duration="900"
+                    android:repeatCount="infinite"
+                    android:repeatMode="reverse"
+                    android:interpolator="@android:anim/linear_interpolator" />
+            </set>
+        </aapt:attr>
+    </target>
+    <!-- Vầng sáng: 3 đĩa hiện lên (so le nhẹ) -->
+    <target android:name="halo_out">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="0"
+                android:valueTo="0.07"
+                android:duration="520"
+                android:startOffset="0"
+                android:interpolator="@android:anim/decelerate_interpolator" />
+        </aapt:attr>
+    </target>
+    <target android:name="halo_mid">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="0"
+                android:valueTo="0.11"
+                android:duration="520"
+                android:startOffset="40"
+                android:interpolator="@android:anim/decelerate_interpolator" />
+        </aapt:attr>
+    </target>
+    <target android:name="halo_in">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:propertyName="fillAlpha"
+                android:valueFrom="0"
+                android:valueTo="0.16"
+                android:duration="520"
+                android:startOffset="80"
+                android:interpolator="@android:anim/decelerate_interpolator" />
+        </aapt:attr>
+    </target>
+
+    <!-- Vòng emblem: lõi tự vẽ -->
     <target android:name="ring_core">
         <aapt:attr name="android:animation">
             <objectAnimator
@@ -147,8 +241,6 @@
                 android:interpolator="@android:interpolator/fast_out_slow_in" />
         </aapt:attr>
     </target>
-
-    <!-- Vòng ngoài: glow vẽ trễ hơn lõi một nhịp -->
     <target android:name="ring_glow">
         <aapt:attr name="android:animation">
             <objectAnimator
@@ -160,8 +252,6 @@
                 android:interpolator="@android:interpolator/fast_out_slow_in" />
         </aapt:attr>
     </target>
-
-    <!-- Vòng ngoài: xoay chậm liên tục -->
     <target android:name="ring_rot">
         <aapt:attr name="android:animation">
             <objectAnimator
@@ -174,7 +264,7 @@
         </aapt:attr>
     </target>
 
-    <!-- Cung teal: hiện ra + quay ngược liên tục -->
+    <!-- Cung magenta: hiện ra + quay ngược -->
     <target android:name="ring_arc">
         <aapt:attr name="android:animation">
             <objectAnimator
@@ -219,8 +309,6 @@
             </set>
         </aapt:attr>
     </target>
-
-    <!-- Tàu: thân hiện lên (fill + stroke) -->
     <target android:name="ship_core">
         <aapt:attr name="android:animation">
             <set android:ordering="together">
@@ -241,8 +329,6 @@
             </set>
         </aapt:attr>
     </target>
-
-    <!-- Tàu: hào quang neon -->
     <target android:name="ship_glow">
         <aapt:attr name="android:animation">
             <objectAnimator
@@ -254,21 +340,19 @@
                 android:interpolator="@android:anim/decelerate_interpolator" />
         </aapt:attr>
     </target>
-
-    <!-- Buồng lái sáng lên sau khi tàu vào vị trí -->
     <target android:name="cockpit">
         <aapt:attr name="android:animation">
             <objectAnimator
                 android:propertyName="fillAlpha"
                 android:valueFrom="0"
-                android:valueTo="0.92"
+                android:valueTo="0.95"
                 android:duration="360"
                 android:startOffset="460"
                 android:interpolator="@android:anim/decelerate_interpolator" />
         </aapt:attr>
     </target>
 
-    <!-- Lửa: hiện lên -->
+    <!-- Lửa: hiện lên + phụt nhịp -->
     <target android:name="flame_core">
         <aapt:attr name="android:animation">
             <objectAnimator
@@ -291,8 +375,6 @@
                 android:interpolator="@android:anim/decelerate_interpolator" />
         </aapt:attr>
     </target>
-
-    <!-- Lửa: phụt nhịp (scaleY reverse-loop) — nhịp đầu từ 0.5 đóng vai "đánh lửa" -->
     <target android:name="flame">
         <aapt:attr name="android:animation">
             <objectAnimator
@@ -307,7 +389,7 @@
         </aapt:attr>
     </target>
 
-    <!-- Sao lấp lánh: alpha 0.15↔1, lệch pha để nhấp nháy so le -->
+    <!-- Sao lấp lánh: alpha 0.15↔max, lệch pha so le -->
     <target android:name="star1">
         <aapt:attr name="android:animation">
             <objectAnimator
