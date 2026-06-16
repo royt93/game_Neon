@@ -20,11 +20,20 @@
         <item name="windowNoTitle">true</item>
     </style>
 
-    <!-- System SplashScreen API (Pc): native splash that fades into our Compose splash. -->
+    <!-- System SplashScreen API (Android 12+ native, back-port cho máy cũ qua
+         core-splashscreen): native splash rồi fade vào Compose SplashScreen.
+         Icon dùng @drawable/splash_icon_animated — Animated Vector Drawable
+         neon tự dựng (chiến cơ scale-in overshoot + vòng năng lượng tự vẽ &
+         xoay + lửa động cơ phụt nhịp + sao lấp lánh). Thuần vector + màu đặc
+         nên render đúng từ minSdk 23. Art nằm trong bán kính an toàn ~300 của
+         vùng mask tròn 768 mà Android 12+ áp lên icon splash.
+         animationDuration = 1000 (trần khuyến nghị) để giữ splash đủ lâu cho
+         intro (~850ms) chạy xong trước khi fade sang Compose SplashScreen.
+         (splash_image cũ giữ nguyên cho logo full-screen trong Compose.) -->
     <style name="Theme.Neon.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">#05010F</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_image</item>
-        <item name="windowSplashScreenAnimationDuration">400</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon_animated</item>
+        <item name="windowSplashScreenAnimationDuration">1000</item>
         <item name="postSplashScreenTheme">@style/Theme.Neon.NoActionBar</item>
     </style>
 
