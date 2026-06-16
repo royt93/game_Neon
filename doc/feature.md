@@ -39,6 +39,7 @@
 - ✅ Glow effect cho ship/lasers/enemies/boosters/space objects/enemy lasers
 - ✅ Splash screen pulse glow + scale animation
 - ✅ Splash uses Android 12+ SplashScreen API (Pc)
+- ✅ Splash icon động — AVD `drawable/splash_icon_animated.xml` (chiến cơ neon scale-in overshoot + vòng năng lượng tự vẽ & xoay + cung quỹ đạo + lửa động cơ phụt nhịp + sao lấp lánh). Đồng bộ palette/bố cục với Compose `SplashScreen` (NeonCyan #00F0FF / NeonMagenta #FF2DE0, huy hiệu tròn, ship chĩa lên-phải). Trỏ qua `windowSplashScreenAnimatedIcon` (`themes.xml` → `Theme.Neon.Splash`), thuần vector + màu đặc nên render từ minSdk 23. *(thay icon cũ trỏ `@drawable/splash_image` — non-square, 1 density, không animate.)*
 - ✅ Dialogs revamped: pause/gameover/settings/difficulty với neon border + glow
 - ✅ HUD revamped: HP color theo % (cyan/gold/red), mineral icon glow
 - ✅ **HP bar visual** (110dp×8dp, fill theo hp/1000, glow scale theo deficit)
@@ -548,7 +549,7 @@ Phản biện: thủ phạm không phải kích thước HP mà là (a) cột ch
 
 **Skipped (deferred):**
 - ⏸️ Disable Triple Laser when Ult active — user did not pick. Would mutually-exclude the two boosters to prevent 40+ active lasers.
-- ⏸️ Replace Coil GIF explosion with Canvas particle / sprite-frame anim — bigger refactor, parked.
+- ⏸️→✅ Replace Coil GIF explosion with Canvas particle / sprite-frame anim — **DONE ở R72**: migrate sang `ExplosionCanvas.kt` (3-layer pure Canvas), xoá `anim_explosion.gif` + `ImageLoader.kt` + `ExplosionBurstOverlay.kt` + Coil 3 deps. (Chi tiết: feature-archive.md.)
 
 **Files modified (round 21):**
 - `app/build.gradle` (added `buildConfig = true`)
@@ -2446,8 +2447,8 @@ User Round 67+ pick which Wave(s) to prioritize. Each Wave is 3-6 rounds. Sugges
 - **Logger:** 2 cấp — `Logger.d` cho sparse events (init/lifecycle/stage advance/boss kill/achievement), `Logger.v { ... }` cho hot-path (per-frame, per-collision, per-spawn, per-kill, audio micro-step). Toggle qua `Logger.VERBOSE = true` trong utils/Logger.kt khi cần debug stream đầy đủ.
 - **Mapper memoization (round 48):** `EnemyToEnemyUIMapper` + `LaserToLaserUIMapper` cache theo id với LRU LinkedHashMap (cap 64 + 128). Mappers là top-level `private val` → cache persist app-lifetime, bounded by LRU. Field-compare fast-path tránh allocation khi entity unchanged. Tints dùng `==` (structural) + caller dùng `emptyList()` singleton cho no-effect case.
 - **Entity caps (round 47):** `EnemyController.MAX_REGULAR_ENEMIES = 30` (bosses bypass), `LasersController.MAX_SHIP_LASERS = 25`, `EnemyLasersController.MAX_ENEMY_LASERS = 30`. `BoosterController.MAX_BOOSTERS = 3` (pre-existing). Skip-at-cap logs Logger.v.
-- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **585** (61 test suites, 0 failures — last verified 2026-05-30 sau Wave 14a Round 2 (6 consumable buff packs) + bullet-fix (đạn cả-run + KAMEHAMEHA/ATOMIC, `BulletBehaviorWave14Test`) + 13c/13d; Wave 13a Shop hub: +23 `ShipShopLogicTest` + 6 `MetaProgressionShipIntegrationTest` (Robolectric, real DataStore — đầu tiên dùng Robolectric trong repo). Lưu ý: `BoosterTypeDistributionTest` là test xác suất, đôi khi flaky — rerun pass. Production release compile clean. Widget test Compose+Robolectric chưa khả thi trên AGP 9.1.1 (ui-test-manifest không merge vào unit-test manifest) → verify UI on-device.
-- **Doc structure:** R1-R75 history archived ở [feature-archive.md](feature-archive.md) (~2700 dòng). File này (R76-R86 recent + Phần 4-7 + Notes) ~1860 dòng. Khi feature.md vượt 200KB lần nữa → move R76-R85 sang archive.
+- **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **≈723 `@Test` methods / 76 test files** (đếm 2026-06-16; mốc verify 0-fail gần nhất: 585 ngày 2026-05-30 sau Wave 14a Round 2 (6 consumable buff packs) + bullet-fix (đạn cả-run + KAMEHAMEHA/ATOMIC, `BulletBehaviorWave14Test`) + 13c/13d; Wave 13a Shop hub: +23 `ShipShopLogicTest` + 6 `MetaProgressionShipIntegrationTest` (Robolectric, real DataStore — đầu tiên dùng Robolectric trong repo). Lưu ý: `BoosterTypeDistributionTest` là test xác suất, đôi khi flaky — rerun pass. Production release compile clean. Widget test Compose+Robolectric chưa khả thi trên AGP 9.1.1 (ui-test-manifest không merge vào unit-test manifest) → verify UI on-device.
+- **Doc structure:** R1-R75 history archived ở [feature-archive.md](feature-archive.md) (~2700 dòng). File này (R76-R86 recent + Phần 4-7 + Notes) ~2460 dòng (2026-06-16). Khi feature.md vượt 200KB lần nữa → move R76-R85 sang archive.
 - **i18n:** strings mới phải thêm vào cả `values-vi/strings.xml` và `values-en/strings.xml`
 - **Compose stability:** data class state mới nên dùng `@Immutable`/`@Stable` annotation. EnemyUI, LaserUI, BoosterUI, MineralUI, RunModifier, RunBuff, StatusEffect, SecondaryWeapon, BulletType, ShipSkin, ColorBlindMode, NeonPalette đều `@Immutable`.
 - **Known perf limitations (sau rounds 44-49):**
