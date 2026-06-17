@@ -57,6 +57,71 @@ class BulletTypeTest {
             }
     }
 
+    // -- Wave 18 batch 3 (đạn trào phúng mới) --------------------------------
+
+    @Test
+    fun `BUBBLE_TEA is an AoE bullet`() {
+        val b = BulletType.BUBBLE_TEA
+        assertTrue("trà sữa phải có AoE (nổ trân châu)", b.aoeRadius > 0f)
+        assertTrue("timed buff", b.activeDurationMillis > 0L)
+    }
+
+    @Test
+    fun `FISH_SAUCE and QR_CODE rely on status not raw stats`() {
+        // Cơ chế (CORROSION / SLOW+STUN) áp ở onLaserHit, không phải AoE/pierce.
+        listOf(BulletType.FISH_SAUCE, BulletType.QR_CODE).forEach {
+            assertEquals("$it không nên có AoE", 0f, it.aoeRadius, 0f)
+            assertEquals("$it không nên xuyên", 0, it.pierceCount)
+        }
+    }
+
+    @Test
+    fun `SANDAL differs from NORMAL on a combat axis (boomerang gets a damage cut)`() {
+        // Đánh 2 chiều nên dmg/hit < 1.0 để cân bằng; cũng giúp khác NORMAL.
+        assertNotEquals(
+            BulletType.NORMAL.damageMultiplier,
+            BulletType.SANDAL.damageMultiplier,
+        )
+    }
+
+    @Test
+    fun `batch3 satirical bullets all present`() {
+        listOf(
+            BulletType.BUBBLE_TEA, BulletType.FISH_SAUCE,
+            BulletType.SANDAL, BulletType.QR_CODE,
+        ).forEach {
+            assertNotEquals("$it phải có tên", "", it.displayName)
+            assertTrue("$it phải có thời hạn buff", it.activeDurationMillis > 0L)
+        }
+    }
+
+    // -- Wave 18b: nhịp bắn + số viên theo item đạn -------------------------
+
+    @Test
+    fun `every type has a positive fire interval`() {
+        BulletType.entries.forEach {
+            assertTrue("$it phải có nhịp bắn > 0", it.fireIntervalMillis > 0L)
+        }
+    }
+
+    @Test
+    fun `strong bullets fire slower than NORMAL (giảm mật độ đạn)`() {
+        val n = BulletType.NORMAL.fireIntervalMillis
+        listOf(
+            BulletType.KAMEHAMEHA, BulletType.GIANT, BulletType.ATOMIC,
+            BulletType.PLASMA, BulletType.FIREWORK, BulletType.BUBBLE_TEA,
+        ).forEach {
+            assertTrue("$it nên bắn THƯA hơn NORMAL", it.fireIntervalMillis > n)
+        }
+    }
+
+    @Test
+    fun `salvoCount is at least 1 for every type`() {
+        BulletType.entries.forEach {
+            assertTrue("$it salvo >= 1", it.salvoCount >= 1)
+        }
+    }
+
     @Test
     fun `display names are non-empty`() {
         BulletType.entries.forEach {

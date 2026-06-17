@@ -630,6 +630,11 @@ private fun bulletDesc(b: com.tranphuloi.neon.ui.game.ship.laser.BulletType): St
         com.tranphuloi.neon.ui.game.ship.laser.BulletType.BANH_MI -> "Bánh mì — xuyên nhiều địch"
         com.tranphuloi.neon.ui.game.ship.laser.BulletType.DURIAN -> "Sầu riêng — nổ mùi AoE"
         com.tranphuloi.neon.ui.game.ship.laser.BulletType.HEART -> "Tim — tự đuổi theo địch"
+        // Wave 18 — batch 3.
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.BUBBLE_TEA -> "Trà sữa — nổ vùng + văng trân châu"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.FISH_SAUCE -> "Nước mắm — ăn mòn mất máu dần"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.SANDAL -> "Dép lào — boomerang đánh 2 chiều"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.QR_CODE -> "Mã QR — quét địch: chậm + choáng"
     }
 
 /** Wave 14 — short human descriptor cho tàu, suy từ stat profile (hợp lý cho 23 tàu). */

@@ -89,6 +89,10 @@ class LasersController(
     // Wave 14a — `var` so the Gói Bắn Nhanh consumable can shorten the fire
     // interval for the whole run (read each tick by the game loop's tinker).
     var fireLaserRepeatTime: com.tranphuloi.neon.ui.game.common.RepeatTime = Millis(100)
+
+    // Wave 18b — hệ số nhân nhịp bắn (Gói Bắn Nhanh đặt <1 để bắn nhanh hơn).
+    // Nhân với BulletType.fireIntervalMillis trong fireLasers → cadence cuối.
+    var rapidFireMultiplier: Float = 1f
     fun fireLasers(ship: Ship) {
         // Round 47 — cap so laser-booster spam + triple-laser at firing rate 100ms
         // doesn't allow the in-flight list to grow unbounded during heavy waves.
@@ -115,7 +119,11 @@ class LasersController(
             }
             else -> listOf(0f)
         }
-        val yShifts: List<Float> = if (ship.doubleFireEnabled) listOf(0f, 22f) else listOf(0f)
+        // Wave 18b — SỐ VIÊN mỗi loạt theo item đạn (salvoCount), xếp chồng dọc;
+        // double-fire (nếu bật) nhân thêm. salvo=1 (mặc định) → giữ nguyên 1 hàng.
+        val baseY: List<Float> = if (ship.doubleFireEnabled) listOf(0f, 22f) else listOf(0f)
+        val salvo = ship.activeBulletType.salvoCount.coerceAtLeast(1)
+        val yShifts: List<Float> = (0 until salvo).flatMap { s -> baseY.map { it + s * 14f } }
 
         // Wave 11a Phase 4 — CLONE_BOOSTER spawns phantom-twin ship at +50dp
         // offset firing alongside main. Each laser column duplicates at the
@@ -138,6 +146,13 @@ class LasersController(
 
         shipLasers = shipLasers + newLasers
         updateShipLasersUI()
+
+        // Wave 18b — NHỊP BẮN tiếp theo do ITEM ĐẠN quy định (mạnh→thưa). Đọc bởi
+        // game-loop tinker ở lần kế. Gói Bắn Nhanh thu nhỏ qua rapidFireMultiplier.
+        // Sàn 20ms để không bao giờ thành bắn-vô-hạn.
+        fireLaserRepeatTime = Millis(
+            (ship.activeBulletType.fireIntervalMillis * rapidFireMultiplier).toInt().coerceAtLeast(20),
+        )
     }
 
     /**
@@ -337,6 +352,42 @@ class LasersController(
                 width = 12f,                             // Wave 17 — size riêng (tim bự hơn tên lửa HOMING w8)
                 bulletType = BulletType.HEART,
             )
+            // Wave 18 — Trà Sữa: nổ AoE "trân châu" (reuse Plasma body + AoE 100)
+            // rồi văng 3 đạn con (xử lý ở collision arm BUBBLE_TEA).
+            BulletType.BUBBLE_TEA -> PlasmaShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - 20f / 2 + dx,
+                yOffset = ship.yOffset - 30f + dy,
+                yRange = screenHeight,
+                width = 20f,
+                bulletType = BulletType.BUBBLE_TEA,
+            )
+            // Wave 18 — Nước Mắm: đạn thẳng, gây CORROSION (DoT) ở onLaserHit.
+            BulletType.FISH_SAUCE -> ShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - 10f / 2 + dx,
+                yOffset = ship.yOffset - 20f + dy,
+                yRange = screenHeight,
+                width = 10f,
+                bulletType = BulletType.FISH_SAUCE,
+            )
+            // Wave 18 — Dép Lào: boomerang bay lên rồi quay về (subclass riêng).
+            BulletType.SANDAL -> BoomerangShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - 16f / 2 + dx,
+                yOffset = ship.yOffset - 20f + dy,
+                yRange = screenHeight,
+                width = 16f,
+            )
+            // Wave 18 — Mã QR: đạn thẳng, gây SLOW + STUN ("đơ máy") ở onLaserHit.
+            BulletType.QR_CODE -> ShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - 17f / 2 + dx,
+                yOffset = ship.yOffset - 20f + dy,
+                yRange = screenHeight,
+                width = 17f,
+                bulletType = BulletType.QR_CODE,
+            )
             BulletType.NORMAL -> if (ship.laserBoosterEnabled) {
                 ShipBoostedLaser(
                     id = uuidUtils.getUuid(),
@@ -481,7 +532,13 @@ class LasersController(
 
     val monitorLaserCollisionId = uuidUtils.getUuid()
     val monitorLaserCollisionRepeatTime = Millis(1)
-    fun monitorLaserCollision(spaceObjects: List<SpaceObject>, enemies: List<Enemy>) {
+    fun monitorLaserCollision(
+        spaceObjects: List<SpaceObject>,
+        enemies: List<Enemy>,
+        // Wave 18 — clock cho Boomerang re-hit cooldown. Default = wall-clock
+        // (game loop); test bơm thời gian tường minh để xác định.
+        nowMillis: Long = System.currentTimeMillis(),
+    ) {
         val lasers = shipLasers + ultimateLasers
         val spaceObjectRectList = spaceObjects.map { it.spaceObjectRect() }
         val enemyRectList = enemies.map { it.enemyRect() }
@@ -541,6 +598,14 @@ class LasersController(
                     }
                     return@forEach
                 }
+                // Wave 18 — Boomerang (Dép Lào): bỏ qua nếu địch này còn trong
+                // cooldown re-hit. Nếu không, đạn cắm cả 4 hit vào 1 địch trong
+                // vài ms (collision chạy Millis(1)) → chết tại chỗ, không kịp lên
+                // đỉnh & quay về. Cooldown để mỗi địch chỉ ăn 1 hit/lượt → dép
+                // thật sự "đánh 2 chiều".
+                if (laser is BoomerangShipLaser && !laser.canHit(target.enemyId, nowMillis)) {
+                    return@forEach
+                }
                 target.onObjectImpact(effectiveDamage)
                 onLaserHit(
                     target.enemyId,
@@ -592,6 +657,34 @@ class LasersController(
                         shipLasers = shipLasers + children
                         destroyShipLaser(laser)
                     }
+                    // Wave 18 — Trà Sữa: nổ AoE 100 + văng 3 "trân châu" (đạn con
+                    // NORMAL). Như Pháo Hoa nhưng nhẹ hơn (3 con thay 5).
+                    BulletType.BUBBLE_TEA -> {
+                        applyAoeSplash(laser, index, enemies, effectiveDamage)
+                        val pearls = listOf(-18f, 0f, 18f).map { ox ->
+                            ShipLaser(
+                                id = uuidUtils.getUuid(),
+                                xOffset = laser.xOffset + ox,
+                                yOffset = laser.yOffset,
+                                yRange = screenHeight,
+                                bulletType = BulletType.NORMAL,         // con NORMAL → không đệ quy
+                            )
+                        }
+                        shipLasers = shipLasers + pearls
+                        destroyShipLaser(laser)
+                    }
+                    // Wave 18 — Dép Lào: boomerang đánh 2 chiều, trừ hitsRemaining
+                    // mỗi lần trúng (giống BOUNCE), không huỷ tới khi hết lượt.
+                    BulletType.SANDAL -> {
+                        val boomerang = laser as? BoomerangShipLaser
+                        if (boomerang != null) {
+                            boomerang.registerHit(target.enemyId, nowMillis)
+                            boomerang.hitsRemaining = boomerang.hitsRemaining - 1
+                            if (boomerang.hitsRemaining <= 0) destroyShipLaser(laser)
+                        } else {
+                            destroyShipLaser(laser)
+                        }
+                    }
                     BulletType.NORMAL -> destroyShipLaser(laser)
                     // Round 67 — FIRE: destroy on hit, BURN status applied in
                     // onLaserHit upstream (GameState).
@@ -614,7 +707,10 @@ class LasersController(
                     // Round 68 stub — destroy on hit. Behaviors thật Round 69+.
                     // Wave 16 (Slice 3) — ZIGZAG: weaving normal shot, single hit.
                     // Wave 16 — LOTTERY (random dmg) + BRICK (heavy) also single-hit.
-                    BulletType.ZIGZAG, BulletType.LOTTERY, BulletType.BRICK -> destroyShipLaser(laser)
+                    // Wave 18 — Nước Mắm + Mã QR: đạn thẳng 1 hit; hiệu ứng
+                    // (CORROSION / SLOW+STUN) áp ở onLaserHit (GameState).
+                    BulletType.ZIGZAG, BulletType.LOTTERY, BulletType.BRICK,
+                    BulletType.FISH_SAUCE, BulletType.QR_CODE -> destroyShipLaser(laser)
                     // Wave 16 (Slice 3) — SPLIT: burst into 3 NORMAL children that
                     // keep flying up in a small spread, then destroy the parent.
                     // Children are NORMAL so they can't split again (no recursion).

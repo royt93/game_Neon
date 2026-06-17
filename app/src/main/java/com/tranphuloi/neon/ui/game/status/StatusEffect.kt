@@ -22,12 +22,20 @@ enum class StatusEffect(
 ) {
     BURN(durationMs = 3000L, tintColorArgb = 0x55FF6020),   // orange-red translucent
     SLOW(durationMs = 2500L, tintColorArgb = 0x4400D4FF),   // cyan translucent
-    STUN(durationMs = 1200L, tintColorArgb = 0x55FFD400);   // yellow translucent
+    STUN(durationMs = 1200L, tintColorArgb = 0x55FFD400),   // yellow translucent
+
+    // Wave 18 — Nước Mắm: ăn mòn DoT. Mạnh hơn BURN mỗi tick (7 vs 5) và KÉO
+    // DÀI hơn (4.5s vs 3s) → tổng sát thương theo thời gian cao hơn rõ, phân
+    // biệt với Lửa. Tái dùng đúng cơ chế tick của BURN trong processTick.
+    CORROSION(durationMs = 4500L, tintColorArgb = 0x66A0521E); // nâu nước mắm translucent
 
     companion object {
         const val BURN_TICK_DAMAGE: Float = 5f               // hp per 500ms tick
         const val BURN_TICK_INTERVAL_MS: Long = 500L
         const val SLOW_MOVEMENT_MUL: Float = 0.5f            // enemies move 50% speed while slowed
+
+        // Wave 18 — Nước Mắm CORROSION DoT: ăn mòn nặng hơn cháy (cùng nhịp 500ms).
+        const val CORROSION_TICK_DAMAGE: Float = 7f          // hp per 500ms tick
     }
 }
 

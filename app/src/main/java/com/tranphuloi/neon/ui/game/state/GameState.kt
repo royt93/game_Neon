@@ -854,20 +854,11 @@ fun rememberGameState(): GameState {
                         System.currentTimeMillis(),
                     )
                 }
-                // Wave 16 Slice 4b — đạn trào phúng: CƠ CHẾ RIÊNG (tách bạch).
+                // Wave 16/18 — đạn trào phúng: CƠ CHẾ RIÊNG (tách bạch).
+                // Hiệu ứng-status (SLOW/STUN/CORROSION) lấy từ SSOT thuần
+                // [BulletOnHitStatus] (testable). Hiệu ứng KHÔNG-status (hồi máu /
+                // hất văng) giữ nhánh riêng vì cần shipController/knockback.
                 when (bulletType) {
-                    // Sầu Riêng — làm CHẬM (SLOW giờ thực sự giảm tốc enemy).
-                    com.tranphuloi.neon.ui.game.ship.laser.BulletType.DURIAN ->
-                        statusEffectController.apply(
-                            targetId, com.tranphuloi.neon.ui.game.status.StatusEffect.SLOW,
-                            System.currentTimeMillis(),
-                        )
-                    // Like/Tim — gây STUN (địch "đứng hình", ngưng bắn).
-                    com.tranphuloi.neon.ui.game.ship.laser.BulletType.HEART ->
-                        statusEffectController.apply(
-                            targetId, com.tranphuloi.neon.ui.game.status.StatusEffect.STUN,
-                            System.currentTimeMillis(),
-                        )
                     // Bánh Mì — HỒI MÁU tàu mỗi phát trúng (giòn rụm, ăn no).
                     // Wave 17r — QUA shipController (trước set ship.copy trực tiếp →
                     // moveShip ghi đè → heal MẤT, cùng bug loadout).
@@ -876,7 +867,14 @@ fun rememberGameState(): GameState {
                     // Cục Gạch — HẤT VĂNG địch ra sau.
                     com.tranphuloi.neon.ui.game.ship.laser.BulletType.BRICK ->
                         knockbackRef.run(targetId)
-                    else -> {}
+                    // Sầu Riêng (SLOW) · Like/Tim (STUN) · Nước Mắm (CORROSION) ·
+                    // Mã QR (SLOW+STUN) — áp toàn bộ status theo SSOT.
+                    else -> {
+                        val nowStatus = System.currentTimeMillis()
+                        com.tranphuloi.neon.ui.game.status.BulletOnHitStatus
+                            .statusEffectsFor(bulletType)
+                            .forEach { statusEffectController.apply(targetId, it, nowStatus) }
+                    }
                 }
             },
             // 25x/48x — modifier + skill tree damage multiplier applied per hit.
@@ -905,7 +903,9 @@ fun rememberGameState(): GameState {
             },
         ).also {
             // Wave 14a — Gói Bắn Nhanh: rút ngắn nhịp bắn (~1.5×) cả run.
-            if (startRapidFire > 0) it.fireLaserRepeatTime = Millis(67)
+            // Wave 18b — nay nhịp bắn do ITEM ĐẠN quy định (BulletType.fireIntervalMillis);
+            // Gói Bắn Nhanh thành HỆ SỐ nhân (0.66 ≈ ×1.5 tốc) áp lên mọi loại đạn.
+            if (startRapidFire > 0) it.rapidFireMultiplier = 0.66f
         }
     }
 

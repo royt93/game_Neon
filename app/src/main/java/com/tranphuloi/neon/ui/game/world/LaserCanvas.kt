@@ -143,8 +143,88 @@ private fun DrawScope.drawLaserBody(
         BulletType.BANH_MI -> drawBanhMiBody(xPx, yPx, wPx, hPx, glow)
         BulletType.DURIAN -> drawDurianBody(xPx, yPx, wPx, hPx, glow)
         BulletType.HEART -> drawHeartBody(xPx, yPx, wPx, hPx, glow)
+        // Wave 18 — batch 3 đạn trào phúng (body vector riêng).
+        BulletType.BUBBLE_TEA -> drawBobaBody(xPx, yPx, wPx, hPx, glow)
+        BulletType.FISH_SAUCE -> drawBottleBody(xPx, yPx, wPx, hPx, glow)
+        BulletType.SANDAL -> drawSandalBody(xPx, yPx, wPx, hPx, glow)
+        BulletType.QR_CODE -> drawQrBody(xPx, yPx, wPx, hPx, glow)
     }
 }
+
+// ── Wave 18 — body VECTOR cho batch 3 (ly trà sữa + trân châu, chai nước mắm,
+// dép tổ ong, mã QR). ──
+
+/** Trà Sữa — ly bo góc + ống hút + 3 hạt trân châu tối ở đáy. */
+private fun DrawScope.drawBobaBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {
+    drawRoundRect(
+        glow, Offset(xPx, yPx), Size(wPx, hPx),
+        androidx.compose.ui.geometry.CornerRadius(wPx * 0.3f),
+    )
+    // Ống hút (vạch trắng chéo).
+    drawLine(
+        Color.White.copy(alpha = 0.8f),
+        Offset(xPx + wPx * 0.62f, yPx - hPx * 0.05f),
+        Offset(xPx + wPx * 0.45f, yPx + hPx * 0.55f),
+        strokeWidth = wPx * 0.12f,
+    )
+    // Trân châu (3 hạt tối ở đáy).
+    val pr = wPx * 0.17f
+    val py = yPx + hPx * 0.78f
+    val pearl = Color.Black.copy(alpha = 0.5f)
+    drawCircle(pearl, pr, Offset(xPx + wPx * 0.3f, py))
+    drawCircle(pearl, pr, Offset(xPx + wPx * 0.7f, py))
+    drawCircle(pearl, pr, Offset(xPx + wPx * 0.5f, py - pr * 1.5f))
+}
+
+/** Nước Mắm — chai: cổ hẹp trên + thân bo góc + nhãn trắng. */
+private fun DrawScope.drawBottleBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {
+    val cx = xPx + wPx / 2f
+    val neckW = wPx * 0.42f
+    drawRect(glow, Offset(cx - neckW / 2f, yPx), Size(neckW, hPx * 0.3f))
+    drawRoundRect(
+        glow, Offset(xPx, yPx + hPx * 0.28f), Size(wPx, hPx * 0.72f),
+        androidx.compose.ui.geometry.CornerRadius(wPx * 0.3f),
+    )
+    drawRect(
+        Color.White.copy(alpha = 0.7f),
+        Offset(xPx + wPx * 0.2f, yPx + hPx * 0.5f), Size(wPx * 0.6f, hPx * 0.22f),
+    )
+}
+
+/** Dép Lào — đế oval + quai chữ V. */
+private fun DrawScope.drawSandalBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {
+    val cx = xPx + wPx / 2f
+    drawOval(glow, Offset(xPx, yPx), Size(wPx, hPx))
+    val sw = wPx * 0.14f
+    val strap = Color.White.copy(alpha = 0.85f)
+    drawLine(
+        strap, Offset(cx, yPx + hPx * 0.32f), Offset(xPx + wPx * 0.25f, yPx + hPx * 0.72f),
+        strokeWidth = sw, cap = androidx.compose.ui.graphics.StrokeCap.Round,
+    )
+    drawLine(
+        strap, Offset(cx, yPx + hPx * 0.32f), Offset(xPx + wPx * 0.75f, yPx + hPx * 0.72f),
+        strokeWidth = sw, cap = androidx.compose.ui.graphics.StrokeCap.Round,
+    )
+}
+
+/** Mã QR — ô vuông nền + vài ô trắng (3 marker góc + chấm rải) như mã QR. */
+private fun DrawScope.drawQrBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {
+    val s = minOf(wPx, hPx)
+    val x = xPx + (wPx - s) / 2f
+    val y = yPx + (hPx - s) / 2f
+    drawRect(glow, Offset(x, y), Size(s, s))
+    val c = s / 4f
+    val cell = Color.White.copy(alpha = 0.9f)
+    // 3 marker góc + 3 chấm rải. Danh sách ô là hằng cấp module (QR_CELLS) →
+    // KHÔNG cấp phát list/Pair mỗi frame trong hot render path.
+    for ((ix, iy) in QR_CELLS) {
+        drawRect(cell, Offset(x + ix * c, y + iy * c), Size(c, c))
+    }
+}
+
+/** Wave 18 — vị trí ô trắng của body Mã QR (hằng, tránh alloc mỗi frame). */
+private val QR_CELLS: List<Pair<Int, Int>> =
+    listOf(0 to 0, 3 to 0, 0 to 3, 2 to 1, 1 to 2, 3 to 3)
 
 private fun DrawScope.drawBounceBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {
     val cx = xPx + wPx / 2f

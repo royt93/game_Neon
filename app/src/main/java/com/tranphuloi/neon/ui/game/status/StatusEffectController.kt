@@ -84,11 +84,18 @@ class StatusEffectController {
                     Logger.v { "StatusEffect: expire ${eff.type} on enemy=${enemyId.take(6)}" }
                     continue
                 }
-                if (eff.type == StatusEffect.BURN) {
+                // Wave 18 — BURN (Lửa) + CORROSION (Nước Mắm) đều là DoT cùng nhịp
+                // 500ms, khác lượng sát thương mỗi tick. Dùng chung lastBurnTickAtMillis
+                // (mỗi instance là 1 type riêng → không lẫn nhịp).
+                if (eff.type == StatusEffect.BURN || eff.type == StatusEffect.CORROSION) {
                     val sinceLastTick = nowMillis - eff.lastBurnTickAtMillis
                     if (sinceLastTick >= StatusEffect.BURN_TICK_INTERVAL_MS) {
-                        burnDamage[enemyId] =
-                            (burnDamage[enemyId] ?: 0f) + StatusEffect.BURN_TICK_DAMAGE
+                        val tickDmg = if (eff.type == StatusEffect.CORROSION) {
+                            StatusEffect.CORROSION_TICK_DAMAGE
+                        } else {
+                            StatusEffect.BURN_TICK_DAMAGE
+                        }
+                        burnDamage[enemyId] = (burnDamage[enemyId] ?: 0f) + tickDmg
                         // Mutate the active effect's lastBurnTickAtMillis
                         val idx = list.indexOf(eff)
                         list[idx] = eff.copy(lastBurnTickAtMillis = nowMillis)

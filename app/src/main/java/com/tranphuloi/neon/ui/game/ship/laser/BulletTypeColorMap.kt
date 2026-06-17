@@ -40,5 +40,10 @@ object BulletTypeColorMap {
         BulletType.BANH_MI -> 0xFFE0A33CL            // vàng nâu bánh mì
         BulletType.DURIAN -> 0xFFB6D43AL             // vàng-xanh sầu riêng
         BulletType.HEART -> 0xFFFF5C8AL              // hồng tim
+        // Wave 18 batch 3 — đạn trào phúng (literal, không booster origin).
+        BulletType.BUBBLE_TEA -> 0xFFE8C9A0L         // be trà sữa
+        BulletType.FISH_SAUCE -> 0xFF9C5A1EL         // nâu cánh gián nước mắm
+        BulletType.SANDAL -> 0xFF3E7BFFL             // xanh dương dép tổ ong
+        BulletType.QR_CODE -> 0xFF2CE66BL            // xanh lá máy quét
     }
 }

@@ -28,8 +28,8 @@ class MetaProgressionKeysTest {
     // ── Enum sizes — pin so accidental delete/add is caught ──
 
     @Test
-    fun `BulletType has 12 entries`() {
-        assertEquals(18, BulletType.entries.size)
+    fun `BulletType has 22 entries`() {
+        assertEquals(22, BulletType.entries.size)
     }
 
     @Test
@@ -172,6 +172,8 @@ class MetaProgressionKeysTest {
             "LOTTERY", "FIREWORK", "BRICK",
             // Wave 16 — đạn trào phúng batch 2
             "BANH_MI", "DURIAN", "HEART",
+            // Wave 18 — đạn trào phúng batch 3
+            "BUBBLE_TEA", "FISH_SAUCE", "SANDAL", "QR_CODE",
         )
         val actual = BulletType.entries.map { it.name }.toSet()
         assertEquals(

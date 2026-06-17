@@ -71,6 +71,8 @@ class BulletColorIdentityTest {
         BulletType.LOTTERY, BulletType.FIREWORK, BulletType.BRICK,
         // Wave 16 batch 2
         BulletType.BANH_MI, BulletType.DURIAN, BulletType.HEART,
+        // Wave 18 batch 3
+        BulletType.BUBBLE_TEA, BulletType.FISH_SAUCE, BulletType.SANDAL, BulletType.QR_CODE,
     )
 
     @Test

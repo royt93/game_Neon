@@ -23,6 +23,8 @@ import androidx.compose.runtime.Immutable
 enum class BulletShape {
     CAPSULE, NEEDLE, ORB, FLAME, HOMING_DART, RICOCHET, GIANT_DISC, PUFF,
     ZIGZAG, BEAM, ATOM, TRIDENT, TICKET, FIREWORK, BRICK, BAGUETTE, DURIAN, HEART,
+    // Wave 18 — batch 3 đạn trào phúng.
+    BOBA, BOTTLE, SANDAL, QR_CODE,
 }
 
 @Immutable
@@ -219,6 +221,44 @@ enum class BulletType(
         pierceCount = 0,
         aoeRadius = 0f,
         glyph = "♡",
+    ),
+
+    // ── Wave 18 — đạn trào phúng batch 3 ──
+    /** Trà Sữa — trúng → nổ AoE "trân châu" rồi văng 3 đạn con (như Pháo Hoa nhẹ). */
+    BUBBLE_TEA(
+        displayName = "Trà Sữa",
+        activeDurationMillis = 10_000L,
+        damageMultiplier = 1.1f,
+        pierceCount = 0,
+        aoeRadius = 100f,                           // nổ trân châu vùng
+        glyph = "⊜",
+    ),
+    /** Nước Mắm — ăn mòn DoT mạnh & lâu hơn Lửa (gây CORROSION). */
+    FISH_SAUCE(
+        displayName = "Nước Mắm",
+        activeDurationMillis = 12_000L,
+        damageMultiplier = 0.9f,
+        pierceCount = 0,
+        aoeRadius = 0f,
+        glyph = "≈",
+    ),
+    /** Dép Lào — boomerang: bay lên rồi quay về tàu, đánh được cả 2 chiều. */
+    SANDAL(
+        displayName = "Dép Lào",
+        activeDurationMillis = 14_000L,
+        damageMultiplier = 0.8f,                    // bù lại vì đánh trúng 2 lần (lên + về)
+        pierceCount = 0,
+        aoeRadius = 0f,
+        glyph = "↩",
+    ),
+    /** Mã QR — quét địch gây "đơ máy": vừa làm chậm (SLOW) vừa choáng (STUN). */
+    QR_CODE(
+        displayName = "Mã QR",
+        activeDurationMillis = 12_000L,
+        damageMultiplier = 0.8f,
+        pierceCount = 0,
+        aoeRadius = 0f,
+        glyph = "⌗",
     );
 
     // ════════════════════════════════════════════════════════════════════════
@@ -249,6 +289,10 @@ enum class BulletType(
             BANH_MI -> BulletShape.BAGUETTE
             DURIAN -> BulletShape.DURIAN
             HEART -> BulletShape.HEART
+            BUBBLE_TEA -> BulletShape.BOBA
+            FISH_SAUCE -> BulletShape.BOTTLE
+            SANDAL -> BulletShape.SANDAL
+            QR_CODE -> BulletShape.QR_CODE
         }
 
     /** SIZE — bề rộng thân (px). Dải 3 (kim) → 38 (khói khổng lồ). */
@@ -272,6 +316,10 @@ enum class BulletType(
             GIANT -> 34f
             KAMEHAMEHA -> 36f
             SMOKE -> 38f
+            FISH_SAUCE -> 10f
+            SANDAL -> 16f
+            QR_CODE -> 17f
+            BUBBLE_TEA -> 20f
         }
 
     /** COLOR — màu nhận diện (signature). Ghép với booster gốc qua [BulletTypeColorMap]. */
@@ -298,6 +346,60 @@ enum class BulletType(
             BANH_MI -> "Xuyên 3 + hồi máu mỗi hit"
             DURIAN -> "Nổ AoE 110 + làm chậm địch"
             HEART -> "Tự đuổi + gây choáng (stun)"
+            BUBBLE_TEA -> "Nổ AoE 100 + văng 3 trân châu"
+            FISH_SAUCE -> "Ăn mòn DoT 4.5 giây (mạnh hơn cháy)"
+            SANDAL -> "Boomerang lên rồi quay về, đánh 2 chiều"
+            QR_CODE -> "Quét địch → vừa chậm vừa đơ"
+        }
+
+    /**
+     * Wave 18b — NHỊP BẮN riêng từng loại (ms giữa 2 loạt). Quy định "số đạn/giây"
+     * THEO ITEM: đạn MẠNH/AoE/nặng bắn THƯA (giảm mật độ đạn trên màn), đạn nhẹ
+     * bắn mau. [LasersController.fireLasers] set lại cadence theo giá trị này mỗi
+     * lần bắn (Gói Bắn Nhanh nhân thêm hệ số). NORMAL = 100ms (mốc cũ).
+     */
+    val fireIntervalMillis: Long
+        get() = when (this) {
+            // Tier YẾU (cơ bản) — ~5.0 viên/giây
+            NORMAL -> 200L
+            ZIGZAG -> 200L
+            // Tier TRUNG-THẤP (dmg thấp / hiệu ứng nhẹ) — ~4.0 viên/giây
+            HOMING -> 250L
+            BOUNCE -> 250L
+            SMOKE -> 250L
+            SANDAL -> 250L         // dmg 0.8 nhưng đánh 2 chiều (tối đa 4 hit)
+            SPLIT -> 250L
+            // Tier TRUNG BÌNH (xuyên / DoT / CC / gamble) — ~3.3 viên/giây
+            PIERCING -> 300L
+            FIRE -> 300L
+            FISH_SAUCE -> 300L
+            QR_CODE -> 300L
+            HEART -> 300L
+            LOTTERY -> 300L
+            // Tier MẠNH (dmg cao / AoE / heal) — ~2.5 viên/giây
+            PLASMA -> 400L
+            DURIAN -> 400L
+            FIREWORK -> 400L
+            BUBBLE_TEA -> 400L
+            BANH_MI -> 400L
+            // Tier RẤT MẠNH (dmg rất cao / AoE lớn / xuyên) — ~2.0 viên/giây
+            GIANT -> 500L
+            ATOMIC -> 500L
+            BRICK -> 500L
+            // Tier TỐI THƯỢNG (×3 + xuyên-tất) — ~1.4 viên/giây
+            KAMEHAMEHA -> 700L
+        }
+
+    /**
+     * Wave 18b — SỐ VIÊN mỗi loạt (TRƯỚC buff spread/triple/double). Quy định
+     * theo item: mặc định 1 (đạn đơn). Tăng nếu muốn item kiểu "bắn chùm" — sẽ
+     * được nhân tiếp với các buff. [LasersController.fireLasers] xếp chồng dọc.
+     */
+    val salvoCount: Int
+        get() = when (this) {
+            // Hiện mọi loại 1 viên/loạt → tổng số đạn giảm nhờ NHỊP BẮN ở trên.
+            // (Để 1 chỗ chỉnh per-item nếu sau muốn loại nào bắn 2-3 viên/phát.)
+            else -> 1
         }
 
     companion object {

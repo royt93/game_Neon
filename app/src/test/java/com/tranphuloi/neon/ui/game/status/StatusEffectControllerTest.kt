@@ -101,6 +101,27 @@ class StatusEffectControllerTest {
     }
 
     @Test
+    fun `processTick returns corrosion damage at tick interval (stronger than burn)`() {
+        val c = StatusEffectController()
+        val e = TestEnemy("e1")
+        c.apply("e1", StatusEffect.CORROSION, now)
+        // First tick at apply time — sinceLastTick = 0 → no damage.
+        assertEquals(0f, c.processTick(listOf(e), now)["e1"] ?: 0f, 0.001f)
+        // Tick after interval → CORROSION_TICK_DAMAGE (7, > BURN's 5).
+        val tick = c.processTick(listOf(e), now + StatusEffect.BURN_TICK_INTERVAL_MS + 10)
+        assertEquals(StatusEffect.CORROSION_TICK_DAMAGE, tick["e1"]!!, 0.001f)
+        assertTrue(
+            "ăn mòn phải mạnh hơn cháy mỗi tick",
+            StatusEffect.CORROSION_TICK_DAMAGE > StatusEffect.BURN_TICK_DAMAGE,
+        )
+    }
+
+    @Test
+    fun `corrosion lasts longer than burn`() {
+        assertTrue(StatusEffect.CORROSION.durationMs > StatusEffect.BURN.durationMs)
+    }
+
+    @Test
     fun `clearFor drops all effects for an enemy`() {
         val c = StatusEffectController()
         c.apply("e1", StatusEffect.BURN, now)

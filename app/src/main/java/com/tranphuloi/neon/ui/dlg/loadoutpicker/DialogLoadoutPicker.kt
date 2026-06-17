@@ -355,6 +355,11 @@ private fun colorForBullet(b: BulletType, palette: NeonPalette): Color = when (b
     BulletType.BANH_MI -> palette.gold
     BulletType.DURIAN -> palette.cyan
     BulletType.HEART -> palette.magenta
+    // Wave 18 batch 3.
+    BulletType.BUBBLE_TEA -> palette.gold
+    BulletType.FISH_SAUCE -> palette.redAlert
+    BulletType.SANDAL -> palette.cyan
+    BulletType.QR_CODE -> palette.violet
 }
 
 // Round 71 (Issue 3) — multi-line subtitle: line 1 = combat stats, line 2 = description.
@@ -379,6 +384,11 @@ private fun subtitleForBullet(b: BulletType): String = when (b) {
     BulletType.BANH_MI -> "Sát thương ×1.0 · ⏱12s · Xuyên 3 địch\nBánh mì giòn rụm, xuyên thủng nhiều địch."
     BulletType.DURIAN -> "Sát thương ×1.2 · ⏱10s · Nổ mùi AoE 110px\nSầu riêng nổ toé, sát thương lan vùng nặng mùi."
     BulletType.HEART -> "Sát thương ×0.9 · ⏱10s · Tự đuổi\nThả tim tự đuổi theo địch, không cần aim."
+    // Wave 18 batch 3.
+    BulletType.BUBBLE_TEA -> "Sát thương ×1.1 · ⏱10s · Nổ AoE 100 + 3 trân châu\nTrà sữa trúng → nổ vùng rồi văng trân châu bay tiếp."
+    BulletType.FISH_SAUCE -> "Sát thương ×0.9 · ⏱12s · Ăn mòn 7HP/0.5s\nNước mắm gây ăn mòn DoT nặng & lâu hơn Lửa."
+    BulletType.SANDAL -> "Sát thương ×0.8 · ⏱14s · Boomerang 2 chiều\nDép lào bay lên rồi quay về, trúng cả lượt đi lẫn về."
+    BulletType.QR_CODE -> "Sát thương ×0.8 · ⏱12s · Chậm + Choáng\nQuét mã làm địch 'đơ máy': vừa chậm vừa đứng hình."
 }
 
 // Round 71 (Issue 3) — tooltip 1-line explaining game mechanic.
@@ -403,6 +413,11 @@ private fun tipForBullet(b: BulletType): String = when (b) {
     BulletType.BANH_MI -> "Xuyên nhiều địch xếp hàng dọc."
     BulletType.DURIAN -> "Nổ mùi AoE rộng — dọn cụm enemy."
     BulletType.HEART -> "Auto-aim — tốt cho người mới."
+    // Wave 18 batch 3.
+    BulletType.BUBBLE_TEA -> "Nổ vùng + đẻ thêm đạn — hợp cụm enemy."
+    BulletType.FISH_SAUCE -> "DoT mạnh — hợp boss/enemy nhiều máu."
+    BulletType.SANDAL -> "Đánh 2 chiều — quét địch trên cả đường về."
+    BulletType.QR_CODE -> "Khoá cứng địch (chậm+choáng) — hợp né đạn."
 }
 
 // Round 71 (Issue 3) — damage tier mapping cho border thickness.
@@ -641,6 +656,59 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBulletPreview(
                 close()
             }
             drawPath(tri, color)
+        }
+        // Wave 18 batch 3 — preview tile gọn.
+        BulletType.BUBBLE_TEA -> {
+            // Ly trà sữa bo góc + 2 trân châu tối.
+            drawRoundRect(color = color,
+                topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.18f, cy - w * 0.3f),
+                size = androidx.compose.ui.geometry.Size(w * 0.36f, w * 0.6f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.08f))
+            drawCircle(Color.Black.copy(alpha = 0.5f), w * 0.07f,
+                androidx.compose.ui.geometry.Offset(cx - w * 0.07f, cy + w * 0.16f))
+            drawCircle(Color.Black.copy(alpha = 0.5f), w * 0.07f,
+                androidx.compose.ui.geometry.Offset(cx + w * 0.07f, cy + w * 0.16f))
+        }
+        BulletType.FISH_SAUCE -> {
+            // Chai: cổ + thân bo góc + nhãn trắng.
+            drawRect(color = color,
+                topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.07f, cy - w * 0.32f),
+                size = androidx.compose.ui.geometry.Size(w * 0.14f, w * 0.18f))
+            drawRoundRect(color = color,
+                topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.16f, cy - w * 0.14f),
+                size = androidx.compose.ui.geometry.Size(w * 0.32f, w * 0.46f),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.06f))
+            drawRect(color = Color.White.copy(alpha = 0.7f),
+                topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.1f, cy + w * 0.02f),
+                size = androidx.compose.ui.geometry.Size(w * 0.2f, w * 0.12f))
+        }
+        BulletType.SANDAL -> {
+            // Đế dép oval + quai chữ V.
+            drawOval(color = color,
+                topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.18f, cy - w * 0.3f),
+                size = androidx.compose.ui.geometry.Size(w * 0.36f, w * 0.6f))
+            drawLine(color = Color.White.copy(alpha = 0.85f),
+                start = androidx.compose.ui.geometry.Offset(cx, cy - w * 0.12f),
+                end = androidx.compose.ui.geometry.Offset(cx - w * 0.12f, cy + w * 0.14f),
+                strokeWidth = w * 0.05f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            drawLine(color = Color.White.copy(alpha = 0.85f),
+                start = androidx.compose.ui.geometry.Offset(cx, cy - w * 0.12f),
+                end = androidx.compose.ui.geometry.Offset(cx + w * 0.12f, cy + w * 0.14f),
+                strokeWidth = w * 0.05f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+        }
+        BulletType.QR_CODE -> {
+            // Ô vuông + vài ô trắng kiểu mã QR.
+            val s = w * 0.5f
+            val qx = cx - s / 2f; val qy = cy - s / 2f
+            drawRect(color = color,
+                topLeft = androidx.compose.ui.geometry.Offset(qx, qy),
+                size = androidx.compose.ui.geometry.Size(s, s))
+            val cc = s / 4f
+            for ((ix, iy) in listOf(0 to 0, 3 to 0, 0 to 3, 2 to 2)) {
+                drawRect(color = Color.White.copy(alpha = 0.9f),
+                    topLeft = androidx.compose.ui.geometry.Offset(qx + ix * cc, qy + iy * cc),
+                    size = androidx.compose.ui.geometry.Size(cc, cc))
+            }
         }
     }
 }

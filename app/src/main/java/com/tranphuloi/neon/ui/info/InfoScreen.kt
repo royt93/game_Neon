@@ -241,6 +241,10 @@ private fun bulletShapeLabel(s: BulletShape): String = when (s) {
     BulletShape.BAGUETTE -> "Ổ bánh mì"
     BulletShape.DURIAN -> "Sầu riêng"
     BulletShape.HEART -> "Trái tim"
+    BulletShape.BOBA -> "Ly trà sữa"
+    BulletShape.BOTTLE -> "Chai nước mắm"
+    BulletShape.SANDAL -> "Dép tổ ong"
+    BulletShape.QR_CODE -> "Mã QR"
 }
 
 private fun sizeTierByWidth(w: Float): String = when {
@@ -285,6 +289,11 @@ private fun bulletDescription(b: BulletType): String = when (b) {
     BulletType.BANH_MI -> "Bánh Mì: giòn rụm, xuyên qua 3 enemy (như PIERCING)."
     BulletType.DURIAN -> "Sầu Riêng: nổ 'mùi' AoE 110px nặng đô khi va chạm."
     BulletType.HEART -> "Like/Tim: thả tim tự đuổi theo enemy gần nhất (như HOMING)."
+    // Wave 18 — batch 3.
+    BulletType.BUBBLE_TEA -> "Trà Sữa: trúng → nổ AoE 100px rồi văng ra 3 'trân châu' (đạn con) bay tiếp."
+    BulletType.FISH_SAUCE -> "Nước Mắm: ăn mòn DoT 7HP mỗi 0.5s trong 4.5 giây — nặng & lâu hơn Lửa."
+    BulletType.SANDAL -> "Dép Lào: boomerang bay lên tới đỉnh rồi quay về tàu, đánh trúng cả 2 chiều (tối đa 4 hit)."
+    BulletType.QR_CODE -> "Mã QR: quét địch gây 'đơ máy' — vừa làm CHẬM vừa CHOÁNG (SLOW + STUN) cùng lúc."
 }
 
 /**
@@ -342,6 +351,11 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBulletCapsule(
         BulletType.BANH_MI -> drawNeedleBullet(cx, cy, w * 0.18f, h * 0.85f, color)
         BulletType.DURIAN -> drawOrbBullet(cx, cy, w * 0.32f, color)
         BulletType.HEART -> drawHomingBullet(cx, cy, w * 0.25f, h * 0.7f, color)
+        // Wave 18 — batch 3 (reuse recipe gần cơ chế; nhãn shape phân biệt rõ).
+        BulletType.BUBBLE_TEA -> drawOrbBullet(cx, cy, w * 0.32f, color)
+        BulletType.FISH_SAUCE -> drawCapsuleBullet(cx, cy, w * 0.25f, h * 0.7f, color)
+        BulletType.SANDAL -> drawBounceBullet(cx, cy, w * 0.28f, color)
+        BulletType.QR_CODE -> drawGiantBullet(cx, cy, w * 0.45f, h * 0.85f, color)
     }
 }
 
