@@ -1,0 +1,243 @@
+{
+  "schemaVersion": 2,
+  "appName": "Sky force U*S*A",
+  "themeId": "dark-bold",
+  "connectedCanvas": true,
+  "locales": [
+    "en"
+  ],
+  "locale": "en",
+  "device": "iphone",
+  "orientation": "portrait",
+  "appIcon": "/app-icon.png",
+  "slidesByDevice": {
+    "iphone": [
+      {
+        "id": "iphone-hero",
+        "layout": "hero",
+        "label": {
+          "en": "NEON ARCADE"
+        },
+        "headline": {
+          "en": "Rule the\nneon sky"
+        },
+        "screenshot": "/screenshots/apple/iphone/en/01.png"
+      },
+      {
+        "id": "iphone-gameplay",
+        "layout": "device-bottom",
+        "label": {
+          "en": "PURE ACTION"
+        },
+        "headline": {
+          "en": "Feel every\nclose call"
+        },
+        "screenshot": "/screenshots/apple/iphone/en/02.png"
+      },
+      {
+        "id": "iphone-modes",
+        "layout": "two-devices",
+        "label": {
+          "en": "YOUR RUSH"
+        },
+        "headline": {
+          "en": "Pick the fight\nthat fits"
+        },
+        "screenshot": "/screenshots/apple/iphone/en/03.png",
+        "screenshotSecondary": "/screenshots/apple/iphone/en/02.png",
+        "inverted": true
+      },
+      {
+        "id": "iphone-shop",
+        "layout": "device-top",
+        "label": {
+          "en": "POWER UP"
+        },
+        "headline": {
+          "en": "Build your\ndream ship"
+        },
+        "screenshot": "/screenshots/apple/iphone/en/04.png"
+      },
+      {
+        "id": "iphone-stats",
+        "layout": "device-bottom",
+        "label": {
+          "en": "PROGRESSION"
+        },
+        "headline": {
+          "en": "Turn runs\ninto legacy"
+        },
+        "screenshot": "/screenshots/apple/iphone/en/05.png",
+        "inverted": true
+      },
+      {
+        "id": "iphone-info",
+        "layout": "device-top",
+        "label": {
+          "en": "MASTERY"
+        },
+        "headline": {
+          "en": "Know every\nweapon"
+        },
+        "screenshot": "/screenshots/apple/iphone/en/06.png"
+      }
+    ],
+    "android": [
+      {
+        "id": "android-hero",
+        "layout": "hero",
+        "label": {
+          "en": "NEON ARCADE"
+        },
+        "headline": {
+          "en": "Rule the\nneon sky"
+        },
+        "screenshot": "/screenshots/android/phone/en/01.png"
+      },
+      {
+        "id": "android-gameplay",
+        "layout": "device-bottom",
+        "label": {
+          "en": "PURE ACTION"
+        },
+        "headline": {
+          "en": "Feel every\nclose call"
+        },
+        "screenshot": "/screenshots/android/phone/en/02.png"
+      },
+      {
+        "id": "android-modes",
+        "layout": "two-devices",
+        "label": {
+          "en": "YOUR RUSH"
+        },
+        "headline": {
+          "en": "Pick the fight\nthat fits"
+        },
+        "screenshot": "/screenshots/android/phone/en/03.png",
+        "screenshotSecondary": "/screenshots/android/phone/en/02.png",
+        "inverted": true
+      },
+      {
+        "id": "android-shop",
+        "layout": "device-top",
+        "label": {
+          "en": "POWER UP"
+        },
+        "headline": {
+          "en": "Build your\ndream ship"
+        },
+        "screenshot": "/screenshots/android/phone/en/04.png"
+      },
+      {
+        "id": "android-stats",
+        "layout": "device-bottom",
+        "label": {
+          "en": "PROGRESSION"
+        },
+        "headline": {
+          "en": "Turn runs\ninto legacy"
+        },
+        "screenshot": "/screenshots/android/phone/en/05.png",
+        "inverted": true
+      },
+      {
+        "id": "android-info",
+        "layout": "device-top",
+        "label": {
+          "en": "MASTERY"
+        },
+        "headline": {
+          "en": "Know every\nweapon"
+        },
+        "screenshot": "/screenshots/android/phone/en/06.png"
+      }
+    ],
+    "ipad": [
+      {
+        "id": "ipad-hero",
+        "layout": "hero",
+        "label": {
+          "en": "NEON ARCADE"
+        },
+        "headline": {
+          "en": "Rule the\nneon sky"
+        },
+        "screenshot": "/screenshots/apple/ipad/en/01.png"
+      },
+      {
+        "id": "ipad-gameplay",
+        "layout": "device-bottom",
+        "label": {
+          "en": "PURE ACTION"
+        },
+        "headline": {
+          "en": "Feel every\nclose call"
+        },
+        "screenshot": "/screenshots/apple/ipad/en/02.png"
+      },
+      {
+        "id": "ipad-modes",
+        "layout": "two-devices",
+        "label": {
+          "en": "YOUR RUSH"
+        },
+        "headline": {
+          "en": "Pick the fight\nthat fits"
+        },
+        "screenshot": "/screenshots/apple/ipad/en/03.png",
+        "screenshotSecondary": "/screenshots/apple/ipad/en/02.png",
+        "inverted": true
+      },
+      {
+        "id": "ipad-shop",
+        "layout": "device-top",
+        "label": {
+          "en": "POWER UP"
+        },
+        "headline": {
+          "en": "Build your\ndream ship"
+        },
+        "screenshot": "/screenshots/apple/ipad/en/04.png"
+      },
+      {
+        "id": "ipad-stats",
+        "layout": "device-bottom",
+        "label": {
+          "en": "PROGRESSION"
+        },
+        "headline": {
+          "en": "Turn runs\ninto legacy"
+        },
+        "screenshot": "/screenshots/apple/ipad/en/05.png",
+        "inverted": true
+      },
+      {
+        "id": "ipad-info",
+        "layout": "device-top",
+        "label": {
+          "en": "MASTERY"
+        },
+        "headline": {
+          "en": "Know every\nweapon"
+        },
+        "screenshot": "/screenshots/apple/ipad/en/06.png"
+      }
+    ],
+    "android-7": [],
+    "android-10": [],
+    "feature-graphic": [
+      {
+        "id": "feature-graphic-main",
+        "layout": "feature-graphic",
+        "label": {
+          "en": "SKY FORCE U*S*A"
+        },
+        "headline": {
+          "en": "High-speed neon space combat with bosses, upgrades, and endless runs."
+        },
+        "screenshot": "/screenshots/android/phone/en/02.png"
+      }
+    ]
+  }
+}

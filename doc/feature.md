@@ -20,6 +20,8 @@
 
 # Phần 1 — ✅ Đã triển khai
 
+- ✅ **Store screenshot editor scaffold** (`store-assets/`): tạo Next.js editor riêng, không đụng source app; build/capture trên Pixel 7 Pro; seed 6 màn marketing cho iPhone, iPad và Android phone; short description EN: “High-speed neon space combat with bosses, upgrades, and endless runs.”
+
 ## 🏗️ Architecture & Foundation
 
 - ✅ DataStore preferences (`SettingsRepository` + `LeaderboardRepository`)
