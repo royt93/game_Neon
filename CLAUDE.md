@@ -16,6 +16,9 @@ The project uses **flavor dimension `type`** with two flavors: `dev` and `produc
 ./gradlew installDevDebug               # install dev/debug to a connected device
 ./gradlew clean
 ./gradlew test                          # what CI runs (.github/workflows/android-ci.yml). No tests exist yet.
+
+# Fast verify after any code change (compiles both flavors + runs unit tests):
+./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest
 ```
 
 Toolchain pinned in code (versions live in root `build.gradle`'s `ext { ... }` and `gradle/wrapper/gradle-wrapper.properties` — bump there, not in `app/build.gradle`):
@@ -110,7 +113,7 @@ Dialogs live under `ui/dlg/`: `gamepause`, `gameover`, `settings`, `difficulty`.
 `ui/game/stage/Stage.kt` defines the static `stages: List<Stage>` script (`StageMessage` / `StageGame` / `StageBoss` / `StageBreak`). `StageController` advances through them based on elapsed time + a `readyForNextStage` flag (true when no enemies and no space objects remain). `StageGame` carries `enemyType.spawnRate` and `spaceRockSpawnRateMillis` which the loop feeds directly into `tinker` repeat times — i.e. stage difficulty is encoded as `RepeatTime` values.
 
 ### Rendering
-`ui/game/world/GameWorld.kt` is a single `BoxWithConstraints` that draws every entity by absolute offset from state. Lasers/ship/enemies/space-objects use `Image(painterResource(...))`. The animated explosion uses **Coil 3.x** (`coil3.compose.rememberAsyncImagePainter` + `coil3.request.ImageRequest`) backed by an `ImageLoader` configured in `ui/game/utils/ImageLoader.kt` with `coil3.gif.AnimatedImageDecoder` / `GifDecoder` to play a GIF (`R.drawable.anim_explosion`). Note: the legacy `coil.compose.rememberImagePainter` API does **not** exist in Coil 3 — use the `coil3.*` packages and `rememberAsyncImagePainter`. The starfield uses `Canvas` with a radial gradient. The shield aura uses `Canvas` + `infiniteRepeatable` color animation between `ShipShieldOne` / `ShipShieldTwo`.
+`ui/game/world/GameWorld.kt` is a single `BoxWithConstraints` that draws every entity by absolute offset from state. High-volume entity lists (lasers, enemies, space objects, boosters, minerals) are **not** drawn via a per-item `Image` in a Composable `forEach` — each has a dedicated batched-drawing Composable in `ui/game/world/` (`LaserCanvas`, `EnemyCanvas`, `SpaceObjectCanvas`, `BoosterCanvas`, `MineralCanvas`) that draws the whole list inside one `Canvas`. Follow this pattern for any new high-cardinality entity type; low-cardinality/one-off visuals (ship, explosion) can stay as plain `Image`/Coil composables. The animated explosion uses **Coil 3.x** (`coil3.compose.rememberAsyncImagePainter` + `coil3.request.ImageRequest`) backed by an `ImageLoader` configured in `ui/game/utils/ImageLoader.kt` with `coil3.gif.AnimatedImageDecoder` / `GifDecoder` to play a GIF (`R.drawable.anim_explosion`). Note: the legacy `coil.compose.rememberImagePainter` API does **not** exist in Coil 3 — use the `coil3.*` packages and `rememberAsyncImagePainter`. The starfield uses `Canvas` with a radial gradient. The shield aura uses `Canvas` + `infiniteRepeatable` color animation between `ShipShieldOne` / `ShipShieldTwo`.
 
 ### Audio
 `ui/game/audio/AudioPlayer.kt` wraps **AndroidX Media3 ExoPlayer `1.10.0`** (`androidx.media3.exoplayer.ExoPlayer`, not the legacy `com.google.android.exoplayer2` package — that migration is already done) and is driven off `gameStatus` (pauses with the game).
@@ -124,3 +127,10 @@ Dialogs live under `ui/dlg/`: `gamepause`, `gameover`, `settings`, `difficulty`.
 - The empty package directories under `com/tranphuloi/neon/game/...` (mirroring every subpath of the populated `ui/game/...` tree) are leftover from a refactor — ignore them and add code under `ui/game/...`. Don't "fix" by moving files unless asked. (`com/tranphuloi/neon/{common,core,data,navigation,utils}` at the top level *are* populated — those are real and not leftovers.)
 - New game-feel additions (sparks, popups, banners, haptic, hitstop) should follow the "single controller + leaf Composable in `controls/` (HUD) or new package" pattern — **don't** force the 5-piece domain shape onto them.
 - LeakCanary is on the `debugImplementation` classpath and wired via the `LeakWatch` source-set split; check it when investigating retention bugs and use `LeakWatch.watch(obj, "description")` from main-set code rather than depending on LeakCanary directly.
+- **i18n:** every new user-facing string must be added to both `app/src/main/res/values-vi/strings.xml` and `values-en/strings.xml` (there's also a `values/strings.xml` default and `values-night/` for theme-only overrides — don't confuse the two).
+- **Compose stability:** new state data classes (entity domain models, UI projections) should be annotated `@Immutable` or `@Stable` so Compose can skip unnecessary recomposition — the existing entity/UI types follow this.
+- **Logger granularity:** `Logger.d(...)` for sparse events (init, lifecycle, stage/boss transitions, achievements); `Logger.v { ... }` (lambda form) for hot-path per-frame/collision/spawn logging, so the string isn't built when verbose logging is disabled.
+
+## Store assets tooling (`store-assets/`)
+
+A separate, self-contained Next.js + ShadCN app for producing App Store / Google Play marketing screenshots — scaffolded by the `app-store-screenshots` skill and unrelated to the Android app's build. Run with `bun install && bun dev` (or npm/pnpm/yarn) from inside `store-assets/`; see `store-assets/README.md` for the editor's persistence model (`app-store-screenshots.json` is the git-tracked canonical project state) and customization points.
