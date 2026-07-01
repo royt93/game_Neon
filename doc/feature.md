@@ -33,6 +33,11 @@
 - ✅ Logger sprinkling toàn flow (~155 calls, 30+ files) (Xa)
 - ✅ Game loop trên IO dispatcher + delay(8) pacing
 - ✅ Source set: `app/src/{debug,release}/java/...`
+- ✅ **Bộ test 3 tầng (828 test, 100% pass)** — unit + widget + integration:
+  - **Tier 1 (JVM, `app/src/test/`, 808 test):** correctness 7 controller (Background/Stage/Booster/Mineral/SpaceObject/Combo/Explosion) + hot-path perf timing (`perf/HotPathPerfTest`: FinalBoss.generateLasers, PathPool, StatusEffectController, DateUtils, Logger — assert iteration-budget). Chạy: `./gradlew testDevDebugUnitTest`.
+  - **Tier 2 (widget, `app/src/androidTest/widget/`, Compose UI thật):** BulletDisplayName, DialogGamePause (nút + callback), DialogDifficultyPicker, ComboHud — dùng `createComposeRule()`.
+  - **Tier 3 (integration, `app/src/androidTest/integration/`):** PersistenceRoundtrip (5 repo DataStore thật), NavigationFlow + GameLoopMultiTick (lái bằng **UiAutomator**, không compose-rule). Chạy: `./gradlew connectedDevDebugAndroidTest` (cần thiết bị).
+  - Robolectric giữ cho 1 integration test thuần DataStore (`MetaProgressionShipIntegrationTest`); Compose UI test bỏ Robolectric (bug AGP 9.1.1). Chi tiết gotcha Android 17 xem `CLAUDE.md`.
 
 ## 🎨 Visual / UI
 

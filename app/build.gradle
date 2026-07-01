@@ -18,6 +18,12 @@ android {
         versionName = "2026.07.01"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // AndroidX Test Orchestrator: mỗi test chạy trong instrumentation riêng và
+        // clearPackageData xoá sạch app data (DataStore: checkpoint/meta/settings)
+        // GIỮA các test → mỗi test khởi động từ trạng thái pristine. Cần thiết vì
+        // MenuScreen bị nhiễm state sau các phiên game trong process dài hạn
+        // (Android 17) làm a11y tree không lộ đủ nút → nav test flaky.
+        testInstrumentationRunnerArguments clearPackageData: 'true'
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -96,6 +102,9 @@ android {
             // Stub android.util.Log etc. so Logger calls don't throw in JVM tests.
             returnDefaultValues = true
         }
+        // Chạy androidTest qua Test Orchestrator (đi kèm androidTestUtil orchestrator
+        // + clearPackageData ở defaultConfig) để cô lập process + xoá data mỗi test.
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 
     lint {
@@ -136,16 +145,41 @@ dependencies {
     debugImplementation "com.squareup.leakcanary:leakcanary-android:2.14"
     /*Unit tests (JVM, no Android runtime). Run via `./gradlew test`.*/
     testImplementation "junit:junit:4.13.2"
-    /* Wave 11a Phase 5 — widget test infra HALF-SET-UP (compile works, runtime
-       fails). Compose UI test needs Robolectric ComponentActivity wired via
-       custom test manifest + @Config(application = ...). Future round:
-       finalize manifest/config so `runComposeUiTest` resolves Build.FINGERPRINT
-       from Robolectric environment. Deps below resolve cleanly — only test
-       runtime config is missing. */
-    testImplementation "androidx.compose.ui:ui-test-junit4"
-    debugImplementation "androidx.compose.ui:ui-test-manifest"
+    /* Robolectric giữ lại cho integration test THUẦN DataStore (không Compose),
+       vd MetaProgressionShipIntegrationTest — Robolectric chạy tốt cho các test
+       không dùng createComposeRule. Chỉ có Compose UI test (ui-test-junit4) là
+       bị bug AGP 9.1.1 (không merge ui-test-manifest vào manifest JVM unit-test
+       → createComposeRule() ném RuntimeException, Robolectric PR #4736) nên được
+       chuyển hẳn sang route androidTest thật bên dưới. */
     testImplementation "org.robolectric:robolectric:4.13"
     testImplementation "androidx.test:core-ktx:1.6.1"
+    /* Widget + integration tests (androidTest, Compose UI thật trên thiết bị/
+       emulator). createAndroidComposeRule<MainActivity>() chạy qua
+       `./gradlew connectedDevDebugAndroidTest`. */
+    // Compose BOM cũng phải áp cho classpath androidTest để ui-test-junit4 lấy
+    // được version (BOM khai ở implementation không tự lan sang androidTest).
+    androidTestImplementation platform("androidx.compose:compose-bom:$compose_bom_version")
+    androidTestImplementation "androidx.compose.ui:ui-test-junit4"
+    // androidx.test 1.7.0 / espresso 3.7.0: dùng InputManagerGlobal thay cho
+    // reflection InputManager.getInstance() (đã bị xoá từ Android 15+/API 35).
+    // Bản 3.6.x ném NoSuchMethodException trên API 37 → hỏng MỌI Compose test vì
+    // compose-ui-test gọi Espresso.onIdle() để đồng bộ. Đừng hạ version.
+    androidTestImplementation "androidx.test.ext:junit:1.3.0"
+    androidTestImplementation "androidx.test:runner:1.7.0"
+    androidTestImplementation "androidx.test:rules:1.7.0"
+    androidTestImplementation "androidx.test.espresso:espresso-core:3.7.0"
+    /* UiAutomator lái UI THẬT cho các flow test qua MainActivity+NavHost. Lý do:
+       compose-ui-test dispatch LaunchedEffect off-main (frame-deferring pool),
+       mà SplashScreen tự điều hướng NGAY trong LaunchedEffect → navController
+       chạm setCurrentState off-main → crash trên Android 17. UiAutomator không
+       thay dispatcher của app → effect chạy trên main như production → hết crash.
+       Compose test rule vẫn dùng cho widget test cô lập (không auto-navigate). */
+    androidTestImplementation "androidx.test.uiautomator:uiautomator:2.3.0"
+    // Test Orchestrator runtime (chạy mỗi test process riêng + clearPackageData).
+    androidTestUtil "androidx.test:orchestrator:1.5.1"
+    // ui-test-manifest cung cấp activity stub cho ComposeTestRule; cần trên
+    // classpath debug (androidTest chạy trên debug build).
+    debugImplementation "androidx.compose.ui:ui-test-manifest"
 }
 
 kotlin {

@@ -1,0 +1,121 @@
+package com.tranphuloi.neon.perf
+
+import com.tranphuloi.neon.common.PathPool
+import com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBoss
+import com.tranphuloi.neon.ui.game.ship.ship.Ship
+import com.tranphuloi.neon.ui.game.status.StatusEffect
+import com.tranphuloi.neon.ui.game.status.StatusEffectController
+import com.tranphuloi.neon.utils.DateUtils
+import com.tranphuloi.neon.utils.Logger
+import org.junit.After
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/**
+ * Tier 1B — hot-path perf timing tests. Not micro-benchmarks (no warmup /
+ * JMH-grade isolation): a coarse iteration-budget guard so an accidental
+ * O(n²) regression or a blocking call sneaking onto a per-frame hot path
+ * fails CI instead of only showing up as jank on-device.
+ *
+ * Budgets are intentionally generous (order-of-magnitude headroom) to avoid
+ * flaking across different dev/CI machines — the goal is to catch a 10-100x
+ * regression, not to enforce a tight SLA.
+ *
+ * Excluded (see plan): [com.tranphuloi.neon.ui.game.enemy.ship.model.LevelTwoBoss.generateLasers]
+ * (branches on `System.currentTimeMillis()/1000 % 2` → flaky near second
+ * boundary) and `NeonGlow.neonGlow` (Compose Modifier, not runnable on plain JVM).
+ */
+class HotPathPerfTest {
+
+    @After
+    fun cleanup() {
+        PathPool.clearForTest()
+    }
+
+    private fun timeMillis(block: () -> Unit): Long {
+        val start = System.nanoTime()
+        block()
+        return (System.nanoTime() - start) / 1_000_000L
+    }
+
+    // ── FinalBoss.generateLasers() — boss fires every tick while alive ──
+
+    @Test
+    fun `FinalBoss generateLasers stays within budget across 10k calls`() {
+        val boss = FinalBoss(
+            screenWidth = 400f,
+            screenHeight = 800f,
+            getShip = { Ship(xOffset = 200f, yOffset = 600f) },
+        )
+        val elapsedMs = timeMillis {
+            repeat(10_000) { boss.generateLasers() }
+        }
+        assertTrue(
+            "10k generateLasers() calls phải dưới 1000ms, thực tế ${elapsedMs}ms",
+            elapsedMs < 1_000L,
+        )
+    }
+
+    // ── PathPool.acquire()/release() — every shape draw in Canvas hot paths ──
+
+    @Test
+    fun `PathPool acquire-release cycle stays within budget across 50k calls`() {
+        PathPool.clearForTest()
+        val elapsedMs = timeMillis {
+            repeat(50_000) {
+                val p = PathPool.acquire()
+                PathPool.release(p)
+            }
+        }
+        assertTrue(
+            "50k acquire/release cycle phải dưới 500ms, thực tế ${elapsedMs}ms",
+            elapsedMs < 500L,
+        )
+    }
+
+    // ── StatusEffectController.apply() — fan-in hotspot #1, fires per laser-hit ──
+
+    @Test
+    fun `StatusEffectController apply stays within budget across 10k calls on a shared enemy pool`() {
+        val controller = StatusEffectController()
+        val enemyIds = (0 until 50).map { "enemy-$it" }
+        val elapsedMs = timeMillis {
+            repeat(10_000) { i ->
+                val enemyId = enemyIds[i % enemyIds.size]
+                val type = if (i % 2 == 0) StatusEffect.BURN else StatusEffect.SLOW
+                controller.apply(enemyId = enemyId, type = type, nowMillis = i.toLong())
+            }
+        }
+        assertTrue(
+            "10k apply() calls (mix refresh/new trên 50 enemy) phải dưới 500ms, thực tế ${elapsedMs}ms",
+            elapsedMs < 500L,
+        )
+    }
+
+    // ── DateUtils.currentTimeMillis() — called every tinker() invocation in the game loop ──
+
+    @Test
+    fun `DateUtils currentTimeMillis stays within budget across 100k calls`() {
+        val dateUtils = DateUtils()
+        val elapsedMs = timeMillis {
+            repeat(100_000) { dateUtils.currentTimeMillis() }
+        }
+        assertTrue(
+            "100k currentTimeMillis() calls phải dưới 500ms, thực tế ${elapsedMs}ms",
+            elapsedMs < 500L,
+        )
+    }
+
+    // ── Logger.d() — used pervasively (~155+ call sites), must not become a bottleneck ──
+
+    @Test
+    fun `Logger d stays within budget across 10k calls`() {
+        val elapsedMs = timeMillis {
+            repeat(10_000) { i -> Logger.d("perf-probe iteration $i") }
+        }
+        assertTrue(
+            "10k Logger.d() calls phải dưới 1000ms, thực tế ${elapsedMs}ms",
+            elapsedMs < 1_000L,
+        )
+    }
+}

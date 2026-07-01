@@ -15,7 +15,7 @@ The project uses **flavor dimension `type`** with two flavors: `dev` and `produc
 ./gradlew assembleProductionRelease     # release APK, production flavor (minify + shrink on)
 ./gradlew installDevDebug               # install dev/debug to a connected device
 ./gradlew clean
-./gradlew test                          # what CI runs (.github/workflows/android-ci.yml). No tests exist yet.
+./gradlew test                          # what CI runs (.github/workflows/android-ci.yml). JVM unit tests live under app/src/test/.
 
 # Fast verify after any code change (compiles both flavors + runs unit tests):
 ./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest
@@ -25,7 +25,7 @@ Toolchain pinned in code (versions live in root `build.gradle`'s `ext { ... }` a
 
 - Kotlin **2.3.20**, AGP **9.1.1**, Gradle wrapper **9.3.1**
 - Compose: Kotlin 2.x compose plugin (`org.jetbrains.kotlin.plugin.compose`, applied in `app/build.gradle`) + Compose **BOM `2026.04.01`** — individual Compose artifacts have no version, the BOM aligns them. There is no longer a separate `composeOptions { kotlinCompilerExtensionVersion ... }` block.
-- `compileSdk` / `targetSdk` **37**, `minSdk` **23**, source/target/jvmTarget all **JDK 17** (`compileOptions` + `kotlin { compilerOptions { jvmTarget = JVM_17 } }`). CI also uses JDK 17 (Zulu).
+- `compileSdk` / `targetSdk` **37**, `minSdk` **24** (raised from 23 — `Configuration.getLocales`, `LocaleList.get`, `ConcurrentHashMap.merge` crash on API 23), source/target/jvmTarget all **JDK 17** (`compileOptions` + `kotlin { compilerOptions { jvmTarget = JVM_17 } }`). CI also uses JDK 17 (Zulu).
 - `kotlin.compilerOptions.freeCompilerArgs` includes `-Xannotation-default-target=param-property`. Don't strip it — it preserves Kotlin 1.x annotation-targeting semantics under Kotlin 2.x and the codebase has not been audited for the new defaults.
 - `org.gradle.configuration-cache=true` is enabled in `gradle.properties`. New Gradle code (plugins, custom tasks) must be configuration-cache-compatible (no `Project` access at execution time, no `Task.project`, etc.).
 
@@ -40,6 +40,19 @@ The release signing key (`app/keystore.jks`) and `app/private_key.pepk` are chec
 ## Source sets and LeakCanary
 
 Both `app/src/debug/java/com/tranphuloi/neon/utils/LeakWatch.kt` and `app/src/release/java/com/tranphuloi/neon/utils/LeakWatch.kt` exist. The debug variant delegates to `leakcanary.AppWatcher.objectWatcher.expectWeaklyReachable(...)`; the release variant is a no-op. The `LeakWatch.watch(obj, description)` API is the only thing main-set code may call — never reference LeakCanary classes from `main/` directly, or release builds will fail to compile.
+
+## Testing (3 tiers, 828 tests)
+
+- **Tier 1 — JVM unit** (`app/src/test/`, 808 tests): controller correctness + `perf/HotPathPerfTest` (iteration-budget timing). Run `./gradlew testDevDebugUnitTest` — no device. Convention: JUnit4 only, **no mocking framework**, class `XxxControllerBehaviorTest`, backtick English test names, `private fun newController(...)` capturing state via lambda setters, bilingual assert messages.
+- **Tier 2 — widget** (`app/src/androidTest/widget/`): isolated Compose UI via `createComposeRule()` (NeonTheme wrapper; provide `LocalSettings` etc. from `App` singleton, don't `new` repos → "multiple DataStores" error). `NeonDialogButton` renders `"$glyph $text"` so match with `substring = true`.
+- **Tier 3 — integration** (`app/src/androidTest/integration/`): `PersistenceRoundtripTest` (5 real DataStore repos via `ApplicationProvider`), `NavigationFlowTest` + `GameLoopMultiTickTest`. Run `./gradlew connectedDevDebugAndroidTest` — **needs a device** (per R3, list `adb devices` + confirm target first).
+
+**Android 17 / API 37 gotchas (hard-won — don't regress these):**
+- Compose UI tests need **espresso 3.7.0 + androidx.test 1.7.0** (`InputManagerGlobal`). espresso ≤3.6.x throws `NoSuchMethodException: InputManager.getInstance` → breaks *every* Compose test (compose-ui-test calls `Espresso.onIdle()`).
+- **Full-activity nav flows use UiAutomator, NOT the compose test rule.** `SplashScreen` navigates inside a `LaunchedEffect`; compose-ui-test dispatches effects off-main → `navController` hits `setCurrentState` off-main → `IllegalStateException`. UiAutomator (`By.text`/`Until`) lets the app run effects on the real main thread. `effectContext = Dispatchers.Main` does **not** fix it (frame-deferring interceptor overrides).
+- Integration `@Before` seeds `settings.setDifficulty(...)` (marks `difficultyPicked=true` → skip DifficultyPicker) and calls `App.clearAllCheckpoints()` (see `integration/FlowSupport.kt`) — a checkpoint makes MenuScreen (scale-to-fit, no scroll) clip the play button. Play-button lookup relaunches the activity up to 3× to dodge an adaptive-scale layout race.
+- Dev flavor `applicationId` = `com.tranphuloi.neon` (unchanged), but the on-device package label differs; `run-as` may be blocked and `/sdcard` writes are EPERM — dump diagnostics via `Log.i` + `adb logcat`, not files.
+- Robolectric is retained **only** for `MetaProgressionShipIntegrationTest` (pure DataStore, no Compose) — Robolectric works fine there; it's abandoned only for Compose UI (AGP 9.1.1 doesn't merge `ui-test-manifest` into the JVM unit-test manifest).
 
 ## Feature tracker
 
