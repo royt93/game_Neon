@@ -5,8 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.R
@@ -17,6 +21,7 @@ import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.common.NeonMagenta
 import com.tranphuloi.neon.utils.Logger
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun DialogGamePause(
     onResumeGame: () -> Unit,
@@ -41,12 +46,16 @@ fun DialogGamePause(
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier.fillMaxWidth(),
+            // testTagsAsResourceId: dialog là window riêng, KHÔNG thừa hưởng cờ này
+            // từ NavHost root → khai báo tại đây để androidTest (UiAutomator) định vị
+            // từng nút bằng By.res("pause_*").
+            modifier = Modifier.fillMaxWidth().semantics { testTagsAsResourceId = true },
         ) {
             NeonDialogButton(
                 text = stringResource(id = R.string.resume_game_button).uppercase(),
                 color = NeonCyan,
                 leadingGlyph = "▶",
+                modifier = Modifier.testTag("pause_resume"),
                 onClick = {
                     Logger.d("DialogGamePause: Resume pressed")
                     onResumeGame()
@@ -56,6 +65,7 @@ fun DialogGamePause(
                 text = stringResource(id = R.string.restart_game_button).uppercase(),
                 color = NeonMagenta,
                 leadingGlyph = "↻",
+                modifier = Modifier.testTag("pause_restart"),
                 onClick = {
                     Logger.d("DialogGamePause: Restart pressed")
                     onRestartGame()
@@ -65,6 +75,7 @@ fun DialogGamePause(
                 text = stringResource(id = R.string.settings_button).uppercase(),
                 color = NeonCyan,
                 leadingGlyph = "⚙",
+                modifier = Modifier.testTag("pause_settings"),
                 onClick = {
                     Logger.d("DialogGamePause: Settings pressed")
                     onSettings()
@@ -76,6 +87,7 @@ fun DialogGamePause(
                 text = "CHỤP ẢNH",
                 color = NeonGold,
                 leadingGlyph = "📸",
+                modifier = Modifier.testTag("pause_capture"),
                 onClick = {
                     Logger.d("DialogGamePause: Capture photo pressed")
                     onCapturePhoto()
@@ -87,6 +99,7 @@ fun DialogGamePause(
                 text = "VỀ MENU",
                 color = NeonGold,
                 leadingGlyph = "◀",
+                modifier = Modifier.testTag("pause_menu"),
                 onClick = {
                     Logger.d("DialogGamePause: Back to Menu pressed (checkpoint preserved)")
                     onBackToMenu()

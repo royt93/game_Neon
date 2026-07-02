@@ -10,7 +10,9 @@ import androidx.compose.ui.test.onAllNodesWithText
 fun ComposeContentTestRule.waitForText(
     text: String,
     substring: Boolean = false,
-    timeoutMillis: Long = 5_000,
+    // 10s để dung sai máy budget/cold-start (orchestrator restart process mỗi test):
+    // NeonBottomSheet slide-in + frame đầu có thể > 5s trên thiết bị chậm.
+    timeoutMillis: Long = 10_000,
 ) {
     waitUntil(timeoutMillis) {
         onAllNodesWithText(text, substring = substring).fetchSemanticsNodes().isNotEmpty()

@@ -21,7 +21,7 @@ import org.junit.runner.RunWith
 
 /**
  * Integration test — game loop chạy nhiều tick THẬT trên thiết bị, lái bằng
- * UiAutomator (xem NavigationFlowTest để hiểu vì sao không dùng compose rule).
+ * UiAutomator + testTag (xem NavigationFlowTest để hiểu lựa chọn kỹ thuật).
  *
  * Game loop sống trong DisposableEffect trên Dispatchers.IO với delay(8) (~125Hz).
  * Test vào màn Game, để loop chạy vài giây (hàng trăm iteration), rồi chốt bất
@@ -38,7 +38,6 @@ class GameLoopMultiTickTest {
     @Before
     fun setUp() {
         runBlocking { app.settings.setDifficulty(Difficulty.NORMAL) }
-        // Menu scale-to-fit sẽ clip nút chơi nếu có checkpoint → xoá sạch mọi mode.
         app.clearAllCheckpoints()
         scenario = ActivityScenario.launch(MainActivity::class.java)
     }
@@ -46,40 +45,24 @@ class GameLoopMultiTickTest {
     @After
     fun tearDown() {
         if (::scenario.isInitialized) scenario.close()
-        // Loop đã chết sau close() → xoá checkpoint run vừa tạo, tránh rò sang
-        // class test kế (race với setUp của nó).
-        app.clearAllCheckpoints()
     }
 
-    private fun launchFresh() {
-        if (::scenario.isInitialized) scenario.close()
-        app.clearAllCheckpoints()
-        scenario = ActivityScenario.launch(MainActivity::class.java)
-    }
-
-    /**
-     * Đưa Menu về trạng thái có nút chơi bấm được. MenuScreen thi thoảng clip nút
-     * chơi (adaptive-scale + pulse animation race) → relaunch để có layout pass
-     * mới; launch tươi luôn render nút chơi (bằng chứng: chạy đơn lẻ ổn định).
-     */
-    private fun acquirePlay(): UiObject2 {
-        repeat(3) { attempt ->
+    private fun awaitMenu() {
+        val ok = device.wait(Until.hasObject(By.text("SKY FORCE")), 10_000) != null ||
+            device.hasObject(By.text("CHỌN ĐỘ KHÓ"))
+        assertTrue("Splash phải dẫn tới Menu/DifficultyPicker", ok)
+        if (device.hasObject(By.text("CHỌN ĐỘ KHÓ"))) {
+            device.wait(Until.findObject(By.text("VỪA")), 5_000)?.click()
             device.wait(Until.hasObject(By.text("SKY FORCE")), 10_000)
-            if (device.hasObject(By.text("CHỌN ĐỘ KHÓ"))) {
-                device.wait(Until.findObject(By.text("VỪA")), 5_000)?.click()
-                device.wait(Until.hasObject(By.text("SKY FORCE")), 10_000)
-            }
-            // Settle a11y tree của Menu sau khi process đã chơi game (test trước).
-            Thread.sleep(1_200)
-            device.findPlayButton()?.let { return it }
-            if (attempt < 2) launchFresh()
         }
-        error("Không tìm được nút chơi (BẮT ĐẦU/TIẾP TỤC) sau 3 lần relaunch")
     }
 
     private fun enterGame() {
-        acquirePlay().click()
-        assertTrue("Bấm nút chơi phải vào Game (rời Menu)", device.wait(Until.gone(By.text("SKY FORCE")), 10_000))
+        awaitMenu()
+        val play = device.findByTag("menu_play")
+            ?: error("Không tìm được nút chơi (testTag menu_play) trên Menu")
+        play.click()
+        assertTrue("Bấm nút chơi phải vào Game (rời Menu)", device.wait(Until.gone(By.res("menu_play")), 10_000))
     }
 
     @Test
@@ -111,5 +94,31 @@ class GameLoopMultiTickTest {
             "Back khi đang chơi phải mở dialog TẠM DỪNG (GamePause)",
             device.wait(Until.hasObject(By.text("TẠM DỪNG")), 8_000) != null,
         )
+    }
+
+    /**
+     * Phủ nút + callback của DialogGamePause TRÊN THIẾT BỊ THẬT. Định vị nút bằng
+     * testTag (`By.res("pause_resume")` — testTagsAsResourceId khai trong dialog) +
+     * cuộn nếu nút ngoài fold ([findByTag]); bấm "Resume" → dialog đóng, resume Game.
+     */
+    @Test
+    fun pause_dialog_resume_button_works() {
+        enterGame()
+        Thread.sleep(1_500)
+        device.pressBack()
+        assertTrue(
+            "Phải mở dialog TẠM DỪNG",
+            device.wait(Until.hasObject(By.text("TẠM DỪNG")), 8_000) != null,
+        )
+        device.waitForIdle()
+        val resume = device.findByTag("pause_resume")
+        assertTrue("Pause phải có nút Resume (testTag pause_resume)", resume != null)
+
+        resume!!.click()
+        assertTrue(
+            "Bấm Resume phải đóng dialog (resume game)",
+            device.wait(Until.gone(By.text("TẠM DỪNG")), 8_000),
+        )
+        assertTrue("Sau resume vẫn ở Game, không quay về Menu", !device.hasObject(By.res("menu_play")))
     }
 }

@@ -9,40 +9,32 @@ import com.tranphuloi.neon.ui.game.mode.GameMode
 import kotlinx.coroutines.runBlocking
 
 /**
- * Xoá checkpoint của MỌI game mode. MenuScreen scale-to-fit (KHÔNG scroll ở màn
- * thường); khi tồn tại checkpoint, dòng "▸ Đang ở màn X" làm nội dung tràn → menu
- * bật nhánh mustScroll HOẶC Compose clip nút chơi (ở giữa). Xoá sạch trước mỗi
- * lần launch để Menu ở trạng thái gọn nhất.
+ * Xoá checkpoint của MỌI game mode — phòng thủ để test chạy sạch cả khi KHÔNG qua
+ * Test Orchestrator (vd chạy từ IDE, không có clearPackageData). Menu gọn thì ít
+ * khi phải cuộn.
  */
 fun App.clearAllCheckpoints() = runBlocking {
     GameMode.values().forEach { runPersistence.clearCheckpoint(it.key) }
 }
 
 /**
- * Tìm nút chơi ("▶ BẮT ĐẦU" hoặc "▶ TIẾP TỤC") một cách bền bỉ với layout Menu:
- *  - chờ node xuất hiện,
- *  - nếu chưa thấy (menu tràn → mustScroll), vuốt để lộ ra rồi thử lại.
- * Trả về UiObject2 hoặc null.
+ * Định vị node theo **testTag** ([By.res] nhờ `testTagsAsResourceId=true` ở root).
+ * Nếu chưa thấy, cuộn để lộ node: MenuScreen khi nội dung tràn (màn thấp / có
+ * nhiều dòng) bật nhánh `mustScroll` → nút nằm ngoài vùng nhìn thấy nên UiAutomator
+ * (chỉ đọc node visible) không thấy; vuốt để đưa vào khung nhìn. testTag giữ cho
+ * locator KHÔNG phụ thuộc chuỗi hiển thị.
  */
-fun UiDevice.findPlayButton(): UiObject2? {
-    fun locate(timeout: Long): UiObject2? =
-        wait(Until.findObject(By.textContains("BẮT ĐẦU")), timeout)
-            ?: findObject(By.textContains("TIẾP TỤC"))
-
-    var play = locate(8_000)
-    if (play != null) return play
-
-    // Menu có thể đang ở nhánh mustScroll → vuốt lên (cuộn xuống) rồi thử lại.
+fun UiDevice.findByTag(tag: String, timeout: Long = 6_000): UiObject2? {
+    wait(Until.findObject(By.res(tag)), timeout)?.let { return it }
+    // Vuốt lên (cuộn xuống) để lộ node ở dưới fold.
     repeat(2) {
         swipe(displayWidth / 2, displayHeight * 3 / 4, displayWidth / 2, displayHeight / 4, 12)
-        play = locate(2_000)
-        if (play != null) return play
+        wait(Until.findObject(By.res(tag)), 1_500)?.let { return it }
     }
-    // Vuốt ngược lại (về đầu) phòng khi nút ở phía trên.
+    // Vuốt xuống (cuộn lên) phòng khi node ở trên.
     repeat(2) {
         swipe(displayWidth / 2, displayHeight / 4, displayWidth / 2, displayHeight * 3 / 4, 12)
-        play = locate(2_000)
-        if (play != null) return play
+        wait(Until.findObject(By.res(tag)), 1_500)?.let { return it }
     }
-    return play
+    return null
 }

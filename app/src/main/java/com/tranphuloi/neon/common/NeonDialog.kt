@@ -7,9 +7,10 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import android.provider.Settings
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,7 +36,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -163,21 +165,35 @@ fun NeonDialogButton(
     modifier: Modifier = Modifier,
     leadingGlyph: String = "",                            // e.g. "▶" or "⏸"
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "btnPulse")
-    val pulse by infiniteTransition.animateFloat(
-        initialValue = 0.55f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 900, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse,
-        ),
-        label = "btnPulseAlpha",
-    )
+    // Pulse vô hạn chỉ chạy khi OS cho phép animation — tôn trọng cài đặt trợ năng
+    // "Remove animations" (ANIMATOR_DURATION_SCALE = 0). Khi tắt, dùng giá trị tĩnh.
+    // (Cũng giúp compose UI test idle được: rememberInfiniteTransition chặn idle.)
+    val context = LocalContext.current
+    val animationsEnabled = remember {
+        Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f
+    }
+    val pulse: Float = if (animationsEnabled) {
+        val infiniteTransition = rememberInfiniteTransition(label = "btnPulse")
+        infiniteTransition.animateFloat(
+            initialValue = 0.55f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 900, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "btnPulseAlpha",
+        ).value
+    } else {
+        1f
+    }
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
+            // Round: đổi detectTapGestures → clickable để có semantics OnClick (test
+            // + a11y: đọc được là "button", TalkBack kích hoạt được) + ripple phản hồi.
+            .clickable { onClick() }
             .background(
                 Brush.horizontalGradient(
                     colors = listOf(
@@ -192,9 +208,6 @@ fun NeonDialogButton(
                 RoundedCornerShape(22.dp),
             )
             .neonGlow(color = color, intensity = 0.5f * pulse, radiusFactor = 1.4f)
-            .pointerInput(Unit) {
-                detectTapGestures(onTap = { onClick() })
-            }
             .padding(horizontal = 22.dp, vertical = 12.dp),
     ) {
         val full = if (leadingGlyph.isNotEmpty()) "$leadingGlyph $text" else text

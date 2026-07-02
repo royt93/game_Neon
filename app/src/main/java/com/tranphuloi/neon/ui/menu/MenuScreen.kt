@@ -39,6 +39,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -168,7 +169,6 @@ fun MenuScreen(
             // *0.97f: chừa ~3% lề đáy để phần tử cuối không sát viền do làm tròn.
             val rawScale = maxHeight.value * 0.97f / neededH
             val s = rawScale.coerceIn(minScale, 1f)
-            val mustScroll = rawScale < minScale
 
             val baseColumnMod = Modifier
                 .fillMaxSize()
@@ -177,7 +177,15 @@ fun MenuScreen(
                 // but display cutout still occupies layout space → must reserve.
                 .windowInsetsPadding(WindowInsets.displayCutout)
                 .padding(horizontal = 22.dp, vertical = 24f.sdp(s))
-            val columnMod = if (mustScroll) baseColumnMod.verticalScroll(rememberScrollState())
+            // BUG FIX (clip nút chơi): trước đây chỉ scroll khi rawScale < minScale.
+            // Nhưng `neededH` là ƯỚC LƯỢNG chiều cao — nếu nội dung thật cao hơn ước
+            // lượng ở scale s (< 1f), Column không-scroll sẽ CLIP phần giữa (mất nút
+            // "▶ BẮT ĐẦU"). Giờ: hễ đang co (s < 1f) thì luôn cho verticalScroll —
+            // nếu co vừa khít thì không hề scroll (giữ yêu cầu "menu không scroll"),
+            // còn nếu ước lượng lệch thì scroll thay vì clip. Nhánh s >= 1f (dư chỗ,
+            // có Spacer weight) không bao giờ tràn nên không cần scroll (và weight
+            // không hợp lệ trong verticalScroll).
+            val columnMod = if (s < 1f) baseColumnMod.verticalScroll(rememberScrollState())
             else baseColumnMod
         Column(
             modifier = columnMod,
@@ -356,7 +364,7 @@ fun MenuScreen(
                             label = "CÀI ĐẶT",
                             glyph = "⚙",
                             color = NeonMagenta,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).testTag("menu_settings"),
                             s = s,
                             onClick = {
                                 Logger.d("MenuScreen: SETTINGS tapped")
@@ -621,6 +629,7 @@ private fun PlayButton(
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
+            .testTag("menu_play")
             .fillMaxWidth()
             .height(UNIFIED_BUTTON_HEIGHT * s)
             .clickable(onClick = onClick)

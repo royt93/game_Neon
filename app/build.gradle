@@ -18,12 +18,6 @@ android {
         versionName = "2026.07.01"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        // AndroidX Test Orchestrator: mỗi test chạy trong instrumentation riêng và
-        // clearPackageData xoá sạch app data (DataStore: checkpoint/meta/settings)
-        // GIỮA các test → mỗi test khởi động từ trạng thái pristine. Cần thiết vì
-        // MenuScreen bị nhiễm state sau các phiên game trong process dài hạn
-        // (Android 17) làm a11y tree không lộ đủ nút → nav test flaky.
-        testInstrumentationRunnerArguments clearPackageData: 'true'
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -102,9 +96,6 @@ android {
             // Stub android.util.Log etc. so Logger calls don't throw in JVM tests.
             returnDefaultValues = true
         }
-        // Chạy androidTest qua Test Orchestrator (đi kèm androidTestUtil orchestrator
-        // + clearPackageData ở defaultConfig) để cô lập process + xoá data mỗi test.
-        execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 
     lint {
@@ -175,8 +166,6 @@ dependencies {
        thay dispatcher của app → effect chạy trên main như production → hết crash.
        Compose test rule vẫn dùng cho widget test cô lập (không auto-navigate). */
     androidTestImplementation "androidx.test.uiautomator:uiautomator:2.3.0"
-    // Test Orchestrator runtime (chạy mỗi test process riêng + clearPackageData).
-    androidTestUtil "androidx.test:orchestrator:1.5.1"
     // ui-test-manifest cung cấp activity stub cho ComposeTestRule; cần trên
     // classpath debug (androidTest chạy trên debug build).
     debugImplementation "androidx.compose.ui:ui-test-manifest"

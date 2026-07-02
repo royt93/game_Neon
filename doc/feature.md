@@ -33,11 +33,16 @@
 - ✅ Logger sprinkling toàn flow (~155 calls, 30+ files) (Xa)
 - ✅ Game loop trên IO dispatcher + delay(8) pacing
 - ✅ Source set: `app/src/{debug,release}/java/...`
-- ✅ **Bộ test 3 tầng (828 test, 100% pass)** — unit + widget + integration:
+- ✅ **Bộ test 3 tầng (826 test, 100% pass)** — unit + widget + integration:
   - **Tier 1 (JVM, `app/src/test/`, 808 test):** correctness 7 controller (Background/Stage/Booster/Mineral/SpaceObject/Combo/Explosion) + hot-path perf timing (`perf/HotPathPerfTest`: FinalBoss.generateLasers, PathPool, StatusEffectController, DateUtils, Logger — assert iteration-budget). Chạy: `./gradlew testDevDebugUnitTest`.
-  - **Tier 2 (widget, `app/src/androidTest/widget/`, Compose UI thật):** BulletDisplayName, DialogGamePause (nút + callback), DialogDifficultyPicker, ComboHud — dùng `createComposeRule()`.
-  - **Tier 3 (integration, `app/src/androidTest/integration/`):** PersistenceRoundtrip (5 repo DataStore thật), NavigationFlow + GameLoopMultiTick (lái bằng **UiAutomator**, không compose-rule). Chạy: `./gradlew connectedDevDebugAndroidTest` (cần thiết bị).
+  - **Tier 2 (widget, `app/src/androidTest/widget/`, Compose UI thật):** BulletDisplayName, DialogDifficultyPicker (render + tap→callback), ComboHud — dùng `createComposeRule()`. Nút chơi/settings ở MenuScreen có `testTag` (`testTagsAsResourceId=true` ở root) để UiAutomator tìm bằng `By.res`.
+  - **Tier 3 (integration, `app/src/androidTest/integration/`):** PersistenceRoundtrip (5 repo DataStore thật), NavigationFlow + GameLoopMultiTick (lái bằng **UiAutomator** + testTag, không compose-rule; GameLoop.back_press mở đúng dialog TẠM DỪNG — cũng là smoke test cho DialogGamePause). Chạy: `./gradlew connectedDevDebugAndroidTest` (cần thiết bị/emulator).
   - Robolectric giữ cho 1 integration test thuần DataStore (`MetaProgressionShipIntegrationTest`); Compose UI test bỏ Robolectric (bug AGP 9.1.1). Chi tiết gotcha Android 17 xem `CLAUDE.md`.
+  - **CI:** `.github/workflows/android-ci.yml` có job `connected-test` chạy androidTest trên emulator (API 34, `reactivecircus/android-emulator-runner`) song song với job unit-test JVM.
+
+### ✅ Bug đã fix (phát hiện khi viết test)
+- **MenuScreen clip nút chơi** — ĐÃ FIX: adaptive-scale (`BoxWithConstraints`) khi co (`s < 1f`) giờ luôn bọc `verticalScroll` → nếu ước lượng `neededH` lệch, nội dung SCROLL thay vì CLIP (mất nút hero). Nhánh `s >= 1f` (dư chỗ, có Spacer weight) không bao giờ tràn nên không cần scroll. Nhờ vậy nav test bỏ được relaunch-retry, chỉ còn `findByTag` (By.res, cuộn nếu cần).
+- **NeonDialogButton a11y + testability** — ĐÃ FIX: đổi `detectTapGestures` → `Modifier.clickable` (semantics OnClick → TalkBack kích hoạt được + ripple + role Button), và pulse vô hạn chỉ chạy khi OS bật animation (tôn trọng "Remove animations"). Nút DialogGamePause có `testTag` + `testTagsAsResourceId` (khai trong dialog vì dialog là window riêng) → integration `GameLoopMultiTickTest.pause_dialog_resume_button_works` định vị bằng `By.res("pause_resume")` + `findByTag` (cuộn) + `waitForIdle` settle: bấm Resume đóng dialog, resume Game — ổn định 18/18 ×2 trên A11 thật. (Widget-test cô lập vẫn bỏ do NeonBottomSheet reveal không ổn định trong compose-test.)
 
 ## 🎨 Visual / UI
 

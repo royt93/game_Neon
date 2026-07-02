@@ -12,6 +12,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -64,6 +68,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var sfx: SfxController
     private lateinit var voiceAnnouncer: VoiceAnnouncer
 
+    // testTagsAsResourceId (dùng ở NavHost bên dưới) để test UiAutomator tìm node
+    // Compose bằng By.res(testTag) ổn định, không phụ thuộc chuỗi hiển thị.
+    @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         Logger.d("MainActivity.onCreate")
         // Install system SplashScreen (Android 12+ native, back-port for older).
@@ -172,7 +179,10 @@ class MainActivity : ComponentActivity() {
 
                     NavHost(
                         navController = navController,
-                        startDestination = Splash.route
+                        startDestination = Splash.route,
+                        // Cho phép testTag của các màn hiển thị thành resource-id để
+                        // UiAutomator định vị bằng By.res(...) trong androidTest.
+                        modifier = Modifier.semantics { testTagsAsResourceId = true },
                     ) {
                         composable(route = Splash.route) {
                             SplashScreen(

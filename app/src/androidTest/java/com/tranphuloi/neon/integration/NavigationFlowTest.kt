@@ -20,16 +20,16 @@ import org.junit.runner.RunWith
 
 /**
  * Integration test — điều hướng THẬT qua NavHost của [MainActivity], lái bằng
- * UiAutomator (không dùng compose test rule).
+ * UiAutomator định vị node qua **testTag** (`testTagsAsResourceId=true` ở root →
+ * `By.res("menu_play")` v.v.), KHÔNG phụ thuộc chuỗi hiển thị/animation.
  *
  * Vì sao UiAutomator thay vì createAndroidComposeRule: SplashScreen điều hướng
- * NGAY trong LaunchedEffect (navController.popBackStack/navigate). compose-ui-test
- * chạy LaunchedEffect trên dispatcher nền (frame-deferring) → navController chạm
- * setCurrentState off-main → IllegalStateException trên Android 17. UiAutomator
- * để app chạy nguyên bản (effect trên main như production) nên hết crash, và đọc
- * được text Compose qua cầu accessibility.
+ * NGAY trong LaunchedEffect; compose-ui-test chạy effect off-main → navController
+ * chạm setCurrentState off-main → crash trên Android 17. UiAutomator để app chạy
+ * nguyên bản (effect trên main như production).
  *
- * Seed difficultyPicked=true trước launch để Splash đi thẳng Menu.
+ * Chạy qua Test Orchestrator (`clearPackageData=true`) → mỗi test 1 process +
+ * data pristine → Menu tối giản, nút không bị clip.
  */
 @RunWith(AndroidJUnit4::class)
 class NavigationFlowTest {
@@ -40,8 +40,7 @@ class NavigationFlowTest {
 
     @Before
     fun setUp() {
-        runBlocking { app.settings.setDifficulty(Difficulty.NORMAL) }
-        // Menu gọn (nút "BẮT ĐẦU" hiển thị) — xem FlowSupport.clearAllCheckpoints.
+        runBlocking { app.settings.setDifficulty(Difficulty.NORMAL) } // seed difficultyPicked
         app.clearAllCheckpoints()
         scenario = ActivityScenario.launch(MainActivity::class.java)
     }
@@ -49,76 +48,50 @@ class NavigationFlowTest {
     @After
     fun tearDown() {
         if (::scenario.isInitialized) scenario.close()
-        app.clearAllCheckpoints()
     }
 
-    private fun waitText(text: String, timeout: Long = 10_000): Boolean =
-        device.wait(Until.hasObject(By.text(text)), timeout) != null
-
-    private fun waitTextContains(text: String, timeout: Long = 8_000): Boolean =
-        device.wait(Until.hasObject(By.textContains(text)), timeout) != null
-
-    private fun advanceToMenu() {
-        // Chờ Splash quyết định: Menu (đã seed) hoặc DifficultyPicker (an toàn).
-        val reached = device.wait(Until.hasObject(By.text("SKY FORCE")), 10_000) != null ||
+    /** Chờ Splash → Menu (đã seed đi thẳng Menu; xử lý cả nhánh DifficultyPicker). */
+    private fun awaitMenu() {
+        val ok = device.wait(Until.hasObject(By.text("SKY FORCE")), 10_000) != null ||
             device.hasObject(By.text("CHỌN ĐỘ KHÓ"))
-        assertTrue("Splash phải dẫn tới Menu hoặc DifficultyPicker", reached)
+        assertTrue("Splash phải dẫn tới Menu hoặc DifficultyPicker", ok)
         if (device.hasObject(By.text("CHỌN ĐỘ KHÓ"))) {
             device.wait(Until.findObject(By.text("VỪA")), 5_000)?.click()
-            assertTrue("Sau khi chọn độ khó phải vào Menu", waitText("SKY FORCE"))
+            assertTrue("Chọn độ khó xong phải vào Menu", device.wait(Until.hasObject(By.text("SKY FORCE")), 10_000) != null)
         }
-        // Sau khi process đã chơi game (class test trước), a11y tree của Menu cần
-        // thời gian để lộ các nút (pulse/adaptive-scale). Settle trước khi tìm nút.
-        Thread.sleep(1_200)
     }
 
     /**
-     * Tới Menu và tìm node theo [finder]; nếu chưa thấy (MenuScreen thi thoảng
-     * clip nút do adaptive-scale race sau khi chơi game), relaunch để có layout
-     * pass mới. Launch tươi luôn render đủ nút (bằng chứng: chạy đơn lẻ ổn định).
+     * Tới Menu rồi định vị node theo testTag ([By.res], nhờ `testTagsAsResourceId`).
+     * MenuScreen sau fix clip: nội dung hoặc vừa màn (nút on-screen) hoặc cuộn được
+     * (không còn clip) → [findByTag] cuộn để lộ nút nếu cần. Không còn relaunch-retry.
      */
-    private fun acquire(what: String, finder: () -> UiObject2?): UiObject2 {
-        repeat(3) { attempt ->
-            advanceToMenu()
-            finder()?.let { return it }
-            if (attempt < 2) {
-                scenario.close()
-                app.clearAllCheckpoints()
-                scenario = ActivityScenario.launch(MainActivity::class.java)
-            }
-        }
-        error("Không tìm được '$what' trên Menu sau 3 lần relaunch")
+    private fun acquire(tag: String): UiObject2 {
+        awaitMenu()
+        return device.findByTag(tag)
+            ?: error("Không tìm được node testTag='$tag' trên Menu")
     }
 
     @Test
     fun splash_lands_on_menu() {
-        advanceToMenu()
-        assertTrue("Sau Splash phải tới Menu (thấy 'SKY FORCE')", waitText("SKY FORCE"))
+        awaitMenu()
+        assertTrue("Sau Splash phải tới Menu", device.hasObject(By.text("SKY FORCE")))
     }
 
     @Test
     fun menu_opens_settings_dialog() {
-        val settings = acquire("nút Cài đặt (⚙/CÀI ĐẶT)") {
-            // Chờ có node (không dùng findObject tức thời) — nút ở cuối menu, xuất
-            // hiện muộn hơn trên cold start (orchestrator restart process mỗi test).
-            device.wait(Until.findObject(By.text("⚙")), 6_000)
-                ?: device.wait(Until.findObject(By.textContains("CÀI ĐẶT")), 2_000)
-        }
-        settings.click()
-        // DialogSettings có section "ÂM THANH" (chỉ có trong dialog, không ở Menu)
-        // → chốt dialog đã mở thật, không phải vẫn ở Menu.
+        acquire("menu_settings").click()
+        // "ÂM THANH" chỉ có trong DialogSettings → chốt dialog mở thật.
         assertTrue(
             "Mở Settings phải thấy section ÂM THANH của dialog",
-            waitTextContains("ÂM THANH"),
+            device.wait(Until.hasObject(By.textContains("ÂM THANH")), 8_000) != null,
         )
     }
 
     @Test
     fun menu_starts_game_and_leaves_menu() {
-        acquire("nút chơi (BẮT ĐẦU/TIẾP TỤC)") { device.findPlayButton() }.click()
-
-        // Vào Game: tiêu đề Menu ("SKY FORCE") phải biến mất, app không crash.
-        val leftMenu = device.wait(Until.gone(By.text("SKY FORCE")), 10_000)
-        assertTrue("Bấm nút chơi phải rời Menu để vào Game", leftMenu)
+        acquire("menu_play").click()
+        // Vào Game: nút chơi của Menu biến mất, app không crash.
+        assertTrue("Bấm nút chơi phải rời Menu để vào Game", device.wait(Until.gone(By.res("menu_play")), 10_000))
     }
 }
