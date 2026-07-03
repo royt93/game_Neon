@@ -661,6 +661,7 @@ fun GameScreen(
                 ultimateLasers = gameState.ultimateLasers,
                 spaceObjects = gameState.spaceObjects,
                 boosters = gameState.boosters,
+                drones = gameState.drones,
                 enemies = gameState.enemies,
                 enemyLasers = gameState.enemyLasers,
                 minerals = gameState.minerals,

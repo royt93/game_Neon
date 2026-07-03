@@ -14,6 +14,10 @@ import com.tranphuloi.neon.ui.game.background.BackgroundState
 import com.tranphuloi.neon.ui.game.booster.Booster
 import com.tranphuloi.neon.ui.game.booster.BoosterController
 import com.tranphuloi.neon.ui.game.booster.BoosterToBoosterUIMapper
+import com.tranphuloi.neon.ui.game.drone.Drone
+import com.tranphuloi.neon.ui.game.drone.DroneController
+import com.tranphuloi.neon.ui.game.drone.DroneToDroneUIMapper
+import com.tranphuloi.neon.ui.game.drone.DroneUI
 import com.tranphuloi.neon.ui.game.booster.BoosterUI
 import com.tranphuloi.neon.ui.game.common.Millis
 import com.tranphuloi.neon.ui.game.damage.DamageNumber
@@ -938,6 +942,23 @@ fun rememberGameState(): GameState {
         )
     }
 
+    // ── Task 01 — Drone companion (Slice 2: state + controller + orbit wiring) ──
+    var drones: List<Drone> by rememberSaveable { mutableStateOf(emptyList()) }
+    val droneController = remember {
+        DroneController(
+            screenWidth = screenWidth,
+            screenHeight = screenHeight,
+            initialDrones = drones,
+            maxDrones = 2,
+            setDrones = { drones = it },
+        )
+    }
+    // TEMP (Slice 2 verify) — spawn 1 drone khi vào trận để kiểm orbit + render.
+    // Slice 4 sẽ thay bằng nhặt BoosterType.DRONE; Slice 5 gate theo skill-tree.
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        droneController.addDrone(ship.xOffset + ship.width / 2f, ship.yOffset + ship.height / 2f)
+    }
+
     var mineralsEarnedTotal: Int by rememberSaveable { mutableIntStateOf(0) }
     var minerals: List<Mineral> by rememberSaveable { mutableStateOf(emptyList()) }
     // 46x — achievementUnlocked / achievementShownAtMillis / unlockAchievement
@@ -1722,6 +1743,19 @@ fun rememberGameState(): GameState {
                                 doWork = { boosterController.processBoosters() }
                             )
                         }
+                        // Task 01 — drone orbit quanh tàu (fire ở Slice 3).
+                        if (droneController.hasDrones()) {
+                            tinker(
+                                id = droneController.orbitId,
+                                repeatTime = droneController.orbitRepeatTime,
+                                doWork = {
+                                    droneController.orbitStep(
+                                        ship.xOffset + ship.width / 2f,
+                                        ship.yOffset + ship.height / 2f,
+                                    )
+                                }
+                            )
+                        }
                         if (lasersController.hasUltimateLasers()) {
                             tinker(
                                 id = lasersController.processLasersId,
@@ -1959,6 +1993,7 @@ fun rememberGameState(): GameState {
         ultimateLasers = ultimateLasers.map { lasersMapper(it) },
         spaceObjects = spaceObjects.map { spaceObjectsMapper(it) },
         boosters = boosters.map { boosterMapper(it) },
+        drones = drones.map { droneMapper(it) },
         enemies = enemies.map { e ->
             // Round 35 (42x) — feed active status effects to UI tint overlay.
             // Round 48 — use the singleton emptyList() when no effects active
@@ -2246,6 +2281,7 @@ data class GameState(
     val ultimateLasers: List<LaserUI>,
     val spaceObjects: List<SpaceObjectUI>,
     val boosters: List<BoosterUI>,
+    val drones: List<DroneUI>,
     val enemies: List<EnemyUI>,
     val enemyLasers: List<LaserUI>,
     val gameTimeIndicator: String,
@@ -2366,6 +2402,7 @@ data class GameState(
 )
 
 private val boosterMapper = BoosterToBoosterUIMapper()
+private val droneMapper = DroneToDroneUIMapper()
 private val enemyMapper = EnemyToEnemyUIMapper()
 private val mineralToMineralUIMapper = MineralToMineralUIMapper()
 private val lasersMapper = LaserToLaserUIMapper()

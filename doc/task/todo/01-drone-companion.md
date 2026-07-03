@@ -17,7 +17,7 @@ Một drone bay lượn quanh tàu người chơi, **tự bắn** đạn yếu v
 
 ## Tiến độ
 - [x] **Slice 1 (2026-07-03) — domain + controller + unit test.** `Drone.kt` (+ `DroneShot`), `DroneController.kt` (orbit/nearestEnemy/fireStep/damage/processDrones, lambda setter, tinker ids). `DroneControllerBehaviorTest` **11/11 pass**; main+production compile OK.
-- [ ] Slice 2 — UI projection + mapper + DroneCanvas + wiring GameState/GameWorld.
+- [x] **Slice 2 (2026-07-03) — UI + render + wiring.** `DroneUI` + `DroneToDroneUIMapper` + `DroneCanvas` (neon body + halo + vòng HP). Wire GameState (state `drones`, `droneController`, orbit tinker, data class field, return map, `droneMapper`) + GameWorld (param + `DroneCanvas`) + GameScreen. **TEMP:** spawn 1 drone lúc vào trận để verify (Slice 4 sẽ thay bằng booster). Compile 2 flavor OK, JVM 819/819.
 - [ ] Slice 3 — laser source flag + drone bắn vào hệ laser chung.
 - [ ] Slice 4 — `BoosterType.DRONE` spawn + pickup.
 - [ ] Slice 5 — skill-tree node unlock (MetaProgression) + maxDrones theo rank.

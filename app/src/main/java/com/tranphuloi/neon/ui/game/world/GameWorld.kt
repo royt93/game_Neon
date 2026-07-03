@@ -79,6 +79,7 @@ fun GameWorld(
     ultimateLasers: List<LaserUI>,
     spaceObjects: List<SpaceObjectUI>,
     boosters: List<BoosterUI>,
+    drones: List<com.tranphuloi.neon.ui.game.drone.DroneUI>,
     enemies: List<EnemyUI>,
     enemyLasers: List<LaserUI>,
     minerals: List<MineralUI>,
@@ -247,6 +248,11 @@ fun GameWorld(
         // the overlay cost is negligible.
         com.tranphuloi.neon.ui.game.world.BoosterCanvas(
             boosters = boosters,
+            modifier = Modifier.fillMaxSize(),
+        )
+        // Task 01 — drone companion (bay quanh tàu, vẽ trên booster layer).
+        DroneCanvas(
+            drones = drones,
             modifier = Modifier.fillMaxSize(),
         )
         boosters.forEach {
