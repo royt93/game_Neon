@@ -1808,6 +1808,13 @@ Các architectural refactors quá lớn để gộp chung:
 
 # Phần 6 — 💭 Ideas chưa đưa vào selector
 
+> 📋 **PICKED 2026-07-03 (user chốt làm cả 4):** rã task chi tiết ở `doc/task/todo/`
+> (xem `00-index.md`):
+> - 📋 Drone companion (mới) → `01-drone-companion.md`
+> - 📋 Lightning chain laser (enhance đạn) → `02-lightning-chain-laser.md`
+> - 📋 Unlockable ships + XP/level (progression) → `03-unlockable-ships-xp.md`
+> - 📋 Boss dialogue / stage narrative / win epilogue (lore) → `04-boss-dialogue-narrative.md`
+
 > Brainstorm pool — nếu có cảm hứng thì pick lên selector đề xuất.
 
 ## Combat
