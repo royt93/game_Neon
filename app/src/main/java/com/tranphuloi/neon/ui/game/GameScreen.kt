@@ -557,6 +557,7 @@ fun GameScreen(
         // Power-up duration indicators (Ec).
         if (hudVisible) PowerUpIndicators(
             ship = gameState.ship,
+            droneCount = gameState.drones.size,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(top = 24.dp)

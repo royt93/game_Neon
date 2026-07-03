@@ -78,6 +78,12 @@ data class EffectiveStats(
         const val META_KEY_LEGENDARY_HP = "meta_legendary_hp"
         const val META_KEY_LEGENDARY_DMG = "meta_legendary_dmg"
 
+        /**
+         * Task 01 (Slice 5) — DRONE_FLEET skill node. Rank = số drone tối đa
+         * (rank 0 = chưa mở khoá → DRONE_BOOSTER không rơi; rank 1/2 = maxDrones 1/2).
+         */
+        const val META_KEY_DRONE = "meta_drone"
+
         /** Round 74 — per-rank score % bonus from LIFETIME_BONUS. */
         const val META_LIFETIME_PER_RANK = 0.05f
         /** Round 74 — per-rank seconds added to base shield duration. */

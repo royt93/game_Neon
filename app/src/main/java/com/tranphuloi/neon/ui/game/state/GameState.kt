@@ -16,6 +16,7 @@ import com.tranphuloi.neon.ui.game.booster.BoosterController
 import com.tranphuloi.neon.ui.game.booster.BoosterToBoosterUIMapper
 import com.tranphuloi.neon.ui.game.drone.Drone
 import com.tranphuloi.neon.ui.game.drone.DroneController
+import com.tranphuloi.neon.ui.game.drone.DroneLaser
 import com.tranphuloi.neon.ui.game.drone.DroneToDroneUIMapper
 import com.tranphuloi.neon.ui.game.drone.DroneUI
 import com.tranphuloi.neon.ui.game.booster.BoosterUI
@@ -574,9 +575,17 @@ fun rememberGameState(): GameState {
     val reflectRetaliateRef = remember {
         object { @Volatile var run: (x: Float, y: Float) -> Unit = { _, _ -> } }
     }
+    // Task 01 (Slice 4) — deferred ref cho DRONE_BOOSTER spawn (droneController
+    // declared sau shipController). Wire xuống dưới sau khi droneController tồn tại.
+    val droneSpawnRef = remember { object { @Volatile var run: () -> Unit = {} } }
     // Wave 11a Phase 3 — deferred ref cho CHAIN_LIGHTNING (cần enemies declared sau).
     // primaryTargetId excluded so the chain doesn't re-hit the original target.
     val chainLightningRef = remember {
+        object { @Volatile var run: (primaryTargetId: String, primaryDamage: Int, hitX: Float, hitY: Float) -> Unit = { _, _, _, _ -> } }
+    }
+    // Task 02 — deferred ref cho đạn LIGHTNING (sét lan tuần tự). Tách khỏi
+    // chainLightningRef (booster) vì thuật toán khác (visited-set, 3 bước, ×0.7).
+    val lightningChainRef = remember {
         object { @Volatile var run: (primaryTargetId: String, primaryDamage: Int, hitX: Float, hitY: Float) -> Unit = { _, _, _, _ -> } }
     }
     // Wave 16 Slice 4b — BRICK knockback. Deferred ref (enemies declared later);
@@ -650,6 +659,8 @@ fun rememberGameState(): GameState {
                 pickupBurstController.spawn(x, y)
                 Logger.v { "Booster picked up @ ($x,$y) ts=$lastBoosterPickupMillis" }
             },
+            // Task 01 (Slice 4) — nhặt DRONE_BOOSTER → spawn drone (deferred ref).
+            onDroneBoosterPickedUp = { droneSpawnRef.run() },
             onShipRevived = {
                 revivedShownAtMillis = System.currentTimeMillis()
                 // Pickup-style burst at ship center for resurrection feel.
@@ -809,6 +820,11 @@ fun rememberGameState(): GameState {
                 if (shipController.isChainLightningActive() && damage > 0) {
                     chainLightningRef.run(targetId, damage, x, y)
                 }
+                // Task 02 — đạn LIGHTNING: sét lan TUẦN TỰ (visited-set, 3 bước,
+                // ×0.7). Độc lập với booster 2-hop ở trên.
+                if (bulletType == com.tranphuloi.neon.ui.game.ship.laser.BulletType.LIGHTNING && damage > 0) {
+                    lightningChainRef.run(targetId, damage, x, y)
+                }
                 // Round 79 (#4 fix) — full-screen lightning when bullet hits boss.
                 if (isBoss) {
                     lastBossHitMillis = System.currentTimeMillis()
@@ -923,6 +939,12 @@ fun rememberGameState(): GameState {
         )
     }
 
+    // Task 01 (Slice 5) — DRONE_FLEET skill rank (đọc 1 lần/run): rank = số drone
+    // tối đa; rank 0 = chưa mở khoá → DRONE_BOOSTER không rơi + drone không spawn.
+    val droneRank = (
+        runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_DRONE] ?: 0
+        ).coerceIn(0, 2)
+
     var boosters: List<Booster> by rememberSaveable { mutableStateOf(emptyList()) }
     val boosterController = remember {
         BoosterController(
@@ -939,6 +961,8 @@ fun rememberGameState(): GameState {
             reviveDropRank = {
                 runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_REVIVE_DROP] ?: 0
             },
+            // Task 01 (Slice 5) — chưa mở khoá DRONE_FLEET → không rơi DRONE_BOOSTER.
+            droneUnlocked = { droneRank > 0 },
         )
     }
 
@@ -949,13 +973,14 @@ fun rememberGameState(): GameState {
             screenWidth = screenWidth,
             screenHeight = screenHeight,
             initialDrones = drones,
-            maxDrones = 2,
+            // Task 01 (Slice 5) — maxDrones theo rank DRONE_FLEET (0/1/2).
+            maxDrones = droneRank,
             setDrones = { drones = it },
         )
     }
-    // TEMP (Slice 2 verify) — spawn 1 drone khi vào trận để kiểm orbit + render.
-    // Slice 4 sẽ thay bằng nhặt BoosterType.DRONE; Slice 5 gate theo skill-tree.
-    androidx.compose.runtime.LaunchedEffect(Unit) {
+    // Task 01 (Slice 4) — nhặt DRONE_BOOSTER → spawn drone (thay TEMP spawn của
+    // Slice 2). ShipController gọi onDroneBoosterPickedUp → droneSpawnRef.run().
+    droneSpawnRef.run = {
         droneController.addDrone(ship.xOffset + ship.width / 2f, ship.yOffset + ship.height / 2f)
     }
 
@@ -1129,6 +1154,30 @@ fun rememberGameState(): GameState {
             // Audit follow-up round 2: real jagged lightning bolt visual
             // (TrailLineOverlay drawPath with deterministic zigzag offsets)
             // replacing prior 3-spark trail band-aid.
+            trailLineController.addChainBolt(prevX, prevY, cx2, cy2)
+            prevX = cx2
+            prevY = cy2
+        }
+    }
+    // Task 02 — đạn LIGHTNING: sét lan TUẦN TỰ từ điểm chạm, tối đa 3 hop trong
+    // 120px, dmg ×0.7 mỗi bước (LightningChain thuần). Trail zigzag + spark +
+    // damage number mỗi hop (tái dùng như booster). excludeIds = địch trúng chính.
+    lightningChainRef.run = { primaryTargetId, primaryDamage, hitX, hitY ->
+        val hops = com.tranphuloi.neon.ui.game.laser.LightningChain.computeChainTargets(
+            startX = hitX,
+            startY = hitY,
+            enemies = enemies,
+            excludeIds = setOf(primaryTargetId),
+        )
+        var prevX = hitX
+        var prevY = hitY
+        hops.forEachIndexed { index, chainTarget ->
+            val hopDmg = com.tranphuloi.neon.ui.game.laser.LightningChain.damageForHop(primaryDamage, index)
+            chainTarget.onObjectImpact(hopDmg.toFloat())
+            val cx2 = chainTarget.xOffset + chainTarget.width / 2
+            val cy2 = chainTarget.yOffset + chainTarget.height / 2
+            damageNumberController.report(chainTarget.enemyId, hopDmg, cx2, cy2, chainTarget.isBoss)
+            impactSparkController.spawnBurst(cx2, cy2)
             trailLineController.addChainBolt(prevX, prevY, cx2, cy2)
             prevX = cx2
             prevY = cy2
@@ -1743,7 +1792,7 @@ fun rememberGameState(): GameState {
                                 doWork = { boosterController.processBoosters() }
                             )
                         }
-                        // Task 01 — drone orbit quanh tàu (fire ở Slice 3).
+                        // Task 01 — drone orbit quanh tàu + tự bắn địch gần nhất.
                         if (droneController.hasDrones()) {
                             tinker(
                                 id = droneController.orbitId,
@@ -1753,6 +1802,52 @@ fun rememberGameState(): GameState {
                                         ship.xOffset + ship.width / 2f,
                                         ship.yOffset + ship.height / 2f,
                                     )
+                                }
+                            )
+                            // Slice 3 — mỗi drone quá cooldown + có địch → DroneShot,
+                            // dựng DroneLaser (bay tới địch) rồi bơm vào hệ laser chung.
+                            tinker(
+                                id = droneController.fireId,
+                                repeatTime = droneController.fireRepeatTime,
+                                doWork = {
+                                    val shots = droneController.fireStep(
+                                        System.currentTimeMillis(),
+                                        enemies,
+                                    )
+                                    if (shots.isNotEmpty()) {
+                                        lasersController.addDroneLasers(
+                                            shots.map { s ->
+                                                DroneLaser.aimedAt(
+                                                    id = uuidUtils.getUuid(),
+                                                    fromX = s.fromX,
+                                                    fromY = s.fromY,
+                                                    targetX = s.targetX,
+                                                    targetY = s.targetY,
+                                                    screenWidth = screenWidth,
+                                                    screenHeight = screenHeight,
+                                                )
+                                            }
+                                        )
+                                    }
+                                }
+                            )
+                            // Slice 6 — đạn địch trúng drone → drone mất HP; vỡ thì
+                            // nổ. Spark mỗi cú, explosion khi vỡ (như va chạm khác).
+                            tinker(
+                                id = droneController.collisionId,
+                                repeatTime = droneController.collisionRepeatTime,
+                                doWork = {
+                                    val hits = droneController.monitorDroneCollision(
+                                        enemyLaserController.enemyLasers,
+                                    )
+                                    for (h in hits) {
+                                        impactSparkController.spawnBurst(h.x, h.y)
+                                        if (h.destroyed) {
+                                            explosionsController.addExplosion(
+                                                h.x - 22f, h.y - 22f, 44f, 44f,
+                                            )
+                                        }
+                                    }
                                 }
                             )
                         }

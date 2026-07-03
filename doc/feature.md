@@ -2459,6 +2459,17 @@ User Round 67+ pick which Wave(s) to prioritize. Each Wave is 3-6 rounds. Sugges
 
 ---
 
+## 🆕 Task 01 — Drone Companion (✅ Implemented 2026-07-03, 7 slice)
+
+Chi tiết + slice log: [doc/task/todo/01-drone-companion.md](task/todo/01-drone-companion.md). Tóm tắt:
+
+- ✅ **Drone hộ tống** bay orbit quanh tàu, **tự bắn** địch gần nhất qua **hệ laser chung** (`LaserSource{SHIP,DRONE}` + `DroneLaser` directional). Có **HP** — trúng đạn địch thì vỡ (nổ nhỏ) + chặn đạn hộ tàu.
+- ✅ **3 nguồn spawn kết hợp:** skill-tree `DRONE_FLEET` (mở khoá vĩnh viễn + rank = maxDrones 1→2) → `DRONE_BOOSTER` (chỉ rơi khi đã unlock) nhặt trong run → `PowerUpIndicators` badge "◈N".
+- ✅ **5-mảnh pattern:** `Drone`/`DroneUI`/`DroneToDroneUIMapper`/`DroneController`/`DroneCanvas` (batched). Wire vào GameState qua tinker (orbit/fire/collision) — không tạo coroutine loop mới.
+- ✅ **Test đủ 3 tầng:** unit (`DroneControllerBehaviorTest` 17 + `DroneLaserBehaviorTest` 7 + gate ở Booster/Meta), integration Robolectric (`MetaProgressionDroneIntegrationTest` 4), widget on-device (`PowerUpIndicatorsDroneWidgetTest` 2/2 trên SM-S928B). Tổng JVM sau task: **837/837** (từ ~808).
+
+---
+
 # Notes
 
 - **Memory leak guarding:** mọi entity transient (damage numbers, popups, sparkles) phải dùng immutable list snapshot pattern (xem bug fix sparkles)

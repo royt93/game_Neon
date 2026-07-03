@@ -190,6 +190,19 @@ enum class SkillNode(
         minRequiredParentRank = 2,
         tierIndex = 1,
     ),
+
+    // Task 01 (Slice 5) — mở khoá drone hộ tống. Rank = số drone tối đa (1→2).
+    // Chưa mua (rank 0) → DRONE_BOOSTER không rơi. Nhánh HỎA LỰC (hoả lực phụ).
+    DRONE_FLEET(
+        key = EffectiveStats.META_KEY_DRONE,
+        displayName = "PHI ĐỘI DRONE",
+        description = "Mở khoá drone hộ tống tự bắn · +1 drone tối đa mỗi cấp",
+        baseCost = 320,
+        maxRank = 2,                                       // rank 1→1 drone, rank 2→2 drone
+        parentKey = EffectiveStats.META_KEY_DAMAGE,
+        minRequiredParentRank = 2,
+        tierIndex = 1,
+    ),
     ;
 
     /** Cost for the next rank purchase. */

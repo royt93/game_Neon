@@ -245,6 +245,7 @@ private fun bulletShapeLabel(s: BulletShape): String = when (s) {
     BulletShape.BOTTLE -> "Chai nước mắm"
     BulletShape.SANDAL -> "Dép tổ ong"
     BulletShape.QR_CODE -> "Mã QR"
+    BulletShape.LIGHTNING_BOLT -> "Tia sét"
 }
 
 private fun sizeTierByWidth(w: Float): String = when {
@@ -294,6 +295,7 @@ private fun bulletDescription(b: BulletType): String = when (b) {
     BulletType.FISH_SAUCE -> "Nước Mắm: ăn mòn DoT 7HP mỗi 0.5s trong 4.5 giây — nặng & lâu hơn Lửa."
     BulletType.SANDAL -> "Dép Lào: boomerang bay lên tới đỉnh rồi quay về tàu, đánh trúng cả 2 chiều (tối đa 4 hit)."
     BulletType.QR_CODE -> "Mã QR: quét địch gây 'đơ máy' — vừa làm CHẬM vừa CHOÁNG (SLOW + STUN) cùng lúc."
+    BulletType.LIGHTNING -> "Sét Chain: trúng địch → sét nhảy tuần tự sang tối đa 3 địch gần nhau (≤120px), sát thương giảm ×0.7 mỗi bước. Mua trong Shop."
 }
 
 /**
@@ -356,6 +358,8 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBulletCapsule(
         BulletType.FISH_SAUCE -> drawCapsuleBullet(cx, cy, w * 0.25f, h * 0.7f, color)
         BulletType.SANDAL -> drawBounceBullet(cx, cy, w * 0.28f, color)
         BulletType.QR_CODE -> drawGiantBullet(cx, cy, w * 0.45f, h * 0.85f, color)
+        // Task 02 — Sét Chain: tái dùng zigzag (giống tia sét).
+        BulletType.LIGHTNING -> drawZigzagBullet(cx, cy, w * 0.4f, h * 0.7f, color)
     }
 }
 
@@ -1983,6 +1987,7 @@ private fun boosterTitle(b: BoosterType): String = when (b) {
     BoosterType.REFLECT_BOOSTER -> "Phản xạ đạn"
     BoosterType.CHAIN_LIGHTNING_BOOSTER -> "Sét dây chuyền"
     BoosterType.CLONE_BOOSTER -> "Tàu phân thân"
+    BoosterType.DRONE_BOOSTER -> "Drone hộ tống"
 }
 
 // Round 71 (Issue 4e) — Multi-line WHAT it does, từ ngữ thân thiện thay
@@ -2063,6 +2068,8 @@ private fun boosterDescription(b: BoosterType): String = when (b) {
         "Mỗi đòn đánh tự lan sang 2 enemy gần nhất (50% damage).\nKéo dài 10 giây."
     BoosterType.CLONE_BOOSTER ->
         "Spawn tàu phân thân bên cạnh tàu chính, bắn cùng nhịp.\nDPS tăng gấp đôi. Kéo dài 8 giây."
+    BoosterType.DRONE_BOOSTER ->
+        "Thêm 1 drone bay quanh tàu, tự bắn địch gần nhất (tối đa 2).\nCó máu — trúng đạn địch sẽ vỡ."
 }
 
 // Round 71 (Issue 4e) — "Khi nào nên nhặt" — gameplay tip 1-line.
@@ -2104,6 +2111,7 @@ private fun boosterTip(b: BoosterType): String = when (b) {
     BoosterType.REFLECT_BOOSTER -> "Combat dày đạn — chuyển phòng thủ thành tấn công."
     BoosterType.CHAIN_LIGHTNING_BOOSTER -> "Cụm enemy dày — clear nhanh bằng chain damage."
     BoosterType.CLONE_BOOSTER -> "Boss fight — combo với damage buffs để DPS tối đa."
+    BoosterType.DRONE_BOOSTER -> "Muốn thêm hoả lực rảnh tay — drone tự bắn địch giúp bạn."
 }
 
 // Round 71 (Issue 4e) — Duration / stack rule badge text.
@@ -2136,6 +2144,7 @@ private fun boosterDuration(b: BoosterType): String = when (b) {
     BoosterType.REFLECT_BOOSTER -> "⏱ 8s · Refresh"
     BoosterType.CHAIN_LIGHTNING_BOOSTER -> "⏱ 10s · Refresh"
     BoosterType.CLONE_BOOSTER -> "⏱ 8s · Refresh"
+    BoosterType.DRONE_BOOSTER -> "∞ · Đến khi vỡ"
 }
 
 // ─────────────────────────────────────────────────────────────────────────

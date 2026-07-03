@@ -43,3 +43,13 @@ data class DroneShot(
     val targetX: Float,
     val targetY: Float,
 )
+
+/**
+ * Task 01 (Slice 6) — 1 cú va chạm drone↔đạn địch tại tâm drone (x,y).
+ * [destroyed] = true khi cú này khiến drone vỡ (HP≤0) → GameState nổ + haptic.
+ */
+data class DroneHit(
+    val x: Float,
+    val y: Float,
+    val destroyed: Boolean,
+)

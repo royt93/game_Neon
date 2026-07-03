@@ -635,6 +635,7 @@ private fun bulletDesc(b: com.tranphuloi.neon.ui.game.ship.laser.BulletType): St
         com.tranphuloi.neon.ui.game.ship.laser.BulletType.FISH_SAUCE -> "Nước mắm — ăn mòn mất máu dần"
         com.tranphuloi.neon.ui.game.ship.laser.BulletType.SANDAL -> "Dép lào — boomerang đánh 2 chiều"
         com.tranphuloi.neon.ui.game.ship.laser.BulletType.QR_CODE -> "Mã QR — quét địch: chậm + choáng"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.LIGHTNING -> "Sét chain — lan qua 3 địch gần nhau"
     }
 
 /** Wave 14 — short human descriptor cho tàu, suy từ stat profile (hợp lý cho 23 tàu). */

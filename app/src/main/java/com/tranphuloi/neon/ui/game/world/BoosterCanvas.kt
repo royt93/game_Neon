@@ -130,6 +130,7 @@ internal fun DrawScope.drawBoosterShape(
         BoosterShape.REFLECT_BUMPER -> drawReflectBumperShape(cx, cy, size, color)
         BoosterShape.CHAIN_BOLT -> drawChainBoltShape(cx, cy, size, color)
         BoosterShape.CLONE_PAIR -> drawClonePairShape(cx, cy, size, color)
+        BoosterShape.DRONE_ROTOR -> drawDroneShape(cx, cy, size, color)
     }
 }
 
@@ -155,6 +156,7 @@ internal val BOOSTER_GLYPH_VECTORS: Set<String> = setOf(
     "→", "◯", "♨", "◎", "⇄", "⬤", "❍", "⌇", "⊛", "⊙",
     "Ѱ", "⊕", "✱", "☆", "⚡", "◇", "$", "✚", "✦", "+",
     "⚯", "♻", "❄", "◌", "Ѵ", "ѻ", "⊚", "⇋", "⚜", "ǁ",
+    "◈",
 )
 
 internal fun DrawScope.drawBoosterGlyphVector(
@@ -240,6 +242,7 @@ internal fun DrawScope.drawBoosterGlyphVector(
         "⇋" -> { arrow(-r * 0.4f, -r, -r * 0.4f, r); arrow(r * 0.4f, r, r * 0.4f, -r) }
         "⚜" -> { dot(sw * 0.7f, -r * 0.6f, -r * 0.6f); dot(sw * 0.7f, r * 0.5f, -r * 0.1f); dot(sw * 0.7f, -r * 0.3f, r * 0.6f); ln(-r * 0.6f, -r * 0.6f, r * 0.5f, -r * 0.1f); ln(r * 0.5f, -r * 0.1f, -r * 0.3f, r * 0.6f) }
         "ǁ" -> { ln(-r * 0.35f, -r, -r * 0.35f, r); ln(r * 0.35f, -r, r * 0.35f, r) }
+        "◈" -> { diamond(r, fill = false); dot(r * 0.3f) } // drone: hình thoi viền + lõi
         else -> dot(sz * 0.14f)
     }
 }
@@ -1335,4 +1338,31 @@ private fun DrawScope.drawHealingFlaskShape(cx: Float, cy: Float, size: Float, c
     drawRect(color,
         topLeft = Offset(cx - neckW * 0.65f, cy - bottleH / 2f - size * 0.04f),
         size = Size(neckW * 1.30f, size * 0.05f))
+}
+
+/**
+ * Task 01 (Slice 4) — biểu tượng DRONE_BOOSTER: hình thoi (thân drone) + vòng
+ * quỹ đạo mảnh quanh nó, khớp motif drone companion trong [DroneCanvas].
+ */
+private fun DrawScope.drawDroneShape(cx: Float, cy: Float, size: Float, color: Color) {
+    val r = size * 0.32f
+    // Vòng quỹ đạo.
+    drawCircle(
+        color = color.copy(alpha = 0.55f),
+        radius = size * 0.46f,
+        center = Offset(cx, cy),
+        style = Stroke(width = size * 0.05f),
+    )
+    // Thân drone: hình thoi.
+    val body = PathPool.acquire().apply {
+        moveTo(cx, cy - r)
+        lineTo(cx + r, cy)
+        lineTo(cx, cy + r)
+        lineTo(cx - r, cy)
+        close()
+    }
+    drawPath(body, color)
+    PathPool.release(body)
+    // Lõi sáng.
+    drawCircle(color = Color.White.copy(alpha = 0.85f), radius = size * 0.09f, center = Offset(cx, cy))
 }

@@ -133,6 +133,9 @@ class BoosterToBoosterUIMapper {
             BoosterPreviewSpec(BoosterShape.CHAIN_BOLT, CHAIN_LIGHTNING_TINT_ARGB, "⚜")
         BoosterType.CLONE_BOOSTER ->
             BoosterPreviewSpec(BoosterShape.CLONE_PAIR, CLONE_TINT_ARGB, "ǁ")
+        // Task 01 (Slice 4) — drone companion
+        BoosterType.DRONE_BOOSTER ->
+            BoosterPreviewSpec(BoosterShape.DRONE_ROTOR, DRONE_TINT_ARGB, "◈")
     }
 
     // ─── 1-line delegates (kept for back-compat with existing call sites + tests) ───
@@ -183,5 +186,8 @@ class BoosterToBoosterUIMapper {
         const val REFLECT_TINT_ARGB: Long = 0xFFE0E060L                   // pale yellow bumper (distinct from SCORE_X3 gold 0xFFD700 + ZIGZAG yellow 0xFFE040)
         const val CHAIN_LIGHTNING_TINT_ARGB: Long = 0xFF80B0FFL           // electric arc blue (chain bolt — distinct from PLASMA 0xFF2050FF deeper blue + KAMEHAMEHA 0xFF60E0FF sky cyan)
         const val CLONE_TINT_ARGB: Long = 0xFFD8C870L                     // pale champagne gold (phantom-twin — distinct from SCORE_X3 0xFFFFD700 + ULTIMATE 0xFFFFD040)
+
+        // Task 01 (Slice 4) — drone companion tint
+        const val DRONE_TINT_ARGB: Long = 0xFF10C8D8L                     // bright teal-cyan (drone rotor — distinct from SHIELD 0xFF00F0FF, KAMEHAMEHA 0xFF60E0FF, PLASMA 0xFF2050FF, CHAIN 0xFF80B0FF)
     }
 }

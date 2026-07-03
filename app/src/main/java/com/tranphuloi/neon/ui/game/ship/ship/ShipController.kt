@@ -27,6 +27,8 @@ class ShipController(
     private val onShipDestroyed: () -> Unit = {},
     private val onShipDamaged: () -> Unit = {},
     private val onBoosterPickedUp: (xOffset: Float, yOffset: Float) -> Unit = { _, _ -> },
+    // Task 01 (Slice 4) — nhặt DRONE_BOOSTER → GameState spawn 1 drone companion.
+    private val onDroneBoosterPickedUp: () -> Unit = {},
     private val onSpaceObjectHitShip: (xOffset: Float, yOffset: Float) -> Unit = { _, _ -> },
     private val onShipRevived: () -> Unit = {},
     private val damageMultiplier: () -> Float = { 1f },
@@ -987,6 +989,8 @@ class ShipController(
                     BoosterType.REFLECT_BOOSTER -> enableReflect(enable = true, multiplier = mul)
                     BoosterType.CHAIN_LIGHTNING_BOOSTER -> enableChainLightning(enable = true, multiplier = mul)
                     BoosterType.CLONE_BOOSTER -> enableClone(enable = true, multiplier = mul)
+                    // Task 01 (Slice 4) — spawn drone companion (logic ở DroneController qua GameState).
+                    BoosterType.DRONE_BOOSTER -> onDroneBoosterPickedUp()
                 }
             }
         }

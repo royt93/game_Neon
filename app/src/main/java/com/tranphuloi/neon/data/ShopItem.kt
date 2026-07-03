@@ -169,6 +169,14 @@ data class ShopItem(
                 cost = 900,
                 category = Category.BULLET_TYPE_UNLOCK,
             ),
+            // Task 02 — Sét Chain (premium điều khiển đám đông).
+            ShopItem(
+                id = "bullet_lightning",
+                displayName = "Đạn Sét Chain",
+                description = "Trúng địch sẽ phóng sét lan sang tối đa 3 địch gần nhau, sát thương giảm dần.",
+                cost = 1100,
+                category = Category.BULLET_TYPE_UNLOCK,
+            ),
             // Consumables (stockpile) — round 3 wires gameplay consumers.
             ShopItem(
                 id = "smartbomb_pack_3",

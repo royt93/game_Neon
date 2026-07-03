@@ -294,7 +294,7 @@ class BulletSlice3Test {
     }
 
     @Test
-    fun `all 18 bullet types spawn with a DISTINCT width (size riêng)`() {
+    fun `all bullet types spawn with a DISTINCT width (size riêng)`() {
         val base = Ship(xOffset = 200f, yOffset = 700f)
         val widthByType = BulletType.entries.associateWith { type ->
             var captured: List<Laser> = emptyList()

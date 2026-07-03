@@ -38,6 +38,8 @@ import kotlinx.coroutines.delay
 fun PowerUpIndicators(
     ship: Ship,
     modifier: Modifier = Modifier,
+    // Task 01 (Slice 6) — số drone đang hoạt động (không countdown vì hết theo HP).
+    droneCount: Int = 0,
 ) {
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     // Only tick when at least 1 booster is active — saves CPU when no powerups.
@@ -51,6 +53,10 @@ fun PowerUpIndicators(
     }
 
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = modifier) {
+        // Task 01 (Slice 6) — badge tĩnh số drone (không ring countdown).
+        if (droneCount > 0) {
+            DroneBadge(count = droneCount)
+        }
         if (ship.shieldEnabled && ship.shieldEndMillis > 0L) {
             PowerUpBadge(
                 label = "S",
@@ -126,6 +132,37 @@ private fun PowerUpBadge(
             text = label,
             color = effectiveColor,
             fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
+/**
+ * Task 01 (Slice 6) — badge số drone hộ tống đang hoạt động. Không countdown
+ * (drone hết theo HP, không theo thời gian) → vòng cyan liền + nhãn "◈×N".
+ */
+@Composable
+private fun DroneBadge(count: Int) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .neonGlow(color = NeonCyan, intensity = 0.4f),
+    ) {
+        Canvas(modifier = Modifier.size(36.dp)) {
+            val r = size.minDimension / 2 - 4f
+            drawCircle(
+                color = NeonCyan,
+                radius = r,
+                center = Offset(size.width / 2, size.height / 2),
+                style = Stroke(width = 3f),
+            )
+        }
+        Text(
+            text = "◈$count",
+            color = NeonCyan,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
         )
     }

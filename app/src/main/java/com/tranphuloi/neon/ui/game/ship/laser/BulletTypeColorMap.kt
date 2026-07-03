@@ -45,5 +45,6 @@ object BulletTypeColorMap {
         BulletType.FISH_SAUCE -> 0xFF9C5A1EL         // nâu cánh gián nước mắm
         BulletType.SANDAL -> 0xFF3E7BFFL             // xanh dương dép tổ ong
         BulletType.QR_CODE -> 0xFF2CE66BL            // xanh lá máy quét
+        BulletType.LIGHTNING -> 0xFF7DF9FFL          // điện lam sáng (sét chain)
     }
 }

@@ -73,6 +73,7 @@ class BulletColorIdentityTest {
         BulletType.BANH_MI, BulletType.DURIAN, BulletType.HEART,
         // Wave 18 batch 3
         BulletType.BUBBLE_TEA, BulletType.FISH_SAUCE, BulletType.SANDAL, BulletType.QR_CODE,
+        BulletType.LIGHTNING, // Task 02 — literal điện lam 0xFF7DF9FF
     )
 
     @Test

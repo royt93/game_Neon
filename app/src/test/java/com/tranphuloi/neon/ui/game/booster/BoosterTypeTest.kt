@@ -45,7 +45,8 @@ class BoosterTypeTest {
         // Wave 11a Phase 2 — +2 boosters (VAMPIRE + GHOST) at weight 6 each = +12. Total 268.
         // Wave 11a Phase 3 — +3 boosters (GRAVITY/REFLECT/CHAIN_LIGHTNING) at weight 6 = +18. Total 286.
         // Wave 11a Phase 4 — +1 booster (CLONE) at weight 6 = +6. Total 292.
-        assertEquals(292, total)
+        // Task 01 Slice 4 — +1 booster (DRONE) at weight 6 = +6. Total 298.
+        assertEquals(298, total)
     }
 
     @Test

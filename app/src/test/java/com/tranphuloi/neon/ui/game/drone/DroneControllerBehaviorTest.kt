@@ -37,6 +37,15 @@ class DroneControllerBehaviorTest {
     // ── addDrone ──
 
     @Test
+    fun `addDrone is a no-op when maxDrones is zero (drone locked)`() {
+        // Task 01 (Slice 5) — rank 0 ⇒ maxDrones 0 ⇒ nhặt DRONE_BOOSTER không spawn.
+        val (ctrl, _) = newController(maxDrones = 0)
+        ctrl.addDrone(shipX, shipY)
+        assertEquals("chưa mở khoá (maxDrones=0) thì không spawn drone", 0, ctrl.count())
+        assertTrue("không có drone", !ctrl.hasDrones())
+    }
+
+    @Test
     fun `addDrone caps at maxDrones`() {
         val (ctrl, _) = newController(maxDrones = 2)
         ctrl.addDrone(shipX, shipY)
@@ -151,6 +160,82 @@ class DroneControllerBehaviorTest {
         ctrl.processDrones()
         assertTrue("drone hp=0 phải bị dọn", ctrl.drones.isEmpty())
         assertTrue("phải publish list rỗng", captured.last().isEmpty())
+    }
+
+    // ── Slice 6 — monitorDroneCollision ──
+
+    @Test
+    fun `enemy laser overlapping a drone damages it and consumes the laser`() {
+        val drone = Drone(id = "d0", xOffset = 100f, yOffset = 100f, orbitAngle = 0f) // rect [100..144]
+        val (ctrl, _) = newController(initial = listOf(drone), maxDrones = 2)
+        val laser = fakeLaser(x = 110f, y = 110f, dmg = 15f)
+        val hits = ctrl.monitorDroneCollision(listOf(laser))
+        assertEquals("1 cú trúng", 1, hits.size)
+        assertTrue("chưa vỡ (hp còn)", !hits[0].destroyed)
+        assertTrue("đạn địch tan sau khi trúng drone", laser.destroyed)
+        assertEquals("drone còn sống", 1, ctrl.count())
+        assertEquals("HP trừ đúng impactPower", Drone.MAX_HP - 15, ctrl.drones[0].hp)
+    }
+
+    @Test
+    fun `drone breaks when a hit drops HP to zero`() {
+        val drone = Drone(id = "d0", xOffset = 100f, yOffset = 100f, orbitAngle = 0f, hp = 20)
+        val (ctrl, _) = newController(initial = listOf(drone), maxDrones = 2)
+        val laser = fakeLaser(x = 110f, y = 110f, dmg = 40f)
+        val hits = ctrl.monitorDroneCollision(listOf(laser))
+        assertEquals(1, hits.size)
+        assertTrue("cú này khiến drone vỡ", hits[0].destroyed)
+        assertTrue("drone bị loại", ctrl.drones.isEmpty())
+    }
+
+    @Test
+    fun `non-overlapping enemy laser does not hit the drone`() {
+        val drone = Drone(id = "d0", xOffset = 100f, yOffset = 100f, orbitAngle = 0f)
+        val (ctrl, _) = newController(initial = listOf(drone), maxDrones = 2)
+        val laser = fakeLaser(x = 300f, y = 300f, dmg = 15f)
+        val hits = ctrl.monitorDroneCollision(listOf(laser))
+        assertTrue("không trúng", hits.isEmpty())
+        assertTrue("đạn còn sống", !laser.destroyed)
+        assertEquals("HP không đổi", Drone.MAX_HP, ctrl.drones[0].hp)
+    }
+
+    @Test
+    fun `already-destroyed enemy laser is ignored`() {
+        val drone = Drone(id = "d0", xOffset = 100f, yOffset = 100f, orbitAngle = 0f)
+        val (ctrl, _) = newController(initial = listOf(drone), maxDrones = 2)
+        val laser = fakeLaser(x = 110f, y = 110f, dmg = 15f, destroyed = true)
+        val hits = ctrl.monitorDroneCollision(listOf(laser))
+        assertTrue("đạn đã destroyed → bỏ qua", hits.isEmpty())
+        assertEquals("HP không đổi", Drone.MAX_HP, ctrl.drones[0].hp)
+    }
+
+    @Test
+    fun `one enemy laser hits at most one drone`() {
+        val a = Drone(id = "a", xOffset = 100f, yOffset = 100f, orbitAngle = 0f) // [100..144]
+        val b = Drone(id = "b", xOffset = 120f, yOffset = 100f, orbitAngle = 0f) // [120..164]
+        val (ctrl, _) = newController(initial = listOf(a, b), maxDrones = 2)
+        val laser = fakeLaser(x = 130f, y = 110f, w = 4f, dmg = 15f) // chồng cả a và b
+        val hits = ctrl.monitorDroneCollision(listOf(laser))
+        assertEquals("1 đạn chỉ trúng 1 drone", 1, hits.size)
+        assertEquals("cả 2 drone còn sống", 2, ctrl.count())
+    }
+
+    // ── fake Laser tối giản (chỉ cần vị trí/size/impactPower/destroyed) ──
+    private fun fakeLaser(
+        x: Float, y: Float, w: Float = 12f, h: Float = 24f, dmg: Float = 15f, destroyed: Boolean = false,
+    ): Laser = object : Laser {
+        override val id = "l-$x-$y"
+        override var xOffset = x
+        override var yOffset = y
+        override var width = w
+        override var height = h
+        override var rotation = 0f
+        override var impactPower = dmg
+        override val drawableId = 0
+        override val xOffsetMovementSpeed = 0f
+        override val yOffsetMovementSpeed = 0f
+        override var destroyed = destroyed
+        override fun moveLaser() {}
     }
 
     // ── fake Enemy tối giản (chỉ cần vị trí + destroyed) ──

@@ -360,6 +360,7 @@ private fun colorForBullet(b: BulletType, palette: NeonPalette): Color = when (b
     BulletType.FISH_SAUCE -> palette.redAlert
     BulletType.SANDAL -> palette.cyan
     BulletType.QR_CODE -> palette.violet
+    BulletType.LIGHTNING -> palette.cyan
 }
 
 // Round 71 (Issue 3) — multi-line subtitle: line 1 = combat stats, line 2 = description.
@@ -389,6 +390,7 @@ private fun subtitleForBullet(b: BulletType): String = when (b) {
     BulletType.FISH_SAUCE -> "Sát thương ×0.9 · ⏱12s · Ăn mòn 7HP/0.5s\nNước mắm gây ăn mòn DoT nặng & lâu hơn Lửa."
     BulletType.SANDAL -> "Sát thương ×0.8 · ⏱14s · Boomerang 2 chiều\nDép lào bay lên rồi quay về, trúng cả lượt đi lẫn về."
     BulletType.QR_CODE -> "Sát thương ×0.8 · ⏱12s · Chậm + Choáng\nQuét mã làm địch 'đơ máy': vừa chậm vừa đứng hình."
+    BulletType.LIGHTNING -> "Sát thương ×0.9 · ⏱10s · Sét lan 3 địch\nTrúng địch → sét nhảy sang 3 địch gần nhau, dmg giảm dần."
 }
 
 // Round 71 (Issue 3) — tooltip 1-line explaining game mechanic.
@@ -418,6 +420,7 @@ private fun tipForBullet(b: BulletType): String = when (b) {
     BulletType.FISH_SAUCE -> "DoT mạnh — hợp boss/enemy nhiều máu."
     BulletType.SANDAL -> "Đánh 2 chiều — quét địch trên cả đường về."
     BulletType.QR_CODE -> "Khoá cứng địch (chậm+choáng) — hợp né đạn."
+    BulletType.LIGHTNING -> "Hợp cụm enemy dày — 1 phát dọn cả chuỗi."
 }
 
 // Round 71 (Issue 3) — damage tier mapping cho border thickness.
@@ -709,6 +712,24 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBulletPreview(
                     topLeft = androidx.compose.ui.geometry.Offset(qx + ix * cc, qy + iy * cc),
                     size = androidx.compose.ui.geometry.Size(cc, cc))
             }
+        }
+        // Task 02 — Sét Chain: tia zigzag dọc.
+        BulletType.LIGHTNING -> {
+            val amp = w * 0.22f
+            val topY = cy - capsuleH / 2f
+            val step = capsuleH / 4f
+            val path = androidx.compose.ui.graphics.Path().apply {
+                moveTo(cx, topY)
+                lineTo(cx + amp, topY + step)
+                lineTo(cx - amp, topY + step * 2)
+                lineTo(cx + amp, topY + step * 3)
+                lineTo(cx, topY + capsuleH)
+            }
+            drawPath(path, color, style = androidx.compose.ui.graphics.drawscope.Stroke(
+                width = w * 0.1f,
+                cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                join = androidx.compose.ui.graphics.StrokeJoin.Round,
+            ))
         }
     }
 }

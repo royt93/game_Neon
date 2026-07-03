@@ -1,6 +1,17 @@
 # Task 02 — Lightning Chain Laser (đạn sét nhảy giữa địch)
 
-**Loại:** Enhance hệ đạn · **Ưu tiên:** trung bình · **Trạng thái:** 📋 todo
+**Loại:** Enhance hệ đạn · **Ưu tiên:** trung bình · **Trạng thái:** 🟡 In progress (Slice 0 chốt 2026-07-03)
+
+## ✅ Slice 0 — ĐÃ CHỐT (2026-07-03)
+- **Chain = TUẦN TỰ MỚI:** tách hàm pure `computeChainTargets(start, enemies, maxSteps, radius, visited)` — nhảy tuần tự từ địch→địch **gần nhất CHƯA thăm** trong bán kính (visited-set tránh lặp). Booster `CHAIN_LIGHTNING_BOOSTER` cũ **giữ nguyên** 2-hop/50% (không đụng).
+- **Tham số:** maxSteps **3** · radius **120px** (dùng bình phương khoảng cách) · falloff **×0.7** mỗi bước.
+- **Nguồn:** `BulletType.LIGHTNING` chọn ở **DialogLoadoutPicker**, **shop-gated** (`shopUnlockId="bullet_lightning"`, như PLASMA/KAMEHAMEHA/ATOMIC/GIANT). Không thêm booster drop.
+- **Render:** tái dùng `TrailLineOverlay` + `trailLineController.addChainBolt(...)` (tia zigzag fade) + spark + damage number mỗi hop (như booster).
+
+## Rã slice
+- [x] **Slice 1 (2026-07-03)** — hàm pure `LightningChain.computeChainTargets` (tuần tự, visited-set, radius, cap) + `damageForHop` (falloff ×0.7, roundToInt). `LightningChainBehaviorTest` **9/9 pass**.
+- [x] **Slice 2 (2026-07-03)** — `BulletType.LIGHTNING` (dmg ×0.9 cân bằng, bodyWidth 18 unique, glyph "↯", shopUnlockId) + `BulletShape.LIGHTNING_BOLT` + mọi `when` exhaustive: BulletType shape/bodyWidth/special/fireInterval, `BulletTypeColorMap` (điện lam 0xFF7DF9FF), `LaserCanvas.drawLightningBody` (bolt zigzag + lõi trắng), `buildOneLaser`, collision arm (huỷ 1 hit). Wire chain: `lightningChainRef` (deferred, @Volatile) chạy `LightningChain.computeChainTargets` + `damageForHop` → trail zigzag + spark + damage number mỗi hop; trigger ở onLaserHit khi `bulletType==LIGHTNING`. **Đã gồm luôn shop item `bullet_lightning` (cost 1100) + UI surfaces (DialogLoadoutPicker ×4, InfoScreen ×3, ShopScreen)** vì compile ép exhaustive. Cập nhật 7 test count/uniqueness/name-set/shop-id. Tổng JVM 846/846, 2 flavor OK.
+- [ ] **Slice 3** — (shop item + UI surfaces đã xong ở Slice 2) → còn: perf test cho `computeChainTargets` (HotPathPerfTest) + rà i18n + **verify thiết bị** (mua đạn Sét Chain → chọn loadout → thấy sét lan in-game).
 
 ## Mục tiêu
 Thêm loại đạn **LIGHTNING**: khi trúng 1 địch, sét **nhảy** sang N địch gần kế tiếp (chain), mỗi bước giảm damage. Đây là phần "chain" từng bị defer (xem feature.md Wave 4).

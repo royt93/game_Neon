@@ -18,6 +18,7 @@ class BoosterControllerBehaviorTest {
         noShieldDrops: () -> Boolean = { false },
         noBoosters: () -> Boolean = { false },
         reviveDropRank: () -> Int = { 0 },
+        droneUnlocked: () -> Boolean = { true },
     ): Pair<BoosterController, MutableList<List<Booster>>> {
         val captured = mutableListOf<List<Booster>>()
         val ctrl = BoosterController(
@@ -29,6 +30,7 @@ class BoosterControllerBehaviorTest {
             noShieldDrops = noShieldDrops,
             noBoosters = noBoosters,
             reviveDropRank = reviveDropRank,
+            droneUnlocked = droneUnlocked,
         )
         return ctrl to captured
     }
@@ -62,6 +64,19 @@ class BoosterControllerBehaviorTest {
         assertTrue(
             "không booster nào được là SHIELD_BOOSTER",
             ctrl.boosters.none { it.type == BoosterType.SHIELD_BOOSTER },
+        )
+    }
+
+    // ── Task 01 (Slice 5) — DRONE_BOOSTER gate ──
+
+    @Test
+    fun `addBooster never adds DRONE_BOOSTER when drone locked`() {
+        val (ctrl, _) = newController(droneUnlocked = { false })
+        repeat(500) { ctrl.addBooster() }
+        assertEquals("phải lấp đủ cap dù có skip DRONE", BoosterController.MAX_BOOSTERS, ctrl.boosters.size)
+        assertTrue(
+            "không booster nào được là DRONE_BOOSTER khi chưa mở khoá",
+            ctrl.boosters.none { it.type == BoosterType.DRONE_BOOSTER },
         )
     }
 

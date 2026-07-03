@@ -3,6 +3,7 @@ package com.tranphuloi.neon.ui.game.drone
 import com.tranphuloi.neon.ui.game.common.Millis
 import com.tranphuloi.neon.ui.game.common.RepeatTime
 import com.tranphuloi.neon.ui.game.enemy.ship.model.Enemy
+import com.tranphuloi.neon.ui.game.laser.Laser
 import com.tranphuloi.neon.utils.Logger
 
 /**
@@ -28,6 +29,8 @@ class DroneController(
     val orbitRepeatTime: RepeatTime = Millis(16)
     val fireId: String = "drone-fire-${System.identityHashCode(this)}"
     val fireRepeatTime: RepeatTime = Millis(120)
+    val collisionId: String = "drone-collision-${System.identityHashCode(this)}"
+    val collisionRepeatTime: RepeatTime = Millis(16)
 
     private var idCounter: Int = initialDrones.size
 
@@ -106,6 +109,54 @@ class DroneController(
         }
         if (changed) publish()
         return shots
+    }
+
+    /**
+     * Task 01 (Slice 6) — va chạm drone ↔ đạn địch. Mỗi đạn địch (chưa destroyed)
+     * chồng lên 1 drone → đạn tan (destroyed=true) + drone trừ HP bằng impactPower.
+     * HP≤0 → drone vỡ + loại. Trả [DroneHit] để GameState nổ/spark/haptic.
+     *
+     * AABB thuần (không phụ thuộc Compose) để test JVM. Drone rect = [xOffset..
+     * xOffset+size] × [yOffset..yOffset+size], khớp cách [DroneCanvas] vẽ (tâm =
+     * xOffset+size/2). 1 đạn chỉ trúng 1 drone (drone sau bỏ qua đạn đã destroyed).
+     */
+    fun monitorDroneCollision(enemyLasers: List<Laser>): List<DroneHit> {
+        if (drones.isEmpty() || enemyLasers.isEmpty()) return emptyList()
+        val hits = mutableListOf<DroneHit>()
+        var changed = false
+        drones = drones.mapNotNull { d ->
+            var hp = d.hp
+            val dx1 = d.xOffset
+            val dy1 = d.yOffset
+            val dx2 = d.xOffset + d.size
+            val dy2 = d.yOffset + d.size
+            for (l in enemyLasers) {
+                if (l.destroyed) continue
+                val lx1 = l.xOffset
+                val ly1 = l.yOffset
+                val lx2 = l.xOffset + l.width
+                val ly2 = l.yOffset + l.height
+                val overlaps = dx1 < lx2 && dx2 > lx1 && dy1 < ly2 && dy2 > ly1
+                if (!overlaps) continue
+                l.destroyed = true
+                hp -= l.impactPower.toInt()
+                val cx = d.xOffset + d.size / 2f
+                val cy = d.yOffset + d.size / 2f
+                if (hp <= 0) {
+                    hits += DroneHit(cx, cy, destroyed = true)
+                    break // drone vỡ — không ăn thêm đạn
+                } else {
+                    hits += DroneHit(cx, cy, destroyed = false)
+                }
+            }
+            when {
+                hp <= 0 -> { changed = true; null }
+                hp != d.hp -> { changed = true; d.copy(hp = hp) }
+                else -> d
+            }
+        }
+        if (changed) publish()
+        return hits
     }
 
     /** Trừ HP drone; loại nếu vỡ. */

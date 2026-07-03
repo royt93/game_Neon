@@ -388,6 +388,16 @@ class LasersController(
                 width = 17f,
                 bulletType = BulletType.QR_CODE,
             )
+            // Task 02 — Sét Chain: thân ShipLaser thường, cơ chế chain xử lý ở
+            // collision arm + onLaserHit (GameState). width ép về bw (8f) ở .also.
+            BulletType.LIGHTNING -> ShipLaser(
+                id = uuidUtils.getUuid(),
+                xOffset = ship.xOffset + ship.width / 2 - 8f / 2 + dx,
+                yOffset = ship.yOffset - 20f + dy,
+                yRange = screenHeight,
+                width = 8f,
+                bulletType = BulletType.LIGHTNING,
+            )
             BulletType.NORMAL -> if (ship.laserBoosterEnabled) {
                 ShipBoostedLaser(
                     id = uuidUtils.getUuid(),
@@ -461,6 +471,18 @@ class LasersController(
         ).also { it.targetX = initialTargetX }
         Logger.d("LasersController.fireMissile: spawned at (${missile.xOffset.toInt()},${missile.yOffset.toInt()}) target=$initialTargetX")
         shipLasers = shipLasers + missile
+        updateShipLasersUI()
+    }
+
+    /**
+     * Task 01 (Slice 3) — bơm đạn drone vào HỆ LASER CHUNG. Dùng list `shipLasers`
+     * để tái dùng move + cleanup ([processShipLasers]) + collision
+     * ([monitorLaserCollision]). Tôn trọng [MAX_SHIP_LASERS] để không phình list
+     * khi drone + tàu bắn dồn dập.
+     */
+    fun addDroneLasers(lasers: List<Laser>) {
+        if (lasers.isEmpty() || shipLasers.size >= MAX_SHIP_LASERS) return
+        shipLasers = shipLasers + lasers
         updateShipLasersUI()
     }
 
@@ -686,6 +708,9 @@ class LasersController(
                         }
                     }
                     BulletType.NORMAL -> destroyShipLaser(laser)
+                    // Task 02 — Sét Chain: huỷ khi trúng 1 địch; chuỗi lan xử lý
+                    // upstream ở onLaserHit (GameState) khi bulletType==LIGHTNING.
+                    BulletType.LIGHTNING -> destroyShipLaser(laser)
                     // Round 67 — FIRE: destroy on hit, BURN status applied in
                     // onLaserHit upstream (GameState).
                     BulletType.FIRE -> destroyShipLaser(laser)

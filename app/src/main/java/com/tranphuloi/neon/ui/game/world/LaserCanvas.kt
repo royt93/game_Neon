@@ -148,7 +148,37 @@ private fun DrawScope.drawLaserBody(
         BulletType.FISH_SAUCE -> drawBottleBody(xPx, yPx, wPx, hPx, glow)
         BulletType.SANDAL -> drawSandalBody(xPx, yPx, wPx, hPx, glow)
         BulletType.QR_CODE -> drawQrBody(xPx, yPx, wPx, hPx, glow)
+        // Task 02 — Sét Chain: tia zigzag mảnh + lõi trắng sáng.
+        BulletType.LIGHTNING -> drawLightningBody(xPx, yPx, wPx, hPx, glow)
     }
+}
+
+/** Task 02 — thân đạn sét: bolt zigzag + lõi trắng (đọc rõ là "tia điện"). */
+private fun DrawScope.drawLightningBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {
+    val cx = xPx + wPx / 2f
+    val amp = wPx * 1.1f
+    fun bolt() = PathPool.acquire().apply {
+        val step = hPx / 4f
+        moveTo(cx, yPx)
+        lineTo(cx + amp / 2, yPx + step)
+        lineTo(cx - amp / 2, yPx + step * 2)
+        lineTo(cx + amp / 2, yPx + step * 3)
+        lineTo(cx, yPx + hPx)
+    }
+    val outer = bolt()
+    drawPath(outer, glow, style = androidx.compose.ui.graphics.drawscope.Stroke(
+        width = wPx * 0.9f,
+        cap = androidx.compose.ui.graphics.StrokeCap.Round,
+        join = androidx.compose.ui.graphics.StrokeJoin.Round,
+    ))
+    PathPool.release(outer)
+    val core = bolt()
+    drawPath(core, Color.White.copy(alpha = 0.9f), style = androidx.compose.ui.graphics.drawscope.Stroke(
+        width = wPx * 0.35f,
+        cap = androidx.compose.ui.graphics.StrokeCap.Round,
+        join = androidx.compose.ui.graphics.StrokeJoin.Round,
+    ))
+    PathPool.release(core)
 }
 
 // ── Wave 18 — body VECTOR cho batch 3 (ly trà sữa + trân châu, chai nước mắm,

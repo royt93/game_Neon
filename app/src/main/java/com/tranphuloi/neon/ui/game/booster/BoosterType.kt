@@ -92,4 +92,9 @@ enum class BoosterType(
     // fires alongside main ship for 8s. Doubles effective DPS. Weight 6 keeps
     // REVIVE_TOKEN (weight 5) rarest. Total weight 286 → 292.
     CLONE_BOOSTER(R.drawable.booster_ultimate_weapon, weight = 6),
+
+    // Task 01 (Slice 4) — DRONE_BOOSTER: nhặt → spawn 1 drone companion bay quanh
+    // tàu, tự bắn địch gần nhất (tới maxDrones). Weight 6 (REVIVE weight 5 vẫn
+    // rarest). Total weight 292 → 298. (Slice 5 sẽ gate theo skill-tree unlock.)
+    DRONE_BOOSTER(R.drawable.booster_triple_laser, weight = 6),
 }

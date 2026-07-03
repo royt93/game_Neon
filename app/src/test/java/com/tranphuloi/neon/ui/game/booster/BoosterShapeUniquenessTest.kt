@@ -47,7 +47,8 @@ class BoosterShapeUniquenessTest {
         // Phase 1 (+3 REGEN/TIME_FREEZE/MINI) → 30. Phase 2 (+2 VAMPIRE/GHOST)
         // → 32. Phase 3 (+3 GRAVITY/REFLECT/CHAIN_LIGHTNING) → 35. Phase 4
         // (+1 CLONE_BOOSTER) → 36. Wave 11a 9/9 complete.
-        assertEquals(36, BoosterType.values().size)
+        // Task 01 Slice 4 (+1 DRONE_BOOSTER) → 37.
+        assertEquals(37, BoosterType.values().size)
     }
 
     @Test

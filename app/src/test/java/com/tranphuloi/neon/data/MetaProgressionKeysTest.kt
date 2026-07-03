@@ -29,7 +29,7 @@ class MetaProgressionKeysTest {
 
     @Test
     fun `BulletType has 22 entries`() {
-        assertEquals(22, BulletType.entries.size)
+        assertEquals(23, BulletType.entries.size)
     }
 
     @Test
@@ -174,6 +174,8 @@ class MetaProgressionKeysTest {
             "BANH_MI", "DURIAN", "HEART",
             // Wave 18 — đạn trào phúng batch 3
             "BUBBLE_TEA", "FISH_SAUCE", "SANDAL", "QR_CODE",
+            // Task 02 — đạn sét chain
+            "LIGHTNING",
         )
         val actual = BulletType.entries.map { it.name }.toSet()
         assertEquals(

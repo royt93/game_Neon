@@ -64,4 +64,7 @@ enum class BoosterShape {
 
     // ── Wave 11a Phase 4 ──
     CLONE_PAIR,      // 2 small ship silhouettes side-by-side — CLONE_BOOSTER
+
+    // ── Task 01 (Slice 4) ──
+    DRONE_ROTOR,     // diamond + orbit ring — DRONE_BOOSTER (drone companion)
 }

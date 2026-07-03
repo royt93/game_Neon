@@ -25,6 +25,8 @@ enum class BulletShape {
     ZIGZAG, BEAM, ATOM, TRIDENT, TICKET, FIREWORK, BRICK, BAGUETTE, DURIAN, HEART,
     // Wave 18 — batch 3 đạn trào phúng.
     BOBA, BOTTLE, SANDAL, QR_CODE,
+    // Task 02 — đạn sét chain.
+    LIGHTNING_BOLT,
 }
 
 @Immutable
@@ -165,6 +167,18 @@ enum class BulletType(
         glyph = "Ѱ",                               // psi (3-prong)
     ),
 
+    // Task 02 — Sét Chain: trúng địch → sét LAN tuần tự tối đa 3 địch gần nhau
+    // (visited-set, ×0.7 dmg mỗi bước). Shop-gated (đạn premium điều khiển đám đông).
+    LIGHTNING(
+        displayName = "Sét Chain",
+        activeDurationMillis = 10_000L,
+        damageMultiplier = 0.9f,                    // base hơi thấp vì chain thêm giá trị (cân bằng)
+        pierceCount = 0,
+        aoeRadius = 0f,
+        glyph = "↯",                               // mũi tên sét (zigzag)
+        shopUnlockId = "bullet_lightning",         // premium — mua trong Shop
+    ),
+
     // ── Wave 16 — đạn trào phúng batch 1 ──
     /** Vé Số — sát thương NGẪU NHIÊN mỗi phát (hên xui, từ 0.3× tới 3×). */
     LOTTERY(
@@ -293,6 +307,7 @@ enum class BulletType(
             FISH_SAUCE -> BulletShape.BOTTLE
             SANDAL -> BulletShape.SANDAL
             QR_CODE -> BulletShape.QR_CODE
+            LIGHTNING -> BulletShape.LIGHTNING_BOLT
         }
 
     /** SIZE — bề rộng thân (px). Dải 3 (kim) → 38 (khói khổng lồ). */
@@ -320,6 +335,7 @@ enum class BulletType(
             SANDAL -> 16f
             QR_CODE -> 17f
             BUBBLE_TEA -> 20f
+            LIGHTNING -> 18f
         }
 
     /** COLOR — màu nhận diện (signature). Ghép với booster gốc qua [BulletTypeColorMap]. */
@@ -350,6 +366,7 @@ enum class BulletType(
             FISH_SAUCE -> "Ăn mòn DoT 4.5 giây (mạnh hơn cháy)"
             SANDAL -> "Boomerang lên rồi quay về, đánh 2 chiều"
             QR_CODE -> "Quét địch → vừa chậm vừa đơ"
+            LIGHTNING -> "Trúng → sét lan 3 địch gần nhau (giảm dần)"
         }
 
     /**
@@ -386,6 +403,8 @@ enum class BulletType(
             GIANT -> 500L
             ATOMIC -> 500L
             BRICK -> 500L
+            // Tier MẠNH (chain control) — ~2.5 viên/giây
+            LIGHTNING -> 400L
             // Tier TỐI THƯỢNG (×3 + xuyên-tất) — ~1.4 viên/giây
             KAMEHAMEHA -> 700L
         }

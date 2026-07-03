@@ -130,7 +130,7 @@ class ShopItemCatalogTest {
             "skin_aura_emerald", "skin_aura_amber", "skin_aura_ice",
             "bullet_kamehameha", "bullet_atomic",
             // Wave 14a — 2 more strong bullets gated.
-            "bullet_giant", "bullet_plasma",
+            "bullet_giant", "bullet_plasma", "bullet_lightning",
             "smartbomb_pack_3", "revive_pack_1",
             // Wave 14a Round 2 — 6 "buff 1 run" consumables.
             "buff_x2_minerals", "buff_start_shield", "buff_x2_score",

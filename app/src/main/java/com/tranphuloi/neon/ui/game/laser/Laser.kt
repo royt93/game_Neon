@@ -30,5 +30,12 @@ interface Laser {
         get() = 0
         set(@Suppress("UNUSED_PARAMETER") value) { /* no-op for non-piercing */ }
 
+    /**
+     * Task 01 (Slice 3) — nguồn phát. Default SHIP để mọi laser hiện có không đổi
+     * hành vi; drone laser override thành [LaserSource.DRONE].
+     */
+    val source: LaserSource
+        get() = LaserSource.SHIP
+
     fun moveLaser()
 }

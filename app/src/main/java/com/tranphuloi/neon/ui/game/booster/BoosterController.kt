@@ -25,6 +25,11 @@ class BoosterController(
      * trên top của weighted random pick (REVIVE base ~2%).
      */
     private val reviveDropRank: () -> Int = { 0 },
+    /**
+     * Task 01 (Slice 5) — DRONE_BOOSTER chỉ rơi khi đã mở khoá DRONE_FLEET.
+     * Chưa mở khoá → skip roll (thử lại tick sau), tránh pickup vô tác dụng.
+     */
+    private val droneUnlocked: () -> Boolean = { true },
 ) {
 
     init {
@@ -65,6 +70,11 @@ class BoosterController(
         // 25x NO_SHIELDS modifier — drop SHIELD rolls.
         if (noShieldDrops() && booster.type == BoosterType.SHIELD_BOOSTER) {
             Logger.v { "BoosterController.addBooster: SKIPPED SHIELD (NO_SHIELDS modifier active)" }
+            return
+        }
+        // Task 01 (Slice 5) — chưa mở khoá DRONE_FLEET → không rơi DRONE_BOOSTER.
+        if (!droneUnlocked() && booster.type == BoosterType.DRONE_BOOSTER) {
+            Logger.v { "BoosterController.addBooster: SKIPPED DRONE (chưa mở khoá DRONE_FLEET)" }
             return
         }
         boosters += booster
