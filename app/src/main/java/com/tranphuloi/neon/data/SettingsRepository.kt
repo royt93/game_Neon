@@ -37,6 +37,8 @@ object SettingsKeys {
     val AUTO_SKIP_LOADOUT = booleanPreferencesKey("auto_skip_loadout")
     /** Round 68 (Wave 8) — selected ship shape. Default FIGHTER. */
     val SELECTED_SHIP_SHAPE = stringPreferencesKey("selected_ship_shape")
+    // Task 06 — biến thể drone (ATTACK/SHIELD/HEAL).
+    val SELECTED_DRONE_VARIANT = stringPreferencesKey("selected_drone_variant")
     /** Round 77 (R77g) — camera zoom level. Default MEDIUM. */
     val CAMERA_ZOOM = stringPreferencesKey("camera_zoom")
 }
@@ -188,6 +190,11 @@ class SettingsRepository(private val appContext: Context) {
         appContext.dataStore.data.map {
             com.tranphuloi.neon.ui.game.ship.shape.ShipShape.fromKey(it[SettingsKeys.SELECTED_SHIP_SHAPE])
         }
+    /** Task 06 — biến thể drone đang chọn (mặc định ATTACK). */
+    val selectedDroneVariant: Flow<com.tranphuloi.neon.ui.game.drone.DroneVariant> =
+        appContext.dataStore.data.map {
+            com.tranphuloi.neon.ui.game.drone.DroneVariant.fromKey(it[SettingsKeys.SELECTED_DRONE_VARIANT])
+        }
     /** Round 77 (R77g) — camera zoom level. Defaults to MEDIUM. */
     val cameraZoom: Flow<CameraZoom> = appContext.dataStore.data.map {
         CameraZoom.fromKey(it[SettingsKeys.CAMERA_ZOOM])
@@ -269,6 +276,12 @@ class SettingsRepository(private val appContext: Context) {
     suspend fun setSelectedShipShape(value: com.tranphuloi.neon.ui.game.ship.shape.ShipShape) {
         Logger.d("SettingsRepository.setSelectedShipShape=${value.key}")
         appContext.dataStore.edit { it[SettingsKeys.SELECTED_SHIP_SHAPE] = value.key }
+    }
+
+    /** Task 06 — lưu biến thể drone chọn. */
+    suspend fun setSelectedDroneVariant(value: com.tranphuloi.neon.ui.game.drone.DroneVariant) {
+        Logger.d("SettingsRepository.setSelectedDroneVariant=${value.name}")
+        appContext.dataStore.edit { it[SettingsKeys.SELECTED_DRONE_VARIANT] = value.name }
     }
 
     suspend fun setCameraZoom(value: CameraZoom) {

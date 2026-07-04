@@ -314,6 +314,22 @@ fun GameScreen(
             if (lifetimeEnemies >= 1000L) {
                 awardLifetime(com.tranphuloi.neon.data.Achievement.LIFETIME_KILLS_1000)
             }
+            // Task 07 — ngưỡng qua AchievementUnlocks (single-source, tested).
+            val lightningTotal = metaRepo.bulletKills(com.tranphuloi.neon.ui.game.ship.laser.BulletType.LIGHTNING).first()
+            if (com.tranphuloi.neon.ui.game.state.AchievementUnlocks.lightningMaster(lightningTotal)) {
+                awardLifetime(com.tranphuloi.neon.data.Achievement.LIGHTNING_MASTER)
+            }
+            val shipXpMap = metaRepo.allShipXp.first()
+            if (com.tranphuloi.neon.ui.game.state.AchievementUnlocks.shipMaxLevel(shipXpMap)) {
+                awardLifetime(com.tranphuloi.neon.data.Achievement.SHIP_MAX_LEVEL)
+            }
+            val ownedShipRanks = metaRepo.allRanks.first()
+            val ownedShipCount = com.tranphuloi.neon.ui.game.ship.shape.ShipShape.entries.count {
+                com.tranphuloi.neon.ui.game.ship.shape.ShipShopLogic.isOwned(it, ownedShipRanks)
+            }
+            if (com.tranphuloi.neon.ui.game.state.AchievementUnlocks.shipCollector(ownedShipCount)) {
+                awardLifetime(com.tranphuloi.neon.data.Achievement.SHIP_COLLECTOR)
+            }
             Logger.d("Snapshot RunStats: score=${gameState.mineralsEarnedTotal}, time=${gameState.gameTimeSec}s, enemies=${gameState.enemiesKilledTotal}, bosses=${gameState.bossesDefeatedTotal}, maxCombo=${gameState.maxComboReached}, stages=${gameState.stagesReached}, mode=${gameState.gameMode.key}")
             // Round 26 — only CLEAR checkpoint on VICTORY (run truly complete).
             // On death: keep checkpoint so user can retry from last stage via
@@ -593,6 +609,16 @@ fun GameScreen(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(end = 8.dp, bottom = 206.dp)
+                .zIndex(310f),
+        )
+        // Task 05 — ship active ability button (stacked above secondary weapon).
+        if (hudVisible) com.tranphuloi.neon.ui.game.controls.AbilityButton(
+            ability = gameState.shipAbility,
+            cooldownProgress = gameState.abilityCooldownProgress,
+            onActivate = { gameState.activateAbility() },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 8.dp, bottom = 256.dp)
                 .zIndex(310f),
         )
         // 1c: Compact boss HP bar (200dp wide). Pinned 16dp BELOW the Settings icon

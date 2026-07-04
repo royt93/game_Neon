@@ -15,6 +15,8 @@ data class DroneUI(
     val xOffset: Float,
     val yOffset: Float,
     val size: Float,
-    /** hp/MAX_HP trong [0,1] — drive vòng HP + độ mờ. */
+    /** hp/maxHp(variant) trong [0,1] — drive vòng HP + độ mờ. */
     val hpRatio: Float,
+    /** Task 06 — loại drone (quyết định màu render). */
+    val variant: DroneVariant = DroneVariant.ATTACK,
 ) : Serializable

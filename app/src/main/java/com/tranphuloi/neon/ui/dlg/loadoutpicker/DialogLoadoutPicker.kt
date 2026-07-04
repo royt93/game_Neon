@@ -88,6 +88,10 @@ fun DialogLoadoutPicker(
     val secondary: SecondaryWeapon? by produceState<SecondaryWeapon?>(initialValue = null, settings) {
         settings.secondaryWeapon.collect { value = it }
     }
+    // Task 06 — biến thể drone đang chọn.
+    val droneVariant: com.tranphuloi.neon.ui.game.drone.DroneVariant? by produceState(initialValue = null, settings) {
+        settings.selectedDroneVariant.collect { value = it }
+    }
     // Round 45 fix 3 — palette accents follow Color Blind mode (round 39).
     val palette = LocalNeonPalette.current
 
@@ -188,6 +192,35 @@ fun DialogLoadoutPicker(
                         onClick = {
                             Logger.d("LoadoutPicker: SecondaryWeapon pick=$w")
                             scope.launch { settings.setSecondaryWeapon(w) }
+                        },
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
+            // Task 06 — chọn biến thể DRONE (cần mở khoá PHI ĐỘI DRONE trong skill-tree).
+            SectionHeader(label = "DRONE", color = palette.cyan)
+            Spacer(modifier = Modifier.height(8.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                com.tranphuloi.neon.ui.game.drone.DroneVariant.entries.forEach { v ->
+                    val meta = droneVariantMeta(v, palette)
+                    LoadoutCard(
+                        glyph = meta.glyph,
+                        title = meta.title,
+                        subtitle = meta.subtitle,
+                        tip = meta.tip,
+                        color = meta.color,
+                        damageTier = 1,
+                        selected = v == droneVariant,
+                        bulletPreview = null,
+                        onClick = {
+                            Logger.d("LoadoutPicker: DroneVariant pick=$v")
+                            scope.launch { settings.setSelectedDroneVariant(v) }
                         },
                     )
                 }
@@ -738,6 +771,23 @@ private fun colorForSecondary(w: SecondaryWeapon, palette: NeonPalette): Color =
     SecondaryWeapon.MISSILE -> palette.cyan
     SecondaryWeapon.MINE -> palette.redAlert
     SecondaryWeapon.BURST -> palette.magenta
+}
+
+// Task 06 — metadata hiển thị cho biến thể drone (cần mở khoá PHI ĐỘI DRONE).
+private class DroneVariantMeta(
+    val glyph: String, val title: String, val subtitle: String, val tip: String, val color: Color,
+)
+
+private fun droneVariantMeta(
+    v: com.tranphuloi.neon.ui.game.drone.DroneVariant,
+    palette: NeonPalette,
+): DroneVariantMeta = when (v) {
+    com.tranphuloi.neon.ui.game.drone.DroneVariant.ATTACK ->
+        DroneVariantMeta("◈", "Drone Tấn Công", "Tự bắn địch gần nhất", "Thêm hoả lực rảnh tay", palette.cyan)
+    com.tranphuloi.neon.ui.game.drone.DroneVariant.SHIELD ->
+        DroneVariantMeta("⛨", "Drone Khiên", "2× máu · chặn đạn · không bắn", "Đệm đỡ đạn cho tàu", palette.gold)
+    com.tranphuloi.neon.ui.game.drone.DroneVariant.HEAL ->
+        DroneVariantMeta("✚", "Drone Hồi Máu", "Hồi máu tàu chậm · không bắn", "Trụ lâu ở màn khó", Color(0xFF3DFF88))
 }
 
 private fun subtitleForSecondary(w: SecondaryWeapon): String = when (w) {

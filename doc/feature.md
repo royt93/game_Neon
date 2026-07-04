@@ -2501,6 +2501,30 @@ Chi tiết: [doc/task/todo/03-unlockable-ships-xp.md](task/todo/03-unlockable-sh
 - ✅ **Test**: `ShipXpLogicTest` 7 + `MetaProgressionShipXpIntegrationTest` 5 (Robolectric). JVM **866/866**.
 - ✅ **Verify device S24 Ultra**: logcat `addShipXp[fighter] +1 → 1` sau run; shop hiện "Lv1 · +0% HP · còn 99 XP" + bar.
 
+## 🆕 Task 07 — Mở rộng thành tựu (✅ Implemented 2026-07-04)
+
+Chi tiết: [doc/task/todo/07-achievements-expansion.md](task/todo/07-achievements-expansion.md). 5 thành tựu gắn kết feature đợt 1:
+- **DRONE_DUO** (2 drone cùng lúc), **CHAIN_TRIPLE** (sét lan 3 địch/phát) — in-game.
+- **LIGHTNING_MASTER** (100 kill Sét Chain), **SHIP_MAX_LEVEL** (1 tàu Lv5), **SHIP_COLLECTOR** (10 tàu) — lifetime.
+- Điều kiện thuần `AchievementUnlocks` (single-source) + 5 test; wiring qua `unlockAchievement`/`awardLifetime` sẵn có. Verify device (unlock `ship_max_level`). JVM **874**.
+
+## 🆕 Task 05 — Kỹ năng chủ động theo tàu (✅ Implemented 2026-07-04)
+
+Chi tiết: [doc/task/todo/05-ship-active-abilities.md](task/todo/05-ship-active-abilities.md).
+- **22 kỹ năng RIÊNG** (map 1-1 ShipShape) — `ShipAbility` enum (tên/glyph/cd/duration riêng) + 10 primitive `AbilityEffect`.
+- **Cooldown giảm theo LEVEL tàu** (Task 03): `ShipXpLevels.cooldownMulForLevel` (L1 1.0 → L5 0.6). `ShipAbilityController` (pure) quản cooldown.
+- **HUD `AbilityButton`** (magenta, glyph, vòng cooldown) — stack trên nút vũ khí phụ.
+- **10 effect**: NOVA/REPAIR/MAGNET_PULSE/LASER_STORM (instant) + OVERDRIVE/CRIT_FRENZY/BULWARK/PHASE_DASH/DECOY/TIME_DILATION (duration, timer riêng trên Ship, đọc lazy ở damage-mul/invuln/freeze).
+- **Test**: `ShipAbilityTest` 6 + `ShipAbilityTimerTest` 5. JVM **885**. **Verify device**: FIGHTER NOVA → màn sạch địch + nút cooldown.
+
+## 🆕 Task 06 — Biến thể drone (✅ Implemented 2026-07-04, verify device A50s)
+
+Chi tiết: [doc/task/todo/06-drone-variants.md](task/todo/06-drone-variants.md). Enhance Task 01:
+- **3 variant** `DroneVariant`: ATTACK (bắn), SHIELD (2×HP, không bắn, chặn/đệm đạn), HEAL (không bắn, hồi tàu +1/0.7s ≈1.4 HP/s).
+- Chọn ở **loadout** (`selectedDroneVariant`), DRONE_FLEET mở cả 3. Màu drone theo variant (cyan/gold/green).
+- Controller: addDrone theo variant, fireStep chỉ ATTACK, `healStep` (HEAL→`healCapped`). +4 test. JVM **889**.
+- ✅ Verify device (Galaxy A50s): loadout section DRONE render 3 variant + chọn/persist (logcat `setSelectedDroneVariant=HEAL`).
+
 ---
 
 # Notes

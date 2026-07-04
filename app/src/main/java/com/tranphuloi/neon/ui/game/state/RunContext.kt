@@ -35,6 +35,8 @@ data class RunContext(
      * EffectiveStats.compute. Tách khỏi shipShape.hpMul (stat cố định của tàu).
      */
     val shipLevelHpMul: Float = 1f,
+    /** Task 05 — level tàu (1..5) đọc 1 lần lúc init; dùng scale cooldown kỹ năng. */
+    val shipLevel: Int = 1,
 ) {
     companion object {
         /** Default context for plain campaign run (back-compat for code paths

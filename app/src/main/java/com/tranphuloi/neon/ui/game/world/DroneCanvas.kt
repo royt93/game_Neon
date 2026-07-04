@@ -43,7 +43,14 @@ private fun DrawScope.drawDrone(d: DroneUI, density: Density) {
         val r = sizePx / 2f
         val alpha = (0.55f + 0.45f * d.hpRatio).coerceIn(0f, 1f) // mờ dần khi mất HP
 
-        drawSoftHalo(NeonCyan, 0.7f * alpha, r * 1.8f, Offset(cx, cy))
+        // Task 06 — màu thân theo biến thể (cyan tấn công / gold khiên / green hồi).
+        val bodyColor = when (d.variant) {
+            com.tranphuloi.neon.ui.game.drone.DroneVariant.ATTACK -> NeonCyan
+            com.tranphuloi.neon.ui.game.drone.DroneVariant.SHIELD -> NeonGold
+            com.tranphuloi.neon.ui.game.drone.DroneVariant.HEAL -> Color(0xFF3DFF88)
+        }
+
+        drawSoftHalo(bodyColor, 0.7f * alpha, r * 1.8f, Offset(cx, cy))
 
         // Thân drone: diamond (hình thoi).
         val body = PathPool.acquire().apply {
@@ -53,7 +60,7 @@ private fun DrawScope.drawDrone(d: DroneUI, density: Density) {
             lineTo(cx - r * 0.8f, cy)
             close()
         }
-        drawPath(body, NeonCyan.copy(alpha = alpha))
+        drawPath(body, bodyColor.copy(alpha = alpha))
         drawPath(body, Color.White.copy(alpha = 0.7f * alpha), style = Stroke(width = sizePx * 0.06f))
         PathPool.release(body)
 

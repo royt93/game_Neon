@@ -37,8 +37,8 @@ class DroneController(
     fun hasDrones(): Boolean = drones.isNotEmpty()
     fun count(): Int = drones.size
 
-    /** Thêm 1 drone (booster pickup). No-op nếu đã đạt [maxDrones]. */
-    fun addDrone(shipX: Float, shipY: Float) {
+    /** Thêm 1 drone (booster pickup) theo [variant]. No-op nếu đã đạt [maxDrones]. */
+    fun addDrone(shipX: Float, shipY: Float, variant: DroneVariant = DroneVariant.ATTACK) {
         if (drones.size >= maxDrones) return
         val slot = drones.size
         // Giãn đều góc khởi tạo theo maxDrones để 2 drone không chồng nhau.
@@ -48,9 +48,11 @@ class DroneController(
             xOffset = shipX + Drone.ORBIT_RADIUS * Math.cos(angle.toDouble()).toFloat(),
             yOffset = shipY + Drone.ORBIT_RADIUS * Math.sin(angle.toDouble()).toFloat(),
             orbitAngle = angle,
+            hp = Drone.maxHpFor(variant),
+            variant = variant,
         )
         drones = drones + d
-        Logger.d("DroneController.addDrone → count=${drones.size}")
+        Logger.d("DroneController.addDrone variant=$variant → count=${drones.size}")
         publish()
     }
 
@@ -96,6 +98,7 @@ class DroneController(
         val shots = mutableListOf<DroneShot>()
         var changed = false
         drones = drones.map { d ->
+            if (d.variant != DroneVariant.ATTACK) return@map d // chỉ ATTACK bắn
             if (nowMillis - d.lastFireMillis < Drone.FIRE_INTERVAL_MS) return@map d
             val target = nearestEnemy(d.xOffset, d.yOffset, enemies) ?: return@map d
             shots += DroneShot(
@@ -157,6 +160,26 @@ class DroneController(
         }
         if (changed) publish()
         return hits
+    }
+
+    /**
+     * Task 06 — HEAL drone hồi máu tàu: mỗi HEAL drone quá cooldown → +HEAL_AMOUNT.
+     * Trả tổng HP cần hồi tick này (GameState áp qua shipController.healCapped) +
+     * cập nhật lastFireMillis (tái dùng làm mốc hồi). 0 nếu không có HEAL drone sẵn.
+     */
+    fun healStep(nowMillis: Long): Int {
+        if (drones.isEmpty()) return 0
+        var total = 0
+        var changed = false
+        drones = drones.map { d ->
+            if (d.variant != DroneVariant.HEAL) return@map d
+            if (nowMillis - d.lastFireMillis < Drone.HEAL_INTERVAL_MS) return@map d
+            total += Drone.HEAL_AMOUNT
+            changed = true
+            d.copy(lastFireMillis = nowMillis)
+        }
+        if (changed) publish()
+        return total
     }
 
     /** Trừ HP drone; loại nếu vỡ. */

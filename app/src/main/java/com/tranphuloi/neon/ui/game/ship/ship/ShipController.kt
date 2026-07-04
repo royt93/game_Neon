@@ -631,6 +631,34 @@ class ShipController(
         setShip(ship)
     }
 
+    /**
+     * Task 05 — bật timer hiệu ứng kỹ năng chủ động (duration-based). Chỉ set mốc
+     * hết hạn trên [Ship]; áp dụng đọc lazy ở damage lambda / freeze gate / collision.
+     * Instant effect (NOVA/REPAIR/MAGNET/LASER_STORM) xử lý ở GameState, không qua đây.
+     */
+    fun activateAbilityTimer(
+        effect: com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect,
+        nowMillis: Long,
+        durationMs: Long,
+    ) {
+        if (durationMs <= 0L) return
+        val end = nowMillis + durationMs
+        ship = when (effect) {
+            com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.BULWARK,
+            com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.PHASE_DASH,
+            com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.DECOY ->
+                ship.copy(abilityInvulnEndMillis = end)
+            com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.OVERDRIVE ->
+                ship.copy(abilityOverdriveEndMillis = end)
+            com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.CRIT_FRENZY ->
+                ship.copy(abilityCritEndMillis = end)
+            com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.TIME_DILATION ->
+                ship.copy(abilityFreezeEndMillis = end)
+            else -> ship
+        }
+        setShip(ship)
+    }
+
     /** Wave 17r — đặt thẳng hp (vd BOSS_RUSH hồi đầy giữa boss) qua controller. */
     fun setHp(value: Int) {
         if (ship.hp <= 0) return
@@ -800,6 +828,8 @@ class ShipController(
         // center so spec "hitbox bé hơn, né dễ hơn" delivers. Pivot 0.5/0.5 →
         // offset shifted by half the shrink amount.
         val miniMul = if (ship.miniEndMillis > System.currentTimeMillis()) 0.6f else 1f
+        // Task 05 — kỹ năng bất tử (BULWARK/PHASE_DASH/DECOY): coi như khiên → 0 dmg.
+        val abilityInvuln = ship.abilityInvulnEndMillis > System.currentTimeMillis()
         val shipRect by lazy {
             val w = ship.width * miniMul
             val h = ship.height * miniMul
@@ -842,7 +872,7 @@ class ShipController(
                     onSpaceObjectHitShip(hitX, hitY)
                 }
 
-                val hpImpact: Int = when (ship.shieldEnabled && spaceObject.impactPower > 0) {
+                val hpImpact: Int = when ((ship.shieldEnabled || abilityInvuln) && spaceObject.impactPower > 0) {
                     true -> 0
                     false -> spaceObject.impactPower
                 }
@@ -1013,7 +1043,7 @@ class ShipController(
                 Logger.d("Collision: ship ↔ enemy id=${enemy.enemyId.take(6)} (shield=${ship.shieldEnabled})")
                 enemies[enemyIndex].onObjectImpact(spaceShipCollidePower)
 
-                val hpImpact: Int = when (ship.shieldEnabled && enemy.impactPower > 0) {
+                val hpImpact: Int = when ((ship.shieldEnabled || abilityInvuln) && enemy.impactPower > 0) {
                     true -> 0
                     false -> enemy.impactPower.toInt()
                 }
@@ -1039,7 +1069,7 @@ class ShipController(
                     return@forEachIndexed
                 }
                 Logger.d("Collision: ship ↔ enemyLaser (shield=${ship.shieldEnabled}, impactPower=${enemyLaser.impactPower.toInt()})")
-                val hpImpact: Float = when (ship.shieldEnabled && enemyLaser.impactPower > 0) {
+                val hpImpact: Float = when ((ship.shieldEnabled || abilityInvuln) && enemyLaser.impactPower > 0) {
                     true -> 0f
                     false -> enemyLaser.impactPower
                 }

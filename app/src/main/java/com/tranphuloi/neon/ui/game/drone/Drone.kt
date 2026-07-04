@@ -9,6 +9,19 @@ import java.io.Serializable
  * gần nhất, CÓ HP (trúng đạn/địch thì vỡ). Domain thuần, immutable — controller
  * cập nhật bằng copy. Sống sót qua rememberSaveable nhờ Serializable.
  */
+/**
+ * Task 06 — biến thể drone. ATTACK bắn địch; SHIELD không bắn nhưng HP gấp đôi +
+ * chặn đạn địch (đệm); HEAL không bắn mà hồi máu tàu chậm.
+ */
+enum class DroneVariant {
+    ATTACK, SHIELD, HEAL;
+
+    companion object {
+        fun fromKey(key: String?): DroneVariant =
+            entries.firstOrNull { it.name == key } ?: ATTACK
+    }
+}
+
 @Keep
 @Immutable
 data class Drone(
@@ -20,6 +33,8 @@ data class Drone(
     val hp: Int = MAX_HP,
     val lastFireMillis: Long = 0L,
     val size: Float = 44f,
+    /** Task 06 — loại drone (quyết định bắn/chặn/hồi + màu render). */
+    val variant: DroneVariant = DroneVariant.ATTACK,
 ) : Serializable {
     val destroyed: Boolean get() = hp <= 0
 
@@ -33,6 +48,15 @@ data class Drone(
         const val FIRE_INTERVAL_MS = 700L
         /** Sát thương mỗi phát đạn drone (yếu hơn tàu). */
         const val SHOT_DAMAGE = 40f
+
+        // Task 06 — SHIELD trâu gấp đôi; HEAL hồi máu tàu chậm.
+        const val SHIELD_HP_MULT = 2
+        const val HEAL_INTERVAL_MS = 700L
+        const val HEAL_AMOUNT = 1
+
+        /** HP tối đa theo variant (SHIELD ×2). */
+        fun maxHpFor(variant: DroneVariant): Int =
+            if (variant == DroneVariant.SHIELD) MAX_HP * SHIELD_HP_MULT else MAX_HP
     }
 }
 

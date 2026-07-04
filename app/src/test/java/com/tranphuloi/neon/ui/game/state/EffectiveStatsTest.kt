@@ -246,6 +246,32 @@ class EffectiveStatsTest {
         assertEquals(1.10f, s.damageMul, EPS)
     }
 
+    // ─── Task 03 — ship LEVEL hp bonus (shipLevelHpMul) propagation ───
+
+    @Test
+    fun `default shipLevelHpMul is identity`() {
+        // RunContext mặc định shipLevelHpMul=1f → không đổi hp.
+        val s = EffectiveStats.compute(RunContext(shipShape = ShipShape.FIGHTER))
+        assertEquals(1f, s.hpMul, EPS)
+    }
+
+    @Test
+    fun `shipLevelHpMul multiplies hp (level 5 = plus 8 percent)`() {
+        // L5 bonus = 1.08 (ShipXpLevels.hpBonusMulForLevel(5)).
+        val s = EffectiveStats.compute(RunContext(shipShape = ShipShape.FIGHTER, shipLevelHpMul = 1.08f))
+        assertEquals(1.08f, s.hpMul, EPS)
+    }
+
+    @Test
+    fun `shipLevelHpMul stacks on shipShape hp then respects cap`() {
+        // TANK hp 1.5 × level 1.08 = 1.62 — trong cap.
+        val s = EffectiveStats.compute(RunContext(shipShape = ShipShape.TANK, shipLevelHpMul = 1.08f))
+        assertEquals(1.62f, s.hpMul, EPS)
+        // shipLevelHpMul vô lý (5×) vẫn bị clamp 3.0 → bonus level không phá cap.
+        val capped = EffectiveStats.compute(RunContext(shipShape = ShipShape.TANK, shipLevelHpMul = 5f))
+        assertEquals("bonus level KHÔNG được phá cap 3.0", 3.0f, capped.hpMul, EPS)
+    }
+
     @Test
     fun `ShipShape stat mul respects caps when combined với modifier and meta`() {
         // TANK hpMul 1.5 × EASY (1/0.7=1.43) × meta +30% (1.3) = 2.79 — within cap 3.0.

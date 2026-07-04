@@ -6,6 +6,8 @@ class DroneToDroneUIMapper {
         xOffset = drone.xOffset,
         yOffset = drone.yOffset,
         size = drone.size,
-        hpRatio = (drone.hp.toFloat() / Drone.MAX_HP.toFloat()).coerceIn(0f, 1f),
+        // Task 06 — chia theo maxHp của variant (SHIELD ×2) để vòng HP không >1.
+        hpRatio = (drone.hp.toFloat() / Drone.maxHpFor(drone.variant).toFloat()).coerceIn(0f, 1f),
+        variant = drone.variant,
     )
 }

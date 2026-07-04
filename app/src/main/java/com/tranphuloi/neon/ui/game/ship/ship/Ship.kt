@@ -59,6 +59,16 @@ data class Ship(
     // is unchanged, so the visible Ship lingers. Mutating this flag changes the Ship
     // reference itself → guaranteed recompose + Box removed via `if (!hidden)`.
     val shipSpriteHidden: Boolean = false,
+    // Task 05 — kỹ năng chủ động: mốc hết hiệu ứng (wall-clock millis, 0 = tắt).
+    // Timer RIÊNG của ability (khác field booster buff shieldEnabled/berserk…):
+    //  - invuln: bỏ qua sát thương địch (BULWARK/PHASE_DASH/DECOY)
+    //  - overdrive: nhân sát thương đạn (OVERDRIVE)
+    //  - crit: nhân sát thương mạnh hơn (CRIT_FRENZY)
+    //  - freeze: đóng băng địch di chuyển + bắn (TIME_DILATION)
+    val abilityInvulnEndMillis: Long = 0L,
+    val abilityOverdriveEndMillis: Long = 0L,
+    val abilityCritEndMillis: Long = 0L,
+    val abilityFreezeEndMillis: Long = 0L,
     // 14c Auto-revive token — set when REVIVE_TOKEN booster picked up. On hp→0,
     // controller consumes the token: hp restored to 300 + 1.5s i-frames + banner.
     // Max one stored at a time; further pickups while held are wasted (rare anyway).

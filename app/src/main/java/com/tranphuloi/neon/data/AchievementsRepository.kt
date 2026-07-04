@@ -87,6 +87,18 @@ enum class Achievement(
     LIFETIME_KILLS_1000("lifetime_kills_1000",
         "THIÊN ĐỊCH",
         "Diệt 1000 quái thường lifetime", AchievementTier.SILVER),
+
+    // --- Task 07 — gắn kết feature đợt 1 (drone / sét chain / ship XP) ---
+    DRONE_DUO("drone_duo", "PHI ĐỘI ĐÔI",
+        "Nuôi 2 drone cùng lúc trong 1 game", AchievementTier.BRONZE),
+    CHAIN_TRIPLE("chain_triple", "SÉT DÂY CHUYỀN",
+        "Một phát Sét Chain lan trúng 3 địch", AchievementTier.SILVER),
+    LIGHTNING_MASTER("lightning_master", "THIÊN LÔI",
+        "Tích lũy 100 kill bằng Sét Chain", AchievementTier.SILVER),
+    SHIP_MAX_LEVEL("ship_max_level", "TÀU TỐI THƯỢNG",
+        "Đưa 1 tàu lên cấp tối đa (Lv5)", AchievementTier.SILVER),
+    SHIP_COLLECTOR("ship_collector", "NHÀ SƯU TẦM",
+        "Sở hữu 10 tàu", AchievementTier.GOLD),
     ;
 }
 

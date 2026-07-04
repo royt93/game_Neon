@@ -162,6 +162,46 @@ class DroneControllerBehaviorTest {
         assertTrue("phải publish list rỗng", captured.last().isEmpty())
     }
 
+    // ── Task 06 — variants ──
+
+    @Test
+    fun `SHIELD drone spawns with double HP`() {
+        val (ctrl, _) = newController(maxDrones = 2)
+        ctrl.addDrone(shipX, shipY, DroneVariant.SHIELD)
+        assertEquals("SHIELD HP = MAX_HP×2", Drone.MAX_HP * 2, ctrl.drones[0].hp)
+        assertEquals(DroneVariant.SHIELD, ctrl.drones[0].variant)
+    }
+
+    @Test
+    fun `only ATTACK drones fire`() {
+        val enemies = listOf(fakeEnemy("e", 200f, 100f))
+        // SHIELD + HEAL không bắn.
+        val shield = Drone("s", 200f, 120f, 0f, variant = DroneVariant.SHIELD)
+        val heal = Drone("h", 210f, 120f, 0f, variant = DroneVariant.HEAL)
+        val (ctrl, _) = newController(initial = listOf(shield, heal), maxDrones = 3)
+        assertTrue("SHIELD/HEAL không tạo shot", ctrl.fireStep(10_000L, enemies).isEmpty())
+        // ATTACK thì bắn.
+        val atk = Drone("a", 200f, 120f, 0f, variant = DroneVariant.ATTACK)
+        val (ctrl2, _) = newController(initial = listOf(atk), maxDrones = 3)
+        assertEquals("ATTACK bắn 1 shot", 1, ctrl2.fireStep(10_000L, enemies).size)
+    }
+
+    @Test
+    fun `healStep heals only from HEAL drones on cooldown`() {
+        val heal = Drone("h", 200f, 120f, 0f, variant = DroneVariant.HEAL)
+        val atk = Drone("a", 210f, 120f, 0f, variant = DroneVariant.ATTACK)
+        val (ctrl, _) = newController(initial = listOf(heal, atk), maxDrones = 3)
+        assertEquals("1 HEAL drone → +HEAL_AMOUNT", Drone.HEAL_AMOUNT, ctrl.healStep(10_000L))
+        assertEquals("ngay sau đó còn cooldown → 0", 0, ctrl.healStep(10_100L))
+        assertEquals("qua cooldown → hồi tiếp", Drone.HEAL_AMOUNT, ctrl.healStep(11_000L))
+    }
+
+    @Test
+    fun `healStep returns zero with no HEAL drones`() {
+        val (ctrl, _) = newController(initial = listOf(Drone("a", 200f, 120f, 0f, variant = DroneVariant.ATTACK)), maxDrones = 2)
+        assertEquals(0, ctrl.healStep(10_000L))
+    }
+
     // ── Slice 6 — monitorDroneCollision ──
 
     @Test

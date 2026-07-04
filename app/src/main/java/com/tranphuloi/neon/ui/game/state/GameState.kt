@@ -233,8 +233,15 @@ fun rememberGameState(): GameState {
             metaUpgrades = kotlinx.coroutines.runBlocking { metaRepo.allRanks.first() },
             shipShape = resolvedShape,
             shipLevelHpMul = com.tranphuloi.neon.ui.game.ship.shape.ShipXpLevels.hpBonusMulForXp(shipXp),
+            shipLevel = com.tranphuloi.neon.ui.game.ship.shape.ShipXpLevels.levelForXp(shipXp),
         )
     }
+    // Task 05 — kỹ năng chủ động theo tàu (cooldown giảm theo level tàu).
+    // effect hiện thực ở slice sau; hiện wiring cooldown + nút HUD.
+    val shipAbility = remember { com.tranphuloi.neon.ui.game.ship.shape.ShipAbility.forShip(runContext.shipShape) }
+    val abilityCooldownMs = remember { shipAbility.effectiveCooldownMs(runContext.shipLevel) }
+    var lastAbilityFireMillis by remember { mutableLongStateOf(0L) }
+
     // Round 34 (42x) — activeBuffs is a reactive MutableState. Reads here so
     // effectiveStats recomputes when buff picked. baseStats computed once;
     // mergedStats = baseStats × buffMultipliers (recompute on buff change).
@@ -926,12 +933,17 @@ fun rememberGameState(): GameState {
                 val critRank = runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_CRIT] ?: 0
                 val critRoll = if (critRank > 0 &&
                     kotlin.random.Random.nextFloat() < critRank * 0.10f) 2f else 1f
+                // Task 05 — OVERDRIVE (×1.6) + CRIT_FRENZY (×2.2) burst kỹ năng chủ động.
+                val nowMs = System.currentTimeMillis()
+                val abilityDmgMul = (if (ship.abilityOverdriveEndMillis > nowMs) 1.6f else 1f) *
+                    (if (ship.abilityCritEndMillis > nowMs) 2.2f else 1f)
                 effectiveStats.damageMul *
                     shipController.berserkDamageMul() *
                     shipController.critSurgeMul() *
                     ship.activeBulletType.damageMultiplier *
                     healthyBonus *
-                    critRoll
+                    critRoll *
+                    abilityDmgMul
             },
         ).also {
             // Wave 14a — Gói Bắn Nhanh: rút ngắn nhịp bắn (~1.5×) cả run.
@@ -979,6 +991,10 @@ fun rememberGameState(): GameState {
     }
 
     // ── Task 01 — Drone companion (Slice 2: state + controller + orbit wiring) ──
+    // Task 06 — biến thể drone chọn ở loadout (đọc 1 lần/run).
+    val selectedDroneVariant = remember {
+        kotlinx.coroutines.runBlocking { settingsRepo.selectedDroneVariant.first() }
+    }
     var drones: List<Drone> by rememberSaveable { mutableStateOf(emptyList()) }
     val droneController = remember {
         DroneController(
@@ -993,7 +1009,11 @@ fun rememberGameState(): GameState {
     // Task 01 (Slice 4) — nhặt DRONE_BOOSTER → spawn drone (thay TEMP spawn của
     // Slice 2). ShipController gọi onDroneBoosterPickedUp → droneSpawnRef.run().
     droneSpawnRef.run = {
-        droneController.addDrone(ship.xOffset + ship.width / 2f, ship.yOffset + ship.height / 2f)
+        droneController.addDrone(ship.xOffset + ship.width / 2f, ship.yOffset + ship.height / 2f, selectedDroneVariant)
+        // Task 07 — thành tựu nuôi 2 drone cùng lúc.
+        if (AchievementUnlocks.droneDuo(droneController.count())) {
+            coroutineScope.launch { unlockAchievement(Achievement.DRONE_DUO) }
+        }
     }
 
     var mineralsEarnedTotal: Int by rememberSaveable { mutableIntStateOf(0) }
@@ -1181,6 +1201,10 @@ fun rememberGameState(): GameState {
             enemies = enemies,
             excludeIds = setOf(primaryTargetId),
         )
+        // Task 07 — thành tựu 1 phát sét lan trúng đủ 3 địch.
+        if (AchievementUnlocks.chainTriple(hops.size)) {
+            coroutineScope.launch { unlockAchievement(Achievement.CHAIN_TRIPLE) }
+        }
         var prevX = hitX
         var prevY = hitY
         hops.forEachIndexed { index, chainTarget ->
@@ -1800,7 +1824,9 @@ fun rememberGameState(): GameState {
                         // Wave 11a — TIME_FREEZE_BOOSTER gates enemy AI: firing,
                         // laser movement, and enemy movement all pause while
                         // ship.timeFreezeEndMillis is in the future.
-                        val isTimeFrozen = ship.timeFreezeEndMillis > System.currentTimeMillis()
+                        // Task 05 — TIME_DILATION ability cũng đóng băng địch (timer riêng).
+                        val isTimeFrozen = ship.timeFreezeEndMillis > System.currentTimeMillis() ||
+                            ship.abilityFreezeEndMillis > System.currentTimeMillis()
                         if (!isTimeFrozen) tinker(
                             id = enemyLaserController.fireEnemyLaserId,
                             repeatTime = enemyLaserController.fireEnemyLaserRepeatTime,
@@ -1885,6 +1911,12 @@ fun rememberGameState(): GameState {
                                                 )
                                             }
                                         )
+                                    }
+                                    // Task 06 — HEAL drone hồi máu tàu (self-gate cooldown).
+                                    val heal = droneController.healStep(System.currentTimeMillis())
+                                    if (heal > 0) {
+                                        val maxHp = (1000 * effectiveStats.hpMul).toInt().coerceAtLeast(1)
+                                        shipController.healCapped(heal, maxHp)
                                     }
                                 }
                             )
@@ -2349,6 +2381,53 @@ fun rememberGameState(): GameState {
         storyShownMillis = storyShownMillis,
         // Round 40 → 41 — secondary weapon. Progress 0..1; 1.0 → ready to fire.
         // Cooldown duration comes from the active weapon (Settings).
+        // Task 05 — kỹ năng chủ động theo tàu.
+        shipAbility = shipAbility,
+        abilityCooldownProgress = run {
+            if (lastAbilityFireMillis == 0L) 1f
+            else ((System.currentTimeMillis() - lastAbilityFireMillis).toFloat() / abilityCooldownMs).coerceIn(0f, 1f)
+        },
+        activateAbility = {
+            val now = System.currentTimeMillis()
+            val ready = lastAbilityFireMillis == 0L || (now - lastAbilityFireMillis) >= abilityCooldownMs
+            if (ready && gameStatus == GameStatus.RUNNING && !ship.shipSpriteHidden) {
+                lastAbilityFireMillis = now
+                val cx = ship.xOffset + ship.width / 2f
+                val cy = ship.yOffset + ship.height / 2f
+                when (shipAbility.effect) {
+                    // ── Instant (world-level) ──
+                    com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.NOVA -> {
+                        // Nổ lan toàn màn: sát thương lớn mọi địch + nổ + spark.
+                        enemies.forEach { e ->
+                            e.onObjectImpact(300f)
+                            explosionsController.addExplosion(
+                                e.xOffset + e.width / 2f - 30f, e.yOffset + e.height / 2f - 30f, 60f, 60f,
+                            )
+                        }
+                        impactSparkController.spawnBurst(cx, cy)
+                    }
+                    com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.REPAIR -> {
+                        val maxHp = (1000 * effectiveStats.hpMul).toInt().coerceAtLeast(1)
+                        shipController.healCapped((maxHp * 0.35f).toInt(), maxHp)
+                    }
+                    com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.MAGNET_PULSE ->
+                        mineralsController.flushAllToShip()
+                    com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.LASER_STORM ->
+                        repeat(6) { lasersController.fireLasers(ship) }
+                    // ── Duration (timer trên Ship, áp lazy ở damage/freeze/collision) ──
+                    com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.OVERDRIVE,
+                    com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.CRIT_FRENZY,
+                    com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.BULWARK,
+                    com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.PHASE_DASH,
+                    com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.DECOY,
+                    com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.TIME_DILATION -> {
+                        shipController.activateAbilityTimer(shipAbility.effect, now, shipAbility.durationMs)
+                        impactSparkController.spawnBurst(cx, cy)
+                    }
+                }
+                Logger.d("ShipAbility activated: ${shipAbility.name} effect=${shipAbility.effect} cd=${abilityCooldownMs}ms")
+            }
+        },
         activeSecondaryWeapon = activeSecondaryWeapon,
         secondaryCooldownProgress = run {
             if (lastSecondaryFireMillis == 0L) 1f
@@ -2533,6 +2612,12 @@ data class GameState(
     /** Round 51 (26x) — called by the capture LaunchedEffect after the share
      *  intent fires (or fails) to clear [photoModeActive] and restore HUD. */
     val finishPhotoCapture: () -> Unit,
+    /** Task 05 — kỹ năng chủ động của tàu đang dùng (map 1-1 ShipShape). */
+    val shipAbility: com.tranphuloi.neon.ui.game.ship.shape.ShipAbility,
+    /** Task 05 — cooldown kỹ năng: 0=vừa dùng, 1=sẵn sàng (cho vòng nút HUD). */
+    val abilityCooldownProgress: Float,
+    /** Task 05 — kích hoạt kỹ năng; no-op nếu đang cooldown / game không RUNNING. */
+    val activateAbility: () -> Unit,
     /** Round 40-41 (29x) — active secondary weapon (MISSILE / MINE / BURST). */
     val activeSecondaryWeapon: com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon,
     /** Round 40 (29x) — secondary weapon cooldown. 0=just fired, 1=ready. */

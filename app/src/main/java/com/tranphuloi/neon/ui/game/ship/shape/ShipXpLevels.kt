@@ -53,4 +53,14 @@ object ShipXpLevels {
     /** XP kiếm được của 1 run: địch thường + [XP_PER_BOSS]×boss. */
     fun xpForRun(enemiesKilled: Int, bossesDefeated: Int): Int =
         enemiesKilled.coerceAtLeast(0) + XP_PER_BOSS * bossesDefeated.coerceAtLeast(0)
+
+    // Task 05 — cooldown kỹ năng chủ động giảm theo level tàu.
+    const val CD_REDUCTION_PER_LEVEL: Float = 0.10f
+
+    /** Hệ số cooldown theo level: 1.0 − 0.10×(level-1), sàn 0.6 (L5). */
+    fun cooldownMulForLevel(level: Int): Float =
+        (1f - CD_REDUCTION_PER_LEVEL * (level.coerceIn(1, MAX_LEVEL) - 1)).coerceAtLeast(0.6f)
+
+    /** Hệ số cooldown trực tiếp từ tổng XP. */
+    fun cooldownMulForXp(xp: Int): Float = cooldownMulForLevel(levelForXp(xp))
 }
