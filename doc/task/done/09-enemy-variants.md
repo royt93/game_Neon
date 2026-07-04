@@ -44,6 +44,11 @@ Framework enemy modular: shape + movement + attack **decoupled qua `drawableId`*
 ## Verify
 `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest` mỗi slice; eyeball device (spawn ở chapter tương ứng hoặc inject tạm) cuối task.
 
+## Audit → 9.5 (2026-07-04)
+- **(c) 5 địch vào Bách Khoa** — thêm 5 `EnemyVariantSpec` (Phân thân/Đẩy lùi/Nhiễu sóng/Pháo thủ/Săn mồi) vào `enemyVariantSpecs()` (tên VN + mô tả đòn RIÊNG) + 5 draw fn `drawEnemy*Preview` (mirror shape EnemyCanvas, chữ ký `canvasSize`). Nay xem được ở tab Địch.
+- i18n: giữ hardcode VN theo đúng convention `enemyVariantSpecs` (toàn bộ 20 địch + bullet + ship đều hardcode VN — content-naming layer VN-only toàn codebase; i18n hoá là refactor riêng ngoài scope).
+- **Eyeball device (SM-S928B, tab Địch):** cả 5 địch hiện đúng shape + tên + mô tả — Phân thân (2 nửa vàng), Đẩy lùi (đĩa+6 gai magenta), Nhiễu sóng (chảo radar cyan+đèn đỏ), Pháo thủ (tên lửa cam), Săn mồi (trăng khuyết xanh+2 mắt teal). → 5/5 shape đã verify thị giác.
+
 ## Trạng thái
 ✅ **DONE (2026-07-04)** — làm gộp 1 pass (không chia slice vì 5 địch cùng cấu trúc).
 - 5 drawable placeholder + `EnemyAttackKind` (enum + `forDrawable`) + field `attackKind` trên `RegularEnemyType`.

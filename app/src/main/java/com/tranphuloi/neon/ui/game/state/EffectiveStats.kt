@@ -120,16 +120,21 @@ data class EffectiveStats(
             val shipSpeedMul = ctx.shipShape.speedMul
             val shipDamageMul = ctx.shipShape.damageMul
 
-            // Task 10 — buff vĩnh viễn PRESTIGE (+4%/cấp) nhân vào 4 stat chính.
+            // Task 10 (audit→9.5) — buff vĩnh viễn PRESTIGE (+4%/cấp).
+            // Áp NGOÀI cap gốc: base stat coerce như cũ (giữ cân bằng gốc) rồi nhân
+            // pMul lên trên với cap cuối RỘNG → reward KHÔNG bão hoà ở late-game
+            // (trước pMul nằm TRONG coerceIn nên player maxed chạm trần → prestige vô
+            // nghĩa). pMul=1 (chưa prestige) ⇒ giá trị hệt cũ (cap cuối không đụng).
+            // Gồm cả scoreMul để "+% mọi chỉ số" đúng nghĩa.
             val pMul = ctx.prestigeMul
             return EffectiveStats(
                 // Task 03 — nhân thêm hp bonus theo LEVEL tàu (shipLevelHpMul).
-                hpMul = (diffHp * mod.hpMul * metaHp * shipHpMul * ctx.shipLevelHpMul * pMul).coerceIn(0.3f, 3.0f),
-                damageMul = (mod.damageMul * metaDmg * shipDamageMul * pMul).coerceIn(0.5f, 4.0f),
-                speedMul = (mod.speedMul * metaSpd * shipSpeedMul * pMul).coerceIn(0.5f, 3.5f),
-                magnetMul = (mod.magnetMul * metaMag * pMul).coerceIn(0.5f, 3.0f),
-                // Round 74 (R73f) — apply metaLife multiplier vào scoreMul.
-                scoreMul = (mod.scoreMul * metaLife).coerceIn(0.5f, 4.0f),
+                hpMul = ((diffHp * mod.hpMul * metaHp * shipHpMul * ctx.shipLevelHpMul).coerceIn(0.3f, 3.0f) * pMul).coerceAtMost(6.0f),
+                damageMul = ((mod.damageMul * metaDmg * shipDamageMul).coerceIn(0.5f, 4.0f) * pMul).coerceAtMost(8.0f),
+                speedMul = ((mod.speedMul * metaSpd * shipSpeedMul).coerceIn(0.5f, 3.5f) * pMul).coerceAtMost(6.0f),
+                magnetMul = ((mod.magnetMul * metaMag).coerceIn(0.5f, 3.0f) * pMul).coerceAtMost(6.0f),
+                // Round 74 (R73f) — metaLife → scoreMul; +Task 10 prestige (ngoài cap gốc).
+                scoreMul = ((mod.scoreMul * metaLife).coerceIn(0.5f, 4.0f) * pMul).coerceAtMost(8.0f),
                 noShieldDrops = mod.noShieldDrops,
                 bossesOnly = mod.bossesOnly,
                 noBoosters = mod.noBoosters,

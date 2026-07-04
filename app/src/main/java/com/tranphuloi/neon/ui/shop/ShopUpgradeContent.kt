@@ -313,7 +313,7 @@ private fun ProgressBarSegments(currentRank: Int, maxRank: Int, color: Color) {
  * onRequestPurchase). Nhả xám khi chưa đủ rank/khoáng.
  */
 @Composable
-private fun PrestigeCard(
+internal fun PrestigeCard(   // internal: widget-test render trực tiếp (PrestigeCardWidgetTest)
     level: Int,
     cost: Int,
     skillRanks: Int,

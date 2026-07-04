@@ -41,6 +41,12 @@
 - **Slice 2:** EffectiveStats/RunContext wire + test; verify buff áp dụng.
 - **Slice 3:** UI DialogMetaUpgrade + confirm sheet + i18n + eyeball device.
 
+## Audit → 9.5 (2026-07-04)
+- **(a) Prestige buff thoát cap** — `EffectiveStats.compute`: base stat coerce như cũ RỒI nhân `pMul` NGOÀI, cap cuối rộng (hp/spd/mag 6.0, dmg/score 8.0). Trước pMul nằm trong coerce → player maxed chạm trần, prestige vô nghĩa; nay reward không bão hoà. `pMul=1` ⇒ giá trị hệt cũ.
+- **(b) Gồm scoreMul** — prestige nay nhân cả score → card "+4% mọi chỉ số" đúng nghĩa.
+- **Test bổ sung:** +4 unit (`EffectiveStatsTest`: escape-cap hp, gồm score, backward-compat pMul=1, cap cuối 6.0 — JVM PASS) · +4 widget (`PrestigeCardWidgetTest`: render theo state + click enabled/disabled; `PrestigeCard`→`internal`) · +1 integration (`PersistenceRoundtripTest.prestige_wipes_skilltree_keeps_shop...` — DataStore thật). **Verify device: `connectedDevDebugAndroidTest` 25/25 PASS ×2 (SM-S928B)** — gồm widget + integration prestige mới.
+- Nit sửa: androidTest method name dùng underscore (D8 không cho space trong method name khi dex; JVM tier mới được backtick-space).
+
 ## Trạng thái
 ✅ **DONE (2026-07-04)**.
 - **Slice 1 (repo):** `prestige_level` key + `SHOP_NODE_INFIX` (loại `node_shop_*` khỏi reset) + pure funcs `prestigeCost`(1500×2^lvl)/`prestigeMultiplier`(+4%/lvl)/`canPrestige`/`PRESTIGE_MIN_RANKS`=8 + flows `prestigeLevel`/`totalSkillRanks` + `doPrestige(cost)` atomic (xoá skill-tree, GIỮ shop/stockpile/XP, +1 level). Test: `PrestigeLogicTest` (5) + `MetaProgressionPrestigeIntegrationTest` (4 — xoá skill giữ shop, thiếu rank/tiền no-op).

@@ -39,7 +39,20 @@ Build đủ điều kiện: AGP 9.1.1 + Gradle 9.5.0 + config-cache ON. Chưa c�
 - **Slice 3:** verify profile trong APK + đo trước/sau + doc.
 
 ## Trạng thái
-✅ **DONE — curated profile shipped (2026-07-04).** Generated (macrobenchmark) DEFER vì toolchain.
+✅ **DONE — GENERATED profile shipped (2026-07-04, cập nhật).**
+
+### ⭐ Cập nhật: generated ĐÃ CHẠY với `androidx.baselineprofile 1.5.0-alpha07`
+- Probe lại maven-metadata: `<latest> = 1.5.0-alpha07` (1.4.1 là `<release>` cũ thời AGP 8). **1.5.0-alpha07 apply THÀNH CÔNG trên AGP 9.1.1** (hết lỗi `TestExtension`).
+- Dựng module `:baselineprofile` (`com.android.test` + `androidx.baselineprofile`, KHÔNG cần `kotlin.android` — AGP 9 tích hợp sẵn Kotlin) + `BaselineProfileGenerator` (`BaselineProfileRule.collect`, `includeInStartupProfile=true`): cold-start → menu (relaunch-retry né clip) → vào Game → chạy loop 6s.
+- App: apply plugin `androidx.baselineprofile` + `baselineProfile project(":baselineprofile")`.
+- **Generate trên device SM-S928B (S24 Ultra):** `./gradlew generateProductionReleaseBaselineProfile` (macrobenchmark 1 test PASS) → `app/src/productionRelease/generated/baselineProfiles/baseline-prof.txt` (**25,034 rule**, 3,553 method-level cho neon với cờ startup SPL) + `startup-prof.txt`.
+- **Verify:** release APK nhúng `assets/dexopt/baseline.prof` **12,627 bytes** (giàu hơn curated 7848). Compile 2 flavor + full JVM test PASS.
+- Curated `src/main/baseline-prof.txt` **đã gỡ** (generated thay). `baselineprofile/build/` + `.kotlin/` thêm vào .gitignore.
+
+### Regenerate về sau
+`./gradlew generateProductionReleaseBaselineProfile` trên device ổn định (rebuild sau khi đổi code startup/game path). Bump version `androidx.baselineprofile` khi có bản stable ≥ 1.5.0.
+
+### (lịch sử) curated stopgap trước khi tìm ra 1.5.0-alpha07 — nay bỏ
 
 ### Đã probe & chặn: macrobenchmark-generated (approach chuẩn ban đầu)
 - Plugin `androidx.baselineprofile` **1.4.1 là bản mới nhất** trên Google Maven (1.4.2+ = 404).

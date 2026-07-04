@@ -77,6 +77,28 @@ class PersistenceRoundtripTest {
     }
 
     @Test
+    fun prestige_wipes_skilltree_keeps_shop_and_deducts_minerals() = runBlocking {
+        // Task 10 (audit→9.5) — Prestige roundtrip trên DataStore THẬT của thiết bị.
+        val meta = app.metaProgression
+        meta.addMinerals(100_000)                                  // đủ tiêu
+        meta.spendOnNode("shop_skin_test_x", 1, 1)                // node_shop_* — shop, PHẢI giữ
+        repeat(5) { meta.spendOnNode("base_hp", 1, 5) }           // 5 skill rank
+        repeat(3) { meta.spendOnNode("base_damage", 1, 5) }       // +3 = 8 skill rank
+        assertTrue("đủ ≥8 skill rank", meta.totalSkillRanks.first() >= 8)
+
+        val lvlBefore = meta.prestigeLevel.first()
+        val balBefore = meta.lifetimeMinerals.first()
+        val ok = meta.doPrestige(cost = 1500, minRanks = 8)
+
+        assertTrue("đủ điều kiện → prestige thành công", ok)
+        assertEquals("skill-tree bị xoá sạch", 0, meta.totalSkillRanks.first())
+        assertEquals("prestige level +1", lvlBefore + 1, meta.prestigeLevel.first())
+        assertEquals("khoáng trừ đúng 1500", balBefore - 1500, meta.lifetimeMinerals.first())
+        assertEquals("shop unlock KHÔNG bị prestige xoá",
+            1, meta.allRanks.first()["shop_skin_test_x"])
+    }
+
+    @Test
     fun run_checkpoint_saves_and_clears() = runBlocking {
         val mode = "campaign"
         app.runPersistence.saveCheckpoint(mode, 7)

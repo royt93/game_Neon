@@ -285,4 +285,43 @@ class EffectiveStatsTest {
         assertEquals(2.7857f, s.hpMul, 0.01f)
         assertTrue("Combined hp must be within cap [0.3, 3.0]", s.hpMul in 0.3f..3.0f)
     }
+
+    // ── Task 10 (audit→9.5) — PRESTIGE buff áp NGOÀI cap gốc ──
+
+    @Test
+    fun `prestige buff vượt cap gốc — không bão hoà (hp)`() {
+        // metaHp rank 20 → base hp chạm cap 3.0; prestige ×1.5 (cấp ~12.5, làm tròn ví dụ).
+        val ctx = RunContext(
+            metaUpgrades = mapOf(EffectiveStats.META_KEY_HP to 20),
+            prestigeMul = 1.5f,
+        )
+        val s = EffectiveStats.compute(ctx)
+        assertTrue("prestige phải đẩy hp VƯỢT cap gốc 3.0 (chống bão hoà)", s.hpMul > 3.0f)
+        assertEquals("base(capped 3.0) × prestige 1.5 = 4.5", 4.5f, s.hpMul, EPS)
+    }
+
+    @Test
+    fun `prestige gồm cả scoreMul — mọi chỉ số đúng nghĩa`() {
+        val s = EffectiveStats.compute(RunContext(prestigeMul = 1.5f))
+        assertEquals("score cũng nhận prestige ×1.5", 1.5f, s.scoreMul, EPS)
+        assertEquals("hp cũng ×1.5", 1.5f, s.hpMul, EPS)
+        assertEquals("damage cũng ×1.5", 1.5f, s.damageMul, EPS)
+    }
+
+    @Test
+    fun `chưa prestige (pMul=1) giữ NGUYÊN giá trị + cap cũ`() {
+        // Backward-compat: base chạm cap 3.0, prestige 1.0 ⇒ vẫn 3.0 (cap cuối không đụng).
+        val ctx = RunContext(metaUpgrades = mapOf(EffectiveStats.META_KEY_HP to 20), prestigeMul = 1f)
+        assertEquals("không prestige ⇒ hp vẫn bị cap 3.0", 3.0f, EffectiveStats.compute(ctx).hpMul, EPS)
+        // Identity ctx vẫn 1.0 mọi mặt.
+        val id = EffectiveStats.compute(RunContext())
+        assertEquals(1f, id.hpMul, EPS); assertEquals(1f, id.scoreMul, EPS)
+    }
+
+    @Test
+    fun `prestige rất cao vẫn bị cap cuối rộng (hp 6_0)`() {
+        val ctx = RunContext(metaUpgrades = mapOf(EffectiveStats.META_KEY_HP to 20), prestigeMul = 5f)
+        // base 3.0 × 5 = 15 → coerceAtMost 6.0.
+        assertEquals("cap cuối rộng 6.0 chống giá trị vô lý", 6.0f, EffectiveStats.compute(ctx).hpMul, EPS)
+    }
 }

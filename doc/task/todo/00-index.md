@@ -34,7 +34,7 @@ Từ backlog còn treo thật sau khi đóng đợt 1+2:
 |---|---|---|---|---|
 | 09 | [Enemy variants (5 địch)](../done/09-enemy-variants.md) | Content | Vừa (attack riêng/địch) | ✅ Done (eyeball 2/5 device) |
 | 10 | [Mineral sink: Prestige Reset](../done/10-mineral-sink-prestige.md) | Economy/progression | Vừa (persistence + cân bằng) | ✅ Done (eyeball device) |
-| 11 | [Baseline Profile](../done/11-baseline-profile.md) | Infra/perf | Cao (module mới + config-cache + device) | ✅ Done — curated shipped (generated DEFER: plugin chưa hỗ trợ AGP 9.1.1) |
+| 11 | [Baseline Profile](../done/11-baseline-profile.md) | Infra/perf | Cao (module mới + config-cache + device) | ✅ Done — **GENERATED** (baselineprofile 1.5.0-alpha07 hỗ trợ AGP 9.1.1; 25k rule, generate trên S24 Ultra) |
 
 **Thứ tự:** 09 (an toàn, data-driven) → 10 (progression) → 11 (infra nặng, cần device, có fallback/defer nếu build khó).
 

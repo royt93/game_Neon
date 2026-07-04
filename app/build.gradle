@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.plugin.compose'
+    id 'androidx.baselineprofile'
 }
 
 android {
@@ -117,6 +118,7 @@ dependencies {
     // đầu để giảm jank cold-start. AGP tự merge profile vào APK; lib này install nó
     // trên API 24-30 (API 31+ nền tảng tự dùng). Không phụ thuộc AGP nên an toàn.
     implementation "androidx.profileinstaller:profileinstaller:1.4.1"
+    baselineProfile project(":baselineprofile")
     implementation "com.google.android.material:material:1.13.0"
     implementation "androidx.activity:activity-compose:1.13.0"
     implementation "androidx.lifecycle:lifecycle-runtime-compose:2.10.0"

@@ -1162,6 +1162,32 @@ private fun enemyVariantSpecs(): List<EnemyVariantSpec> {
             description = "Warning triangle + ! mark + trail. Tăng tốc khi gần player, explode on contact for high damage. Risk-reward kill quickly.",
             color = Color(0xFFFFE040),
             draw = { sc, c -> sc.drawEnemyKamikazePreview(c, Color(0xFFFFE040), Color(0xFFFF6020)) }),
+        // Task 09 (đợt 3) — 5 địch chủ đề mới. Shape khớp in-game (EnemyCanvas).
+        EnemyVariantSpec(
+            title = "Phân thân", subtitle = "Trạm Thù Địch (ELITE) · HP ~225",
+            description = "2 nửa tam giác tách khe. Đòn RIÊNG: bắn 2 tia toả ra 2 bên (\"kéo mở\").",
+            color = Color(0xFFE8C020),
+            draw = { sc, c -> sc.drawEnemySplitterPreview(c, Color(0xFFE8C020), Color(0xFFFFF080)) }),
+        EnemyVariantSpec(
+            title = "Đẩy lùi", subtitle = "Trạm Thù Địch (HEAVY) · HP ~288 · chậm & trâu",
+            description = "Đĩa + 6 gai toả. Đòn RIÊNG: nón 3 tia (giữa + 2 bên) dồn ép player.",
+            color = Color(0xFFD040FF),
+            draw = { sc, c -> sc.drawEnemyRepulsorPreview(c, Color(0xFFD040FF), Color(0xFFF0A0FF)) }),
+        EnemyVariantSpec(
+            title = "Nhiễu sóng", subtitle = "Hành Tinh Băng (SCOUT) · HP ~126 · nhanh mỏng",
+            description = "Chảo radar + cột + đèn đỏ. Đòn RIÊNG: 2 tia bay CONG thất thường (khó đoán).",
+            color = Color(0xFF40E0FF),
+            draw = { sc, c -> sc.drawEnemyJammerPreview(c, Color(0xFF40E0FF), Color(0xFFFF4040)) }),
+        EnemyVariantSpec(
+            title = "Pháo thủ", subtitle = "Lõi Thiên Hà (BERSERKER) · HP ~160 · đòn nặng",
+            description = "Tên lửa mũi nhọn + 2 cánh. Đòn RIÊNG: loạt 3 tia thẳng xuống (\"volley\").",
+            color = Color(0xFFFF7020),
+            draw = { sc, c -> sc.drawEnemyMissileerPreview(c, Color(0xFFFF7020), Color.White) }),
+        EnemyVariantSpec(
+            title = "Săn mồi", subtitle = "Hành Tinh Băng (FIGHTER) · HP ~180 · chiến thuật",
+            description = "Trăng khuyết sleek + 2 mắt teal. Đòn RIÊNG: 1 tia HOMING bám đuổi tàu.",
+            color = Color(0xFF2E9E5B),
+            draw = { sc, c -> sc.drawEnemyPredatorPreview(c, Color(0xFF2E9E5B), Color(0xFF40FFD0)) }),
     )
 }
 
@@ -3522,4 +3548,94 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBossCorruptionP
     for (s in listOf(-1f, 1f)) {
         drawCircle(accent, r * 0.10f, androidx.compose.ui.geometry.Offset(cx + s * r * 0.26f, cy - r * 0.38f))
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Task 09 (đợt 3) — preview Bách Khoa cho 5 địch chủ đề (khớp shape EnemyCanvas
+// in-game, thích nghi chữ ký canvasSize).
+// ─────────────────────────────────────────────────────────────────────────
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemySplitterPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height; val cx = w / 2; val cy = h / 2
+    val topY = cy - h * 0.30f; val botY = cy + h * 0.30f
+    val left = PathPool.acquire().apply {
+        moveTo(cx - w * 0.06f, topY); lineTo(cx - w * 0.06f, botY); lineTo(cx - w * 0.38f, cy); close()
+    }
+    drawPath(left, body); PathPool.release(left)
+    val right = PathPool.acquire().apply {
+        moveTo(cx + w * 0.06f, topY); lineTo(cx + w * 0.06f, botY); lineTo(cx + w * 0.38f, cy); close()
+    }
+    drawPath(right, body); PathPool.release(right)
+    drawLine(accent, androidx.compose.ui.geometry.Offset(cx, topY),
+        androidx.compose.ui.geometry.Offset(cx, botY), strokeWidth = w * 0.05f)
+    drawCircle(accent, w * 0.07f, androidx.compose.ui.geometry.Offset(cx, cy))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyRepulsorPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height; val cx = w / 2; val cy = h / 2
+    val r = minOf(w, h) * 0.24f
+    for (i in 0 until 6) {
+        val a = i * 60.0 * Math.PI / 180.0
+        drawLine(accent, androidx.compose.ui.geometry.Offset(cx, cy),
+            androidx.compose.ui.geometry.Offset(
+                cx + (r * 1.8f * kotlin.math.cos(a)).toFloat(),
+                cy + (r * 1.8f * kotlin.math.sin(a)).toFloat()),
+            strokeWidth = w * 0.06f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+    drawCircle(body, r, androidx.compose.ui.geometry.Offset(cx, cy))
+    drawCircle(accent, r * 0.42f, androidx.compose.ui.geometry.Offset(cx, cy))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyJammerPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height; val cx = w / 2; val cy = h / 2
+    drawArc(body, 200f, 140f, true,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.26f, cy - h * 0.26f),
+        size = androidx.compose.ui.geometry.Size(w * 0.52f, h * 0.46f))
+    drawLine(body, androidx.compose.ui.geometry.Offset(cx, cy),
+        androidx.compose.ui.geometry.Offset(cx, cy - h * 0.40f), strokeWidth = w * 0.06f)
+    drawCircle(accent, w * 0.07f, androidx.compose.ui.geometry.Offset(cx, cy - h * 0.40f))
+    drawLine(body, androidx.compose.ui.geometry.Offset(cx - w * 0.28f, cy + h * 0.22f),
+        androidx.compose.ui.geometry.Offset(cx + w * 0.28f, cy + h * 0.22f),
+        strokeWidth = w * 0.05f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyMissileerPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height; val cx = w / 2; val cy = h / 2
+    drawRect(body, topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.11f, cy - h * 0.22f),
+        size = androidx.compose.ui.geometry.Size(w * 0.22f, h * 0.48f))
+    val nose = PathPool.acquire().apply {
+        moveTo(cx - w * 0.11f, cy + h * 0.26f); lineTo(cx + w * 0.11f, cy + h * 0.26f); lineTo(cx, cy + h * 0.46f); close()
+    }
+    drawPath(nose, accent); PathPool.release(nose)
+    val finL = PathPool.acquire().apply {
+        moveTo(cx - w * 0.11f, cy - h * 0.22f); lineTo(cx - w * 0.28f, cy - h * 0.36f); lineTo(cx - w * 0.11f, cy); close()
+    }
+    drawPath(finL, body); PathPool.release(finL)
+    val finR = PathPool.acquire().apply {
+        moveTo(cx + w * 0.11f, cy - h * 0.22f); lineTo(cx + w * 0.28f, cy - h * 0.36f); lineTo(cx + w * 0.11f, cy); close()
+    }
+    drawPath(finR, body); PathPool.release(finR)
+    drawCircle(accent, w * 0.05f, androidx.compose.ui.geometry.Offset(cx, cy - h * 0.24f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyPredatorPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height; val cx = w / 2; val cy = h / 2
+    val r = minOf(w, h) * 0.30f
+    drawArc(body, startAngle = 35f, sweepAngle = 290f, useCenter = false,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - r, cy - r),
+        size = androidx.compose.ui.geometry.Size(r * 2, r * 2),
+        style = androidx.compose.ui.graphics.drawscope.Stroke(
+            width = w * 0.14f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+    drawCircle(accent, w * 0.05f, androidx.compose.ui.geometry.Offset(cx - w * 0.11f, cy - h * 0.04f))
+    drawCircle(accent, w * 0.05f, androidx.compose.ui.geometry.Offset(cx + w * 0.11f, cy - h * 0.04f))
 }

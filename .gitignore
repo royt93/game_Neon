@@ -11,3 +11,5 @@ documentation
 .cxx
 local.properties
 .claude/
+baselineprofile/build/
+.kotlin/
