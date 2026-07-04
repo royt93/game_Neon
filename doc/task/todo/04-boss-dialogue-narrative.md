@@ -8,6 +8,12 @@
 - **Epilogue:** theo độ khó (EASY/NORMAL/HARD) + gắn ngữ cảnh chương cuối (Lõi Thiên Hà), mở rộng VictoryPanel.
 - Phase chỉ áp dụng FinalBoss (currentPhase 1→2→3 theo HP); mid/level boss = phase 0.
 
+## Hardening (audit 2026-07-04, nâng 9.0→9.5)
+- Gate hot-path: `finalBossActive` (set ở onStageAdvance) → phase-check chỉ quét khi ở stage boss, không mỗi tick suốt run.
+- Tách `StoryRegistry.phaseLineOnAdvance(prev,cur)` (pure) → quyết định fire phase giờ unit-tested (7 case), thay logic inline chưa test.
+- Thêm test chain bounded dù maxSteps lớn (an toàn buff-stack; flood cũng bị `TrailLine.MAX_LINES=32` chặn).
+- JVM 852→**854**, verify device lại 0 crash sau refactor.
+
 ## Rã slice
 - [x] **Slice 1 (2026-07-04)** — strings song ngữ (17 key × 3 file: default/vi/en, parity OK) + `StoryRegistry.chapterBeatRes/finalBossPhaseRes/bossDefeatRes` (@StringRes) + `StoryRegistryTest` (5 test: beat 1..5, phase 2/3, mọi boss có defeat, map đúng).
 - [x] **Slice 2 (2026-07-04)** — trigger phase + defeat trong GameState. Boss defeat: onEnemyKilled(isBoss) → `bossDefeatRes(enemy.bossKind)` resolve qua `context` → StoryLine (speaker = boss displayName) qua `setStoryLineRef` (@Volatile deferred, vì storyLine khai báo sau onEnemyKilled), delay 500ms. FinalBoss phase: check inline trong loop (`enemies.firstOrNull{it is FinalBoss}`, gate `finalBossPhaseSeen`) → `finalBossPhaseRes` khi currentPhase tăng. Non-blocking, không coroutine loop mới.

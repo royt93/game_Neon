@@ -87,6 +87,16 @@ object StoryRegistry {
     }
 
     /**
+     * Logic THUẦN (testable) quyết định thoại phase khi phase TĂNG từ [prevPhase]
+     * → [currentPhase]. Trả @StringRes để fire, hoặc null nếu không tăng / không có
+     * thoại cho phase đó (kể cả nhảy cấp, vd 1→3 lấy thoại phase 3). Tách khỏi
+     * GameState để unit-test được quyết định "fire 1 lần mỗi lần lên phase".
+     */
+    @androidx.annotation.StringRes
+    fun phaseLineOnAdvance(prevPhase: Int, currentPhase: Int): Int? =
+        if (currentPhase > prevPhase) finalBossPhaseRes(currentPhase) else null
+
+    /**
      * Thoại khi HẠ boss. FinalBoss (SPIDER) + vài mid-boss nổi bật có câu riêng;
      * còn lại dùng câu generic (Slice 0: FinalBoss + mid-boss + fallback).
      * Không bao giờ trả 0 → luôn có thoại defeat.

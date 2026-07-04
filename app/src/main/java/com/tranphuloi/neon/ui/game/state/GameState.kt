@@ -1381,6 +1381,9 @@ fun rememberGameState(): GameState {
     // Task 04 — theo dõi phase FinalBoss đã narrate (1..3) để chỉ fire thoại 1 lần
     // mỗi lần lên phase (currentPhase tăng theo HP giảm).
     var finalBossPhaseSeen by remember { mutableIntStateOf(1) }
+    // Task 04 — gate hot-path: chỉ quét FinalBoss trong loop KHI đang ở stage boss
+    // (set bởi onStageAdvance). Tránh firstOrNull mỗi tick suốt cả run.
+    var finalBossActive by remember { mutableStateOf(false) }
     // Task 04 — nối deferred ref (onEnemyKilled dùng để set thoại defeat).
     setStoryLineRef.run = { line ->
         storyLine = line
@@ -1419,6 +1422,8 @@ fun rememberGameState(): GameState {
             onStageAdvance = { idx, newStage ->
                 magnetRadiusState.floatValue = (80f + (idx / 5) * 10f).coerceAtMost(200f)
                 lastStageAdvanceMillis = System.currentTimeMillis()
+                // Task 04 — cờ gate cho FinalBoss phase-check (chỉ true ở stage boss).
+                finalBossActive = newStage is com.tranphuloi.neon.ui.game.stage.StageBoss
                 // Round 34 (44x) — refresh currentHazard state from new stage.
                 // ShipController reads this reactively for ice slip mechanic.
                 currentHazard = if (newStage is com.tranphuloi.neon.ui.game.stage.StageGame) {
@@ -1915,24 +1920,28 @@ fun rememberGameState(): GameState {
                             )
                         }
                         // Task 04 — FinalBoss đổi phase (1→2→3 theo HP) → thoại 1 lần
-                        // mỗi phase. Chỉ FinalBoss có currentPhase>1 nên check rẻ.
-                        val finalBossNow = enemies.firstOrNull {
-                            it is com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBoss
-                        }
-                        if (finalBossNow != null && finalBossNow.currentPhase > finalBossPhaseSeen) {
-                            finalBossPhaseSeen = finalBossNow.currentPhase
-                            com.tranphuloi.neon.ui.game.story.StoryRegistry
-                                .finalBossPhaseRes(finalBossNow.currentPhase)?.let { resId ->
+                        // mỗi phase. Gate finalBossActive (chỉ chạy ở stage boss, không
+                        // phải mỗi tick suốt run). Quyết định thoại = hàm pure (tested).
+                        if (finalBossActive) {
+                            val finalBossNow = enemies.firstOrNull {
+                                it is com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBoss
+                            }
+                            if (finalBossNow != null) {
+                                val phaseRes = com.tranphuloi.neon.ui.game.story.StoryRegistry
+                                    .phaseLineOnAdvance(finalBossPhaseSeen, finalBossNow.currentPhase)
+                                if (phaseRes != null) {
+                                    finalBossPhaseSeen = finalBossNow.currentPhase
                                     val spk = finalBossNow.bossKind?.displayName ?: "BÁ VƯƠNG THIÊN HÀ"
                                     coroutineScope.launch {
                                         storyLine = com.tranphuloi.neon.ui.game.story.StoryLine(
                                             speaker = spk,
-                                            text = context.getString(resId),
+                                            text = context.getString(phaseRes),
                                             durationMs = 3200,
                                         )
                                         storyShownMillis = System.currentTimeMillis()
                                     }
                                 }
+                            }
                         }
                         if (spaceObjectsController.hasSpaceObjects()) {
                             tinker(

@@ -74,6 +74,16 @@ class LightningChainBehaviorTest {
     }
 
     @Test
+    fun `chain is bounded by unique enemies even with huge maxSteps (buff-stack safety)`() {
+        // 8 địch chụm sát nhau; maxSteps=100 (mô phỏng nhiều đạn buff-stack cùng bắn).
+        // Kết quả không bao giờ vượt số địch + không lặp → mỗi cú chain luôn bounded.
+        val cluster = (0 until 8).map { fakeEnemy("e$it", 200f + it * 20f, 0f) }
+        val hops = LightningChain.computeChainTargets(210f, 30f, cluster, maxSteps = 100)
+        assertTrue("không vượt số địch", hops.size <= cluster.size)
+        assertEquals("không lặp địch", hops.size, hops.map { it.enemyId }.toSet().size)
+    }
+
+    @Test
     fun `damageForHop applies compounding falloff`() {
         // base 100, falloff 0.7 → hop0 70, hop1 49, hop2 34.
         assertEquals(70, LightningChain.damageForHop(100, 0))
