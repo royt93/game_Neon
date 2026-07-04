@@ -310,6 +310,14 @@ private fun VictoryPanel() {
         com.tranphuloi.neon.data.Difficulty.HARD -> "CHIẾN THẮNG HUYỀN THOẠI" to
             "Chinh phục độ KHÓ. Anh là huyền thoại Sky Force U*S*A."
     }
+    // Task 04 — epilogue kết truyện theo độ khó (song ngữ, gắn ngữ cảnh Lõi Thiên Hà).
+    val epilogue = androidx.compose.ui.res.stringResource(
+        when (difficulty) {
+            com.tranphuloi.neon.data.Difficulty.EASY -> com.tranphuloi.neon.R.string.story_epilogue_easy
+            com.tranphuloi.neon.data.Difficulty.NORMAL -> com.tranphuloi.neon.R.string.story_epilogue_normal
+            com.tranphuloi.neon.data.Difficulty.HARD -> com.tranphuloi.neon.R.string.story_epilogue_hard
+        },
+    )
     Column(
         verticalArrangement = Arrangement.spacedBy(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -336,6 +344,15 @@ private fun VictoryPanel() {
             color = Color.White.copy(alpha = 0.85f),
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
+        )
+        // Task 04 — epilogue kết truyện (in nghiêng, mờ hơn subtitle để phân cấp).
+        Text(
+            text = epilogue,
+            color = Color.White.copy(alpha = 0.7f),
+            fontSize = 11.sp,
+            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.padding(top = 2.dp),
         )
     }
 }

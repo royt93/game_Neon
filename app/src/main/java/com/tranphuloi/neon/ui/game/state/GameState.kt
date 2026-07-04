@@ -81,6 +81,9 @@ fun rememberGameState(): GameState {
     // game loop's per-frame recompose). That made the log fire 125×/sec. Entry-point
     // logging happens once inside the `remember { ... UuidUtils() }` block below.
     val configuration = LocalConfiguration.current
+    // Task 04 — Context để resolve @StringRes thoại boss/narrative (song ngữ) từ
+    // trong game-loop. Đọc read-only trên thread khác an toàn.
+    val context = androidx.compose.ui.platform.LocalContext.current
     val screenWidth = rememberSaveable { configuration.screenWidthDp.toFloat() }
     val screenHeight = rememberSaveable { configuration.screenHeightDp.toFloat() }
     val uuidUtils = remember {
@@ -578,6 +581,11 @@ fun rememberGameState(): GameState {
     // Task 01 (Slice 4) — deferred ref cho DRONE_BOOSTER spawn (droneController
     // declared sau shipController). Wire xuống dưới sau khi droneController tồn tại.
     val droneSpawnRef = remember { object { @Volatile var run: () -> Unit = {} } }
+    // Task 04 — deferred ref set storyLine (onEnemyKilled declared TRƯỚC storyLine
+    // state). Wire .run sau khi storyLine khai báo.
+    val setStoryLineRef = remember {
+        object { @Volatile var run: (com.tranphuloi.neon.ui.game.story.StoryLine) -> Unit = {} }
+    }
     // Wave 11a Phase 3 — deferred ref cho CHAIN_LIGHTNING (cần enemies declared sau).
     // primaryTargetId excluded so the chain doesn't re-hit the original target.
     val chainLightningRef = remember {
@@ -1291,6 +1299,19 @@ fun rememberGameState(): GameState {
                         bossKillRank?.let { ranksAchievedThisRun.add(it) }
                         Logger.d("Boss kill rank: ${bossKillRank?.letter} (ttk=${ttk}ms hpRatio=${"%.2f".format(hpRatio)})")
                     }
+                    // Task 04 — thoại "trăn trối" khi hạ boss (song ngữ qua resource).
+                    // Delay nhẹ để không đè freeze/nổ; StoryOverlay hiển thị ~2.8s.
+                    val defeatRes = com.tranphuloi.neon.ui.game.story.StoryRegistry
+                        .bossDefeatRes(enemy.bossKind)
+                    val defeatLine = com.tranphuloi.neon.ui.game.story.StoryLine(
+                        speaker = enemy.bossKind?.displayName ?: "BOSS",
+                        text = context.getString(defeatRes),
+                        durationMs = 2800,
+                    )
+                    coroutineScope.launch {
+                        kotlinx.coroutines.delay(500L)
+                        setStoryLineRef.run(defeatLine)
+                    }
                 } else {
                     hitStopController.freezeForEnemyKill()
                 }
@@ -1357,6 +1378,14 @@ fun rememberGameState(): GameState {
     var storyLine by remember { mutableStateOf<com.tranphuloi.neon.ui.game.story.StoryLine?>(null) }
     var storyShownMillis by remember { mutableLongStateOf(0L) }
     val storyLines = remember { mutableListOf<com.tranphuloi.neon.ui.game.story.StoryLine>() }
+    // Task 04 — theo dõi phase FinalBoss đã narrate (1..3) để chỉ fire thoại 1 lần
+    // mỗi lần lên phase (currentPhase tăng theo HP giảm).
+    var finalBossPhaseSeen by remember { mutableIntStateOf(1) }
+    // Task 04 — nối deferred ref (onEnemyKilled dùng để set thoại defeat).
+    setStoryLineRef.run = { line ->
+        storyLine = line
+        storyShownMillis = System.currentTimeMillis()
+    }
 
     // Round 25 — read checkpoint stage index from DataStore for this mode.
     // runBlocking ok here: same justification as runMode (one-time DataStore read
@@ -1380,6 +1409,8 @@ fun rememberGameState(): GameState {
         Logger.d("rememberGameState: chapterIntroPlayedChapter init = $initialChapter (resumed at chapter)")
         mutableIntStateOf(initialChapter)
     }
+    // Task 04 — gate riêng cho narrative beat (fire 1 lần/chương ở boss climax).
+    var beatPlayedChapter by rememberSaveable(runMode) { mutableIntStateOf(0) }
 
     val stageController = rememberSaveable(runMode, saver = StageController.saver(stageProvider)) {
         StageController(
@@ -1425,6 +1456,23 @@ fun rememberGameState(): GameState {
                 }
                 // 21c: Boss intro cinematic — fire when entering a StageBoss.
                 if (newStage is com.tranphuloi.neon.ui.game.stage.StageBoss) {
+                    // Task 04 — narrative beat NARRATOR 1 lần/chương ngay khi vào
+                    // boss climax (trước taunt ~2600ms → beat 300..2500ms rồi taunt).
+                    if (newStage.chapterId in 1..5 && newStage.chapterId != beatPlayedChapter) {
+                        beatPlayedChapter = newStage.chapterId
+                        com.tranphuloi.neon.ui.game.story.StoryRegistry
+                            .chapterBeatRes(newStage.chapterId)?.let { resId ->
+                                coroutineScope.launch {
+                                    kotlinx.coroutines.delay(300L)
+                                    storyLine = com.tranphuloi.neon.ui.game.story.StoryLine(
+                                        speaker = "ĐỘI TRƯỞNG",
+                                        text = context.getString(resId),
+                                        durationMs = 2200,
+                                    )
+                                    storyShownMillis = System.currentTimeMillis()
+                                }
+                            }
+                    }
                     // Round 85 audit — resolve actual BossKind for (type, chapter)
                     // → use bossKind.displayName as banner. Khớp với in-game visual
                     // + InfoScreen + story speaker. Eliminate ALL dev-jargon banner
@@ -1865,6 +1913,26 @@ fun rememberGameState(): GameState {
                                 // Round 40 — pass enemies so MissileLaser homing can update targetX.
                                 doWork = { lasersController.processShipLasers(enemies) }
                             )
+                        }
+                        // Task 04 — FinalBoss đổi phase (1→2→3 theo HP) → thoại 1 lần
+                        // mỗi phase. Chỉ FinalBoss có currentPhase>1 nên check rẻ.
+                        val finalBossNow = enemies.firstOrNull {
+                            it is com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBoss
+                        }
+                        if (finalBossNow != null && finalBossNow.currentPhase > finalBossPhaseSeen) {
+                            finalBossPhaseSeen = finalBossNow.currentPhase
+                            com.tranphuloi.neon.ui.game.story.StoryRegistry
+                                .finalBossPhaseRes(finalBossNow.currentPhase)?.let { resId ->
+                                    val spk = finalBossNow.bossKind?.displayName ?: "BÁ VƯƠNG THIÊN HÀ"
+                                    coroutineScope.launch {
+                                        storyLine = com.tranphuloi.neon.ui.game.story.StoryLine(
+                                            speaker = spk,
+                                            text = context.getString(resId),
+                                            durationMs = 3200,
+                                        )
+                                        storyShownMillis = System.currentTimeMillis()
+                                    }
+                                }
                         }
                         if (spaceObjectsController.hasSpaceObjects()) {
                             tinker(

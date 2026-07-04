@@ -47,4 +47,23 @@
     <string name="voice_new_best_2">Record shattered!</string>
     <string name="voice_new_best_3">New peak!</string>
     <string name="settings_voice_announcer">Voice announcer</string>
+
+    <!-- Task 04 — Boss dialogue / narrative / epilogue -->
+    <string name="story_beat_ch1">Halfway through the Belt. Keep your hands steady, pilot.</string>
+    <string name="story_beat_ch2">Radar\'s picking up strange signals in the fog. Stay sharp.</string>
+    <string name="story_beat_ch3">The ice is cracking below. There\'s no turning back now.</string>
+    <string name="story_beat_ch4">The enemy station knows we\'re here. They\'re massing forces.</string>
+    <string name="story_beat_ch5">The Galaxy Core lies ahead. Destiny is calling your name.</string>
+    <string name="story_final_phase2">Impressive… but I\'m only just getting started!</string>
+    <string name="story_final_phase3">ENOUGH! I\'ll grind you into cosmic dust!</string>
+    <string name="story_defeat_final">Im…possible… the galaxy… is… yours…</string>
+    <string name="story_defeat_hell_lord">Hell… still waits for you… pilot…</string>
+    <string name="story_defeat_white_dragon">The White Dragon… falls… for the first time…</string>
+    <string name="story_defeat_hammer_sickle">So the revolution… has failed…?</string>
+    <string name="story_defeat_crypto_bro">No! My portfolio… just went to ZERO!</string>
+    <string name="story_defeat_kitchen_god">I\'ll report this… to the Jade Emperor!</string>
+    <string name="story_defeat_generic">Defeated…</string>
+    <string name="story_epilogue_easy">Dawn spreads across the worlds you saved. A fine start, pilot — the galaxy will remember your name.</string>
+    <string name="story_epilogue_normal">As the smoke clears, the stars fall quiet again. Captain, you\'ve returned peace to an entire galaxy.</string>
+    <string name="story_epilogue_hard">Even the deepest dark had to retreat. Your name is carved among the stars now — a Sky Force U*S*A legend.</string>
 </resources>

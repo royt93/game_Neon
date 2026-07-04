@@ -118,4 +118,51 @@ class HotPathPerfTest {
             elapsedMs < 1_000L,
         )
     }
+
+    // ── Task 02 — LightningChain.computeChainTargets: chạy mỗi khi đạn LIGHTNING
+    // trúng địch (có thể nhiều lần/frame khi buff SPREAD/DOUBLE). O(maxSteps × E)
+    // — phải rẻ ngay cả khi màn đầy địch (cap 30). Guard chống regression O(E²).
+    @Test
+    fun `LightningChain computeChainTargets stays within budget on a full screen`() {
+        // 30 địch (= EnemyController cap) rải khắp màn; chạy 10k lần (≈ mật độ va
+        // chạm đỉnh của nhiều frame gộp lại).
+        val enemies = (0 until 30).map { i ->
+            perfEnemy("e$i", x = (i % 6) * 60f, y = (i / 6) * 120f)
+        }
+        val elapsedMs = timeMillis {
+            repeat(10_000) {
+                com.tranphuloi.neon.ui.game.laser.LightningChain.computeChainTargets(
+                    startX = 180f, startY = 400f, enemies = enemies,
+                )
+            }
+        }
+        assertTrue(
+            "10k chain-target scans (30 địch) phải dưới 500ms, thực tế ${elapsedMs}ms",
+            elapsedMs < 500L,
+        )
+    }
+
+    private fun perfEnemy(id: String, x: Float, y: Float): com.tranphuloi.neon.ui.game.enemy.ship.model.Enemy =
+        object : com.tranphuloi.neon.ui.game.enemy.ship.model.Enemy {
+            override val enemyId = id
+            override val width = 40f
+            override val height = 40f
+            override var xOffset = x
+            override var yOffset = y
+            override var hp = 100f
+            override val initialHp = 100f
+            override val impactPower = 10f
+            override val drawableId = 0
+            override val minerals = 1
+            override val destroyed = false
+            override val outOfScreen = false
+            override var lastImpactMillis = 0L
+            override val isBoss = false
+            override val displayName = "perf"
+            override fun enemyRect() =
+                androidx.compose.ui.geometry.Rect(xOffset, yOffset, xOffset + width, yOffset + height)
+            override fun process() {}
+            override fun generateLasers(): List<com.tranphuloi.neon.ui.game.laser.Laser> = emptyList()
+            override fun onObjectImpact(impactPower: Float) {}
+        }
 }

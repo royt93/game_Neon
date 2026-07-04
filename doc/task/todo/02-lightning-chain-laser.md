@@ -1,6 +1,6 @@
 # Task 02 — Lightning Chain Laser (đạn sét nhảy giữa địch)
 
-**Loại:** Enhance hệ đạn · **Ưu tiên:** trung bình · **Trạng thái:** 🟡 In progress (Slice 0 chốt 2026-07-03)
+**Loại:** Enhance hệ đạn · **Ưu tiên:** trung bình · **Trạng thái:** ✅ Implemented (2026-07-04, 3/3 slice; verify device S24 Ultra)
 
 ## ✅ Slice 0 — ĐÃ CHỐT (2026-07-03)
 - **Chain = TUẦN TỰ MỚI:** tách hàm pure `computeChainTargets(start, enemies, maxSteps, radius, visited)` — nhảy tuần tự từ địch→địch **gần nhất CHƯA thăm** trong bán kính (visited-set tránh lặp). Booster `CHAIN_LIGHTNING_BOOSTER` cũ **giữ nguyên** 2-hop/50% (không đụng).
@@ -11,7 +11,7 @@
 ## Rã slice
 - [x] **Slice 1 (2026-07-03)** — hàm pure `LightningChain.computeChainTargets` (tuần tự, visited-set, radius, cap) + `damageForHop` (falloff ×0.7, roundToInt). `LightningChainBehaviorTest` **9/9 pass**.
 - [x] **Slice 2 (2026-07-03)** — `BulletType.LIGHTNING` (dmg ×0.9 cân bằng, bodyWidth 18 unique, glyph "↯", shopUnlockId) + `BulletShape.LIGHTNING_BOLT` + mọi `when` exhaustive: BulletType shape/bodyWidth/special/fireInterval, `BulletTypeColorMap` (điện lam 0xFF7DF9FF), `LaserCanvas.drawLightningBody` (bolt zigzag + lõi trắng), `buildOneLaser`, collision arm (huỷ 1 hit). Wire chain: `lightningChainRef` (deferred, @Volatile) chạy `LightningChain.computeChainTargets` + `damageForHop` → trail zigzag + spark + damage number mỗi hop; trigger ở onLaserHit khi `bulletType==LIGHTNING`. **Đã gồm luôn shop item `bullet_lightning` (cost 1100) + UI surfaces (DialogLoadoutPicker ×4, InfoScreen ×3, ShopScreen)** vì compile ép exhaustive. Cập nhật 7 test count/uniqueness/name-set/shop-id. Tổng JVM 846/846, 2 flavor OK.
-- [ ] **Slice 3** — (shop item + UI surfaces đã xong ở Slice 2) → còn: perf test cho `computeChainTargets` (HotPathPerfTest) + rà i18n + **verify thiết bị** (mua đạn Sét Chain → chọn loadout → thấy sét lan in-game).
+- [x] **Slice 3 (2026-07-04)** — perf test `HotPathPerfTest.computeChainTargets` (10k scan × 30 địch < 500ms, guard O(E²)). i18n: không phát sinh string resource mới (nhãn theo pattern hardcoded-VN của InfoScreen/loadout; sửa subtitle ×1.0→×0.9). **Verify thiết bị S24 Ultra**: mua đạn Sét Chain trong Shop → chọn loadout → `LoadoutPicker pick=LIGHTNING` áp dụng cả run, combat OK, 0 crash, 0 jank. Tổng JVM 847/847.
 
 ## Mục tiêu
 Thêm loại đạn **LIGHTNING**: khi trúng 1 địch, sét **nhảy** sang N địch gần kế tiếp (chain), mỗi bước giảm damage. Đây là phần "chain" từng bị defer (xem feature.md Wave 4).

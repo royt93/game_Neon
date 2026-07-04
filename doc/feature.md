@@ -2468,6 +2468,28 @@ Chi tiết + slice log: [doc/task/todo/01-drone-companion.md](task/todo/01-drone
 - ✅ **5-mảnh pattern:** `Drone`/`DroneUI`/`DroneToDroneUIMapper`/`DroneController`/`DroneCanvas` (batched). Wire vào GameState qua tinker (orbit/fire/collision) — không tạo coroutine loop mới.
 - ✅ **Test đủ 3 tầng:** unit (`DroneControllerBehaviorTest` 17 + `DroneLaserBehaviorTest` 7 + gate ở Booster/Meta), integration Robolectric (`MetaProgressionDroneIntegrationTest` 4), widget on-device (`PowerUpIndicatorsDroneWidgetTest` 2/2 trên SM-S928B). Tổng JVM sau task: **837/837** (từ ~808).
 
+## 🆕 Task 02 — Lightning Chain Laser (✅ Implemented 2026-07-04, 3 slice)
+
+Chi tiết: [doc/task/todo/02-lightning-chain-laser.md](task/todo/02-lightning-chain-laser.md). Tóm tắt:
+
+- ✅ **`BulletType.LIGHTNING`** ("Sét Chain") — trúng địch → sét lan **tuần tự** tối đa 3 địch gần nhau (≤120px, visited-set tránh lặp), dmg ×0.7 mỗi bước. Base dmg ×0.9 cân bằng. Shop-gated (`bullet_lightning`, 1100 minerals) + chọn ở loadout.
+- ✅ **Logic thuần** `LightningChain.computeChainTargets` + `damageForHop` (tách khỏi Compose → test JVM). Khác `CHAIN_LIGHTNING_BOOSTER` (2-hop/50%, giữ nguyên) — đây là chuỗi tuần tự nhiều bước.
+- ✅ **Tái dùng hạ tầng**: bơm vào hệ laser chung + collision; chain render qua `TrailLineOverlay.addChainBolt` (zigzag fade) + spark + damage number mỗi hop; trigger ở `onLaserHit` khi `bulletType==LIGHTNING` (ref `lightningChainRef` riêng).
+- ✅ **Tích hợp đầy đủ**: BulletShape/ColorMap/LaserCanvas + DialogLoadoutPicker ×4 + InfoScreen ×3 + ShopScreen + ShopItem. Cập nhật 8 test count/uniqueness/name-set.
+- ✅ **Test**: `LightningChainBehaviorTest` 9 + perf `HotPathPerfTest` (10k×30 địch <500ms) + verify device S24 Ultra (0 crash/jank). Tổng JVM **847/847**.
+
+## 🆕 Task 04 — Boss Dialogue / Narrative (✅ Implemented 2026-07-04, 5 slice)
+
+Chi tiết: [doc/task/todo/04-boss-dialogue-narrative.md](task/todo/04-boss-dialogue-narrative.md). Tóm tắt:
+
+- ✅ **Thoại boss + narrative** qua **string resource SONG NGỮ** (default VN + values-vi + values-en, 17 key parity) — khác pattern hardcoded cũ của StoryRegistry; story mới dùng `@StringRes`, resolve qua `Context` trong GameState/VictoryPanel.
+- ✅ **Defeat line** khi hạ boss (`StoryRegistry.bossDefeatRes`): FinalBoss (SPIDER) + 5 mid-boss nổi bật có câu riêng, còn lại generic fallback.
+- ✅ **FinalBoss phase dialogue** (phase 2/3 theo HP) — check inline trong loop, gate `finalBossPhaseSeen`, chỉ FinalBoss có currentPhase>1.
+- ✅ **Narrative beat** NARRATOR 1 lần/chương ở boss climax (gate `beatPlayedChapter`, sequenced trước taunt).
+- ✅ **Epilogue** kết truyện theo độ khó (EASY/NORMAL/HARD) trong VictoryPanel.
+- ✅ **Test**: `StoryRegistryTest` 5 (beat 1..5, phase 2/3, mọi boss có defeat, map đúng). JVM **852/852**, 2 flavor compile OK.
+- ✅ **Verify device S24 Ultra**: beat fire đúng qua logcat (`StoryOverlay shown: ĐỘI TRƯỞNG "Nửa đường Vành đai rồi…"` → taunt 2.3s sau, sequencing đúng), 0 crash. Defeat/phase/epilogue cùng pipeline `setStoryLineRef`→StoryOverlay (đã verify) + unit test.
+
 ---
 
 # Notes

@@ -1,5 +1,6 @@
 package com.tranphuloi.neon.ui.game.story
 
+import com.tranphuloi.neon.R
 import com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind
 import com.tranphuloi.neon.ui.game.enemy.ship.model.BossKindResolver
 import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyType
@@ -61,4 +62,43 @@ object StoryRegistry {
     /** Wave 25c — taunt đọc từ bảng chung `bossMetaFor` (gom 4 when → 1 bảng). */
     private fun tauntText(kind: BossKind): String =
         com.tranphuloi.neon.ui.game.enemy.ship.model.bossMetaFor(kind).taunt
+
+    // ── Task 04 — Boss dialogue / narrative / epilogue ──
+    // Trả @StringRes (song ngữ vi+en) thay vì text hardcode; caller resolve qua
+    // Context (GameState/StoryOverlay). Speaker vẫn là tên (NARRATOR / boss name).
+
+    /** Beat narrative NARRATOR ở giữa chương (1..5). null nếu chương không có. */
+    @androidx.annotation.StringRes
+    fun chapterBeatRes(chapterId: Int): Int? = when (chapterId) {
+        1 -> R.string.story_beat_ch1
+        2 -> R.string.story_beat_ch2
+        3 -> R.string.story_beat_ch3
+        4 -> R.string.story_beat_ch4
+        5 -> R.string.story_beat_ch5
+        else -> null
+    }
+
+    /** Thoại FinalBoss (Bá Vương / SPIDER) khi vào phase 2/3. null cho phase 1. */
+    @androidx.annotation.StringRes
+    fun finalBossPhaseRes(phase: Int): Int? = when (phase) {
+        2 -> R.string.story_final_phase2
+        3 -> R.string.story_final_phase3
+        else -> null
+    }
+
+    /**
+     * Thoại khi HẠ boss. FinalBoss (SPIDER) + vài mid-boss nổi bật có câu riêng;
+     * còn lại dùng câu generic (Slice 0: FinalBoss + mid-boss + fallback).
+     * Không bao giờ trả 0 → luôn có thoại defeat.
+     */
+    @androidx.annotation.StringRes
+    fun bossDefeatRes(kind: BossKind?): Int = when (kind) {
+        BossKind.SPIDER -> R.string.story_defeat_final
+        BossKind.HELL_LORD -> R.string.story_defeat_hell_lord
+        BossKind.WHITE_DRAGON -> R.string.story_defeat_white_dragon
+        BossKind.HAMMER_SICKLE -> R.string.story_defeat_hammer_sickle
+        BossKind.CRYPTO_BRO -> R.string.story_defeat_crypto_bro
+        BossKind.KITCHEN_GOD -> R.string.story_defeat_kitchen_god
+        else -> R.string.story_defeat_generic
+    }
 }

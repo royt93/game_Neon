@@ -1,6 +1,19 @@
 # Task 04 — Boss Dialogue + Stage Narrative + Win Epilogue
 
-**Loại:** Lore/content (enhance) · **Ưu tiên:** thấp-trung bình (rủi ro code thấp) · **Trạng thái:** 📋 todo
+**Loại:** Lore/content (enhance) · **Ưu tiên:** thấp-trung bình (rủi ro code thấp) · **Trạng thái:** ✅ Implemented (5/5 slice, 2026-07-04; beat verified device, pipeline confirmed)
+
+## ✅ Slice 0 — ĐÃ CHỐT (2026-07-04)
+- **Defeat depth:** FinalBoss (SPIDER) + vài mid-boss nổi bật (HELL_LORD/WHITE_DRAGON/HAMMER_SICKLE/CRYPTO_BRO/KITCHEN_GOD) có câu riêng; còn lại generic fallback.
+- **i18n:** SONG NGỮ vi+en (+ default VN) qua string resource (khác pattern hardcoded cũ của StoryRegistry — story mới dùng @StringRes, resolve qua Context).
+- **Epilogue:** theo độ khó (EASY/NORMAL/HARD) + gắn ngữ cảnh chương cuối (Lõi Thiên Hà), mở rộng VictoryPanel.
+- Phase chỉ áp dụng FinalBoss (currentPhase 1→2→3 theo HP); mid/level boss = phase 0.
+
+## Rã slice
+- [x] **Slice 1 (2026-07-04)** — strings song ngữ (17 key × 3 file: default/vi/en, parity OK) + `StoryRegistry.chapterBeatRes/finalBossPhaseRes/bossDefeatRes` (@StringRes) + `StoryRegistryTest` (5 test: beat 1..5, phase 2/3, mọi boss có defeat, map đúng).
+- [x] **Slice 2 (2026-07-04)** — trigger phase + defeat trong GameState. Boss defeat: onEnemyKilled(isBoss) → `bossDefeatRes(enemy.bossKind)` resolve qua `context` → StoryLine (speaker = boss displayName) qua `setStoryLineRef` (@Volatile deferred, vì storyLine khai báo sau onEnemyKilled), delay 500ms. FinalBoss phase: check inline trong loop (`enemies.firstOrNull{it is FinalBoss}`, gate `finalBossPhaseSeen`) → `finalBossPhaseRes` khi currentPhase tăng. Non-blocking, không coroutine loop mới.
+- [x] **Slice 3 (2026-07-04)** — narrative beat NARRATOR 1 lần/chương ở boss climax (trong handler StageBoss, gate `beatPlayedChapter`, delay 300ms → beat 2.2s rồi taunt ở 2.6s, không đè).
+- [x] **Slice 4 (2026-07-04)** — epilogue theo độ khó (EASY/NORMAL/HARD) trong VictoryPanel: `stringResource(story_epilogue_*)`, in nghiêng mờ dưới subtitle, gắn ngữ cảnh Lõi Thiên Hà.
+- [x] **Slice 5 (2026-07-04)** — build 2 flavor OK + JVM **852/852**. **Verify device S24 Ultra:** ✅ narrative beat fire ĐÚNG qua logcat: `StoryOverlay shown: ĐỘI TRƯỞNG "Nửa đường Vành đai rồi…"` lúc vào StageBoss idx=10 chapter=1, rồi 2.3s sau boss taunt `"Mắt ta dõi theo…"` → **sequencing đúng, không đè**. 0 FATAL EXCEPTION, phase-check inline chạy sạch. Defeat/phase/epilogue dùng CÙNG cơ chế `setStoryLineRef`→StoryOverlay (pipeline đã verify) + cover bởi unit test; chưa chụp trực quan được vì giết boss 1500hp qua adb input mù không khả thi (hạn chế công cụ, không phải lỗi code).
 
 ## Hiện trạng (đã có)
 - `ui/game/story/StoryLine.kt` + `StoryRegistry.kt` (chapter intros + boss taunts đã có — feature.md Wave 5 "47x Story/lore").
