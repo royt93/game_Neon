@@ -25,6 +25,10 @@ private val DAILY_STREAK_KEY = intPreferencesKey("daily_streak")
 // Task 08 — ngày cuối nhận thưởng THỬ THÁCH HẰNG NGÀY (chống farm, 1 lần/ngày).
 private val LAST_DAILY_CHALLENGE_KEY = longPreferencesKey("last_daily_challenge_day")
 private const val NODE_PREFIX = "node_"
+// Task 10 (đợt 3) — Prestige. Shop unlock (skin/đạn) cũng lưu dưới `node_shop_*`;
+// prestige CHỈ reset skill-tree nên loại trừ nhánh shop này.
+private const val SHOP_NODE_INFIX = "shop_"
+private val PRESTIGE_LEVEL_KEY = intPreferencesKey("prestige_level")
 private const val BULLET_KILL_PREFIX = "bullet_kill_"
 private const val BOSS_KILL_PREFIX = "boss_kill_"
 private const val SHIP_TIME_PREFIX = "ship_time_"
@@ -60,6 +64,21 @@ internal fun dailyRewardFor(streak: Int): Int = 50 + (streak.coerceIn(1, 7) - 1)
  */
 internal fun stageMilestoneBonus(stagesReached: Int): Int =
     ((stagesReached.coerceAtLeast(0) / 5) * 30).coerceAtMost(300)
+
+/**
+ * Task 10 (đợt 3) — Mineral sink: PRESTIGE RESET. Reset toàn bộ skill-tree đổi
+ * lấy 1 cấp prestige = buff vĩnh viễn cộng dồn. Sink VÔ HẠN (cost exponential)
+ * hút khoáng dư. Hàm thuần để test.
+ */
+/** Số rank skill-tree tối thiểu (không tính shop) để được phép prestige. */
+const val PRESTIGE_MIN_RANKS = 8
+/** Cost cấp prestige tiếp theo = 1500 × 2^level (exponential). Cap level tránh tràn Int. */
+internal fun prestigeCost(level: Int): Int = 1500 * (1 shl level.coerceIn(0, 19))
+/** Buff vĩnh viễn: +4% mọi stat mỗi cấp prestige (cộng dồn). */
+internal fun prestigeMultiplier(level: Int): Float = 1f + 0.04f * level.coerceAtLeast(0)
+/** Đủ điều kiện prestige: đủ tiền + đủ rank skill-tree. */
+internal fun canPrestige(balance: Int, cost: Int, totalSkillRanks: Int, minRanks: Int): Boolean =
+    balance >= cost && totalSkillRanks >= minRanks
 
 /**
  * Wave 5 (48x) — permanent meta progression. Tracks:
@@ -101,6 +120,44 @@ class MetaProgressionRepository(private val appContext: Context) {
             prefs[LIFETIME_MINERALS_KEY] = before + amount
             Logger.d("MetaProgressionRepository.addMinerals +$amount → ${before + amount}")
         }
+    }
+
+    // ── Task 10 (đợt 3) — Prestige Reset (mineral sink vô hạn) ──
+
+    /** Cấp prestige hiện tại (0 nếu chưa prestige). */
+    val prestigeLevel: Flow<Int> = appContext.metaDataStore.data.map {
+        it[PRESTIGE_LEVEL_KEY] ?: 0
+    }
+
+    /** Tổng rank skill-tree (KHÔNG tính shop unlock `node_shop_*`) — cho gate prestige. */
+    val totalSkillRanks: Flow<Int> = appContext.metaDataStore.data.map { prefs ->
+        prefs.asMap()
+            .filterKeys { it.name.startsWith(NODE_PREFIX) && !it.name.startsWith(NODE_PREFIX + SHOP_NODE_INFIX) }
+            .values.sumOf { (it as? Int) ?: 0 }
+    }
+
+    /**
+     * Thực hiện prestige (atomic): nếu đủ [cost] khoáng + đủ [minRanks] rank
+     * skill-tree → trừ khoáng, XOÁ toàn bộ node skill-tree (giữ nguyên shop
+     * unlock, stockpile, ship XP, achievements), tăng prestige_level +1.
+     * Trả false nếu không đủ điều kiện (state không đổi).
+     */
+    suspend fun doPrestige(cost: Int, minRanks: Int = PRESTIGE_MIN_RANKS): Boolean {
+        var success = false
+        appContext.metaDataStore.edit { prefs ->
+            val balance = prefs[LIFETIME_MINERALS_KEY] ?: 0
+            val skillEntries = prefs.asMap()
+                .filterKeys { it.name.startsWith(NODE_PREFIX) && !it.name.startsWith(NODE_PREFIX + SHOP_NODE_INFIX) }
+            val totalRanks = skillEntries.values.sumOf { (it as? Int) ?: 0 }
+            if (canPrestige(balance, cost, totalRanks, minRanks)) {
+                prefs[LIFETIME_MINERALS_KEY] = balance - cost
+                skillEntries.keys.forEach { prefs.remove(it) }
+                prefs[PRESTIGE_LEVEL_KEY] = (prefs[PRESTIGE_LEVEL_KEY] ?: 0) + 1
+                success = true
+                Logger.d("MetaProgressionRepository.doPrestige OK cost=$cost ranks=$totalRanks → lvl ${(prefs[PRESTIGE_LEVEL_KEY])}")
+            }
+        }
+        return success
     }
 
     // ── Task 03 — XP tích luỹ mỗi tàu ──

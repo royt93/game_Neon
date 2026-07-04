@@ -41,6 +41,12 @@ enum class EnemyFamily(
             R.drawable.enemy_orb_1, R.drawable.enemy_orb_2 -> ELITE
             R.drawable.enemy_chevron_1, R.drawable.enemy_chevron_2,
             R.drawable.enemy_spike_1, R.drawable.enemy_spike_2 -> BERSERKER
+            // Task 09 (đợt 3) — 5 địch chủ đề mới: gán family theo tính cách đòn.
+            R.drawable.enemy_splitter -> ELITE       // phân thân, cân bằng
+            R.drawable.enemy_repulsor -> HEAVY       // tank đẩy lùi, chậm & trâu
+            R.drawable.enemy_jammer -> SCOUT         // nhiễu sóng, nhanh & mỏng
+            R.drawable.enemy_missileer -> BERSERKER  // pháo thủ, đòn nặng
+            R.drawable.enemy_predator -> FIGHTER     // săn mồi, cân bằng
             else -> FIGHTER
         }
     }

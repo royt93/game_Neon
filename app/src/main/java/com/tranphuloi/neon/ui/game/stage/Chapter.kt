@@ -101,6 +101,9 @@ enum class Chapter(
             // Round 82 — Ch3 Ice: Shield Drone + Sniper (high-tech defensive).
             R.drawable.enemy_shield_drone,
             R.drawable.enemy_sniper,
+            // Task 09 (đợt 3) — Jammer (nhiễu sóng, SCOUT) + Predator (săn mồi HOMING).
+            R.drawable.enemy_jammer,
+            R.drawable.enemy_predator,
         ),
         hazard = HazardType.ICE_PATCHES,
         // Round 82 — Ch3: SWARM (existing) + SEXY_DIVA + TROLL_TOWER
@@ -139,6 +142,9 @@ enum class Chapter(
             R.drawable.enemy_mirror_twin,
             R.drawable.enemy_healer,
             R.drawable.enemy_bomber_crawler,
+            // Task 09 (đợt 3) — Splitter (phân thân, ELITE) + Repulsor (đẩy lùi, HEAVY).
+            R.drawable.enemy_splitter,
+            R.drawable.enemy_repulsor,
         ),
         hazard = null,                                // station = open zone
         // Round 82 — Ch4: OFFENSIVE reuse (→HELL_LORD via factory) + TWIN_SUMMITS + VOID_GLOBES
@@ -176,6 +182,8 @@ enum class Chapter(
             R.drawable.enemy_spike_1,
             R.drawable.enemy_spike_2,
             R.drawable.enemy_kamikaze,
+            // Task 09 (đợt 3) — Missileer (pháo thủ volley, BERSERKER) ở chương cuối.
+            R.drawable.enemy_missileer,
         ),
         hazard = null,
         // Round 82 — Ch5: 4 mini-bosses before FinalBoss (was null = no mid-boss).

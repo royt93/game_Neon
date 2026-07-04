@@ -20,6 +20,8 @@ data class RegularEnemyType(
     val xOffsetSpeed: Float,
     val yOffsetSpeed: Float,
     val enemySpawnRate: RepeatTime,
+    /** Task 09 — kiểu đòn RIÊNG (5 địch chủ đề). Mặc định SINGLE = 1 tia như cũ. */
+    val attackKind: EnemyAttackKind = EnemyAttackKind.SINGLE,
 ) : EnemyType(spawnRate = enemySpawnRate)
 
 @Keep object LevelOneBossType : EnemyType(spawnRate = Once)

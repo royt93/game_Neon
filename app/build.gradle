@@ -113,6 +113,10 @@ android {
 dependencies {
     /*Core*/
     implementation "androidx.core:core-ktx:1.18.0"
+    // Task 11 (đợt 3) — cài baseline profile (src/main/baseline-prof.txt) lúc chạy
+    // đầu để giảm jank cold-start. AGP tự merge profile vào APK; lib này install nó
+    // trên API 24-30 (API 31+ nền tảng tự dùng). Không phụ thuộc AGP nên an toàn.
+    implementation "androidx.profileinstaller:profileinstaller:1.4.1"
     implementation "com.google.android.material:material:1.13.0"
     implementation "androidx.activity:activity-compose:1.13.0"
     implementation "androidx.lifecycle:lifecycle-runtime-compose:2.10.0"

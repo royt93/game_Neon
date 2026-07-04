@@ -169,6 +169,8 @@ private fun buildGameStage(chapter: Chapter, gameStage: Int, tier: Int): StageGa
         xOffsetSpeed = (0.5f + tier * 0.1f) * family.speedMul,
         yOffsetSpeed = (0.5f + tier * 0.1f) * family.speedMul,
         enemySpawnRate = Millis(1000 - tier * 100),                  // 1000/900/800ms
+        // Task 09 — 5 địch chủ đề có đòn RIÊNG; địch cũ mặc định SINGLE.
+        attackKind = com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyAttackKind.forDrawable(drawable),
     )
 
     // Chapter hazard determines spaceRock spawn cadence.

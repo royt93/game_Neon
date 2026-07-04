@@ -37,6 +37,12 @@ data class RunContext(
     val shipLevelHpMul: Float = 1f,
     /** Task 05 — level tàu (1..5) đọc 1 lần lúc init; dùng scale cooldown kỹ năng. */
     val shipLevel: Int = 1,
+    /**
+     * Task 10 — hệ số buff vĩnh viễn từ PRESTIGE (1.0 = chưa prestige, +0.04/cấp).
+     * Đọc 1 lần lúc init (MetaProgressionRepository.prestigeMultiplier), nhân vào
+     * hp/damage/speed/magnet ở EffectiveStats.compute.
+     */
+    val prestigeMul: Float = 1f,
 ) {
     companion object {
         /** Default context for plain campaign run (back-compat for code paths

@@ -120,12 +120,14 @@ data class EffectiveStats(
             val shipSpeedMul = ctx.shipShape.speedMul
             val shipDamageMul = ctx.shipShape.damageMul
 
+            // Task 10 — buff vĩnh viễn PRESTIGE (+4%/cấp) nhân vào 4 stat chính.
+            val pMul = ctx.prestigeMul
             return EffectiveStats(
                 // Task 03 — nhân thêm hp bonus theo LEVEL tàu (shipLevelHpMul).
-                hpMul = (diffHp * mod.hpMul * metaHp * shipHpMul * ctx.shipLevelHpMul).coerceIn(0.3f, 3.0f),
-                damageMul = (mod.damageMul * metaDmg * shipDamageMul).coerceIn(0.5f, 4.0f),
-                speedMul = (mod.speedMul * metaSpd * shipSpeedMul).coerceIn(0.5f, 3.5f),
-                magnetMul = (mod.magnetMul * metaMag).coerceIn(0.5f, 3.0f),
+                hpMul = (diffHp * mod.hpMul * metaHp * shipHpMul * ctx.shipLevelHpMul * pMul).coerceIn(0.3f, 3.0f),
+                damageMul = (mod.damageMul * metaDmg * shipDamageMul * pMul).coerceIn(0.5f, 4.0f),
+                speedMul = (mod.speedMul * metaSpd * shipSpeedMul * pMul).coerceIn(0.5f, 3.5f),
+                magnetMul = (mod.magnetMul * metaMag * pMul).coerceIn(0.5f, 3.0f),
                 // Round 74 (R73f) — apply metaLife multiplier vào scoreMul.
                 scoreMul = (mod.scoreMul * metaLife).coerceIn(0.5f, 4.0f),
                 noShieldDrops = mod.noShieldDrops,

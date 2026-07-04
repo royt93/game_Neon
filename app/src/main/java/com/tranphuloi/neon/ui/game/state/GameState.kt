@@ -226,6 +226,8 @@ fun rememberGameState(): GameState {
             ?: kotlinx.coroutines.runBlocking { settingsRepo.selectedShipShape.first() }
         // Task 03 — đọc XP tàu 1 lần → hp bonus theo level (áp qua shipLevelHpMul).
         val shipXp = kotlinx.coroutines.runBlocking { metaRepo.shipXp(resolvedShape.key).first() }
+        // Task 10 — đọc cấp prestige 1 lần → buff vĩnh viễn (prestigeMul).
+        val prestigeLvl = kotlinx.coroutines.runBlocking { metaRepo.prestigeLevel.first() }
         com.tranphuloi.neon.ui.game.state.RunContext(
             mode = runMode,
             modifier = runModifier,
@@ -234,6 +236,7 @@ fun rememberGameState(): GameState {
             shipShape = resolvedShape,
             shipLevelHpMul = com.tranphuloi.neon.ui.game.ship.shape.ShipXpLevels.hpBonusMulForXp(shipXp),
             shipLevel = com.tranphuloi.neon.ui.game.ship.shape.ShipXpLevels.levelForXp(shipXp),
+            prestigeMul = com.tranphuloi.neon.data.prestigeMultiplier(prestigeLvl),
         )
     }
     // Task 05 — kỹ năng chủ động theo tàu (cooldown giảm theo level tàu).

@@ -131,14 +131,54 @@ data class RegularEnemy(
 
     override fun generateLasers(): List<Laser> {
         val laserWidth = 18f
-        return listOf(
-            EnemyLaser(
-                xOffset = xOffset + width / 2 - laserWidth / 2,
-                yOffset = yOffset + height,
-                yRange = screenHeight,
-                width = laserWidth
-            )
+        val cx = xOffset + width / 2 - laserWidth / 2
+        val bottom = yOffset + height
+        fun bullet(
+            x: Float = cx,
+            vx: Float = 0f,
+            motion: com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion =
+                com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.LINEAR,
+        ) = EnemyLaser(
+            xOffset = x,
+            yOffset = bottom,
+            yRange = screenHeight,
+            width = laserWidth,
+            xOffsetMovementSpeed = vx,
+            motion = motion,
         )
+        // Task 09 — đòn RIÊNG theo attackKind (mặc định 1 tia). Pattern né được:
+        // điểm nhấn là hình dạng đòn, không tăng DPS quá tay.
+        return when (type.attackKind) {
+            EnemyAttackKind.SINGLE -> listOf(bullet())
+            // Splitter: 2 tia từ 2 mép, toả ngoài như "kéo mở".
+            EnemyAttackKind.SPLIT -> listOf(
+                bullet(x = xOffset, vx = -1.6f),
+                bullet(x = xOffset + width - laserWidth, vx = 1.6f),
+            )
+            // Repulsor: nón 3 tia (giữa + 2 bên) dồn ép.
+            EnemyAttackKind.CONE3 -> listOf(
+                bullet(),
+                bullet(vx = -2.4f),
+                bullet(vx = 2.4f),
+            )
+            // Jammer: 2 tia bay CONG thất thường.
+            EnemyAttackKind.CURVE2 -> listOf(
+                bullet(x = xOffset + width * 0.25f - laserWidth / 2,
+                    motion = com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.CURVE),
+                bullet(x = xOffset + width * 0.75f - laserWidth / 2,
+                    motion = com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.CURVE),
+            )
+            // Missileer: loạt 3 tia thẳng xuống lệch ngang ("volley").
+            EnemyAttackKind.VOLLEY3 -> listOf(
+                bullet(x = xOffset + width * 0.2f - laserWidth / 2),
+                bullet(),
+                bullet(x = xOffset + width * 0.8f - laserWidth / 2),
+            )
+            // Predator: 1 tia HOMING bám tàu (controller cập nhật target mỗi tick).
+            EnemyAttackKind.HOMING1 -> listOf(
+                bullet(motion = com.tranphuloi.neon.ui.game.enemy.laser.LaserMotion.HOMING),
+            )
+        }
     }
 
     override fun onObjectImpact(impactPower: Float) {

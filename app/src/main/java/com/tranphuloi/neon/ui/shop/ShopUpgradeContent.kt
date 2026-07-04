@@ -56,6 +56,40 @@ internal fun MetaUpgradeNodes(
     val balance by meta.lifetimeMinerals.collectAsState(initial = 0)
     val ranks by meta.allRanks.collectAsState(initial = emptyMap())
 
+    // Task 10 (đợt 3) — Prestige Reset: sink vô hạn ở đầu tab Nâng cấp.
+    val prestigeLvl by meta.prestigeLevel.collectAsState(initial = 0)
+    val skillRanks by meta.totalSkillRanks.collectAsState(initial = 0)
+    val prestigeCost = com.tranphuloi.neon.data.prestigeCost(prestigeLvl)
+    val prestigeOk = com.tranphuloi.neon.data.canPrestige(
+        balance, prestigeCost, skillRanks, com.tranphuloi.neon.data.PRESTIGE_MIN_RANKS,
+    )
+    PrestigeCard(
+        level = prestigeLvl,
+        cost = prestigeCost,
+        skillRanks = skillRanks,
+        minRanks = com.tranphuloi.neon.data.PRESTIGE_MIN_RANKS,
+        canPrestige = prestigeOk,
+        onPrestige = {
+            onRequestPurchase(
+                PurchaseRequest(
+                    title = "Prestige → cấp ${prestigeLvl + 1}",
+                    description = "Xoá TOÀN BỘ skill-tree để nhận +4% mọi chỉ số vĩnh viễn " +
+                        "(tổng +${(prestigeLvl + 1) * 4}%). Giữ nguyên tàu/skin/đạn đã mua. Không hoàn lại.",
+                    cost = prestigeCost,
+                    balanceAfter = balance - prestigeCost,
+                    accent = NeonGold,
+                    confirm = {
+                        scope.launch {
+                            val ok = meta.doPrestige(cost = prestigeCost)
+                            Logger.d("Prestige requested cost=$prestigeCost ok=$ok")
+                        }
+                    },
+                )
+            )
+        },
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+
     Text(
         text = "Nâng cấp vĩnh viễn — áp dụng cho mọi lần chơi sau.",
         color = Color.White.copy(alpha = 0.75f),
@@ -269,6 +303,58 @@ private fun ProgressBarSegments(currentRank: Int, maxRank: Int, color: Color) {
                     .clip(RoundedCornerShape(2.dp))
                     .background(if (filled) color else Color.White.copy(alpha = 0.12f)),
             )
+        }
+    }
+}
+
+/**
+ * Task 10 (đợt 3) — thẻ Prestige Reset ở đầu tab Nâng cấp. Hiện cấp hiện tại +
+ * buff vĩnh viễn + cost + điều kiện; bấm mở PurchaseConfirmSheet (qua
+ * onRequestPurchase). Nhả xám khi chưa đủ rank/khoáng.
+ */
+@Composable
+private fun PrestigeCard(
+    level: Int,
+    cost: Int,
+    skillRanks: Int,
+    minRanks: Int,
+    canPrestige: Boolean,
+    onPrestige: () -> Unit,
+) {
+    val gate = if (skillRanks < minRanks) "Cần ≥ $minRanks rank kỹ năng (đang $skillRanks)"
+    else if (!canPrestige) "Chưa đủ $cost◇"
+    else "Sẵn sàng"
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(NeonGold.copy(alpha = 0.10f))
+            .border(BorderStroke(1.dp, NeonGold.copy(alpha = if (canPrestige) 0.8f else 0.3f)), RoundedCornerShape(14.dp))
+            .clickable(enabled = canPrestige) { onPrestige() }
+            .padding(14.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = "⭐ Prestige · cấp $level", color = NeonGold, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text(text = "+${level * 4}% mọi chỉ số", color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp)
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = "Xoá toàn bộ skill-tree để nhận thêm +4% mọi chỉ số vĩnh viễn. Giữ tàu/skin/đạn đã mua.",
+            color = Color.White.copy(alpha = 0.72f),
+            fontSize = 12.sp,
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = gate, color = if (canPrestige) NeonCyan else NeonRedAlert.copy(alpha = 0.8f), fontSize = 12.sp)
+            Text(text = "$cost◇", color = if (canPrestige) NeonGold else Color.White.copy(alpha = 0.4f), fontSize = 15.sp, fontWeight = FontWeight.Bold)
         }
     }
 }

@@ -265,6 +265,12 @@ private fun bodyColorFor(drawableId: Int): Color = when (drawableId) {
     R.drawable.enemy_phantom -> Color(0xFFB14CFF)                    // violet
     R.drawable.enemy_healer -> Color(0xFF60FFAA)                     // mint
     R.drawable.enemy_kamikaze -> Color(0xFFFFE040)                   // warning yellow
+    // Task 09 (đợt 3) — 5 địch chủ đề, mỗi con 1 màu signature.
+    R.drawable.enemy_splitter -> Color(0xFFE8C020)                   // gold (phân thân)
+    R.drawable.enemy_repulsor -> Color(0xFFD040FF)                   // magenta (đẩy lùi)
+    R.drawable.enemy_jammer -> Color(0xFF40E0FF)                     // cyan (nhiễu)
+    R.drawable.enemy_missileer -> Color(0xFFFF7020)                  // cam (pháo)
+    R.drawable.enemy_predator -> Color(0xFF2E9E5B)                   // xanh lá đậm (săn)
     else -> Color(0xFFCCCCCC)
 }
 
@@ -292,6 +298,12 @@ private fun accentColorFor(drawableId: Int): Color = when (drawableId) {
     R.drawable.enemy_phantom -> Color(0xFFE8E8F0)
     R.drawable.enemy_healer -> Color(0xFFFFFFFF)
     R.drawable.enemy_kamikaze -> Color(0xFFFF6020)
+    // Task 09 (đợt 3) — accent 5 địch chủ đề.
+    R.drawable.enemy_splitter -> Color(0xFFFFF080)                   // gold sáng
+    R.drawable.enemy_repulsor -> Color(0xFFF0A0FF)                   // magenta nhạt
+    R.drawable.enemy_jammer -> Color(0xFFFF4040)                     // đỏ cảnh báo
+    R.drawable.enemy_missileer -> Color(0xFFFFFFFF)                  // trắng mũi
+    R.drawable.enemy_predator -> Color(0xFF40FFD0)                   // teal glow
     else -> Color(0xFF666666)
 }
 
@@ -506,6 +518,12 @@ private fun DrawScope.drawEnemyShape(
         R.drawable.enemy_phantom -> drawEnemyPhantom(cx, cy, wPx, hPx, body, accent)
         R.drawable.enemy_healer -> drawEnemyHealer(cx, cy, wPx, hPx, body, accent)
         R.drawable.enemy_kamikaze -> drawEnemyKamikaze(cx, cy, wPx, hPx, body, accent)
+        // Task 09 (đợt 3) — 5 địch chủ đề, shape RIÊNG.
+        R.drawable.enemy_splitter -> drawEnemySplitter(cx, cy, wPx, hPx, body, accent)
+        R.drawable.enemy_repulsor -> drawEnemyRepulsor(cx, cy, wPx, hPx, body, accent)
+        R.drawable.enemy_jammer -> drawEnemyJammer(cx, cy, wPx, hPx, body, accent)
+        R.drawable.enemy_missileer -> drawEnemyMissileer(cx, cy, wPx, hPx, body, accent)
+        R.drawable.enemy_predator -> drawEnemyPredator(cx, cy, wPx, hPx, body, accent)
         // Boss drawables fallback (bossKind null — defensive).
         R.drawable.enemy_green_boss, R.drawable.enemy_red_boss ->
             drawBossStar(cx, cy, wPx, hPx, body, accent)
@@ -3261,4 +3279,76 @@ private fun DrawScope.drawEnemyKamikaze(cx: Float, cy: Float, w: Float, h: Float
             Offset(cx + w * 0.20f - i * w * 0.05f, sy),
             strokeWidth = w * 0.02f)
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Task 09 (đợt 3) — shape RIÊNG cho 5 địch chủ đề (Wave 9a hoàn tất).
+// Dùng PathPool (hot-path) như các recipe khác.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Splitter: 2 nửa tam giác tách khỏi khe giữa ("phân thân"). */
+private fun DrawScope.drawEnemySplitter(cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color) {
+    val topY = cy - h * 0.35f; val botY = cy + h * 0.35f
+    val left = PathPool.acquire().apply {
+        moveTo(cx - w * 0.06f, topY); lineTo(cx - w * 0.06f, botY); lineTo(cx - w * 0.42f, cy); close()
+    }
+    drawPath(left, body); PathPool.release(left)
+    val right = PathPool.acquire().apply {
+        moveTo(cx + w * 0.06f, topY); lineTo(cx + w * 0.06f, botY); lineTo(cx + w * 0.42f, cy); close()
+    }
+    drawPath(right, body); PathPool.release(right)
+    drawLine(accent, Offset(cx, topY), Offset(cx, botY), strokeWidth = w * 0.05f)
+    drawCircle(accent, w * 0.07f, Offset(cx, cy))
+}
+
+/** Repulsor: đĩa + 6 gai toả ngoài ("puffer" đẩy lùi). */
+private fun DrawScope.drawEnemyRepulsor(cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color) {
+    val r = minOf(w, h) * 0.26f
+    for (i in 0 until 6) {
+        val a = i * 60.0 * Math.PI / 180.0
+        drawLine(accent,
+            Offset(cx, cy),
+            Offset(cx + (r * 1.8f * kotlin.math.cos(a)).toFloat(), cy + (r * 1.8f * kotlin.math.sin(a)).toFloat()),
+            strokeWidth = w * 0.06f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+    drawCircle(body, r, Offset(cx, cy))
+    drawCircle(accent, r * 0.42f, Offset(cx, cy))
+}
+
+/** Jammer: chảo radar (arc) + cột phát + đèn đỏ + cánh. */
+private fun DrawScope.drawEnemyJammer(cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color) {
+    drawArc(body, 200f, 140f, true,
+        topLeft = Offset(cx - w * 0.28f, cy - h * 0.28f), size = Size(w * 0.56f, h * 0.5f))
+    drawLine(body, Offset(cx, cy), Offset(cx, cy - h * 0.42f), strokeWidth = w * 0.06f)
+    drawCircle(accent, w * 0.07f, Offset(cx, cy - h * 0.42f))
+    drawLine(body, Offset(cx - w * 0.3f, cy + h * 0.22f), Offset(cx + w * 0.3f, cy + h * 0.22f),
+        strokeWidth = w * 0.05f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+}
+
+/** Missileer: thân tên lửa + mũi nhọn (hướng xuống) + 2 cánh + đèn. */
+private fun DrawScope.drawEnemyMissileer(cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color) {
+    drawRect(body, topLeft = Offset(cx - w * 0.12f, cy - h * 0.22f), size = Size(w * 0.24f, h * 0.5f))
+    val nose = PathPool.acquire().apply {
+        moveTo(cx - w * 0.12f, cy + h * 0.28f); lineTo(cx + w * 0.12f, cy + h * 0.28f); lineTo(cx, cy + h * 0.48f); close()
+    }
+    drawPath(nose, accent); PathPool.release(nose)
+    val finL = PathPool.acquire().apply {
+        moveTo(cx - w * 0.12f, cy - h * 0.22f); lineTo(cx - w * 0.3f, cy - h * 0.38f); lineTo(cx - w * 0.12f, cy); close()
+    }
+    drawPath(finL, body); PathPool.release(finL)
+    val finR = PathPool.acquire().apply {
+        moveTo(cx + w * 0.12f, cy - h * 0.22f); lineTo(cx + w * 0.3f, cy - h * 0.38f); lineTo(cx + w * 0.12f, cy); close()
+    }
+    drawPath(finR, body); PathPool.release(finR)
+    drawCircle(accent, w * 0.05f, Offset(cx, cy - h * 0.24f))
+}
+
+/** Predator: trăng khuyết sleek (arc dày) + 2 mắt săn teal. */
+private fun DrawScope.drawEnemyPredator(cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color) {
+    val r = minOf(w, h) * 0.32f
+    drawArc(body, startAngle = 35f, sweepAngle = 290f, useCenter = false,
+        topLeft = Offset(cx - r, cy - r), size = Size(r * 2, r * 2),
+        style = Stroke(width = w * 0.16f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
+    drawCircle(accent, w * 0.05f, Offset(cx - w * 0.12f, cy - h * 0.04f))
+    drawCircle(accent, w * 0.05f, Offset(cx + w * 0.12f, cy - h * 0.04f))
 }

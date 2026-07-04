@@ -345,22 +345,207 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBulletCapsule(
         BulletType.KAMEHAMEHA -> drawBeamBullet(cx, cy, w * 0.75f, h * 0.35f, color)
         BulletType.ATOMIC -> drawAtomicBullet(cx, cy, w * 0.3f, color)
         BulletType.SPLIT -> drawSplitBullet(cx, cy, w * 0.25f, h * 0.7f, color)
-        // Wave 16 — đạn trào phúng (reuse recipe gần nhất với cơ chế).
-        BulletType.LOTTERY -> drawCapsuleBullet(cx, cy, w * 0.25f, h * 0.7f, color)
-        BulletType.FIREWORK -> drawOrbBullet(cx, cy, w * 0.32f, color)
-        BulletType.BRICK -> drawGiantBullet(cx, cy, w * 0.45f, h * 0.85f, color)
-        // Wave 16 batch 2 (reuse recipe khớp cơ chế).
-        BulletType.BANH_MI -> drawNeedleBullet(cx, cy, w * 0.18f, h * 0.85f, color)
-        BulletType.DURIAN -> drawOrbBullet(cx, cy, w * 0.32f, color)
-        BulletType.HEART -> drawHomingBullet(cx, cy, w * 0.25f, h * 0.7f, color)
-        // Wave 18 — batch 3 (reuse recipe gần cơ chế; nhãn shape phân biệt rõ).
-        BulletType.BUBBLE_TEA -> drawOrbBullet(cx, cy, w * 0.32f, color)
-        BulletType.FISH_SAUCE -> drawCapsuleBullet(cx, cy, w * 0.25f, h * 0.7f, color)
-        BulletType.SANDAL -> drawBounceBullet(cx, cy, w * 0.28f, color)
-        BulletType.QR_CODE -> drawGiantBullet(cx, cy, w * 0.45f, h * 0.85f, color)
-        // Task 02 — Sét Chain: tái dùng zigzag (giống tia sét).
-        BulletType.LIGHTNING -> drawZigzagBullet(cx, cy, w * 0.4f, h * 0.7f, color)
+        // Slice 4c — đạn trào phúng batch 1+2: preview RIÊNG (mirror recipe
+        // DialogLoadoutPicker) → hết reuse shape đạn khác trong Bách Khoa.
+        BulletType.LOTTERY -> drawLotteryBullet(cx, cy, w, color)
+        BulletType.FIREWORK -> drawFireworkBullet(cx, cy, w, color)
+        BulletType.BRICK -> drawBrickBullet(cx, cy, w, color)
+        BulletType.BANH_MI -> drawBanhMiBullet(cx, cy, w, color)
+        BulletType.DURIAN -> drawDurianBullet(cx, cy, w, color)
+        BulletType.HEART -> drawHeartBullet(cx, cy, w, color)
+        // Slice 4c — batch 3 + Sét: cũng có preview RIÊNG (đồng bộ mọi nơi).
+        BulletType.BUBBLE_TEA -> drawBobaBullet(cx, cy, w, color)
+        BulletType.FISH_SAUCE -> drawBottleBullet(cx, cy, w, color)
+        BulletType.SANDAL -> drawSandalBullet(cx, cy, w, color)
+        BulletType.QR_CODE -> drawQrBullet(cx, cy, w, color)
+        BulletType.LIGHTNING -> drawLightningBullet(cx, cy, w, h, color)
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Slice 4c — preview RIÊNG cho đạn trào phúng (batch 1+2+3) + Sét trong Bách
+// Khoa. Mirror công thức từ DialogLoadoutPicker.drawBulletPreview để 3 nơi
+// (LaserCanvas in-game / LoadoutPicker tile / InfoScreen card) đồng bộ shape.
+// Icon canvas là 48dp vuông (w == h) nên chỉ cần scale theo w.
+// ─────────────────────────────────────────────────────────────────────────
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawLotteryBullet(
+    cx: Float, cy: Float, w: Float, color: Color,
+) {
+    // Ô số: ô vuông bo góc + chấm trắng (số bí ẩn).
+    drawRoundRect(color = color,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.22f, cy - w * 0.22f),
+        size = androidx.compose.ui.geometry.Size(w * 0.44f, w * 0.44f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.08f))
+    drawCircle(Color.White.copy(alpha = 0.9f), w * 0.07f,
+        androidx.compose.ui.geometry.Offset(cx, cy))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawFireworkBullet(
+    cx: Float, cy: Float, w: Float, color: Color,
+) {
+    // Sao toé: tâm + 8 nan.
+    drawCircle(color, w * 0.10f, androidx.compose.ui.geometry.Offset(cx, cy))
+    for (i in 0 until 8) {
+        val a = i * 45.0 * Math.PI / 180.0
+        drawLine(color = color,
+            start = androidx.compose.ui.geometry.Offset(cx, cy),
+            end = androidx.compose.ui.geometry.Offset(
+                cx + (w * 0.36f * kotlin.math.cos(a)).toFloat(),
+                cy + (w * 0.36f * kotlin.math.sin(a)).toFloat()),
+            strokeWidth = w * 0.05f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBrickBullet(
+    cx: Float, cy: Float, w: Float, color: Color,
+) {
+    // Viên gạch: chữ nhật + 1 vạch chia (mạch gạch).
+    drawRoundRect(color = color,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.26f, cy - w * 0.18f),
+        size = androidx.compose.ui.geometry.Size(w * 0.52f, w * 0.36f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.04f))
+    drawLine(color = Color.Black.copy(alpha = 0.35f),
+        start = androidx.compose.ui.geometry.Offset(cx, cy - w * 0.18f),
+        end = androidx.compose.ui.geometry.Offset(cx, cy + w * 0.18f),
+        strokeWidth = w * 0.04f)
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBanhMiBullet(
+    cx: Float, cy: Float, w: Float, color: Color,
+) {
+    // Ổ bánh mì: oval ngang + 1 vạch (mặt cắt).
+    drawOval(color = color,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.30f, cy - w * 0.14f),
+        size = androidx.compose.ui.geometry.Size(w * 0.60f, w * 0.28f))
+    drawLine(color = Color.White.copy(alpha = 0.6f),
+        start = androidx.compose.ui.geometry.Offset(cx - w * 0.12f, cy - w * 0.06f),
+        end = androidx.compose.ui.geometry.Offset(cx + w * 0.12f, cy - w * 0.06f),
+        strokeWidth = w * 0.03f)
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawDurianBullet(
+    cx: Float, cy: Float, w: Float, color: Color,
+) {
+    // Sầu riêng: tròn + nhiều gai.
+    drawCircle(color, w * 0.22f, androidx.compose.ui.geometry.Offset(cx, cy))
+    for (i in 0 until 10) {
+        val a = i * 36.0 * Math.PI / 180.0
+        drawLine(color = color,
+            start = androidx.compose.ui.geometry.Offset(
+                cx + (w * 0.22f * kotlin.math.cos(a)).toFloat(),
+                cy + (w * 0.22f * kotlin.math.sin(a)).toFloat()),
+            end = androidx.compose.ui.geometry.Offset(
+                cx + (w * 0.40f * kotlin.math.cos(a)).toFloat(),
+                cy + (w * 0.40f * kotlin.math.sin(a)).toFloat()),
+            strokeWidth = w * 0.04f,
+            cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawHeartBullet(
+    cx: Float, cy: Float, w: Float, color: Color,
+) {
+    // Trái tim: 2 thuỳ tròn + đáy nhọn.
+    val lobe = w * 0.16f
+    drawCircle(color, lobe, androidx.compose.ui.geometry.Offset(cx - lobe * 0.8f, cy - lobe * 0.5f))
+    drawCircle(color, lobe, androidx.compose.ui.geometry.Offset(cx + lobe * 0.8f, cy - lobe * 0.5f))
+    val tri = PathPool.acquire().apply {
+        moveTo(cx - lobe * 1.7f, cy - lobe * 0.2f)
+        lineTo(cx + lobe * 1.7f, cy - lobe * 0.2f)
+        lineTo(cx, cy + lobe * 1.9f)
+        close()
+    }
+    drawPath(tri, color)
+    PathPool.release(tri)
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBobaBullet(
+    cx: Float, cy: Float, w: Float, color: Color,
+) {
+    // Ly trà sữa bo góc + 2 trân châu tối.
+    drawRoundRect(color = color,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.18f, cy - w * 0.3f),
+        size = androidx.compose.ui.geometry.Size(w * 0.36f, w * 0.6f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.08f))
+    drawCircle(Color.Black.copy(alpha = 0.5f), w * 0.07f,
+        androidx.compose.ui.geometry.Offset(cx - w * 0.07f, cy + w * 0.16f))
+    drawCircle(Color.Black.copy(alpha = 0.5f), w * 0.07f,
+        androidx.compose.ui.geometry.Offset(cx + w * 0.07f, cy + w * 0.16f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBottleBullet(
+    cx: Float, cy: Float, w: Float, color: Color,
+) {
+    // Chai nước mắm: cổ + thân bo góc + nhãn trắng.
+    drawRect(color = color,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.07f, cy - w * 0.32f),
+        size = androidx.compose.ui.geometry.Size(w * 0.14f, w * 0.18f))
+    drawRoundRect(color = color,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.16f, cy - w * 0.14f),
+        size = androidx.compose.ui.geometry.Size(w * 0.32f, w * 0.46f),
+        cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.06f))
+    drawRect(color = Color.White.copy(alpha = 0.7f),
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.1f, cy + w * 0.02f),
+        size = androidx.compose.ui.geometry.Size(w * 0.2f, w * 0.12f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSandalBullet(
+    cx: Float, cy: Float, w: Float, color: Color,
+) {
+    // Đế dép oval + quai chữ V.
+    drawOval(color = color,
+        topLeft = androidx.compose.ui.geometry.Offset(cx - w * 0.18f, cy - w * 0.3f),
+        size = androidx.compose.ui.geometry.Size(w * 0.36f, w * 0.6f))
+    drawLine(color = Color.White.copy(alpha = 0.85f),
+        start = androidx.compose.ui.geometry.Offset(cx, cy - w * 0.12f),
+        end = androidx.compose.ui.geometry.Offset(cx - w * 0.12f, cy + w * 0.14f),
+        strokeWidth = w * 0.05f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+    drawLine(color = Color.White.copy(alpha = 0.85f),
+        start = androidx.compose.ui.geometry.Offset(cx, cy - w * 0.12f),
+        end = androidx.compose.ui.geometry.Offset(cx + w * 0.12f, cy + w * 0.14f),
+        strokeWidth = w * 0.05f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawQrBullet(
+    cx: Float, cy: Float, w: Float, color: Color,
+) {
+    // Ô vuông + vài ô trắng kiểu mã QR.
+    val s = w * 0.5f
+    val qx = cx - s / 2f; val qy = cy - s / 2f
+    drawRect(color = color,
+        topLeft = androidx.compose.ui.geometry.Offset(qx, qy),
+        size = androidx.compose.ui.geometry.Size(s, s))
+    val cc = s / 4f
+    for ((ix, iy) in listOf(0 to 0, 3 to 0, 0 to 3, 2 to 2)) {
+        drawRect(color = Color.White.copy(alpha = 0.9f),
+            topLeft = androidx.compose.ui.geometry.Offset(qx + ix * cc, qy + iy * cc),
+            size = androidx.compose.ui.geometry.Size(cc, cc))
+    }
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawLightningBullet(
+    cx: Float, cy: Float, w: Float, h: Float, color: Color,
+) {
+    // Sét Chain: tia zigzag dọc nhọn (khác chevron-stack của ZIGZAG).
+    val amp = w * 0.22f
+    val boltH = h * 0.7f
+    val topY = cy - boltH / 2f
+    val step = boltH / 4f
+    val path = PathPool.acquire().apply {
+        moveTo(cx, topY)
+        lineTo(cx + amp, topY + step)
+        lineTo(cx - amp, topY + step * 2)
+        lineTo(cx + amp, topY + step * 3)
+        lineTo(cx, topY + boltH)
+    }
+    drawPath(path, color, style = androidx.compose.ui.graphics.drawscope.Stroke(
+        width = w * 0.1f,
+        cap = androidx.compose.ui.graphics.StrokeCap.Round,
+        join = androidx.compose.ui.graphics.StrokeJoin.Round,
+    ))
+    PathPool.release(path)
 }
 
 // Round 71 audit fix — GIANT distinct recipe: bigger capsule + 2 inner
