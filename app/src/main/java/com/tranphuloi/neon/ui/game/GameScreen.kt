@@ -266,6 +266,15 @@ fun GameScreen(
                 shipTimeMillisBySkin = mapOf(telemetry.shipSkin to telemetry.shipTimeMillis),
                 ranksAchieved = telemetry.ranksAchieved,
             )
+            // Task 03 — trao XP cho TÀU đang dùng: địch thường + 10×boss. Level suy
+            // ra qua ShipXpLevels; bonus HP áp ở run kế (đọc 1 lần/run trong GameState).
+            metaRepo.addShipXp(
+                gameState.shipShape.key,
+                com.tranphuloi.neon.ui.game.ship.shape.ShipXpLevels.xpForRun(
+                    enemiesKilled = gameState.enemiesKilledTotal,
+                    bossesDefeated = gameState.bossesDefeatedTotal,
+                ),
+            )
             // Wave 11c — telemetry-driven achievement checks. Runs once after
             // recordRunMetrics commits, so totals are fresh. .first() pulls a
             // single emission from each Flow; suspend keeps us inside this

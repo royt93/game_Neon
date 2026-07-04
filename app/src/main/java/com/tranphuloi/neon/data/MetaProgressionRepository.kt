@@ -27,6 +27,8 @@ private const val BULLET_KILL_PREFIX = "bullet_kill_"
 private const val BOSS_KILL_PREFIX = "boss_kill_"
 private const val SHIP_TIME_PREFIX = "ship_time_"
 private const val RANK_DIST_PREFIX = "rank_dist_"
+// Task 03 — XP tích luỹ mỗi tàu (key = shipShape.key). Level suy ra qua ShipXpLevels.
+private const val SHIP_XP_PREFIX = "shipxp_"
 // Wave 12 round 2 — shop persistence. Rank-based items reuse NODE_PREFIX
 // (each shop item appears as a "node" in DataStore with prefix `node_shop_*`),
 // CONSUMABLE items get their own STOCKPILE_PREFIX namespace so a consumable
@@ -96,6 +98,32 @@ class MetaProgressionRepository(private val appContext: Context) {
             val before = prefs[LIFETIME_MINERALS_KEY] ?: 0
             prefs[LIFETIME_MINERALS_KEY] = before + amount
             Logger.d("MetaProgressionRepository.addMinerals +$amount → ${before + amount}")
+        }
+    }
+
+    // ── Task 03 — XP tích luỹ mỗi tàu ──
+
+    /** XP tích luỹ của 1 tàu (theo `shipShape.key`). 0 nếu chưa có. */
+    fun shipXp(shipKey: String): Flow<Int> = appContext.metaDataStore.data.map {
+        it[intPreferencesKey(SHIP_XP_PREFIX + shipKey)] ?: 0
+    }
+
+    /** Toàn bộ XP tàu (key = shipShape.key → xp) — cho UI shop hiển thị nhiều tàu. */
+    val allShipXp: Flow<Map<String, Int>> = appContext.metaDataStore.data.map { prefs ->
+        prefs.asMap()
+            .filterKeys { it.name.startsWith(SHIP_XP_PREFIX) }
+            .mapKeys { it.key.name.removePrefix(SHIP_XP_PREFIX) }
+            .mapValues { (it.value as? Int) ?: 0 }
+    }
+
+    /** Cộng [amount] XP cho tàu [shipKey] (atomic). No-op nếu amount ≤ 0. */
+    suspend fun addShipXp(shipKey: String, amount: Int) {
+        if (amount <= 0) return
+        appContext.metaDataStore.edit { prefs ->
+            val key = intPreferencesKey(SHIP_XP_PREFIX + shipKey)
+            val before = prefs[key] ?: 0
+            prefs[key] = before + amount
+            Logger.d("MetaProgressionRepository.addShipXp[$shipKey] +$amount → ${before + amount}")
         }
     }
 

@@ -121,7 +121,8 @@ data class EffectiveStats(
             val shipDamageMul = ctx.shipShape.damageMul
 
             return EffectiveStats(
-                hpMul = (diffHp * mod.hpMul * metaHp * shipHpMul).coerceIn(0.3f, 3.0f),
+                // Task 03 — nhân thêm hp bonus theo LEVEL tàu (shipLevelHpMul).
+                hpMul = (diffHp * mod.hpMul * metaHp * shipHpMul * ctx.shipLevelHpMul).coerceIn(0.3f, 3.0f),
                 damageMul = (mod.damageMul * metaDmg * shipDamageMul).coerceIn(0.5f, 4.0f),
                 speedMul = (mod.speedMul * metaSpd * shipSpeedMul).coerceIn(0.5f, 3.5f),
                 magnetMul = (mod.magnetMul * metaMag).coerceIn(0.5f, 3.0f),

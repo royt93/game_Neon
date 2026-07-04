@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -777,6 +778,8 @@ private fun ShipTab(
     val settings = LocalSettings.current
     val selectedShape by settings.selectedShipShape.collectAsState(initial = ShipShape.FIGHTER)
     val discountRank = allRanks[EffectiveStats.META_KEY_SHIP_UNLOCK_DISCOUNT] ?: 0
+    // Task 03 — XP mỗi tàu để hiển thị level + bonus (chỉ ảnh hưởng survivability).
+    val allShipXp by meta.allShipXp.collectAsState(initial = emptyMap())
 
     // Migration (threshold-gate → purchase): grant the currently-selected ship
     // for free so it stays usable. Idempotent (grantNodeFree no-ops if owned),
@@ -801,6 +804,7 @@ private fun ShipTab(
             shape = shape,
             owned = ShipShopLogic.isOwned(shape, allRanks),
             selected = shape == selectedShape,
+            shipXp = allShipXp[shape.key] ?: 0,
             cost = ShipShopLogic.effectiveCost(shape, discountRank),
             discounted = discountRank > 0 && !ShipShopLogic.isFree(shape),
             canBuy = ShipShopLogic.canBuy(balance, shape, allRanks, discountRank),
@@ -843,6 +847,7 @@ private fun ShipRow(
     canBuy: Boolean,
     onBuy: () -> Unit,
     onSelect: () -> Unit,
+    shipXp: Int = 0,
 ) {
     val color = Color(ShipShapeColorMap.argbFor(shape))
     val rowAlpha = if (owned || canBuy) 1f else 0.5f
@@ -892,6 +897,38 @@ private fun ShipRow(
                     text = "Máu ×${shape.hpMul} · Tốc ×${shape.speedMul} · ST ×${shape.damageMul}",
                     style = TextStyle(color = Color(0xFFB0C0D0).copy(alpha = rowAlpha), fontSize = 10.sp),
                 )
+                // Task 03 — level + XP (chỉ tàu sở hữu; bonus +HP theo cấp).
+                if (owned) {
+                    val lvl = com.tranphuloi.neon.ui.game.ship.shape.ShipXpLevels.levelForXp(shipXp)
+                    val bonusPct = ((com.tranphuloi.neon.ui.game.ship.shape.ShipXpLevels.hpBonusMulForLevel(lvl) - 1f) * 100f).toInt()
+                    val toNext = com.tranphuloi.neon.ui.game.ship.shape.ShipXpLevels.xpToNextLevel(shipXp)
+                    val progress = com.tranphuloi.neon.ui.game.ship.shape.ShipXpLevels.progressInLevel(shipXp)
+                    val maxed = lvl >= com.tranphuloi.neon.ui.game.ship.shape.ShipXpLevels.MAX_LEVEL
+                    Spacer(Modifier.height(3.dp))
+                    Text(
+                        text = if (maxed) {
+                            "Lv$lvl (MAX) · +$bonusPct% HP"
+                        } else {
+                            "Lv$lvl · +$bonusPct% HP · còn ${toNext} XP"
+                        },
+                        style = TextStyle(color = NeonGold.copy(alpha = rowAlpha), fontSize = 9.sp, fontWeight = FontWeight.Bold),
+                    )
+                    // Thanh tiến độ XP mảnh.
+                    Box(
+                        Modifier
+                            .padding(top = 2.dp)
+                            .fillMaxWidth(0.6f)
+                            .height(3.dp)
+                            .background(Color.White.copy(alpha = 0.15f * rowAlpha)),
+                    ) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth(if (maxed) 1f else progress)
+                                .fillMaxHeight()
+                                .background(NeonGold.copy(alpha = rowAlpha)),
+                        )
+                    }
+                }
             }
         }
         // Right-side state: selected / owned / price.

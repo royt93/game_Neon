@@ -218,17 +218,21 @@ fun rememberGameState(): GameState {
         java.util.concurrent.ConcurrentHashMap<String, com.tranphuloi.neon.ui.game.ship.laser.BulletType>()
     }
     val runContext = remember(runMode, runModifier) {
+        // Round 73 (Wave 8) — wire selectedShipShape vào EffectiveStats.
+        // Wave 25 (#trial) — thử TÀU: dùng shape đang thử (bỏ qua khoá), KHÔNG
+        // ghi đè selectedShipShape đã lưu.
+        val resolvedShape = (com.tranphuloi.neon.ui.game.trial.TrialSession.spec
+            as? com.tranphuloi.neon.ui.game.trial.TrialSpec.Ship)?.shape
+            ?: kotlinx.coroutines.runBlocking { settingsRepo.selectedShipShape.first() }
+        // Task 03 — đọc XP tàu 1 lần → hp bonus theo level (áp qua shipLevelHpMul).
+        val shipXp = kotlinx.coroutines.runBlocking { metaRepo.shipXp(resolvedShape.key).first() }
         com.tranphuloi.neon.ui.game.state.RunContext(
             mode = runMode,
             modifier = runModifier,
             difficulty = kotlinx.coroutines.runBlocking { settingsRepo.difficulty.first() },
             metaUpgrades = kotlinx.coroutines.runBlocking { metaRepo.allRanks.first() },
-            // Round 73 (Wave 8) — wire selectedShipShape vào EffectiveStats.
-            // Wave 25 (#trial) — thử TÀU: dùng shape đang thử (bỏ qua khoá), KHÔNG
-            // ghi đè selectedShipShape đã lưu.
-            shipShape = (com.tranphuloi.neon.ui.game.trial.TrialSession.spec
-                as? com.tranphuloi.neon.ui.game.trial.TrialSpec.Ship)?.shape
-                ?: kotlinx.coroutines.runBlocking { settingsRepo.selectedShipShape.first() },
+            shipShape = resolvedShape,
+            shipLevelHpMul = com.tranphuloi.neon.ui.game.ship.shape.ShipXpLevels.hpBonusMulForXp(shipXp),
         )
     }
     // Round 34 (42x) — activeBuffs is a reactive MutableState. Reads here so

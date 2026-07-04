@@ -2490,6 +2490,17 @@ Chi tiết: [doc/task/todo/04-boss-dialogue-narrative.md](task/todo/04-boss-dial
 - ✅ **Test**: `StoryRegistryTest` 5 (beat 1..5, phase 2/3, mọi boss có defeat, map đúng). JVM **852/852**, 2 flavor compile OK.
 - ✅ **Verify device S24 Ultra**: beat fire đúng qua logcat (`StoryOverlay shown: ĐỘI TRƯỞNG "Nửa đường Vành đai rồi…"` → taunt 2.3s sau, sequencing đúng), 0 crash. Defeat/phase/epilogue cùng pipeline `setStoryLineRef`→StoryOverlay (đã verify) + unit test.
 
+## 🆕 Task 03 — Unlockable Ships + XP (✅ Implemented 2026-07-04, 5 slice)
+
+Chi tiết: [doc/task/todo/03-unlockable-ships-xp.md](task/todo/03-unlockable-ships-xp.md). Tóm tắt:
+
+- ✅ **Mỗi tàu tích XP riêng** (persist `shipxp_<key>` ở MetaProgressionRepository). XP/run = `địch thường + 10×boss`, trao cho tàu đang dùng lúc run kết thúc (GameScreen).
+- ✅ **5 level** (ngưỡng 0/100/300/700/1500) → **+2% HP mỗi cấp** (L5 = +8%), áp qua `RunContext.shipLevelHpMul` × `hpMul` ở EffectiveStats (vẫn cap 0.3–3.0, không phá cân bằng). Logic thuần `ShipXpLevels`.
+- ✅ **Mở khoá GIỮ NGUYÊN** (chỉ minerals qua ShipShopLogic) — không thêm cổng.
+- ✅ **UI shop**: mỗi tàu sở hữu hiện "Lv N · +X% HP · còn Y XP" + thanh XP vàng.
+- ✅ **Test**: `ShipXpLogicTest` 7 + `MetaProgressionShipXpIntegrationTest` 5 (Robolectric). JVM **866/866**.
+- ✅ **Verify device S24 Ultra**: logcat `addShipXp[fighter] +1 → 1` sau run; shop hiện "Lv1 · +0% HP · còn 99 XP" + bar.
+
 ---
 
 # Notes

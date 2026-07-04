@@ -8,10 +8,19 @@
 - `MetaProgressionRepository` (lifetime minerals, node ranks, `spendOnNode`) + `MetaProgressionShipIntegrationTest` (roundtrip DataStore).
 → Đã có nền "mua tàu". Task này **thêm XP/level mỗi tàu + bonus theo level + cổng mở khoá theo tiến trình**.
 
-## Quyết định cần chốt (Slice 0)
-- [ ] Nguồn XP: theo điểm/khoáng/địch diệt mỗi run? (đề xuất: XP = enemiesKilled + bonus boss, cộng cho tàu đang dùng).
-- [ ] Bảng level (đề xuất 5 level, ngưỡng luỹ tiến) + bonus mỗi level (đề xuất: +hp hoặc +dmg nhỏ, tránh phá cân bằng).
-- [ ] Cổng mở khoá tàu: chỉ theo minerals (đã có) hay thêm điều kiện (đạt level X tàu trước / thành tựu)?
+## ✅ Slice 0 — ĐÃ CHỐT (2026-07-04)
+- **Nguồn XP:** `xpForRun = enemiesKilled + 10 × bossesDefeated`, cộng cho **tàu đang dùng** (`gameState.shipShape`).
+- **Bảng level:** 5 cấp, ngưỡng XP luỹ kế **0 / 100 / 300 / 700 / 1500** (L1..L5). Bonus = **+2% hpMul mỗi cấp** (L1=+0% … L5=+8%), thuần survivability, khiêm tốn (EffectiveStats cap hpMul 0.3–3.0 vẫn an toàn).
+- **Cổng mở khoá:** GIỮ NGUYÊN — chỉ theo minerals (`ShipShopLogic` hiện tại), không thêm điều kiện.
+
+## Rã slice
+- [x] **Slice 1 (2026-07-04)** — pure `ShipXpLevels` (levelForXp/xpForLevel/xpToNextLevel/progressInLevel/hpBonusMulForLevel/hpBonusMulForXp/xpForRun) + `ShipXpLogicTest` **7 test**.
+- [x] **Slice 2 (2026-07-04)** — `MetaProgressionRepository`: `shipXp(key): Flow<Int>` + `allShipXp: Flow<Map>` + `addShipXp(key, amount)` (atomic, key `shipxp_<key>`) + `MetaProgressionShipXpIntegrationTest` **5 test** (Robolectric).
+- [x] **Slice 3 (2026-07-04)** — trao XP cuối run ở `GameScreen` (`addShipXp(gameState.shipShape.key, xpForRun(...))`).
+- [x] **Slice 4 (2026-07-04)** — `RunContext.shipLevelHpMul` (đọc XP 1 lần/run → `hpBonusMulForXp`) nhân vào `hpMul` ở `EffectiveStats.compute` (vẫn cap 0.3–3.0).
+- [x] **Slice 5 (2026-07-04)** — UI shop ShipRow: dòng "Lv N · +X% HP · còn Y XP" + thanh XP vàng (chỉ tàu sở hữu). **Verify device S24 Ultra**: logcat `addShipXp[fighter] +1 → 1` sau run; shop hiện "Lv1 · +0% HP · còn 99 XP" + bar. i18n: nhãn theo pattern hardcoded-VN của ShopScreen (file 100% VN, không lẫn resource).
+
+## Trạng thái: ✅ Implemented (5/5 slice, 2026-07-04) — verify device đầy đủ (grant + persist + UI). JVM 854→866.
 
 ## Slices
 1. **Persistence XP** — thêm vào `MetaProgressionRepository`: `shipXp(shipKey): Flow<Int>`, `addShipXp(shipKey, amount)`. Key riêng, atomic edit. Test roundtrip (mở rộng `MetaProgressionShipIntegrationTest` hoặc file mới).

@@ -29,6 +29,12 @@ data class RunContext(
     val metaUpgrades: Map<String, Int> = emptyMap(),
     /** Round 73 (Wave 8) — selected ship shape. FIGHTER mặc định. */
     val shipShape: ShipShape = ShipShape.FIGHTER,
+    /**
+     * Task 03 — hệ số nhân HP từ LEVEL của tàu đang dùng (1.0 = chưa level / L1).
+     * Đọc 1 lần lúc init (ShipXpLevels.hpBonusMulForXp), nhân vào hpMul ở
+     * EffectiveStats.compute. Tách khỏi shipShape.hpMul (stat cố định của tàu).
+     */
+    val shipLevelHpMul: Float = 1f,
 ) {
     companion object {
         /** Default context for plain campaign run (back-compat for code paths
