@@ -63,13 +63,23 @@ class NavigationFlowTest {
 
     /**
      * Tới Menu rồi định vị node theo testTag ([By.res], nhờ `testTagsAsResourceId`).
-     * MenuScreen sau fix clip: nội dung hoặc vừa màn (nút on-screen) hoặc cuộn được
-     * (không còn clip) → [findByTag] cuộn để lộ nút nếu cần. Không còn relaunch-retry.
+     * MenuScreen là scale-to-fit KHÔNG scroll → khi nội dung cao (daily-login + nhiều
+     * nút), adaptive-scale ĐÔI KHI clip nút ra ngoài khung nhìn (non-deterministic
+     * theo timing measure/animation trên máy màn cao như S24 Ultra). findByTag vuốt
+     * vô ích (không scroll) → RELAUNCH activity để re-roll adaptive-scale, thử tối đa
+     * 5 lần. Đây là mitigation đã ghi trong CLAUDE.md (trước bị gỡ nhầm → gây flake).
      */
-    private fun acquire(tag: String): UiObject2 {
-        awaitMenu()
-        return device.findByTag(tag)
-            ?: error("Không tìm được node testTag='$tag' trên Menu")
+    private fun acquire(tag: String, attempts: Int = 5): UiObject2 {
+        repeat(attempts) { i ->
+            awaitMenu()
+            device.waitForIdle()
+            device.findByTag(tag)?.let { return it }
+            if (i < attempts - 1) {
+                scenario.close()
+                scenario = ActivityScenario.launch(MainActivity::class.java)
+            }
+        }
+        error("Không tìm được node testTag='$tag' trên Menu sau $attempts lần relaunch")
     }
 
     @Test

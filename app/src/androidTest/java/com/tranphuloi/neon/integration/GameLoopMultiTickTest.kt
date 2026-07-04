@@ -57,11 +57,26 @@ class GameLoopMultiTickTest {
         }
     }
 
+    /**
+     * MenuScreen scale-to-fit không scroll → nút đôi khi bị clip (non-deterministic
+     * theo timing trên máy màn cao). RELAUNCH re-roll adaptive-scale, thử tối đa 5 lần
+     * (mitigation CLAUDE.md; trước bị gỡ → gây flake menu_play not found).
+     */
+    private fun acquirePlay(attempts: Int = 5): UiObject2 {
+        repeat(attempts) { i ->
+            awaitMenu()
+            device.waitForIdle()
+            device.findByTag("menu_play")?.let { return it }
+            if (i < attempts - 1) {
+                scenario.close()
+                scenario = ActivityScenario.launch(MainActivity::class.java)
+            }
+        }
+        error("Không tìm được nút chơi (testTag menu_play) trên Menu sau $attempts lần relaunch")
+    }
+
     private fun enterGame() {
-        awaitMenu()
-        val play = device.findByTag("menu_play")
-            ?: error("Không tìm được nút chơi (testTag menu_play) trên Menu")
-        play.click()
+        acquirePlay().click()
         assertTrue("Bấm nút chơi phải vào Game (rời Menu)", device.wait(Until.gone(By.res("menu_play")), 10_000))
     }
 
