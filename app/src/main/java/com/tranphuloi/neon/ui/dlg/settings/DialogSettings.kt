@@ -96,7 +96,7 @@ fun DialogSettings(
     LaunchedEffect(Unit) { Logger.d("DialogSettings shown") }
 
     com.tranphuloi.neon.common.NeonBottomSheet(
-        title = "CÀI ĐẶT",
+        title = "Cài đặt",
         accentColor = NeonCyan,
         onDismiss = {
             Logger.d("DialogSettings: dismissed")
@@ -111,7 +111,7 @@ fun DialogSettings(
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             // ────── Section 1: Âm thanh ──────
-            SectionPanel(headerLabel = "ÂM THANH", glyph = "♪", color = NeonCyan) {
+            SectionPanel(headerLabel = "Âm thanh", glyph = "♪", color = NeonCyan) {
                 SettingSlider(
                     label = "Nhạc",
                     value = musicVolume,
@@ -145,7 +145,7 @@ fun DialogSettings(
             // ────── Section 2: Chơi ──────
             // Round 32 — each control group lives in its own subtle sub-panel
             // so Rung / Giảm chuyển động / Độ khó / Skin tàu feel separated.
-            SectionPanel(headerLabel = "CHƠI", glyph = "⊞", color = NeonMagenta) {
+            SectionPanel(headerLabel = "Chơi", glyph = "⊞", color = NeonMagenta) {
                 ControlGroup {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -211,7 +211,7 @@ fun DialogSettings(
             }
 
             // ────── Section 3: Ứng dụng ──────
-            SectionPanel(headerLabel = "ỨNG DỤNG", glyph = "✦", color = Color.White.copy(alpha = 0.7f)) {
+            SectionPanel(headerLabel = "Ứng dụng", glyph = "✦", color = Color.White.copy(alpha = 0.7f)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),

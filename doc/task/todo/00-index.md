@@ -20,7 +20,7 @@ Bám các hệ vừa xây (drone/lightning/ship-XP/dialogue):
 | 05 | [Kỹ năng chủ động theo tàu](05-ship-active-abilities.md) | Gameplay depth | Vừa (cân bằng 22 skill + GameState) | ✅ Done (Slice 1–3, 2026-07-04, verify device) |
 | 06 | [Biến thể drone (skill-tree)](06-drone-variants.md) | Enhance Task 01 | Vừa (cân bằng heal/shield) | ✅ Done (Slice 1–3, 2026-07-04, verify device A50s) |
 | 07 | [Mở rộng thành tựu](07-achievements-expansion.md) | Content | Thấp (tái dùng repo) | ✅ Done (2026-07-04, verify device) |
-| 08 | [Thử thách hằng ngày + modifier](08-daily-challenge-modifiers.md) | Replay/economy | Vừa (RNG seed xác định) | 📋 todo |
+| 08 | [Thử thách hằng ngày + modifier](08-daily-challenge-modifiers.md) | Replay/economy | Vừa (RNG seed xác định) | ✅ Done (2026-07-04, verify device A50s) |
 
 **Đề xuất bắt đầu đợt 2:** 07 (an toàn nhất, gắn kết 4 feature) → 05 (synergy cao Task 03) → 06 → 08.
 

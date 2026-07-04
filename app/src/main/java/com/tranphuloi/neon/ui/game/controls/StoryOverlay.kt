@@ -74,7 +74,7 @@ fun StoryOverlay(
     // Round 24 — Vietnamese speaker label "ĐỘI TRƯỞNG" (Captain) gets cyan;
     // boss taunts (anything else) get magenta.
     val speakerColor =
-        if (line.speaker == "ĐỘI TRƯỞNG") NeonCyan else NeonMagenta
+        if (line.speaker == "Đội trưởng") NeonCyan else NeonMagenta
 
     Column(
         modifier = modifier

@@ -183,7 +183,7 @@ fun DialogGameOver(
             // 4 = victory, 5 = stats, 6 = endless, 7 = daily, 8 = leaderboard.
             RevealWrap(visible = revealStep >= 1) {
                 ScoreRow(
-                    label = "KHOÁNG VẬT",
+                    label = "Khoáng vật",
                     value = score,
                     accentColor = NeonGold,
                 )
@@ -191,7 +191,7 @@ fun DialogGameOver(
             Spacer(modifier = Modifier.height(8.dp))
             RevealWrap(visible = revealStep >= 2) {
                 ScoreRow(
-                    label = "KỶ LỤC",
+                    label = "Kỷ lục",
                     value = highestSoFar.toString(),
                     accentColor = NeonCyan,
                 )
@@ -223,7 +223,7 @@ fun DialogGameOver(
                             .padding(horizontal = 14.dp, vertical = 4.dp),
                     ) {
                         Text(
-                            text = "★ KỶ LỤC MỚI ★",
+                            text = "★ Kỷ lục mới ★",
                             color = NeonGold,
                             fontWeight = FontWeight.Black,
                             fontSize = 13.sp,
@@ -274,7 +274,7 @@ fun DialogGameOver(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 NeonDialogButton(
-                    text = "CHƠI LẠI",
+                    text = "Chơi lại",
                     color = NeonCyan,
                     leadingGlyph = "▶",
                     onClick = {
@@ -285,7 +285,7 @@ fun DialogGameOver(
                     },
                 )
                 NeonDialogButton(
-                    text = "VỀ MENU",
+                    text = "Về menu",
                     color = NeonMagenta,
                     leadingGlyph = "◀",
                     onClick = {
@@ -303,11 +303,11 @@ private fun VictoryPanel() {
     val difficulty by com.tranphuloi.neon.data.LocalSettings.current.difficulty
         .collectAsState(initial = com.tranphuloi.neon.data.Difficulty.NORMAL)
     val (heading, subtitle) = when (difficulty) {
-        com.tranphuloi.neon.data.Difficulty.EASY -> "THIÊN HÀ ĐƯỢC CỨU" to
+        com.tranphuloi.neon.data.Difficulty.EASY -> "Thiên hà được cứu" to
             "Đã hạ Bá Vương trên độ DỄ. Thử độ VỪA lần sau nhé!"
-        com.tranphuloi.neon.data.Difficulty.NORMAL -> "BÁ VƯƠNG BỊ HẠ" to
+        com.tranphuloi.neon.data.Difficulty.NORMAL -> "Bá vương bị hạ" to
             "Lái tàu xuất sắc. Thiên hà nợ anh sự bình yên, Đội trưởng."
-        com.tranphuloi.neon.data.Difficulty.HARD -> "CHIẾN THẮNG HUYỀN THOẠI" to
+        com.tranphuloi.neon.data.Difficulty.HARD -> "Chiến thắng huyền thoại" to
             "Chinh phục độ KHÓ. Anh là huyền thoại Sky Force U*S*A."
     }
     // Task 04 — epilogue kết truyện theo độ khó (song ngữ, gắn ngữ cảnh Lõi Thiên Hà).
@@ -378,19 +378,19 @@ private fun EndlessPanel(
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Text(
-            text = "VÔ TẬN",
+            text = "Vô tận",
             color = com.tranphuloi.neon.common.NeonViolet,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             style = TextStyle(letterSpacing = 4.sp),
         )
         Spacer(modifier = Modifier.height(2.dp))
-        StatLine(label = "SỐNG SÓT", value = currentStr)
-        StatLine(label = "TỐT NHẤT", value = bestStr)
+        StatLine(label = "Sống sót", value = currentStr)
+        StatLine(label = "Tốt nhất", value = bestStr)
         if (currentSeconds >= bestSeconds && currentSeconds > 0) {
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "★ KỶ LỤC MỚI VÔ TẬN ★",
+                text = "★ Kỷ lục mới vô tận ★",
                 color = com.tranphuloi.neon.common.NeonViolet,
                 fontWeight = FontWeight.Black,
                 fontSize = 12.sp,
@@ -440,19 +440,19 @@ private fun DailyPanel(
         }
         Spacer(modifier = Modifier.height(2.dp))
         StatLine(
-            label = "TỐT NHẤT HÔM NAY",
+            label = "Tốt nhất hôm nay",
             value = bestToday.toString(),
         )
         if (dailyEntries.size >= 2) {
             StatLine(
-                label = "SỐ LẦN CHƠI",
+                label = "Số lần chơi",
                 value = dailyEntries.size.toString(),
             )
         }
         if (currentScore > 0 && currentScore == bestToday && dailyEntries.size >= 2) {
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "★ KỶ LỤC HÔM NAY ★",
+                text = "★ Kỷ lục hôm nay ★",
                 color = NeonMagenta,
                 fontWeight = FontWeight.Black,
                 fontSize = 12.sp,
@@ -483,25 +483,25 @@ private fun StatsPanel(stats: com.tranphuloi.neon.data.RunStats) {
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Text(
-            text = "THỐNG KÊ",
+            text = "Thống kê",
             color = NeonCyan.copy(alpha = 0.7f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             style = TextStyle(letterSpacing = 4.sp),
         )
         Spacer(modifier = Modifier.height(2.dp))
-        StatLine(label = "THỜI GIAN", value = timeStr)
-        StatLine(label = "MÀN ĐẠT", value = stats.stagesReached.toString())
+        StatLine(label = "Thời gian", value = timeStr)
+        StatLine(label = "Màn đạt", value = stats.stagesReached.toString())
         // Wave 22 (#4) — thưởng mốc màn (hiện khi có).
         val stageBonus = com.tranphuloi.neon.data.stageMilestoneBonus(stats.stagesReached)
         if (stageBonus > 0) {
-            StatLine(label = "THƯỞNG MỐC MÀN", value = "+$stageBonus ◇")
+            StatLine(label = "Thưởng mốc màn", value = "+$stageBonus ◇")
         }
-        StatLine(label = "DIỆT ĐỊCH", value = stats.enemiesKilled.toString())
+        StatLine(label = "Diệt địch", value = stats.enemiesKilled.toString())
         if (stats.bossesDefeated > 0) {
-            StatLine(label = "HẠ BOSS", value = stats.bossesDefeated.toString())
+            StatLine(label = "Hạ boss", value = stats.bossesDefeated.toString())
         }
-        StatLine(label = "COMBO TỐI ĐA", value = "×${stats.maxCombo}")
+        StatLine(label = "Combo tối đa", value = "×${stats.maxCombo}")
     }
 }
 
@@ -602,7 +602,7 @@ private fun LeaderboardList(
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Text(
-            text = "TOP CAO ĐIỂM",
+            text = "Top cao điểm",
             color = NeonCyan.copy(alpha = 0.7f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,

@@ -523,7 +523,7 @@ fun rememberGameState(): GameState {
         useOne(startX2Min, com.tranphuloi.neon.data.ShopItem.X2_MINERALS_KEY, "x2 Khoáng")
         useOne(startShield, com.tranphuloi.neon.data.ShopItem.START_SHIELD_KEY, "Khiên khởi đầu")
         useOne(startX2Score, com.tranphuloi.neon.data.ShopItem.X2_SCORE_KEY, "x2 Điểm")
-        useOne(startComboKeep, com.tranphuloi.neon.data.ShopItem.COMBO_KEEP_KEY, "Giữ Combo")
+        useOne(startComboKeep, com.tranphuloi.neon.data.ShopItem.COMBO_KEEP_KEY, "Giữ combo")
         useOne(startMagnetXL, com.tranphuloi.neon.data.ShopItem.MAGNET_XL_KEY, "Nam châm XL")
         useOne(startRapidFire, com.tranphuloi.neon.data.ShopItem.RAPID_FIRE_KEY, "Bắn nhanh")
         reviveConsumed = true
@@ -1332,7 +1332,7 @@ fun rememberGameState(): GameState {
                     val defeatRes = com.tranphuloi.neon.ui.game.story.StoryRegistry
                         .bossDefeatRes(enemy.bossKind)
                     val defeatLine = com.tranphuloi.neon.ui.game.story.StoryLine(
-                        speaker = enemy.bossKind?.displayName ?: "BOSS",
+                        speaker = enemy.bossKind?.displayName ?: "Boss",
                         text = context.getString(defeatRes),
                         durationMs = 2800,
                     )
@@ -1498,7 +1498,7 @@ fun rememberGameState(): GameState {
                                 coroutineScope.launch {
                                     kotlinx.coroutines.delay(300L)
                                     storyLine = com.tranphuloi.neon.ui.game.story.StoryLine(
-                                        speaker = "ĐỘI TRƯỞNG",
+                                        speaker = "Đội trưởng",
                                         text = context.getString(resId),
                                         durationMs = 2200,
                                     )
@@ -1515,7 +1515,7 @@ fun rememberGameState(): GameState {
                             newStage.enemyType,
                             newStage.chapterId,
                         )
-                    bossIntroName = resolvedKind?.displayName ?: "BOSS"
+                    bossIntroName = resolvedKind?.displayName ?: "Boss"
                     bossIntroBossKind = resolvedKind
                     // 47x Story — boss taunt. Shown inside the cinematic now;
                     // also queued to StoryOverlay AFTER the cinematic as a linger.
@@ -1967,7 +1967,7 @@ fun rememberGameState(): GameState {
                                     .phaseLineOnAdvance(finalBossPhaseSeen, finalBossNow.currentPhase)
                                 if (phaseRes != null) {
                                     finalBossPhaseSeen = finalBossNow.currentPhase
-                                    val spk = finalBossNow.bossKind?.displayName ?: "BÁ VƯƠNG THIÊN HÀ"
+                                    val spk = finalBossNow.bossKind?.displayName ?: "Bá vương thiên hà"
                                     coroutineScope.launch {
                                         storyLine = com.tranphuloi.neon.ui.game.story.StoryLine(
                                             speaker = spk,

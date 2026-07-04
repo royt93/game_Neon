@@ -51,11 +51,11 @@ class ComboController(
 
 enum class ComboTier(val threshold: Int, val multiplier: Int, val displayLabel: String) {
     NONE(0, 1, ""),
-    DOUBLE(2, 2, "DOUBLE KILL"),
-    TRIPLE(3, 3, "TRIPLE KILL"),
-    RAMPAGE(5, 4, "RAMPAGE"),
-    UNSTOPPABLE(8, 5, "UNSTOPPABLE"),
-    GODLIKE(12, 8, "GODLIKE");
+    DOUBLE(2, 2, "Double kill"),
+    TRIPLE(3, 3, "Triple kill"),
+    RAMPAGE(5, 4, "Rampage"),
+    UNSTOPPABLE(8, 5, "Unstoppable"),
+    GODLIKE(12, 8, "Godlike");
 
     companion object {
         fun forCount(count: Int): ComboTier {

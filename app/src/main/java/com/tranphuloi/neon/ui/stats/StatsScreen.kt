@@ -139,7 +139,7 @@ fun StatsScreen(onBack: () -> Unit) {
                 .padding(insetsPad),
         ) {
             com.tranphuloi.neon.common.NeonActionBar(
-                title = "THỐNG KÊ",
+                title = "Thống kê",
                 titleColor = NeonGold,
                 onBack = onBack,
             )

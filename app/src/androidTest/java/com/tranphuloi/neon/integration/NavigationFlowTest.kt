@@ -53,10 +53,10 @@ class NavigationFlowTest {
     /** Chờ Splash → Menu (đã seed đi thẳng Menu; xử lý cả nhánh DifficultyPicker). */
     private fun awaitMenu() {
         val ok = device.wait(Until.hasObject(By.text("SKY FORCE")), 10_000) != null ||
-            device.hasObject(By.text("CHỌN ĐỘ KHÓ"))
+            device.hasObject(By.text("Chọn độ khó"))
         assertTrue("Splash phải dẫn tới Menu hoặc DifficultyPicker", ok)
-        if (device.hasObject(By.text("CHỌN ĐỘ KHÓ"))) {
-            device.wait(Until.findObject(By.text("VỪA")), 5_000)?.click()
+        if (device.hasObject(By.text("Chọn độ khó"))) {
+            device.wait(Until.findObject(By.text("Vừa")), 5_000)?.click()
             assertTrue("Chọn độ khó xong phải vào Menu", device.wait(Until.hasObject(By.text("SKY FORCE")), 10_000) != null)
         }
     }

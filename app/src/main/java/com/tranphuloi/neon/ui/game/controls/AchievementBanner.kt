@@ -76,9 +76,9 @@ fun AchievementBanner(
         AchievementTier.GOLD -> NeonGold
     }
     val tierLabel = when (achievement.tier) {
-        AchievementTier.BRONZE -> "ĐỒNG"
-        AchievementTier.SILVER -> "BẠC"
-        AchievementTier.GOLD -> "VÀNG"
+        AchievementTier.BRONZE -> "Đồng"
+        AchievementTier.SILVER -> "Bạc"
+        AchievementTier.GOLD -> "Vàng"
     }
     Column(
         modifier = modifier

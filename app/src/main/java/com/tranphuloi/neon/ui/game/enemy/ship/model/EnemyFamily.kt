@@ -20,11 +20,11 @@ enum class EnemyFamily(
     val speedMul: Float,
     val impactMul: Float,
 ) {
-    SCOUT(displayName = "Trinh Sát", hpMul = 0.7f, speedMul = 1.3f, impactMul = 0.8f),
-    FIGHTER(displayName = "Chiến Đấu", hpMul = 1.0f, speedMul = 1.0f, impactMul = 1.0f),
+    SCOUT(displayName = "Trinh sát", hpMul = 0.7f, speedMul = 1.3f, impactMul = 0.8f),
+    FIGHTER(displayName = "Chiến đấu", hpMul = 1.0f, speedMul = 1.0f, impactMul = 1.0f),
     HEAVY(displayName = "Nặng", hpMul = 1.6f, speedMul = 0.7f, impactMul = 1.3f),
-    ELITE(displayName = "Tinh Nhuệ", hpMul = 1.25f, speedMul = 1.1f, impactMul = 1.1f),
-    BERSERKER(displayName = "Cuồng Sát", hpMul = 0.9f, speedMul = 1.2f, impactMul = 1.4f),
+    ELITE(displayName = "Tinh nhuệ", hpMul = 1.25f, speedMul = 1.1f, impactMul = 1.1f),
+    BERSERKER(displayName = "Cuồng sát", hpMul = 0.9f, speedMul = 1.2f, impactMul = 1.4f),
     ;
 
     companion object {

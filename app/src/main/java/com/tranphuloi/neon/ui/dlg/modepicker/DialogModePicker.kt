@@ -67,7 +67,7 @@ fun DialogModePicker(onPicked: () -> Unit) {
     )
 
     com.tranphuloi.neon.common.NeonBottomSheet(
-        title = "CHỌN CHẾ ĐỘ",
+        title = "Chọn chế độ",
         accentColor = NeonViolet,
         onDismiss = {
             Logger.d("DialogModePicker: dismissed")

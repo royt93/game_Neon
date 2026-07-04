@@ -25,19 +25,19 @@ enum class RunModifier(
 ) {
     NONE(
         key = "none",
-        displayName = "TIÊU CHUẨN",
+        displayName = "Tiêu chuẩn",
         description = "Không có buff — chơi mặc định.",
     ),
     TRIPLE_SPEED(
         key = "triple_speed",
-        displayName = "TỐC HÀNH",
+        displayName = "Tốc hành",
         description = "Tàu di chuyển nhanh gấp 3. Điểm ×1.5.",
         speedMul = 3f,
         scoreMul = 1.5f,
     ),
     GLASS_CANNON(
         key = "glass_cannon",
-        displayName = "MỎNG NHƯ KÍNH",
+        displayName = "Mỏng như kính",
         description = "HP còn nửa, sát thương ×2. Điểm ×2.",
         hpMul = 0.5f,
         damageMul = 2f,
@@ -45,21 +45,21 @@ enum class RunModifier(
     ),
     NO_SHIELDS(
         key = "no_shields",
-        displayName = "KHÔNG KHIÊN",
+        displayName = "Không khiên",
         description = "Không có khiên rơi. Điểm ×1.5.",
         noShieldDrops = true,
         scoreMul = 1.5f,
     ),
     SUPER_MAGNET(
         key = "super_magnet",
-        displayName = "NAM CHÂM MẠNH",
+        displayName = "Nam châm mạnh",
         description = "Phạm vi hút khoáng vật ×2.",
         magnetMul = 2f,
         scoreMul = 1.1f,
     ),
     BERSERKER(
         key = "berserker",
-        displayName = "CUỒNG BẠO",
+        displayName = "Cuồng bạo",
         description = "Sát thương ×1.5 nhưng HP ×0.75.",
         hpMul = 0.75f,
         damageMul = 1.5f,
@@ -67,7 +67,7 @@ enum class RunModifier(
     ),
     TANK(
         key = "tank",
-        displayName = "GIÁP DÀY",
+        displayName = "Giáp dày",
         description = "HP ×1.5 nhưng tốc độ ×0.7.",
         hpMul = 1.5f,
         speedMul = 0.7f,
@@ -75,14 +75,14 @@ enum class RunModifier(
     ),
     BOSSES_ONLY(
         key = "bosses_only",
-        displayName = "CHỈ BOSS",
+        displayName = "Chỉ boss",
         description = "Bỏ qua tiểu yêu — chỉ đánh boss. Điểm ×2.",
         bossesOnly = true,
         scoreMul = 2f,
     ),
     DOUBLE_OR_NOTHING(
         key = "double_or_nothing",
-        displayName = "ĐƯỢC ĂN CẢ",
+        displayName = "Được ăn cả",
         description = "Sát thương ×2 nhưng HP ×0.5. Điểm ×2.5.",
         hpMul = 0.5f,
         damageMul = 2f,
@@ -90,7 +90,7 @@ enum class RunModifier(
     ),
     BARE_HANDED(
         key = "bare_handed",
-        displayName = "TAY KHÔNG",
+        displayName = "Tay không",
         description = "Không có buff power-up nào rơi — thuần kỹ năng. Điểm ×2.2.",
         noBoosters = true,
         scoreMul = 2.2f,

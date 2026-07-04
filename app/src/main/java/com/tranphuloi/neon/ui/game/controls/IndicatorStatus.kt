@@ -379,7 +379,7 @@ private fun ReviveTokenBadge() {
             fontWeight = FontWeight.Black,
         )
         Text(
-            text = "HỒI SINH",
+            text = "Hồi sinh",
             color = pulseColor,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,

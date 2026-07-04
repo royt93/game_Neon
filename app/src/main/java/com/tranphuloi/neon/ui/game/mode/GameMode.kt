@@ -15,12 +15,12 @@ import androidx.compose.runtime.Immutable
  */
 @Immutable
 enum class GameMode(val key: String, val displayName: String) {
-    CAMPAIGN("campaign", "CHIẾN DỊCH"),
-    SURVIVAL("survival", "SINH TỒN"),
-    TIME_ATTACK("time_attack", "ĐUA THỜI GIAN"),
-    BOSS_RUSH("boss_rush", "CHIẾN BOSS"),
-    ENDLESS("endless", "VÔ TẬN"),
-    DAILY("daily", "THỬ THÁCH NGÀY");
+    CAMPAIGN("campaign", "Chiến dịch"),
+    SURVIVAL("survival", "Sinh tồn"),
+    TIME_ATTACK("time_attack", "Đua thời gian"),
+    BOSS_RUSH("boss_rush", "Chiến boss"),
+    ENDLESS("endless", "Vô tận"),
+    DAILY("daily", "Thử thách ngày");
 
     companion object {
         fun fromKey(key: String?): GameMode =

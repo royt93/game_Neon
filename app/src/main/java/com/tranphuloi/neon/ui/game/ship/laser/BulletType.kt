@@ -170,7 +170,7 @@ enum class BulletType(
     // Task 02 — Sét Chain: trúng địch → sét LAN tuần tự tối đa 3 địch gần nhau
     // (visited-set, ×0.7 dmg mỗi bước). Shop-gated (đạn premium điều khiển đám đông).
     LIGHTNING(
-        displayName = "Sét Chain",
+        displayName = "Sét chain",
         activeDurationMillis = 10_000L,
         damageMultiplier = 0.9f,                    // base hơi thấp vì chain thêm giá trị (cân bằng)
         pierceCount = 0,
@@ -182,7 +182,7 @@ enum class BulletType(
     // ── Wave 16 — đạn trào phúng batch 1 ──
     /** Vé Số — sát thương NGẪU NHIÊN mỗi phát (hên xui, từ 0.3× tới 3×). */
     LOTTERY(
-        displayName = "Vé Số",
+        displayName = "Vé số",
         activeDurationMillis = 12_000L,
         damageMultiplier = 1f,                      // base; mỗi viên random tại spawn
         pierceCount = 0,
@@ -191,7 +191,7 @@ enum class BulletType(
     ),
     /** Pháo Hoa — nổ chùm AoE rộng khi trúng. */
     FIREWORK(
-        displayName = "Pháo Hoa",
+        displayName = "Pháo hoa",
         activeDurationMillis = 10_000L,
         damageMultiplier = 1.1f,
         pierceCount = 0,
@@ -200,7 +200,7 @@ enum class BulletType(
     ),
     /** Cục Gạch (Nokia 1280) — to, chậm, nặng (nồi đồng cối đá). */
     BRICK(
-        displayName = "Cục Gạch",
+        displayName = "Cục gạch",
         activeDurationMillis = 12_000L,
         damageMultiplier = 2.2f,                    // nặng
         pierceCount = 0,
@@ -211,7 +211,7 @@ enum class BulletType(
     // ── Wave 16 — đạn trào phúng batch 2 ──
     /** Bánh Mì — giòn rụm, XUYÊN qua 3 địch (như PIERCING). */
     BANH_MI(
-        displayName = "Bánh Mì",
+        displayName = "Bánh mì",
         activeDurationMillis = 12_000L,
         damageMultiplier = 1f,
         pierceCount = 3,
@@ -220,7 +220,7 @@ enum class BulletType(
     ),
     /** Sầu Riêng — nổ "mùi" AoE rộng khi trúng (nặng mùi). */
     DURIAN(
-        displayName = "Sầu Riêng",
+        displayName = "Sầu riêng",
         activeDurationMillis = 10_000L,
         damageMultiplier = 1.2f,
         pierceCount = 0,
@@ -229,7 +229,7 @@ enum class BulletType(
     ),
     /** Like/Tim — thả tim TỰ ĐUỔI theo địch (như HOMING). */
     HEART(
-        displayName = "Like/Tim",
+        displayName = "Like/tim",
         activeDurationMillis = 10_000L,
         damageMultiplier = 0.9f,
         pierceCount = 0,
@@ -240,7 +240,7 @@ enum class BulletType(
     // ── Wave 18 — đạn trào phúng batch 3 ──
     /** Trà Sữa — trúng → nổ AoE "trân châu" rồi văng 3 đạn con (như Pháo Hoa nhẹ). */
     BUBBLE_TEA(
-        displayName = "Trà Sữa",
+        displayName = "Trà sữa",
         activeDurationMillis = 10_000L,
         damageMultiplier = 1.1f,
         pierceCount = 0,
@@ -249,7 +249,7 @@ enum class BulletType(
     ),
     /** Nước Mắm — ăn mòn DoT mạnh & lâu hơn Lửa (gây CORROSION). */
     FISH_SAUCE(
-        displayName = "Nước Mắm",
+        displayName = "Nước mắm",
         activeDurationMillis = 12_000L,
         damageMultiplier = 0.9f,
         pierceCount = 0,
@@ -258,7 +258,7 @@ enum class BulletType(
     ),
     /** Dép Lào — boomerang: bay lên rồi quay về tàu, đánh được cả 2 chiều. */
     SANDAL(
-        displayName = "Dép Lào",
+        displayName = "Dép lào",
         activeDurationMillis = 14_000L,
         damageMultiplier = 0.8f,                    // bù lại vì đánh trúng 2 lần (lên + về)
         pierceCount = 0,

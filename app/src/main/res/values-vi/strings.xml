@@ -13,11 +13,11 @@
     <string name="restart_game_button">Chơi lại</string>
     <string name="resume_game_button">Tiếp tục</string>
     <string name="settings_button">Cài đặt</string>
-    <string name="game_pause_dialog_title">TẠM DỪNG</string>
-    <string name="game_over_dialog_title">KẾT THÚC</string>
+    <string name="game_pause_dialog_title">Tạm dừng</string>
+    <string name="game_over_dialog_title">Kết thúc</string>
     <string name="game_over_dialog_score">Khoáng thạch: %1$s</string>
     <string name="mineral_content_description">Khoáng thạch</string>
-    <string name="revived_banner">SỐNG LẠI!</string>
+    <string name="revived_banner">Sống lại!</string>
     <string name="daily_challenge_label">Thử Thách Hàng Ngày</string>
     <string name="daily_seed_label">Ngày %1$s</string>
     <string name="daily_best_today">Kỷ lục hôm nay: %1$s</string>

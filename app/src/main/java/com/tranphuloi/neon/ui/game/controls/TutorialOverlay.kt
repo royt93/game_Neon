@@ -72,7 +72,7 @@ fun TutorialOverlay(modifier: Modifier = Modifier) {
         ) {
             Spacer(modifier = Modifier.height(80.dp))
             Text(
-                text = "GIỮ & DI",
+                text = "Giữ & di",
                 color = NeonCyan,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Black,

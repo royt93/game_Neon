@@ -104,14 +104,14 @@ data class ShopItem(
             // Ship skin unlocks
             ShopItem(
                 id = "skin_aura_violet",
-                displayName = "Skin Tím",
+                displayName = "Skin tím",
                 description = "Đổi hào quang tàu sang màu tím (chỉ làm đẹp, không đổi sức mạnh).",
                 cost = 500,
                 category = Category.SHIP_SKIN_UNLOCK,
             ),
             ShopItem(
                 id = "skin_aura_red",
-                displayName = "Skin Đỏ Báo Động",
+                displayName = "Skin đỏ báo động",
                 description = "Đổi hào quang tàu sang màu đỏ rực (chỉ làm đẹp).",
                 cost = 800,
                 category = Category.SHIP_SKIN_UNLOCK,
@@ -119,21 +119,21 @@ data class ShopItem(
             // Wave 16 — 3 hào quang mới.
             ShopItem(
                 id = "skin_aura_emerald",
-                displayName = "Skin Lục Bảo",
+                displayName = "Skin lục bảo",
                 description = "Đổi hào quang tàu sang xanh lục bảo (chỉ làm đẹp).",
                 cost = 600,
                 category = Category.SHIP_SKIN_UNLOCK,
             ),
             ShopItem(
                 id = "skin_aura_amber",
-                displayName = "Skin Hổ Phách",
+                displayName = "Skin hổ phách",
                 description = "Đổi hào quang tàu sang cam hổ phách (chỉ làm đẹp).",
                 cost = 700,
                 category = Category.SHIP_SKIN_UNLOCK,
             ),
             ShopItem(
                 id = "skin_aura_ice",
-                displayName = "Skin Băng Giá",
+                displayName = "Skin băng giá",
                 description = "Đổi hào quang tàu sang xanh băng giá (chỉ làm đẹp).",
                 cost = 900,
                 category = Category.SHIP_SKIN_UNLOCK,
@@ -141,14 +141,14 @@ data class ShopItem(
             // Bullet type unlocks (gated bullets beyond default NORMAL)
             ShopItem(
                 id = "bullet_kamehameha",
-                displayName = "Đạn Kamehameha",
+                displayName = "Đạn kamehameha",
                 description = "Tia năng lượng to, xuyên thấu nhiều địch một lúc (sát thương ×3).",
                 cost = 1000,
                 category = Category.BULLET_TYPE_UNLOCK,
             ),
             ShopItem(
                 id = "bullet_atomic",
-                displayName = "Đạn Nguyên Tử",
+                displayName = "Đạn nguyên tử",
                 description = "Khi trúng sẽ nổ lan ra vùng rộng, sát thương cả cụm địch xung quanh.",
                 cost = 1500,
                 category = Category.BULLET_TYPE_UNLOCK,
@@ -157,14 +157,14 @@ data class ShopItem(
             // Đạn tab grants the currently-selected one so nobody loses it.
             ShopItem(
                 id = "bullet_giant",
-                displayName = "Đạn Khổng Lồ",
+                displayName = "Đạn khổng lồ",
                 description = "Viên đạn to gấp đôi, sát thương ×2 — dễ trúng, mạnh hơn.",
                 cost = 700,
                 category = Category.BULLET_TYPE_UNLOCK,
             ),
             ShopItem(
                 id = "bullet_plasma",
-                displayName = "Đạn Plasma",
+                displayName = "Đạn plasma",
                 description = "Khi trúng sẽ nổ lan một vùng nhỏ, dính cả địch đứng gần.",
                 cost = 900,
                 category = Category.BULLET_TYPE_UNLOCK,
@@ -172,7 +172,7 @@ data class ShopItem(
             // Task 02 — Sét Chain (premium điều khiển đám đông).
             ShopItem(
                 id = "bullet_lightning",
-                displayName = "Đạn Sét Chain",
+                displayName = "Đạn sét chain",
                 description = "Trúng địch sẽ phóng sét lan sang tối đa 3 địch gần nhau, sát thương giảm dần.",
                 cost = 1100,
                 category = Category.BULLET_TYPE_UNLOCK,
@@ -205,7 +205,7 @@ data class ShopItem(
             ),
             ShopItem(
                 id = "buff_start_shield",
-                displayName = "Gói Khiên Khởi Đầu",
+                displayName = "Gói khiên khởi đầu",
                 description = "Run kế: vào trận có sẵn 1 lớp khiên đỡ đòn (8 giây đầu).",
                 cost = 250,
                 category = Category.CONSUMABLE,
@@ -219,21 +219,21 @@ data class ShopItem(
             ),
             ShopItem(
                 id = "buff_combo_keep",
-                displayName = "Gói Giữ Combo",
+                displayName = "Gói giữ combo",
                 description = "Run kế: combo lâu hết hơn (cửa sổ giữ combo dài gấp đôi).",
                 cost = 350,
                 category = Category.CONSUMABLE,
             ),
             ShopItem(
                 id = "buff_magnet_xl",
-                displayName = "Gói Nam Châm XL",
+                displayName = "Gói nam châm xl",
                 description = "Run kế: bán kính hút khoáng to gấp đôi cả run.",
                 cost = 300,
                 category = Category.CONSUMABLE,
             ),
             ShopItem(
                 id = "buff_rapid_fire",
-                displayName = "Gói Bắn Nhanh",
+                displayName = "Gói bắn nhanh",
                 description = "Run kế: tốc độ bắn nhanh hơn (~1.5×) cả run.",
                 cost = 450,
                 category = Category.CONSUMABLE,

@@ -118,9 +118,9 @@ private fun NodeRow(
     val rowAlpha = if (!prereqMet) 0.4f else 1f
     val glyph = nodeGlyph(node.key)
     val tierLabel = when (node.tierIndex) {
-        0 -> "NỀN TẢNG"
-        1 -> "NHÁNH"
-        else -> "TỐI THƯỢNG"
+        0 -> "Nền tảng"
+        1 -> "Nhánh"
+        else -> "Tối thượng"
     }
 
     Row(
@@ -198,7 +198,7 @@ private fun NodeRow(
                     .border(BorderStroke(1.dp, NeonGold), RoundedCornerShape(10.dp))
                     .padding(horizontal = 10.dp, vertical = 6.dp),
             ) {
-                Text("TỐI ĐA", color = NeonGold, fontWeight = FontWeight.Black, fontSize = 12.sp)
+                Text("Tối đa", color = NeonGold, fontWeight = FontWeight.Black, fontSize = 12.sp)
             }
             !prereqMet -> Text("🔒", color = NeonViolet, fontSize = 18.sp)
             else -> Box(
@@ -215,7 +215,7 @@ private fun NodeRow(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = if (canAfford) "MUA" else "Thiếu",
+                        text = if (canAfford) "Mua" else "Thiếu",
                         color = if (canAfford) color else NeonRedAlert.copy(alpha = 0.7f),
                         fontWeight = FontWeight.Black,
                         fontSize = 12.sp,

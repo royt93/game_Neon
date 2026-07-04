@@ -22,24 +22,24 @@ object StoryRegistry {
     /** Chapter id (1..5) → ordered list of intro lines (NARRATOR). */
     fun chapterIntro(chapterId: Int): List<StoryLine> = when (chapterId) {
         1 -> listOf(
-            StoryLine("ĐỘI TRƯỞNG", "Phi công, ta đã xác định vị trí xác tàu trong Vành đai Tiểu hành tinh."),
-            StoryLine("ĐỘI TRƯỞNG", "Coi chừng đá — chúng mạnh hơn nhìn đấy."),
+            StoryLine("Đội trưởng", "Phi công, ta đã xác định vị trí xác tàu trong Vành đai Tiểu hành tinh."),
+            StoryLine("Đội trưởng", "Coi chừng đá — chúng mạnh hơn nhìn đấy."),
         )
         2 -> listOf(
-            StoryLine("ĐỘI TRƯỞNG", "Mây Tinh Vân dày đặc — tầm nhìn sẽ giảm."),
-            StoryLine("ĐỘI TRƯỞNG", "Tin vào máy đo. Đừng đứng yên."),
+            StoryLine("Đội trưởng", "Mây Tinh Vân dày đặc — tầm nhìn sẽ giảm."),
+            StoryLine("Đội trưởng", "Tin vào máy đo. Đừng đứng yên."),
         )
         3 -> listOf(
-            StoryLine("ĐỘI TRƯỞNG", "Chào mừng đến Hành Tinh Băng. Mặt đất rất hiểm."),
-            StoryLine("ĐỘI TRƯỞNG", "Lạnh không làm chúng chậm lại. Chuẩn bị đi."),
+            StoryLine("Đội trưởng", "Chào mừng đến Hành Tinh Băng. Mặt đất rất hiểm."),
+            StoryLine("Đội trưởng", "Lạnh không làm chúng chậm lại. Chuẩn bị đi."),
         )
         4 -> listOf(
-            StoryLine("ĐỘI TRƯỞNG", "Trạm Thù Địch phía trước — vũ trang đầy đủ."),
-            StoryLine("ĐỘI TRƯỞNG", "Mô hình tấn công phi tự nhiên. Thích nghi nhanh."),
+            StoryLine("Đội trưởng", "Trạm Thù Địch phía trước — vũ trang đầy đủ."),
+            StoryLine("Đội trưởng", "Mô hình tấn công phi tự nhiên. Thích nghi nhanh."),
         )
         5 -> listOf(
-            StoryLine("ĐỘI TRƯỞNG", "Đây rồi — Lõi Thiên Hà."),
-            StoryLine("ĐỘI TRƯỞNG", "Hạ Bá Vương. Cả thiên hà trông cậy vào anh."),
+            StoryLine("Đội trưởng", "Đây rồi — Lõi Thiên Hà."),
+            StoryLine("Đội trưởng", "Hạ Bá Vương. Cả thiên hà trông cậy vào anh."),
         )
         else -> emptyList()
     }

@@ -80,7 +80,7 @@ fun WaveClearBanner(
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "HOÀN THÀNH ĐỢT!",
+                text = "Hoàn thành đợt!",
                 color = NeonGold,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Black,

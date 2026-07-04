@@ -28,7 +28,7 @@ sealed class MidBossType(
     object OFFENSIVE : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 1500f,
-        displayName = "TIỂU BOSS TẤN CÔNG",
+        displayName = "Tiểu boss tấn công",
         defaultBossKind = BossKind.ORB,
     )
 
@@ -36,7 +36,7 @@ sealed class MidBossType(
     object DEFENSIVE : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 2500f,
-        displayName = "TIỂU BOSS PHÒNG THỦ",
+        displayName = "Tiểu boss phòng thủ",
         defaultBossKind = BossKind.FRACTAL,
     )
 
@@ -48,7 +48,7 @@ sealed class MidBossType(
     object SWARM : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 1200f,
-        displayName = "TIỂU BOSS BẦY ĐÀN",
+        displayName = "Tiểu boss bầy đàn",
         // Wave 17 — trước là FRACTAL (trùng shape DEFENSIVE) nhưng giá trị này
         // CHẾT: BossKindResolver luôn map SWARM→HAUNTED_KID nên render đã khác.
         // Đặt default đúng = HAUNTED_KID để code nói thật, không gây hiểu lầm.
@@ -60,63 +60,63 @@ sealed class MidBossType(
     object HEN_MOTHER : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 1800f,
-        displayName = "GÀ MÁI DẦU",
+        displayName = "Gà mái dầu",
         defaultBossKind = BossKind.HEN_MOTHER,
     )
 
     object BUFFALO_RAGE : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 2800f,
-        displayName = "TRÂU HUNG HẴN",
+        displayName = "Trâu hung hẵn",
         defaultBossKind = BossKind.BUFFALO_RAGE,
     )
 
     object DUMB_RAT : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 1400f,
-        displayName = "CHUỘT NGU SI",
+        displayName = "Chuột ngu si",
         defaultBossKind = BossKind.DUMB_RAT,
     )
 
     object FIERCE_TIGER : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 2200f,
-        displayName = "CỌP HUNG TỢN",
+        displayName = "Cọp hung tợn",
         defaultBossKind = BossKind.FIERCE_TIGER,
     )
 
     object SEXY_DIVA : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 2000f,
-        displayName = "CÔ GÁI SEXY",
+        displayName = "Cô gái sexy",
         defaultBossKind = BossKind.SEXY_DIVA,
     )
 
     object TROLL_TOWER : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 2400f,
-        displayName = "THÁP TINH QUỶ",
+        displayName = "Tháp tinh quỷ",
         defaultBossKind = BossKind.TROLL_TOWER,
     )
 
     object TWIN_SUMMITS : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 2100f,
-        displayName = "ĐÔI ĐỈNH SINH HOA",
+        displayName = "Đôi đỉnh sinh hoa",
         defaultBossKind = BossKind.TWIN_SUMMITS,
     )
 
     object VOID_GLOBES : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 2600f,
-        displayName = "ĐÔI CẦU HƯ VÔ",
+        displayName = "Đôi cầu hư vô",
         defaultBossKind = BossKind.VOID_GLOBES,
     )
 
     object WHITE_DRAGON : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 3200f,
-        displayName = "BẠCH LONG MẮT LAM",
+        displayName = "Bạch long mắt lam",
         defaultBossKind = BossKind.WHITE_DRAGON,
     )
 
@@ -125,21 +125,21 @@ sealed class MidBossType(
         baseHp = 2700f,
         // Wave 15 — đồng bộ với BossKind.HAMMER_SICKLE sau lần đổi tên
         // "Cộng Sản Bịp Bợm" → "Cộng Sản Lên Ngôi" (trước chỉ đổi ở BossKind).
-        displayName = "CỘNG SẢN LÊN NGÔI",
+        displayName = "Cộng sản lên ngôi",
         defaultBossKind = BossKind.HAMMER_SICKLE,
     )
 
     object MONEY_TYCOON : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 2300f,
-        displayName = "TƯ BẢN BÓC LỘT",
+        displayName = "Tư bản bóc lột",
         defaultBossKind = BossKind.MONEY_TYCOON,
     )
 
     object GOLDEN_TYCOON : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 2550f,                                 // Wave 17 — né trùng size DEFENSIVE(2500)
-        displayName = "TYCOON VÀNG",
+        displayName = "Tycoon vàng",
         defaultBossKind = BossKind.GOLDEN_TYCOON,
     )
 
@@ -149,7 +149,7 @@ sealed class MidBossType(
     object SKULL_CROSSBONES : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 2050f,                                 // Wave 17 — né trùng size SEXY_DIVA(2000)
-        displayName = "ĐẦU LÂU XƯƠNG CHÉO",
+        displayName = "Đầu lâu xương chéo",
         defaultBossKind = BossKind.SKULL_CROSSBONES,
     )
 
@@ -157,7 +157,7 @@ sealed class MidBossType(
     object VAMPIRE : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 2900f,
-        displayName = "MA CÀ RỒNG",
+        displayName = "Ma cà rồng",
         defaultBossKind = BossKind.VAMPIRE,
     )
 
@@ -165,7 +165,7 @@ sealed class MidBossType(
     object COSMIC_CENTIPEDE : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 3100f,
-        displayName = "CON RẾT VŨ TRỤ",
+        displayName = "Con rết vũ trụ",
         defaultBossKind = BossKind.COSMIC_CENTIPEDE,
     )
 
@@ -175,7 +175,7 @@ sealed class MidBossType(
     object GIANT_CONDOM : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 2450f,                                 // Wave 17 — né trùng size TROLL_TOWER(2400)
-        displayName = "BAO CAO SU KHỔNG LỒ",
+        displayName = "Bao cao su khổng lồ",
         defaultBossKind = BossKind.GIANT_CONDOM,
     )
 
@@ -183,7 +183,7 @@ sealed class MidBossType(
     object VENOM_SPIDER : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 2850f,                                 // Wave 17 — né trùng size BUFFALO_RAGE(2800)
-        displayName = "NHỆN VENOM",
+        displayName = "Nhện venom",
         defaultBossKind = BossKind.VENOM_SPIDER,
     )
 
@@ -191,7 +191,7 @@ sealed class MidBossType(
     object CORRUPTION : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 3300f,
-        displayName = "THAM NHŨNG",
+        displayName = "Tham nhũng",
         defaultBossKind = BossKind.CORRUPTION,
     )
 
@@ -201,7 +201,7 @@ sealed class MidBossType(
     object TRAFFIC_JAM : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 1700f,                                 // size riêng (né trùng mọi baseHp khác)
-        displayName = "TRÙM KẸT XE",
+        displayName = "Trùm kẹt xe",
         defaultBossKind = BossKind.TRAFFIC_JAM,
     )
 
@@ -209,7 +209,7 @@ sealed class MidBossType(
     object KPI_BOSS : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 2150f,
-        displayName = "SẾP KPI",
+        displayName = "Sếp KPI",
         defaultBossKind = BossKind.KPI_BOSS,
     )
 
@@ -217,7 +217,7 @@ sealed class MidBossType(
     object TIKTOKER : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 1950f,
-        displayName = "HOT TIKTOKER",
+        displayName = "Hot tiktoker",
         defaultBossKind = BossKind.TIKTOKER,
     )
 
@@ -227,7 +227,7 @@ sealed class MidBossType(
     object ATM_BANKRUPT : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 1600f,
-        displayName = "ATM HẾT TIỀN",
+        displayName = "ATM hết tiền",
         defaultBossKind = BossKind.ATM_BANKRUPT,
     )
 
@@ -235,7 +235,7 @@ sealed class MidBossType(
     object NOKIA_BRICK : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 1850f,
-        displayName = "CỤC GẠCH NOKIA",
+        displayName = "Cục gạch nokia",
         defaultBossKind = BossKind.NOKIA_BRICK,
     )
 
@@ -243,7 +243,7 @@ sealed class MidBossType(
     object INFLATION_STORM : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 2250f,
-        displayName = "BÃO GIÁ LẠM PHÁT",
+        displayName = "Bão giá lạm phát",
         defaultBossKind = BossKind.INFLATION_STORM,
     )
 
@@ -253,7 +253,7 @@ sealed class MidBossType(
     object SOCIAL_DRAMA : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 1550f,
-        displayName = "DRAMA MẠNG XÃ HỘI",
+        displayName = "Drama mạng xã hội",
         defaultBossKind = BossKind.SOCIAL_DRAMA,
     )
 
@@ -261,7 +261,7 @@ sealed class MidBossType(
     object PYRAMID_SCHEME : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 2350f,
-        displayName = "TRÙM ĐA CẤP",
+        displayName = "Trùm đa cấp",
         defaultBossKind = BossKind.PYRAMID_SCHEME,
     )
 
@@ -269,7 +269,7 @@ sealed class MidBossType(
     object FORTUNE_TELLER : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 1650f,
-        displayName = "THẦY BÓI ONLINE",
+        displayName = "Thầy bói online",
         defaultBossKind = BossKind.FORTUNE_TELLER,
     )
 
@@ -277,7 +277,7 @@ sealed class MidBossType(
     object KITCHEN_GOD : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 2750f,
-        displayName = "ÔNG TÁO CƯỠI CÁ CHÉP",
+        displayName = "Ông táo cưỡi cá chép",
         defaultBossKind = BossKind.KITCHEN_GOD,
     )
 
@@ -287,7 +287,7 @@ sealed class MidBossType(
     object CRYPTO_BRO : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 2480f,
-        displayName = "ÔNG CHÚ CRYPTO",
+        displayName = "Ông chú crypto",
         defaultBossKind = BossKind.CRYPTO_BRO,
     )
 
@@ -295,7 +295,7 @@ sealed class MidBossType(
     object TOXIC_KID : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 1450f,
-        displayName = "TRẺ TRÂU TOXIC",
+        displayName = "Trẻ trâu toxic",
         defaultBossKind = BossKind.TOXIC_KID,
     )
 
@@ -305,7 +305,7 @@ sealed class MidBossType(
     object KARAOKE_BOSS : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 1880f,
-        displayName = "TRÙM KARAOKE LẠC TÔNG",
+        displayName = "Trùm karaoke lạc tông",
         defaultBossKind = BossKind.KARAOKE_BOSS,
     )
 
@@ -313,7 +313,7 @@ sealed class MidBossType(
     object FLASHY_TYCOON : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 2680f,
-        displayName = "ĐẠI GIA PHÔNG BẠT",
+        displayName = "Đại gia phông bạt",
         defaultBossKind = BossKind.FLASHY_TYCOON,
     )
 
@@ -323,7 +323,7 @@ sealed class MidBossType(
     object DR_GOOGLE : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 1750f,
-        displayName = "BÁC SĨ GOOGLE",
+        displayName = "Bác sĩ google",
         defaultBossKind = BossKind.DR_GOOGLE,
     )
 
@@ -331,7 +331,7 @@ sealed class MidBossType(
     object CAT_EMPEROR : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 2330f,
-        displayName = "HOÀNG THƯỢNG MÈO",
+        displayName = "Hoàng thượng mèo",
         defaultBossKind = BossKind.CAT_EMPEROR,
     )
 
@@ -341,7 +341,7 @@ sealed class MidBossType(
     object SALE_FANATIC : MidBossType(
         drawableId = R.drawable.enemy_red_boss,
         baseHp = 1980f,
-        displayName = "THÁNH CUỒNG SALE",
+        displayName = "Thánh cuồng sale",
         defaultBossKind = BossKind.SALE_FANATIC,
     )
 
@@ -349,7 +349,7 @@ sealed class MidBossType(
     object GHOST_MONTH : MidBossType(
         drawableId = R.drawable.enemy_green_boss,
         baseHp = 2230f,
-        displayName = "CÔ HỒN THÁNG 7",
+        displayName = "Cô hồn tháng 7",
         defaultBossKind = BossKind.GHOST_MONTH,
     )
 

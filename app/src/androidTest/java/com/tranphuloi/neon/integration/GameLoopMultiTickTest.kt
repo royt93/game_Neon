@@ -49,10 +49,10 @@ class GameLoopMultiTickTest {
 
     private fun awaitMenu() {
         val ok = device.wait(Until.hasObject(By.text("SKY FORCE")), 10_000) != null ||
-            device.hasObject(By.text("CHỌN ĐỘ KHÓ"))
+            device.hasObject(By.text("Chọn độ khó"))
         assertTrue("Splash phải dẫn tới Menu/DifficultyPicker", ok)
-        if (device.hasObject(By.text("CHỌN ĐỘ KHÓ"))) {
-            device.wait(Until.findObject(By.text("VỪA")), 5_000)?.click()
+        if (device.hasObject(By.text("Chọn độ khó"))) {
+            device.wait(Until.findObject(By.text("Vừa")), 5_000)?.click()
             device.wait(Until.hasObject(By.text("SKY FORCE")), 10_000)
         }
     }
@@ -92,7 +92,7 @@ class GameLoopMultiTickTest {
 
         assertTrue(
             "Back khi đang chơi phải mở dialog TẠM DỪNG (GamePause)",
-            device.wait(Until.hasObject(By.text("TẠM DỪNG")), 8_000) != null,
+            device.wait(Until.hasObject(By.text("Tạm dừng")), 8_000) != null,
         )
     }
 
@@ -108,7 +108,7 @@ class GameLoopMultiTickTest {
         device.pressBack()
         assertTrue(
             "Phải mở dialog TẠM DỪNG",
-            device.wait(Until.hasObject(By.text("TẠM DỪNG")), 8_000) != null,
+            device.wait(Until.hasObject(By.text("Tạm dừng")), 8_000) != null,
         )
         device.waitForIdle()
         val resume = device.findByTag("pause_resume")
@@ -117,7 +117,7 @@ class GameLoopMultiTickTest {
         resume!!.click()
         assertTrue(
             "Bấm Resume phải đóng dialog (resume game)",
-            device.wait(Until.gone(By.text("TẠM DỪNG")), 8_000),
+            device.wait(Until.gone(By.text("Tạm dừng")), 8_000),
         )
         assertTrue("Sau resume vẫn ở Game, không quay về Menu", !device.hasObject(By.res("menu_play")))
     }

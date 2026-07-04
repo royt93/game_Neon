@@ -114,7 +114,7 @@ fun BossIntroOverlay(
                 .graphicsLayer { alpha = envelope },
         ) {
             Text(
-                text = "⚠ NGUY HIỂM",
+                text = "⚠ Nguy hiểm",
                 color = NeonRedAlert.copy(alpha = (0.6f + 0.4f * pulse)),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Black,

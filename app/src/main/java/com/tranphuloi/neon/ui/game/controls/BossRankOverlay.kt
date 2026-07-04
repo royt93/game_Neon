@@ -31,11 +31,11 @@ private const val DURATION_MILLIS = 1800L
 
 /** S = perfect, A = excellent, B = good, C = OK, D = poor */
 enum class BossRank(val letter: String, val color: () -> Color, val label: String) {
-    S(letter = "S", color = { NeonGold }, label = "PERFECT KILL"),
-    A(letter = "A", color = { NeonCyan }, label = "EXCELLENT"),
-    B(letter = "B", color = { NeonMagenta }, label = "GOOD"),
+    S(letter = "S", color = { NeonGold }, label = "Perfect kill"),
+    A(letter = "A", color = { NeonCyan }, label = "Excellent"),
+    B(letter = "B", color = { NeonMagenta }, label = "Good"),
     C(letter = "C", color = { NeonCyan.copy(alpha = 0.7f) }, label = "OK"),
-    D(letter = "D", color = { NeonRedAlert }, label = "BARELY");
+    D(letter = "D", color = { NeonRedAlert }, label = "Barely");
 
     companion object {
         /**

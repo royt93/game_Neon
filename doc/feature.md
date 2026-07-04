@@ -2525,6 +2525,15 @@ Chi tiết: [doc/task/todo/06-drone-variants.md](task/todo/06-drone-variants.md)
 - Controller: addDrone theo variant, fireStep chỉ ATTACK, `healStep` (HEAL→`healCapped`). +4 test. JVM **889**.
 - ✅ Verify device (Galaxy A50s): loadout section DRONE render 3 variant + chọn/persist (logcat `setSelectedDroneVariant=HEAL`).
 
+## 🆕 Task 08 — Thử thách hằng ngày + modifier (✅ Implemented 2026-07-04, verify device)
+
+Chi tiết: [doc/task/todo/08-daily-challenge-modifiers.md](task/todo/08-daily-challenge-modifiers.md).
+- `DailyChallenge.modifierFor(dayKey)` — modifier deterministic theo ngày (pool 9, floorMod) → mọi người cùng modifier, đua daily leaderboard (`submitDaily` sẵn có).
+- Card "⚡ THỬ THÁCH HÔM NAY +100◇" đầu modifier picker → chọn modifier ngày.
+- Thưởng +100 minerals **1 lần/ngày** khi hoàn thành (`claimDailyChallenge`, chống farm claim-day) — grant ở GAME_OVER nếu run modifier==daily.
+- +7 test (DailyChallenge 5 + integration 2). JVM **896**. Verify device A50s (chọn glass_cannon → chơi → `Daily challenge complete +100◇`).
+- Defer: deterministic-spawn (cùng địch) — rủi ro seed toàn RNG.
+
 ---
 
 # Notes
@@ -2537,6 +2546,7 @@ Chi tiết: [doc/task/todo/06-drone-variants.md](task/todo/06-drone-variants.md)
 - **Build verify:** sau mỗi wave, chạy `./gradlew compileDevDebugKotlin compileProductionReleaseKotlin testDevDebugUnitTest`. Current test count: **≈723 `@Test` methods / 76 test files** (đếm 2026-06-16; mốc verify 0-fail gần nhất: 585 ngày 2026-05-30 sau Wave 14a Round 2 (6 consumable buff packs) + bullet-fix (đạn cả-run + KAMEHAMEHA/ATOMIC, `BulletBehaviorWave14Test`) + 13c/13d; Wave 13a Shop hub: +23 `ShipShopLogicTest` + 6 `MetaProgressionShipIntegrationTest` (Robolectric, real DataStore — đầu tiên dùng Robolectric trong repo). Lưu ý: `BoosterTypeDistributionTest` là test xác suất, đôi khi flaky — rerun pass. Production release compile clean. Widget test Compose+Robolectric chưa khả thi trên AGP 9.1.1 (ui-test-manifest không merge vào unit-test manifest) → verify UI on-device.
 - **Doc structure:** R1-R75 history archived ở [feature-archive.md](feature-archive.md) (~2700 dòng). File này (R76-R86 recent + Phần 4-7 + Notes) ~2460 dòng (2026-06-16). Khi feature.md vượt 200KB lần nữa → move R76-R85 sang archive.
 - **i18n:** strings mới phải thêm vào cả `values-vi/strings.xml` và `values-en/strings.xml`
+- **Chữ hoa UI (2026-07-04):** nhãn hiển thị dùng **sentence case** (viết hoa chữ cái đầu thôi), KHÔNG dùng ALL-CAPS ("app call") lẫn Title Case. Giữ IN HOA cho: acronym (HP/XP/DMG/SPD/MAG/MULT/BXH/ST/KPI/ATM), tên app "SKY FORCE U*S*A", nhấn mạnh trong thoại kịch tính. Sweep 2 lượt: **236 ALL-CAPS + 207 Title Case** string Kotlin + 9 XML (script `caps_fix.py`). Verify device (menu + shop ship names). CẢNH BÁO khi viết tool tương tự: (1) range regex `à-ỹ` (U+00E0–U+1EF9) CHỨA cả chữ hoa VN khối mở rộng → dùng `.islower()`/`.isupper()` Unicode, KHÔNG dùng range; (2) bỏ qua camelCase/PascalCase (code identifier) + UPPER_SNAKE + comment/Logger/key/testTag.
 - **Compose stability:** data class state mới nên dùng `@Immutable`/`@Stable` annotation. EnemyUI, LaserUI, BoosterUI, MineralUI, RunModifier, RunBuff, StatusEffect, SecondaryWeapon, BulletType, ShipSkin, ColorBlindMode, NeonPalette đều `@Immutable`.
 - **Known perf limitations (sau rounds 44-49):**
   - Subjective lag vẫn còn ở peak combat (stage 38+ NEBULA_FOG, 50+ enemies on-screen). Round 50 enemy Canvas là next step.

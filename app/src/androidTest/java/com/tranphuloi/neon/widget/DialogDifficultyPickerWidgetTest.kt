@@ -38,10 +38,10 @@ class DialogDifficultyPickerWidgetTest {
                 }
             }
         }
-        composeRule.waitForText("DỄ")
-        composeRule.onNodeWithText("DỄ").assertIsDisplayed()
-        composeRule.onNodeWithText("VỪA").assertIsDisplayed()
-        composeRule.onNodeWithText("KHÓ").assertIsDisplayed()
+        composeRule.waitForText("Dễ")
+        composeRule.onNodeWithText("Dễ").assertIsDisplayed()
+        composeRule.onNodeWithText("Vừa").assertIsDisplayed()
+        composeRule.onNodeWithText("Khó").assertIsDisplayed()
     }
 
     @Test
@@ -54,8 +54,8 @@ class DialogDifficultyPickerWidgetTest {
                 }
             }
         }
-        composeRule.waitForText("VỪA")
-        composeRule.onNodeWithText("VỪA").performClick()
+        composeRule.waitForText("Vừa")
+        composeRule.onNodeWithText("Vừa").performClick()
 
         // setDifficulty là suspend chạy trong rememberCoroutineScope → onPicked
         // bắn sau khi write xong; chờ tới khi callback được gọi.

@@ -137,7 +137,7 @@ fun GameScreen(
     onGamePause: () -> Unit,
     onGameOver: (score: String) -> Unit,
     onOpenBuffPicker: () -> Unit = {},
-    /** Round 51 (26x Photo mode) — flips true when GamePause "CHỤP ẢNH"
+    /** Round 51 (26x Photo mode) — flips true when GamePause "Chụp ảnh"
      *  tapped (signal from MainActivity). LaunchedEffect runs the capture
      *  flow + calls [onPhotoCaptureConsumed]. */
     photoCaptureRequested: Boolean = false,
@@ -275,6 +275,18 @@ fun GameScreen(
                     bossesDefeated = gameState.bossesDefeatedTotal,
                 ),
             )
+            // Task 08 — thưởng THỬ THÁCH HẰNG NGÀY nếu run này chơi đúng modifier
+            // của ngày (1 lần/ngày, chống farm qua claimDailyChallenge).
+            run {
+                val today = com.tranphuloi.neon.data.LeaderboardRepository.todayUtcDayKey()
+                val runMod = com.tranphuloi.neon.ui.game.modifier.RunModifier.fromKey(settings.lastModifier.first())
+                if (runMod == com.tranphuloi.neon.ui.game.modifier.DailyChallenge.modifierFor(today)) {
+                    val granted = metaRepo.claimDailyChallenge(
+                        today, com.tranphuloi.neon.ui.game.modifier.DailyChallenge.REWARD_MINERALS,
+                    )
+                    if (granted > 0) Logger.d("Daily challenge complete → +$granted◇")
+                }
+            }
             // Wave 11c — telemetry-driven achievement checks. Runs once after
             // recordRunMetrics commits, so totals are fresh. .first() pulls a
             // single emission from each Flow; suspend keeps us inside this

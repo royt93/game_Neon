@@ -268,13 +268,13 @@ fun MenuScreen(
                     verticalArrangement = Arrangement.spacedBy(8f.sdp(s)),
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    GroupHeader(label = "TRƯỚC TRẬN", color = NeonViolet, s = s)
+                    GroupHeader(label = "Trước trận", color = NeonViolet, s = s)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(10f.sdp(s)),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         MenuButton(
-                            label = "CHẾ ĐỘ",
+                            label = "Chế độ",
                             glyph = "⊞",
                             color = NeonViolet,
                             modifier = Modifier.weight(1f),
@@ -286,7 +286,7 @@ fun MenuScreen(
                             },
                         )
                         MenuButton(
-                            label = "THỬ THÁCH",
+                            label = "Thử thách",
                             glyph = "⚡",
                             color = NeonGold,
                             modifier = Modifier.weight(1f),
@@ -298,7 +298,7 @@ fun MenuScreen(
                             },
                         )
                         MenuButton(
-                            label = "TRANG BỊ",
+                            label = "Trang bị",
                             glyph = "◈",
                             color = NeonCyan,
                             modifier = Modifier.weight(1f),
@@ -312,7 +312,7 @@ fun MenuScreen(
                     }
 
                     Spacer(modifier = Modifier.height(2f.sdp(s)))
-                    GroupHeader(label = "TIẾN TRÌNH", color = NeonGold, s = s)
+                    GroupHeader(label = "Tiến trình", color = NeonGold, s = s)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12f.sdp(s)),
                         modifier = Modifier.fillMaxWidth(),
@@ -320,7 +320,7 @@ fun MenuScreen(
                         // Wave 13a (slice C) — NÂNG CẤP (skill-tree) đã gộp vào Cửa hàng
                         // → tab Nâng cấp. Hàng này còn Cửa hàng + Thống kê.
                         MenuButton(
-                            label = "CỬA HÀNG",
+                            label = "Cửa hàng",
                             glyph = "◇",
                             color = NeonCyan,
                             modifier = Modifier.weight(1f),
@@ -331,7 +331,7 @@ fun MenuScreen(
                             },
                         )
                         MenuButton(
-                            label = "THỐNG KÊ",
+                            label = "Thống kê",
                             glyph = "▦",
                             color = NeonGold,
                             modifier = Modifier.weight(1f),
@@ -344,13 +344,13 @@ fun MenuScreen(
                     }
 
                     Spacer(modifier = Modifier.height(2f.sdp(s)))
-                    GroupHeader(label = "KHÁC", color = NeonViolet, s = s)
+                    GroupHeader(label = "Khác", color = NeonViolet, s = s)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(12f.sdp(s)),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         MenuButton(
-                            label = "BÁCH KHOA",
+                            label = "Bách khoa",
                             glyph = "❡",
                             color = NeonViolet,
                             modifier = Modifier.weight(1f),
@@ -361,7 +361,7 @@ fun MenuScreen(
                             },
                         )
                         MenuButton(
-                            label = "CÀI ĐẶT",
+                            label = "Cài đặt",
                             glyph = "⚙",
                             color = NeonMagenta,
                             modifier = Modifier.weight(1f).testTag("menu_settings"),
@@ -558,7 +558,7 @@ private fun InfoCard(
         ) {
             Column {
                 Text(
-                    text = "CHẾ ĐỘ",
+                    text = "Chế độ",
                     color = NeonViolet.copy(alpha = 0.7f),
                     fontSize = 11f.ssp(s),
                     fontWeight = FontWeight.Bold,
@@ -623,7 +623,7 @@ private fun PlayButton(
         ),
         label = "borderAlpha",
     )
-    val label = if (hasCheckpoint) "TIẾP TỤC" else "BẮT ĐẦU"
+    val label = if (hasCheckpoint) "Tiếp tục" else "Bắt đầu"
     // Round 70 (Issue 1) — Same height + corner radius as MenuButton để đồng nhất.
     // Pulse animation + gradient bg retained để PLAY vẫn nổi bật là hero action.
     Box(
@@ -681,9 +681,9 @@ private fun DailyCheckInButton(
     onClaim: () -> Unit,
 ) {
     val label = if (claimed) {
-        "✓ ĐÃ NHẬN +$claimedAmount◇" + if (streak > 1) "  ·  chuỗi $streak ngày" else ""
+        "✓ Đã nhận +$claimedAmount◇" + if (streak > 1) "  ·  chuỗi $streak ngày" else ""
     } else {
-        "🎁 ĐIỂM DANH HÔM NAY"
+        "🎁 Điểm danh hôm nay"
     }
     Box(
         contentAlignment = Alignment.Center,

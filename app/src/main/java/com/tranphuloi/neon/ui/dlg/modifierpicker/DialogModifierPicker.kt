@@ -62,7 +62,7 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
     }
 
     com.tranphuloi.neon.common.NeonBottomSheet(
-        title = "CHỌN THỬ THÁCH",
+        title = "Chọn thử thách",
         accentColor = NeonGold,
         onDismiss = {
             // Round 29 — ✕ tap = skip picker = apply NONE modifier.
@@ -84,6 +84,47 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
                 textAlign = TextAlign.Center,
             )
             Spacer(modifier = Modifier.height(16.dp))
+
+            // Task 08 — THỬ THÁCH HẰNG NGÀY: modifier cố định theo ngày (mọi người
+            // cùng chơi + đua daily leaderboard), thưởng +minerals 1 lần/ngày.
+            val today = remember { com.tranphuloi.neon.data.LeaderboardRepository.todayUtcDayKey() }
+            val dailyMod = remember(today) { com.tranphuloi.neon.ui.game.modifier.DailyChallenge.modifierFor(today) }
+            Column(
+                modifier = Modifier
+                    .padding(bottom = 10.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(NeonGold.copy(alpha = 0.16f))
+                    .border(BorderStroke(2.dp, NeonGold), RoundedCornerShape(14.dp))
+                    .clickable {
+                        Logger.d("ModifierPicker: DAILY CHALLENGE chose ${dailyMod.key} (day=$today)")
+                        scope.launch {
+                            settings.setLastModifier(dailyMod.key)
+                            onPicked()
+                        }
+                    }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Text(text = "⚡", color = NeonGold, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Thử thách hôm nay",
+                        color = NeonGold,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 16.sp,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(text = "+${com.tranphuloi.neon.ui.game.modifier.DailyChallenge.REWARD_MINERALS}◇", color = NeonGold, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "${dailyMod.displayName} · thưởng 1 lần/ngày · đua BXH ngày",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 12.sp,
+                )
+            }
+
             choices.forEachIndexed { idx, mod ->
                 val color = when (idx) {
                     0 -> NeonCyan

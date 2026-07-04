@@ -52,7 +52,7 @@ fun DialogBuffPicker(
     }
 
     NeonBottomSheet(
-        title = "CHỌN BUFF",
+        title = "Chọn buff",
         accentColor = NeonMagenta,
         titleSize = 22.sp,
         dismissible = true,

@@ -98,7 +98,7 @@ fun DialogLoadoutPicker(
     LaunchedEffect(Unit) { Logger.d("DialogLoadoutPicker shown") }
 
     NeonBottomSheet(
-        title = "TRANG BỊ",
+        title = "Trang bị",
         accentColor = palette.gold,
         onDismiss = {
             // Round 72 fix — pop back stack KHÔNG commit. User chỉ confirm khi
@@ -124,7 +124,7 @@ fun DialogLoadoutPicker(
             Spacer(modifier = Modifier.height(18.dp))
 
             // ─── Vũ khí chính (BulletType) ─────────────────────────
-            SectionHeader(label = "VŨ KHÍ CHÍNH", color = palette.cyan)
+            SectionHeader(label = "Vũ khí chính", color = palette.cyan)
             Spacer(modifier = Modifier.height(8.dp))
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -171,7 +171,7 @@ fun DialogLoadoutPicker(
             Spacer(modifier = Modifier.height(20.dp))
 
             // ─── Vũ khí phụ (SecondaryWeapon) ──────────────────────
-            SectionHeader(label = "VŨ KHÍ PHỤ", color = palette.magenta)
+            SectionHeader(label = "Vũ khí phụ", color = palette.magenta)
             Spacer(modifier = Modifier.height(8.dp))
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -200,7 +200,7 @@ fun DialogLoadoutPicker(
             Spacer(modifier = Modifier.height(18.dp))
 
             // Task 06 — chọn biến thể DRONE (cần mở khoá PHI ĐỘI DRONE trong skill-tree).
-            SectionHeader(label = "DRONE", color = palette.cyan)
+            SectionHeader(label = "Drone", color = palette.cyan)
             Spacer(modifier = Modifier.height(8.dp))
             FlowRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -244,7 +244,7 @@ fun DialogLoadoutPicker(
                     .padding(vertical = 14.dp),
             ) {
                 Text(
-                    text = "▶ BẮT ĐẦU",
+                    text = "▶ Bắt đầu",
                     color = palette.gold,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Black,
@@ -783,11 +783,11 @@ private fun droneVariantMeta(
     palette: NeonPalette,
 ): DroneVariantMeta = when (v) {
     com.tranphuloi.neon.ui.game.drone.DroneVariant.ATTACK ->
-        DroneVariantMeta("◈", "Drone Tấn Công", "Tự bắn địch gần nhất", "Thêm hoả lực rảnh tay", palette.cyan)
+        DroneVariantMeta("◈", "Drone tấn công", "Tự bắn địch gần nhất", "Thêm hoả lực rảnh tay", palette.cyan)
     com.tranphuloi.neon.ui.game.drone.DroneVariant.SHIELD ->
-        DroneVariantMeta("⛨", "Drone Khiên", "2× máu · chặn đạn · không bắn", "Đệm đỡ đạn cho tàu", palette.gold)
+        DroneVariantMeta("⛨", "Drone khiên", "2× máu · chặn đạn · không bắn", "Đệm đỡ đạn cho tàu", palette.gold)
     com.tranphuloi.neon.ui.game.drone.DroneVariant.HEAL ->
-        DroneVariantMeta("✚", "Drone Hồi Máu", "Hồi máu tàu chậm · không bắn", "Trụ lâu ở màn khó", Color(0xFF3DFF88))
+        DroneVariantMeta("✚", "Drone hồi máu", "Hồi máu tàu chậm · không bắn", "Trụ lâu ở màn khó", Color(0xFF3DFF88))
 }
 
 private fun subtitleForSecondary(w: SecondaryWeapon): String = when (w) {

@@ -1,6 +1,21 @@
 # Task 08 — Thử thách hằng ngày + modifier
 
-**Loại:** Feature mới (replay/economy) · **Ưu tiên:** trung bình · **Trạng thái:** 📋 todo
+**Loại:** Feature mới (replay/economy) · **Ưu tiên:** trung bình · **Trạng thái:** 🟡 In progress (Slice 0 chốt 2026-07-04)
+
+## ✅ Slice 0 — ĐÃ CHỐT (2026-07-04)
+- **Modifier deterministic theo ngày:** `DailyChallenge.modifierFor(dayKey)` = pick từ 9 `RunModifier` (trừ NONE) theo `dayKey % 9` (mọi người cùng modifier trong ngày). *Deterministic-spawn (cùng địch) DEFER — rủi ro seed toàn RNG.*
+- **UI:** thêm mục "⚡ THỬ THÁCH HÔM NAY" đầu dialog modifier picker (hiện modifier ngày + chọn 1 phát).
+- **Thưởng:** +minerals **1 lần/ngày** khi hoàn thành (chống farm qua claim-day, mẫu ĐIỂM DANH).
+- **Replay:** tự do; daily leaderboard (`submitDaily` đã gọi mọi GAME_OVER) tự giữ điểm cao nhất.
+
+## Rã slice
+- [x] **Slice 1 (2026-07-04)** — `DailyChallenge.modifierFor(dayKey)` (floorMod pool 9) + `REWARD_MINERALS=100` + `DailyChallengeTest` **5**.
+- [x] **Slice 2 (2026-07-04)** — `MetaProgressionRepository.claimDailyChallenge/dailyChallengeAvailable` (atomic 1 lần/ngày, key `last_daily_challenge_day`) + integration test **2**.
+- [x] **Slice 3 (2026-07-04)** — modifier picker: card "⚡ THỬ THÁCH HÔM NAY +100◇" (set lastModifier=daily) + thưởng ở GAME_OVER (GameScreen: nếu run modifier==daily → claim). JVM **896**.
+- [x] **Slice 4 (2026-07-04)** — **verify device A50s**: card render (GLASS_CANNON hôm nay), tap → `setLastModifier=glass_cannon`; chơi → GAME_OVER → `claimDailyChallenge day=20638 +100◇` + `Daily challenge complete`.
+
+## Trạng thái: ✅ Implemented (2026-07-04) — verify device đầy đủ (chọn + chơi + thưởng)
+Ghi chú: deterministic-SPAWN (cùng địch) chưa làm — chỉ modifier cố định theo ngày (defer, rủi ro seed toàn RNG).
 
 ## Mục tiêu
 Chế độ **Thử thách hằng ngày**: seed cố định theo ngày (UTC) → cùng modifier cho mọi người trong ngày, đua trên **daily leaderboard** (đã có). Tăng lý do quay lại mỗi ngày.

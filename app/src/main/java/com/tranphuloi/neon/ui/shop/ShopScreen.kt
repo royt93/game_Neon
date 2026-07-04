@@ -122,7 +122,7 @@ fun ShopScreen(onBack: () -> Unit) {
         NeonStarfieldBackground(modifier = Modifier.fillMaxSize())
         Column(modifier = Modifier.fillMaxSize()) {
             NeonActionBar(
-                title = "CỬA HÀNG",
+                title = "Cửa hàng",
                 titleColor = NeonGold,
                 onBack = onBack,
             )
@@ -203,7 +203,7 @@ private fun PurchaseConfirmSheet(
     onDismiss: () -> Unit,
 ) {
     NeonBottomSheet(
-        title = "XÁC NHẬN MUA",
+        title = "Xác nhận mua",
         accentColor = request.accent,
         onDismiss = onDismiss,
     ) {
@@ -423,7 +423,7 @@ private fun ShopItemRow(
             }
         }
         Text(
-            text = if (isMaxed) "MAX" else "${item.cost} ◇",
+            text = if (isMaxed) "Max" else "${item.cost} ◇",
             style = TextStyle(
                 color = if (isMaxed || affordable) accent else Color(0xFF606878),
                 fontSize = 14.sp,
@@ -602,7 +602,7 @@ private fun BulletRow(
             }
         }
         when {
-            selected -> Text("✓ ĐANG DÙNG", style = TextStyle(color = color, fontSize = 11.sp, fontWeight = FontWeight.Black))
+            selected -> Text("✓ Đang dùng", style = TextStyle(color = color, fontSize = 11.sp, fontWeight = FontWeight.Black))
             owned -> Text("Có sẵn", style = TextStyle(color = color.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.Bold))
             else -> Text("$cost ◇", style = TextStyle(color = if (canBuy) color else Color(0xFF606878), fontSize = 14.sp, fontWeight = FontWeight.Black))
         }
@@ -755,7 +755,7 @@ private fun SkinRow(
             }
         }
         when {
-            selected -> Text("✓ ĐANG DÙNG", style = TextStyle(color = color, fontSize = 11.sp, fontWeight = FontWeight.Black))
+            selected -> Text("✓ Đang dùng", style = TextStyle(color = color, fontSize = 11.sp, fontWeight = FontWeight.Black))
             owned -> Text("Đã sở hữu", style = TextStyle(color = color.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.Bold))
             else -> Text(
                 text = "$cost ◇",
@@ -933,7 +933,7 @@ private fun ShipRow(
         }
         // Right-side state: selected / owned / price.
         when {
-            selected -> Text("✓ ĐANG DÙNG", style = TextStyle(color = color, fontSize = 11.sp, fontWeight = FontWeight.Black))
+            selected -> Text("✓ Đang dùng", style = TextStyle(color = color, fontSize = 11.sp, fontWeight = FontWeight.Black))
             owned -> Text("Đã sở hữu", style = TextStyle(color = color.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.Bold))
             else -> Column(horizontalAlignment = Alignment.End) {
                 Text(

@@ -20,72 +20,72 @@ package com.tranphuloi.neon.ui.game.enemy.ship.model
  */
 @androidx.annotation.Keep
 enum class BossKind(val displayName: String) {
-    STAR(displayName = "Mặt Trời Đỏ Máu"),
-    CROSS(displayName = "Thập Tự Ngọc Lục Bảo"),
-    ORB(displayName = "Lính Gác Mắt Sát Thủ"),
-    FRACTAL(displayName = "Hộ Vệ Nguyên Tử"),
-    SPIDER(displayName = "Bá Vương Thiên Hà"),
+    STAR(displayName = "Mặt trời đỏ máu"),
+    CROSS(displayName = "Thập tự ngọc lục bảo"),
+    ORB(displayName = "Lính gác mắt sát thủ"),
+    FRACTAL(displayName = "Hộ vệ nguyên tử"),
+    SPIDER(displayName = "Bá vương thiên hà"),
 
     // Round 79 (#1) — 4 new shapes to eliminate visual duplicates across the
     // 9 chapter encounters (Ch3End/Ch3Mid/Ch4Mid/Ch4End previously reused).
-    DEATH_MOON(displayName = "Mặt Trăng Tử Thần"),
-    HAUNTED_KID(displayName = "Hồn Ma Trẻ Em"),
-    HELL_LORD(displayName = "Chúa Tể Địa Ngục"),
-    SATAN_GLYPH(displayName = "Quỷ Satan"),
+    DEATH_MOON(displayName = "Mặt trăng tử thần"),
+    HAUNTED_KID(displayName = "Hồn ma trẻ em"),
+    HELL_LORD(displayName = "Chúa tể địa ngục"),
+    SATAN_GLYPH(displayName = "Quỷ satan"),
 
     // ── Round 81 — 12 new boss kinds per user roster ──
-    HEN_MOTHER(displayName = "Gà Mái Dầu"),
-    BUFFALO_RAGE(displayName = "Trâu Hung Hẵn"),
-    DUMB_RAT(displayName = "Chuột Ngu Si"),
-    FIERCE_TIGER(displayName = "Cọp Hung Tợn"),
-    SEXY_DIVA(displayName = "Cô Gái Sexy"),
-    TROLL_TOWER(displayName = "Tháp Tinh Quỷ"),
-    TWIN_SUMMITS(displayName = "Đôi Đỉnh Sinh Hoa"),
-    VOID_GLOBES(displayName = "Đôi Cầu Hư Vô"),
-    WHITE_DRAGON(displayName = "Bạch Long Mắt Lam"),
-    HAMMER_SICKLE(displayName = "Cộng Sản Lên Ngôi"),
-    MONEY_TYCOON(displayName = "Tư Bản Bóc Lột"),
-    GOLDEN_TYCOON(displayName = "Tycoon Vàng"),
+    HEN_MOTHER(displayName = "Gà mái dầu"),
+    BUFFALO_RAGE(displayName = "Trâu hung hẵn"),
+    DUMB_RAT(displayName = "Chuột ngu si"),
+    FIERCE_TIGER(displayName = "Cọp hung tợn"),
+    SEXY_DIVA(displayName = "Cô gái sexy"),
+    TROLL_TOWER(displayName = "Tháp tinh quỷ"),
+    TWIN_SUMMITS(displayName = "Đôi đỉnh sinh hoa"),
+    VOID_GLOBES(displayName = "Đôi cầu hư vô"),
+    WHITE_DRAGON(displayName = "Bạch long mắt lam"),
+    HAMMER_SICKLE(displayName = "Cộng sản lên ngôi"),
+    MONEY_TYCOON(displayName = "Tư bản bóc lột"),
+    GOLDEN_TYCOON(displayName = "Tycoon vàng"),
 
     // ── Wave 15 batch 1 — 3 boss user nêu đích danh ──
-    SKULL_CROSSBONES(displayName = "Đầu Lâu Xương Chéo"),
-    VAMPIRE(displayName = "Ma Cà Rồng"),
-    COSMIC_CENTIPEDE(displayName = "Con Rết Vũ Trụ"),
+    SKULL_CROSSBONES(displayName = "Đầu lâu xương chéo"),
+    VAMPIRE(displayName = "Ma cà rồng"),
+    COSMIC_CENTIPEDE(displayName = "Con rết vũ trụ"),
 
     // ── Wave 16 batch 2 — 3 boss user nêu đích danh (nốt) ──
-    GIANT_CONDOM(displayName = "Bao Cao Su Khổng Lồ"),
-    VENOM_SPIDER(displayName = "Nhện Venom"),
-    CORRUPTION(displayName = "Tham Nhũng"),
+    GIANT_CONDOM(displayName = "Bao cao su khổng lồ"),
+    VENOM_SPIDER(displayName = "Nhện venom"),
+    CORRUPTION(displayName = "Tham nhũng"),
 
     // ── Wave 18 batch 1 — 3 boss trào phúng (đời sống VN) ──
-    TRAFFIC_JAM(displayName = "Trùm Kẹt Xe"),
+    TRAFFIC_JAM(displayName = "Trùm kẹt xe"),
     KPI_BOSS(displayName = "Sếp KPI"),
     TIKTOKER(displayName = "Hot TikToker"),
 
     // ── Wave 19 batch 2 — 3 boss trào phúng (nốt) ──
-    ATM_BANKRUPT(displayName = "ATM Hết Tiền"),
-    NOKIA_BRICK(displayName = "Cục Gạch Nokia 1280"),
-    INFLATION_STORM(displayName = "Bão Giá Lạm Phát"),
+    ATM_BANKRUPT(displayName = "ATM hết tiền"),
+    NOKIA_BRICK(displayName = "Cục gạch nokia 1280"),
+    INFLATION_STORM(displayName = "Bão giá lạm phát"),
 
     // ── Wave 20 batch 3 — 4 boss trào phúng (hết batch 1) ──
-    SOCIAL_DRAMA(displayName = "Drama Mạng Xã Hội"),
-    PYRAMID_SCHEME(displayName = "Trùm Đa Cấp"),
-    FORTUNE_TELLER(displayName = "Thầy Bói Online"),
-    KITCHEN_GOD(displayName = "Ông Táo Cưỡi Cá Chép"),
+    SOCIAL_DRAMA(displayName = "Drama mạng xã hội"),
+    PYRAMID_SCHEME(displayName = "Trùm đa cấp"),
+    FORTUNE_TELLER(displayName = "Thầy bói online"),
+    KITCHEN_GOD(displayName = "Ông táo cưỡi cá chép"),
 
     // ── Wave 21 batch 4 — 2 boss trào phúng (batch 2 mở màn) ──
-    CRYPTO_BRO(displayName = "Ông Chú Crypto"),
-    TOXIC_KID(displayName = "Trẻ Trâu Toxic"),
+    CRYPTO_BRO(displayName = "Ông chú crypto"),
+    TOXIC_KID(displayName = "Trẻ trâu toxic"),
 
     // ── Wave 22 batch 5 — 2 boss trào phúng ──
-    KARAOKE_BOSS(displayName = "Trùm Karaoke Lạc Tông"),
-    FLASHY_TYCOON(displayName = "Đại Gia Phông Bạt"),
+    KARAOKE_BOSS(displayName = "Trùm karaoke lạc tông"),
+    FLASHY_TYCOON(displayName = "Đại gia phông bạt"),
 
     // ── Wave 23 batch 6 — 2 boss trào phúng ──
-    DR_GOOGLE(displayName = "Bác Sĩ Google"),
-    CAT_EMPEROR(displayName = "Hoàng Thượng Mèo"),
+    DR_GOOGLE(displayName = "Bác sĩ google"),
+    CAT_EMPEROR(displayName = "Hoàng thượng mèo"),
 
     // ── Wave 24 batch 7 — 2 boss trào phúng (HẾT batch 2 = đủ 18) ──
-    SALE_FANATIC(displayName = "Thánh Cuồng Sale"),
-    GHOST_MONTH(displayName = "Cô Hồn Tháng 7"),
+    SALE_FANATIC(displayName = "Thánh cuồng sale"),
+    GHOST_MONTH(displayName = "Cô hồn tháng 7"),
 }

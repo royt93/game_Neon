@@ -62,7 +62,7 @@ private fun buildStageScript(): List<Stage> {
         // walk-back logic would resolve to the previous chapter's last boss).
         list.add(StageMessage(message = "CHƯƠNG ${chapter.id}", durationMillis = 3, chapterId = chapter.id))
         list.add(StageMessage(message = chapter.displayName, durationMillis = 3, chapterId = chapter.id))
-        list.add(StageMessage(message = "BẮT ĐẦU!", durationMillis = 1, chapterId = chapter.id))
+        list.add(StageMessage(message = "Bắt đầu!", durationMillis = 1, chapterId = chapter.id))
 
         // 12 game stages, mid-boss inserted at game-stage 6 + 12 + extras.
         // Tier scales difficulty across the chapter: 0=early, 1=mid, 2=late.
@@ -82,7 +82,7 @@ private fun buildStageScript(): List<Stage> {
 
             val midBossForStage = midBossSlotsByStage[gameStage]
             if (midBossForStage != null) {
-                list.add(StageMessage(message = "NGUY HIỂM", durationMillis = 2, chapterId = chapter.id))
+                list.add(StageMessage(message = "Nguy hiểm", durationMillis = 2, chapterId = chapter.id))
                 list.add(
                     StageBoss(
                         bossId = UUID.randomUUID().toString(),
@@ -95,9 +95,9 @@ private fun buildStageScript(): List<Stage> {
         }
 
         // Chapter final boss intro (3 messages + boss)
-        list.add(StageMessage(message = "TRẬN BOSS", durationMillis = 3, chapterId = chapter.id))
+        list.add(StageMessage(message = "Trận boss", durationMillis = 3, chapterId = chapter.id))
         list.add(StageMessage(message = "Sẵn sàng!", durationMillis = 3, chapterId = chapter.id))
-        list.add(StageMessage(message = "BẮT ĐẦU!", durationMillis = 1, chapterId = chapter.id))
+        list.add(StageMessage(message = "Bắt đầu!", durationMillis = 1, chapterId = chapter.id))
         list.add(
             StageBoss(
                 bossId = UUID.randomUUID().toString(),
@@ -107,7 +107,7 @@ private fun buildStageScript(): List<Stage> {
         )
         list.add(
             StageMessage(
-                message = if (chapter.id == 5) "CHIẾN THẮNG!" else "Hoàn thành chương!",
+                message = if (chapter.id == 5) "Chiến thắng!" else "Hoàn thành chương!",
                 durationMillis = 3,
                 chapterId = chapter.id,
             )

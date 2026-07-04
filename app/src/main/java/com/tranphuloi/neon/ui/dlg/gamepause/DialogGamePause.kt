@@ -84,7 +84,7 @@ fun DialogGamePause(
             // Round 51 (26x Photo mode) — capture screenshot of frozen game
             // world (HUD hidden via gameState.photoModeActive flag).
             NeonDialogButton(
-                text = "CHỤP ẢNH",
+                text = "Chụp ảnh",
                 color = NeonGold,
                 leadingGlyph = "📸",
                 modifier = Modifier.testTag("pause_capture"),
@@ -96,7 +96,7 @@ fun DialogGamePause(
             // Round 27 — exit to menu. Checkpoint preserved so user can resume
             // via "TIẾP TỤC" from MenuScreen later.
             NeonDialogButton(
-                text = "VỀ MENU",
+                text = "Về menu",
                 color = NeonGold,
                 leadingGlyph = "◀",
                 modifier = Modifier.testTag("pause_menu"),

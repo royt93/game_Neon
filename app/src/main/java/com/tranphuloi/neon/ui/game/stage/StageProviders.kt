@@ -76,7 +76,7 @@ class SurvivalProvider : StageProvider {
  */
 class BossRushProvider : StageProvider {
     private val script: List<Stage> = buildList {
-        add(StageMessage(message = "CHIẾN BOSS", durationMillis = 3, chapterId = 1))
+        add(StageMessage(message = "Chiến boss", durationMillis = 3, chapterId = 1))
         add(StageMessage(message = "Sẵn sàng!", durationMillis = 2, chapterId = 1))
         allBosses.forEachIndexed { i, boss ->
             add(boss)
@@ -84,7 +84,7 @@ class BossRushProvider : StageProvider {
                 add(StageMessage(message = BOSS_RUSH_GAP_MESSAGE, durationMillis = 2, chapterId = boss.chapterId))
             }
         }
-        add(StageMessage(message = "VƯỢT ẢI!", durationMillis = 3, chapterId = 5))
+        add(StageMessage(message = "Vượt ải!", durationMillis = 3, chapterId = 5))
     }
 
     companion object {
@@ -116,7 +116,7 @@ class TrialBossArenaProvider(
 ) : StageProvider {
     override fun hasAt(index: Int): Boolean = true
     override fun getAt(index: Int): Stage = when {
-        index == 0 -> StageMessage(message = "THỬ BOSS", durationMillis = 2, chapterId = 1)
+        index == 0 -> StageMessage(message = "Thử boss", durationMillis = 2, chapterId = 1)
         index % 2 == 1 -> StageBoss(bossId = "trial_${boss.displayName}_$index", enemyType = boss, chapterId = 1)
         else -> StageMessage(message = "Lần nữa!", durationMillis = 2, chapterId = 1)
     }

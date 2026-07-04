@@ -50,7 +50,7 @@ fun ButtonsMovement(
             contentDescription = stringResource(id = R.string.game_left_button),
             glowColor = NeonCyan,
             buttonSize = buttonSize,
-            label = "LEFT",
+            label = "Left",
             onPressedChange = onMoveLeft,
         )
         MovementButton(
@@ -58,7 +58,7 @@ fun ButtonsMovement(
             contentDescription = stringResource(id = R.string.game_right_button),
             glowColor = NeonCyan,
             buttonSize = buttonSize,
-            label = "RIGHT",
+            label = "Right",
             onPressedChange = onMoveRight,
         )
     }

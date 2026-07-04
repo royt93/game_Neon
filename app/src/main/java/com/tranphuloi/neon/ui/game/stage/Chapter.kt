@@ -31,7 +31,7 @@ enum class Chapter(
 ) {
     ASTEROID_BELT(
         id = 1,
-        displayName = "VÀNH ĐAI TIỂU HÀNH TINH",
+        displayName = "Vành đai tiểu hành tinh",
         tintArgb = 0xFFFFB048,                        // warm gold-orange
         regularEnemyDrawables = listOf(
             R.drawable.enemy_red_1,
@@ -58,7 +58,7 @@ enum class Chapter(
     ),
     NEBULA_CLOUD(
         id = 2,
-        displayName = "MÂY TINH VÂN",
+        displayName = "Mây tinh vân",
         tintArgb = 0xFFB14CFF,                        // violet
         regularEnemyDrawables = listOf(
             R.drawable.enemy_green_1,
@@ -90,7 +90,7 @@ enum class Chapter(
     ),
     ICE_PLANET(
         id = 3,
-        displayName = "HÀNH TINH BĂNG",
+        displayName = "Hành tinh băng",
         tintArgb = 0xFF00F0FF,                        // cyan ice
         regularEnemyDrawables = listOf(
             R.drawable.enemy_light_blue_1,
@@ -123,7 +123,7 @@ enum class Chapter(
     ),
     HOSTILE_STATION(
         id = 4,
-        displayName = "TRẠM THÙ ĐỊCH",
+        displayName = "Trạm thù địch",
         tintArgb = 0xFFFF2D55,                        // red alert
         // Round 74 (R73d) — Chapter 4 introduces ELITE family (cross/orb).
         // Round 82 — adds Mirror Twin + Healer + Bomber Crawler (advanced tactics).
@@ -163,7 +163,7 @@ enum class Chapter(
     ),
     GALAXY_CORE(
         id = 5,
-        displayName = "LÕI THIÊN HÀ",
+        displayName = "Lõi thiên hà",
         tintArgb = 0xFFFF2DE0,                        // deep magenta
         // Round 74 (R73d) — Chapter 5 introduces BERSERKER family (chevron/spike).
         // Round 82 — climactic chapter gets Kamikaze (suicide rush).

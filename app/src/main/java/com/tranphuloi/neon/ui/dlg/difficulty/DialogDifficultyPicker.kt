@@ -44,7 +44,7 @@ fun DialogDifficultyPicker(onPicked: () -> Unit) {
     LaunchedEffect(Unit) { Logger.d("DialogDifficultyPicker shown") }
 
     com.tranphuloi.neon.common.NeonBottomSheet(
-        title = "CHỌN ĐỘ KHÓ",
+        title = "Chọn độ khó",
         accentColor = NeonMagenta,
         onDismiss = {
             Logger.d("DialogDifficultyPicker: dismissed")
@@ -86,9 +86,9 @@ fun DialogDifficultyPicker(onPicked: () -> Unit) {
                 ) {
                     Text(
                         text = when (d) {
-                            Difficulty.EASY -> "DỄ"
-                            Difficulty.NORMAL -> "VỪA"
-                            Difficulty.HARD -> "KHÓ"
+                            Difficulty.EASY -> "Dễ"
+                            Difficulty.NORMAL -> "Vừa"
+                            Difficulty.HARD -> "Khó"
                         },
                         color = color,
                         fontWeight = FontWeight.Black,

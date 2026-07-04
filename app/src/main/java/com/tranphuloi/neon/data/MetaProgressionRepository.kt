@@ -22,6 +22,8 @@ private val LIFETIME_ENEMY_KILLS_KEY = longPreferencesKey("lifetime_enemy_kills"
 // (epoch-day) + chuỗi ngày liên tiếp (streak) để thưởng tăng dần.
 private val LAST_DAILY_CLAIM_KEY = longPreferencesKey("last_daily_claim_day")
 private val DAILY_STREAK_KEY = intPreferencesKey("daily_streak")
+// Task 08 — ngày cuối nhận thưởng THỬ THÁCH HẰNG NGÀY (chống farm, 1 lần/ngày).
+private val LAST_DAILY_CHALLENGE_KEY = longPreferencesKey("last_daily_challenge_day")
 private const val NODE_PREFIX = "node_"
 private const val BULLET_KILL_PREFIX = "bullet_kill_"
 private const val BOSS_KILL_PREFIX = "boss_kill_"
@@ -154,6 +156,26 @@ class MetaProgressionRepository(private val appContext: Context) {
             prefs[LIFETIME_MINERALS_KEY] = (prefs[LIFETIME_MINERALS_KEY] ?: 0) + reward
             granted = reward
             Logger.d("MetaProgressionRepository.claimDaily day=$today streak=$newStreak +$reward◇")
+        }
+        return granted
+    }
+
+    /** Task 08 — còn nhận thưởng thử thách ngày [today] không (chưa claim). */
+    fun dailyChallengeAvailable(today: Long): Flow<Boolean> =
+        appContext.metaDataStore.data.map { (it[LAST_DAILY_CHALLENGE_KEY] ?: -1L) != today }
+
+    /**
+     * Task 08 — nhận thưởng hoàn thành THỬ THÁCH HẰNG NGÀY (atomic, 1 lần/ngày).
+     * Trả [reward] minerals đã cộng, hoặc 0 nếu đã nhận hôm nay.
+     */
+    suspend fun claimDailyChallenge(today: Long, reward: Int): Int {
+        var granted = 0
+        appContext.metaDataStore.edit { prefs ->
+            if ((prefs[LAST_DAILY_CHALLENGE_KEY] ?: -1L) == today) return@edit
+            prefs[LAST_DAILY_CHALLENGE_KEY] = today
+            prefs[LIFETIME_MINERALS_KEY] = (prefs[LIFETIME_MINERALS_KEY] ?: 0) + reward
+            granted = reward
+            Logger.d("MetaProgressionRepository.claimDailyChallenge day=$today +$reward◇")
         }
         return granted
     }
