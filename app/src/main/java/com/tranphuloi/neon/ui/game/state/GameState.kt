@@ -719,6 +719,9 @@ fun rememberGameState(): GameState {
                 Logger.v { "SpaceRock impact ship @ ($x,$y) — visual burst" }
             },
             damageMultiplier = { difficultyState.value.multiplier },
+            // Balance polish (Finding #4) — trần heal = max hp thật (updateHp cap để
+            // HEALING_AURA/REGEN booster/vampire không overheal vượt max).
+            maxHpProvider = { initialShipHp },
             // 25x/48x — modifier + skill tree speed multiplier (TRIPLE_SPEED ×3,
             // TANK ×0.7, AGILITY +6%/rank).
             speedMultiplier = { effectiveStats.speedMul },
@@ -1604,8 +1607,8 @@ fun rememberGameState(): GameState {
                     newStage.message == com.tranphuloi.neon.ui.game.stage.BossRushProvider.BOSS_RUSH_GAP_MESSAGE
                 ) {
                     val before = ship.hp
-                    shipController.setHp(1000)   // Wave 17r — qua controller (tránh clobber)
-                    Logger.d("BOSS_RUSH: heal ship between bosses (hp $before → 1000)")
+                    shipController.setHp(initialShipHp)   // Wave 17r — qua controller (tránh clobber); polish — max hp thật (không hardcode 1000)
+                    Logger.d("BOSS_RUSH: heal ship between bosses (hp $before → $initialShipHp)")
                 }
                 // Round 25 — persist checkpoint so cold-launch can resume here.
                 // Coroutine launch so DataStore write doesn't block the game loop.

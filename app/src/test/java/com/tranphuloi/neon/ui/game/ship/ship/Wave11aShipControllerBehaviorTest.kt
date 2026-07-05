@@ -44,6 +44,31 @@ class Wave11aShipControllerBehaviorTest {
         assertEquals("cap ở maxHp", 1000, captured.hp)
     }
 
+    // ── Balance polish (Finding #4) — updateHp heal cap ở max hp thật ──
+
+    @Test
+    fun `updateHp heal caps at maxHpProvider (no overheal)`() {
+        // vampire active + heal lớn: 900 + 500 = 1400 nhưng maxHpProvider=1080 → cap 1080.
+        var captured = Ship(xOffset = 0f, yOffset = 0f, hp = 900, vampireEndMillis = Long.MAX_VALUE)
+        val ctrl = ShipController(
+            screenWidth = 400f, screenHeight = 800f, ship = captured, setShip = { captured = it },
+            maxHpProvider = { 1080 },
+        )
+        ctrl.applyVampireHeal(damageDealt = 1000)  // heal = 500
+        assertEquals("heal cap ở max hp thật (không overheal)", 1080, captured.hp)
+    }
+
+    @Test
+    fun `updateHp heal default maxHpProvider is uncapped (test-compat)`() {
+        // Không truyền maxHpProvider ⇒ Int.MAX_VALUE ⇒ giữ hành vi cũ (uncapped) cho test.
+        var captured = Ship(xOffset = 0f, yOffset = 0f, hp = 900, vampireEndMillis = Long.MAX_VALUE)
+        val ctrl = ShipController(
+            screenWidth = 400f, screenHeight = 800f, ship = captured, setShip = { captured = it },
+        )
+        ctrl.applyVampireHeal(damageDealt = 1000)  // 900 + 500 = 1400, không cap
+        assertEquals("default MAX_VALUE → không cap", 1400, captured.hp)
+    }
+
     @Test
     fun `setHp sets hp via controller (BOSS_RUSH full heal)`() {
         var captured = Ship(xOffset = 0f, yOffset = 0f, hp = 300)

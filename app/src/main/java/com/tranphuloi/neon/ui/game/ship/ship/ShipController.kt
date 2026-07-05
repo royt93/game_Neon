@@ -33,6 +33,13 @@ class ShipController(
     private val onShipRevived: () -> Unit = {},
     private val damageMultiplier: () -> Float = { 1f },
     /**
+     * Balance polish (Finding #4) — HP tối đa thật của tàu (= initialShipHp trong
+     * GameState, gồm hpMul + prestige + legendary, coerceIn 100..3500). [updateHp]
+     * dùng để CAP heal (HEALING_AURA/REGEN booster/vampire dùng updateHp trước đây
+     * KHÔNG cap trên → overheal vượt max). Default MAX_VALUE = giữ hành vi cũ cho test.
+     */
+    private val maxHpProvider: () -> Int = { Int.MAX_VALUE },
+    /**
      * Wave 5 (25x / 48x) — ship movement speed multiplier. Combines
      * RunModifier (TRIPLE_SPEED, TANK) + AGILITY skill node.
      */
@@ -1346,7 +1353,14 @@ class ShipController(
         val multiplier = damageMultiplier() * if (hpChange < 0) berserkTakeDamageMul() else 1f
         val effective = if (hpChange < 0) -((-hpChange) * multiplier).toInt() else hpChange
         val before = ship.hp
-        val newHp = (ship.hp + effective).coerceAtLeast(0)
+        // Balance polish (Finding #4) — heal (effective>0) cap ở max hp thật để không
+        // overheal vượt trần (nhất quán regenTick/healCapped); không hạ hp hiện tại nếu
+        // đang > max vì lý do nào đó. Damage (effective<0) chỉ chặn dưới ở 0 như cũ.
+        val newHp = if (effective > 0) {
+            (ship.hp + effective).coerceAtMost(maxOf(ship.hp, maxHpProvider()))
+        } else {
+            (ship.hp + effective).coerceAtLeast(0)
+        }
         ship = ship.copy(hp = newHp)
         if (effective != 0) {
             if (silent) {
