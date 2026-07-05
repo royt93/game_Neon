@@ -210,6 +210,37 @@ class EffectiveStatsTest {
     }
 
     @Test
+    fun `withBuffs preserves prestige reward above base cap (regression)`() {
+        // Balance polish (Task 10): player ĐÃ prestige mà nhặt buff KHÔNG được mất
+        // thưởng prestige. base hp part (pre-prestige) ≈ 2.14; FORTRESS×HP_BOOST =
+        // ×1.875 đẩy base part chạm cap gốc 3.0; prestige ×1.5 phải giữ → 4.5.
+        val base = EffectiveStats.compute(
+            RunContext(
+                difficulty = Difficulty.EASY,
+                metaUpgrades = mapOf(EffectiveStats.META_KEY_HP to 5),
+                prestigeMul = 1.5f,
+            ),
+        )
+        assertTrue("prestige phải đẩy base hp vượt cap gốc 3.0", base.hpMul > 3.0f)
+        val merged = base.withBuffs(listOf(RunBuff.FORTRESS, RunBuff.HP_BOOST))
+        // BUG cũ: (2.14×1.5×1.875).coerceIn(.3,3.0)=3.0 → mất prestige. FIX: 3.0×1.5=4.5.
+        assertEquals(4.5f, merged.hpMul, EPS)
+    }
+
+    @Test
+    fun `withBuffs without prestige is unchanged (pMul=1)`() {
+        // prestigeMul mặc định 1 ⇒ hành vi HỆT cũ: 2.14×1.5×1.25 clamp 3.0.
+        val base = EffectiveStats.compute(
+            RunContext(
+                difficulty = Difficulty.EASY,
+                metaUpgrades = mapOf(EffectiveStats.META_KEY_HP to 5),
+            ),
+        )
+        val merged = base.withBuffs(listOf(RunBuff.FORTRESS, RunBuff.HP_BOOST))
+        assertEquals(3.0f, merged.hpMul, EPS)
+    }
+
+    @Test
     fun `withBuffs does not mutate noShieldDrops or bossesOnly flags`() {
         val base = EffectiveStats.compute(RunContext(modifier = RunModifier.BOSSES_ONLY))
         val merged = base.withBuffs(listOf(RunBuff.BERSERKER))

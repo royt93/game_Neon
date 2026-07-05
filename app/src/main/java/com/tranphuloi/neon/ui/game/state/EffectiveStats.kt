@@ -29,19 +29,33 @@ data class EffectiveStats(
     val noShieldDrops: Boolean,
     val bossesOnly: Boolean,
     val noBoosters: Boolean = false,
+    // Task 10 (polish) — hệ số prestige đã nhân vào các *Mul ở [compute]. Lưu lại để
+    // [withBuffs] tách ra, tránh re-clamp về cap gốc làm MẤT thưởng prestige.
+    val prestigeMul: Float = 1f,
 ) {
     /**
-     * Round 36 — merge roguelike buffs onto already-computed stats. Same caps as
-     * [compute]. Extracted from GameState so the math is unit-testable.
+     * Round 36 — merge roguelike buffs onto already-computed stats.
+     *
+     * Balance polish (Task 10): buff phải nhân lên phần BASE (đã bỏ prestige) rồi
+     * coerce về CAP GỐC (giữ trần buff như cũ), sau đó nhân LẠI prestige + coerce
+     * cap RỘNG — mirror đúng thứ tự của [compute]. Nếu clamp thẳng giá trị đã gồm
+     * prestige về cap gốc thì player đã prestige nhặt buff sẽ bị tụt về trần thường
+     * (mất toàn bộ reward). prestigeMul=1 ⇒ kết quả HỆT hành vi cũ (cap rộng no-op).
      */
     fun withBuffs(buffs: List<RunBuff>): EffectiveStats {
         val b = BuffMultipliers.from(buffs)
+        val p = prestigeMul.coerceAtLeast(1e-4f)
+        fun merge(mul: Float, bMul: Float, lo: Float, baseCap: Float, wideCap: Float): Float {
+            val base = mul / p                                   // khôi phục base đã clamp (bỏ prestige)
+            val buffed = (base * bMul).coerceIn(lo, baseCap)     // buff trên base, trần buff gốc
+            return (buffed * p).coerceAtMost(wideCap)            // nhân lại prestige, cap rộng
+        }
         return copy(
-            hpMul = (hpMul * b.hpMul).coerceIn(0.3f, 3.0f),
-            damageMul = (damageMul * b.damageMul).coerceIn(0.5f, 4.0f),
-            speedMul = (speedMul * b.speedMul).coerceIn(0.5f, 3.5f),
-            magnetMul = (magnetMul * b.magnetMul).coerceIn(0.5f, 3.0f),
-            scoreMul = (scoreMul * b.scoreMul).coerceIn(0.5f, 4.0f),
+            hpMul = merge(hpMul, b.hpMul, 0.3f, 3.0f, 6.0f),
+            damageMul = merge(damageMul, b.damageMul, 0.5f, 4.0f, 8.0f),
+            speedMul = merge(speedMul, b.speedMul, 0.5f, 3.5f, 6.0f),
+            magnetMul = merge(magnetMul, b.magnetMul, 0.5f, 3.0f, 6.0f),
+            scoreMul = merge(scoreMul, b.scoreMul, 0.5f, 4.0f, 8.0f),
         )
     }
 
@@ -150,6 +164,7 @@ data class EffectiveStats(
                 noShieldDrops = mod.noShieldDrops,
                 bossesOnly = mod.bossesOnly,
                 noBoosters = mod.noBoosters,
+                prestigeMul = pMul,   // Task 10 (polish) — để withBuffs giữ headroom prestige
             )
         }
     }

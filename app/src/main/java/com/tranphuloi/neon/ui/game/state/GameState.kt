@@ -922,7 +922,7 @@ fun rememberGameState(): GameState {
                     // Wave 17r — QUA shipController (trước set ship.copy trực tiếp →
                     // moveShip ghi đè → heal MẤT, cùng bug loadout).
                     com.tranphuloi.neon.ui.game.ship.laser.BulletType.BANH_MI ->
-                        if (damage > 0) shipController.healCapped(BANH_MI_HEAL_PER_HIT, maxHp = 1000)
+                        if (damage > 0) shipController.healCapped(BANH_MI_HEAL_PER_HIT, maxHp = initialShipHp)
                     // Cục Gạch — HẤT VĂNG địch ra sau.
                     com.tranphuloi.neon.ui.game.ship.laser.BulletType.BRICK ->
                         knockbackRef.run(targetId)
@@ -1276,7 +1276,7 @@ fun rememberGameState(): GameState {
             onEnemyKilled = { enemy ->
                 lastEnemyKillMillis = System.currentTimeMillis()
                 // Task 12 — passive LIFESTEAL (Hút linh hồn / Lưỡi hái): diệt địch hồi máu.
-                if (passiveLifestealHp > 0) shipController.healCapped(passiveLifestealHp, maxHp = 1000)
+                if (passiveLifestealHp > 0) shipController.healCapped(passiveLifestealHp, maxHp = initialShipHp)
                 comboController.onEnemyKilled()
                 comboCount = comboController.count
                 comboTier = comboController.currentTier()
@@ -1833,7 +1833,7 @@ fun rememberGameState(): GameState {
                                     )
                                     // Task 12 — passive REGEN (Hào quang hồi): +N hp/giây (không gate).
                                     if (passiveRegenHp > 0) {
-                                        shipController.healCapped(passiveRegenHp, maxHp = 1000)
+                                        shipController.healCapped(passiveRegenHp, maxHp = initialShipHp)
                                     }
                                 },
                             )
@@ -1942,7 +1942,7 @@ fun rememberGameState(): GameState {
                                     // Task 06 — HEAL drone hồi máu tàu (self-gate cooldown).
                                     val heal = droneController.healStep(System.currentTimeMillis())
                                     if (heal > 0) {
-                                        val maxHp = (1000 * effectiveStats.hpMul).toInt().coerceAtLeast(1)
+                                        val maxHp = initialShipHp   // polish — cap heal ở max hp thật (coerceIn 100..3000)
                                         shipController.healCapped(heal, maxHp)
                                     }
                                 }
@@ -2434,7 +2434,7 @@ fun rememberGameState(): GameState {
                         impactSparkController.spawnBurst(cx, cy)
                     }
                     com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.REPAIR -> {
-                        val maxHp = (1000 * effectiveStats.hpMul).toInt().coerceAtLeast(1)
+                        val maxHp = initialShipHp   // polish — cap heal ở max hp thật (coerceIn 100..3000)
                         shipController.healCapped((maxHp * 0.35f).toInt(), maxHp)
                     }
                     com.tranphuloi.neon.ui.game.ship.shape.AbilityEffect.MAGNET_PULSE ->
