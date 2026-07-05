@@ -84,7 +84,7 @@ class Wave11aShipControllerBehaviorTest {
         val ctrl = ShipController(
             screenWidth = 400f, screenHeight = 800f, ship = captured, setShip = { captured = it },
         )
-        ctrl.healCapped(50)
+        ctrl.healCapped(50, maxHp = 1000)
         ctrl.setHp(1000)
         assertEquals("đã chết thì không hồi", 0, captured.hp)
     }

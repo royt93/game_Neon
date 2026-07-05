@@ -631,8 +631,11 @@ class ShipController(
      * Wave 17r — heal QUA controller (cập nhật ship NỘI BỘ + setShip). GameState
      * KHÔNG được `ship.copy(hp=...)` trực tiếp: tick moveShip kế tiếp ghi đè bằng
      * internal ship → heal MẤT (cùng class bug loadout). Dùng cho BANH_MI heal.
+     *
+     * Balance polish — [maxHp] BẮT BUỘC truyền (bỏ default 1000): default cũ là mầm
+     * gây under-heal (ship hpMul>1 kẹt ở 1000). Caller phải truyền initialShipHp.
      */
-    fun healCapped(amount: Int, maxHp: Int = 1000) {
+    fun healCapped(amount: Int, maxHp: Int) {
         if (ship.hp <= 0 || amount <= 0) return
         ship = ship.copy(hp = (ship.hp + amount).coerceIn(0, maxHp))
         setShip(ship)
