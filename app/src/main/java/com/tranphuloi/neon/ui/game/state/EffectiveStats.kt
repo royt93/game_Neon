@@ -127,14 +127,26 @@ data class EffectiveStats(
             // nghĩa). pMul=1 (chưa prestige) ⇒ giá trị hệt cũ (cap cuối không đụng).
             // Gồm cả scoreMul để "+% mọi chỉ số" đúng nghĩa.
             val pMul = ctx.prestigeMul
+            // Task 12 — mastery passive dạng STAT (chỉ khi tàu đạt max level). Nhân
+            // TRONG cap gốc (buff vừa phải, cùng nhóm meta/ship). Hook non-stat
+            // (shield/regen/lifesteal/combo/pierce) wire ở GameState, không ở đây.
+            val passive = com.tranphuloi.neon.ui.game.ship.shape.ShipPassive
+                .activeFor(ctx.shipShape, ctx.shipLevel)
+            fun pas(e: com.tranphuloi.neon.ui.game.ship.shape.PassiveEffect): Float =
+                if (passive?.effect == e) 1f + passive.magnitude else 1f
+            val pasDmg = pas(com.tranphuloi.neon.ui.game.ship.shape.PassiveEffect.DAMAGE_UP)
+            val pasHp = pas(com.tranphuloi.neon.ui.game.ship.shape.PassiveEffect.HP_UP)
+            val pasSpd = pas(com.tranphuloi.neon.ui.game.ship.shape.PassiveEffect.SPEED_UP)
+            val pasMag = pas(com.tranphuloi.neon.ui.game.ship.shape.PassiveEffect.MAGNET_UP)
+            val pasScore = pas(com.tranphuloi.neon.ui.game.ship.shape.PassiveEffect.SCORE_UP)
             return EffectiveStats(
-                // Task 03 — nhân thêm hp bonus theo LEVEL tàu (shipLevelHpMul).
-                hpMul = ((diffHp * mod.hpMul * metaHp * shipHpMul * ctx.shipLevelHpMul).coerceIn(0.3f, 3.0f) * pMul).coerceAtMost(6.0f),
-                damageMul = ((mod.damageMul * metaDmg * shipDamageMul).coerceIn(0.5f, 4.0f) * pMul).coerceAtMost(8.0f),
-                speedMul = ((mod.speedMul * metaSpd * shipSpeedMul).coerceIn(0.5f, 3.5f) * pMul).coerceAtMost(6.0f),
-                magnetMul = ((mod.magnetMul * metaMag).coerceIn(0.5f, 3.0f) * pMul).coerceAtMost(6.0f),
-                // Round 74 (R73f) — metaLife → scoreMul; +Task 10 prestige (ngoài cap gốc).
-                scoreMul = ((mod.scoreMul * metaLife).coerceIn(0.5f, 4.0f) * pMul).coerceAtMost(8.0f),
+                // Task 03 — nhân thêm hp bonus theo LEVEL tàu (shipLevelHpMul); Task 12 passive.
+                hpMul = ((diffHp * mod.hpMul * metaHp * shipHpMul * ctx.shipLevelHpMul * pasHp).coerceIn(0.3f, 3.0f) * pMul).coerceAtMost(6.0f),
+                damageMul = ((mod.damageMul * metaDmg * shipDamageMul * pasDmg).coerceIn(0.5f, 4.0f) * pMul).coerceAtMost(8.0f),
+                speedMul = ((mod.speedMul * metaSpd * shipSpeedMul * pasSpd).coerceIn(0.5f, 3.5f) * pMul).coerceAtMost(6.0f),
+                magnetMul = ((mod.magnetMul * metaMag * pasMag).coerceIn(0.5f, 3.0f) * pMul).coerceAtMost(6.0f),
+                // Round 74 (R73f) — metaLife → scoreMul; +Task 10 prestige (ngoài cap gốc) + Task 12 passive.
+                scoreMul = ((mod.scoreMul * metaLife * pasScore).coerceIn(0.5f, 4.0f) * pMul).coerceAtMost(8.0f),
                 noShieldDrops = mod.noShieldDrops,
                 bossesOnly = mod.bossesOnly,
                 noBoosters = mod.noBoosters,

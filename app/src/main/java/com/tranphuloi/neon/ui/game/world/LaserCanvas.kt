@@ -139,6 +139,7 @@ private fun DrawScope.drawLaserBody(
         // Wave 16 — body VECTOR RIÊNG cho 6 đạn trào phúng (hết đụng hàng shape).
         BulletType.LOTTERY -> drawLotteryBody(xPx, yPx, wPx, hPx, glow)
         BulletType.FIREWORK -> drawFireworkBody(xPx, yPx, wPx, hPx, glow)
+        BulletType.AIRBURST -> drawFireworkBody(xPx, yPx, wPx, hPx, glow)
         BulletType.BRICK -> drawBrickBody(xPx, yPx, wPx, hPx, glow)
         BulletType.BANH_MI -> drawBanhMiBody(xPx, yPx, wPx, hPx, glow)
         BulletType.DURIAN -> drawDurianBody(xPx, yPx, wPx, hPx, glow)

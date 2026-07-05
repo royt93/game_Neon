@@ -3,13 +3,13 @@ package com.tranphuloi.neon.ui.game.ship.weapon
 import androidx.compose.runtime.Immutable
 
 /**
- * Wave 6 (29x) round 40 — secondary weapon types fired from a second on-screen
- * button (next to smart bomb). One active type at a time per run; defaults to
- * MISSILE. A pre-game picker (round 41+ via 36x Loadout) will let the player
- * choose between types.
+ * Wave 6 (29x) — secondary weapon types fired from a second on-screen button
+ * (next to smart bomb). One active type at a time per run; defaults to MISSILE.
+ * Player chọn ở DialogLoadoutPicker ("Vũ khí phụ").
  *
- * Round 40 ships only MISSILE — MINE and BURST are stubs reserved here so the
- * enum surface is stable for the upcoming Loadout work.
+ * Cả 3 ĐÃ triển khai đầy đủ + chọn được (Round 41+): MISSILE (tên lửa dò),
+ * MINE (thả mìn AoE sau ship — [Mine], fire+detonate+render trong GameState/
+ * GameWorld), BURST (quét 5 địch gần). (Comment "stub" cũ Round 40 đã lỗi thời.)
  */
 @Immutable
 enum class SecondaryWeapon(

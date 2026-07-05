@@ -298,6 +298,25 @@ class LasersController(
                     bulletType = BulletType.SPLIT,
                 )
             }
+            // Task 15 — AIRBURST: thân thường; trúng địch nổ 8 con toả quạt (arm collision).
+            BulletType.AIRBURST -> if (ship.laserBoosterEnabled) {
+                ShipBoostedLaser(
+                    id = uuidUtils.getUuid(),
+                    xOffset = ship.xOffset + ship.width / 2 - SHIP_BOOSTED_LASER_WIDTH / 2 + dx,
+                    yOffset = ship.yOffset - 25f + dy,
+                    yRange = screenHeight,
+                    bulletType = BulletType.AIRBURST,
+                )
+            } else {
+                ShipLaser(
+                    id = uuidUtils.getUuid(),
+                    xOffset = ship.xOffset + ship.width / 2 - 12f / 2 + dx,
+                    yOffset = ship.yOffset - 20f + dy,
+                    yRange = screenHeight,
+                    width = 12f,
+                    bulletType = BulletType.AIRBURST,
+                )
+            }
             // Wave 16 — Vé Số: random damage mỗi viên (0.3×–3× base 25).
             BulletType.LOTTERY -> ShipLaser(
                 id = uuidUtils.getUuid(),
@@ -677,6 +696,24 @@ class LasersController(
                             )
                         }
                         shipLasers = shipLasers + children
+                        destroyShipLaser(laser)
+                    }
+                    // Task 15 — Nổ chùm (Airburst): trúng địch → nổ 8 đạn con NORMAL
+                    // toả quạt hướng lên (vận tốc ngang+dọc), khác SPLIT/FIREWORK bắn thẳng.
+                    BulletType.AIRBURST -> {
+                        val shards = com.tranphuloi.neon.ui.game.ship.laser.Airburst.velocities()
+                            .map { (vx, vy) ->
+                                ShipLaser(
+                                    id = uuidUtils.getUuid(),
+                                    xOffset = laser.xOffset,
+                                    yOffset = laser.yOffset,
+                                    yRange = screenHeight,
+                                    bulletType = BulletType.NORMAL,     // con NORMAL → không đệ quy
+                                    xOffsetMovementSpeed = vx,
+                                    yOffsetMovementSpeed = vy,
+                                )
+                            }
+                        shipLasers = shipLasers + shards
                         destroyShipLaser(laser)
                     }
                     // Wave 18 — Trà Sữa: nổ AoE 100 + văng 3 "trân châu" (đạn con

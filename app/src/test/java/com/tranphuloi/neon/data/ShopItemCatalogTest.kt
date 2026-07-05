@@ -131,6 +131,7 @@ class ShopItemCatalogTest {
             "bullet_kamehameha", "bullet_atomic",
             // Wave 14a — 2 more strong bullets gated.
             "bullet_giant", "bullet_plasma", "bullet_lightning",
+            "bullet_airburst",
             "smartbomb_pack_3", "revive_pack_1",
             // Wave 14a Round 2 — 6 "buff 1 run" consumables.
             "buff_x2_minerals", "buff_start_shield", "buff_x2_score",

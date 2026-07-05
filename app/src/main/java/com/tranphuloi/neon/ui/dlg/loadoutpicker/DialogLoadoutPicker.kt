@@ -383,6 +383,7 @@ private fun colorForBullet(b: BulletType, palette: NeonPalette): Color = when (b
     // Wave 16 — đạn trào phúng.
     BulletType.LOTTERY -> palette.gold
     BulletType.FIREWORK -> palette.magenta
+    BulletType.AIRBURST -> palette.gold
     BulletType.BRICK -> palette.redAlert
     // Wave 16 batch 2.
     BulletType.BANH_MI -> palette.gold
@@ -413,6 +414,7 @@ private fun subtitleForBullet(b: BulletType): String = when (b) {
     // Wave 16 — đạn trào phúng.
     BulletType.LOTTERY -> "Sát thương NGẪU NHIÊN (0.3×–3×) · ⏱12s\nVé số hên xui — mỗi viên trúng số khác nhau."
     BulletType.FIREWORK -> "Sát thương ×1.1 · ⏱10s · Nổ chùm AoE 130px\nPháo hoa nổ toé rộng khi va chạm."
+    BulletType.AIRBURST -> "Sát thương ×0.55 · ⏱12s · Nổ 8 mảnh 360°\nTrúng địch nổ tung 8 đạn con toả quạt."
     BulletType.BRICK -> "Sát thương ×2.2 · ⏱12s · To + nặng\nCục gạch Nokia 1280 — đập là chết, nồi đồng cối đá."
     // Wave 16 batch 2.
     BulletType.BANH_MI -> "Sát thương ×1.0 · ⏱12s · Xuyên 3 địch\nBánh mì giòn rụm, xuyên thủng nhiều địch."
@@ -443,6 +445,7 @@ private fun tipForBullet(b: BulletType): String = when (b) {
     // Wave 16 — đạn trào phúng.
     BulletType.LOTTERY -> "Hên xui — có viên 3× chí mạng, có viên hụt."
     BulletType.FIREWORK -> "Hợp khi enemy cụm dày — nổ chùm dọn cả đám."
+    BulletType.AIRBURST -> "Dọn cụm enemy dày — mảnh văng mọi hướng."
     BulletType.BRICK -> "Damage cao + hitbox to — combo với boss."
     // Wave 16 batch 2.
     BulletType.BANH_MI -> "Xuyên nhiều địch xếp hàng dọc."
@@ -639,6 +642,20 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBulletPreview(
                         cx + (w * 0.36f * kotlin.math.cos(a)).toFloat(),
                         cy + (w * 0.36f * kotlin.math.sin(a)).toFloat()),
                     strokeWidth = w * 0.05f,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            }
+        }
+        BulletType.AIRBURST -> {
+            // Nổ chùm: tâm + 8 nan (burst), như firework.
+            drawCircle(color, w * 0.10f, androidx.compose.ui.geometry.Offset(cx, cy))
+            for (i in 0 until 8) {
+                val a = i * 45.0 * Math.PI / 180.0
+                drawLine(color = color,
+                    start = androidx.compose.ui.geometry.Offset(cx, cy),
+                    end = androidx.compose.ui.geometry.Offset(
+                        cx + (w * 0.34f * kotlin.math.cos(a)).toFloat(),
+                        cy + (w * 0.34f * kotlin.math.sin(a)).toFloat()),
+                    strokeWidth = w * 0.045f,
                     cap = androidx.compose.ui.graphics.StrokeCap.Round)
             }
         }

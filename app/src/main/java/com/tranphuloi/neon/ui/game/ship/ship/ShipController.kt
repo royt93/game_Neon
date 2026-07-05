@@ -710,6 +710,15 @@ class ShipController(
     /** Rarity-scaled retaliation damage (30 base × Common/Rare/Epic mul). */
     fun reflectRetaliationDamage(): Int = (30 * reflectDamageMul).toInt().coerceAtLeast(30)
 
+    /**
+     * Task 13 (đợt 4) — Parry: mở cửa sổ reflect tới [endMillis] (không ngắn hơn
+     * hiện tại). Tái dùng nhánh absorb+retaliate của REFLECT trong collision →
+     * parry phản đạn + phản đòn địch gần + miễn thương đạn hấp thụ, không cần code mới.
+     */
+    fun grantReflectUntil(endMillis: Long) {
+        ship = ship.copy(reflectEndMillis = maxOf(ship.reflectEndMillis, endMillis))
+    }
+
     /** CHAIN_LIGHTNING: each laser hit chains to 2 more nearest enemies (50% dmg) for 10s. */
     private val chainLightningTimeMillis: Long = 10_000
     private fun enableChainLightning(enable: Boolean, multiplier: Float = 1f) {

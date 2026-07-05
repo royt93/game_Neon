@@ -73,7 +73,7 @@ internal fun MetaUpgradeNodes(
             onRequestPurchase(
                 PurchaseRequest(
                     title = "Prestige → cấp ${prestigeLvl + 1}",
-                    description = "Xoá TOÀN BỘ skill-tree để nhận +4% mọi chỉ số vĩnh viễn " +
+                    description = "Xoá toàn bộ skill-tree để nhận +4% mọi chỉ số vĩnh viễn " +
                         "(tổng +${(prestigeLvl + 1) * 4}%). Giữ nguyên tàu/skin/đạn đã mua. Không hoàn lại.",
                     cost = prestigeCost,
                     balanceAfter = balance - prestigeCost,
@@ -97,7 +97,7 @@ internal fun MetaUpgradeNodes(
         modifier = Modifier.padding(horizontal = 4.dp),
     )
     Text(
-        text = "NỀN TẢNG = mở khóa sẵn · NHÁNH = cần cấp ≥2 nốt cha · TỐI THƯỢNG = endgame",
+        text = "Nền tảng = mở khóa sẵn · Nhánh = cần cấp ≥2 nốt cha · Tối thượng = endgame",
         color = Color.White.copy(alpha = 0.55f),
         fontSize = 10.sp,
         fontStyle = FontStyle.Italic,

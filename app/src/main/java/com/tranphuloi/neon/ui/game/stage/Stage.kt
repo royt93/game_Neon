@@ -60,7 +60,7 @@ private fun buildStageScript(): List<Stage> {
         // Chapter intro (3 messages, all tagged with chapter.id so stageTint shifts
         // correctly as soon as a new chapter begins — without the chapterId tag,
         // walk-back logic would resolve to the previous chapter's last boss).
-        list.add(StageMessage(message = "CHƯƠNG ${chapter.id}", durationMillis = 3, chapterId = chapter.id))
+        list.add(StageMessage(message = "Chương ${chapter.id}", durationMillis = 3, chapterId = chapter.id))
         list.add(StageMessage(message = chapter.displayName, durationMillis = 3, chapterId = chapter.id))
         list.add(StageMessage(message = "Bắt đầu!", durationMillis = 1, chapterId = chapter.id))
 

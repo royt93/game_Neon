@@ -103,7 +103,7 @@ fun ComboHud(
         }
         Column {
             Text(
-                text = "${tier.multiplier}× MULT",
+                text = "${tier.multiplier}× Mult",
                 color = color,
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,

@@ -32,6 +32,7 @@ object BulletTypeColorMap {
         BulletType.KAMEHAMEHA -> BoosterToBoosterUIMapper.KAMEHAMEHA_TINT_ARGB
         BulletType.ATOMIC -> BoosterToBoosterUIMapper.ATOMIC_TINT_ARGB
         BulletType.SPLIT -> BoosterToBoosterUIMapper.SPLIT_TINT_ARGB
+        BulletType.AIRBURST -> 0xFFFF8C42L   // Task 15 — cam burst
         // Wave 16 — đạn trào phúng (không có booster origin → literal riêng).
         BulletType.LOTTERY -> 0xFFFFC400L            // gold-festive (vé số)
         BulletType.FIREWORK -> 0xFFFF4FA3L           // hot pink (pháo hoa)

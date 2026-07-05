@@ -96,7 +96,7 @@ fun AchievementBanner(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "🏆 THÀNH TỰU · $tierLabel",
+            text = "🏆 Thành tựu · $tierLabel",
             color = tierColor,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,

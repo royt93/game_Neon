@@ -177,6 +177,14 @@ data class ShopItem(
                 cost = 1100,
                 category = Category.BULLET_TYPE_UNLOCK,
             ),
+            // Task 15 (đợt 4) — Nổ Chùm (airburst 8 mảnh 360°).
+            ShopItem(
+                id = "bullet_airburst",
+                displayName = "Đạn nổ chùm",
+                description = "Trúng địch nổ tung 8 đạn con toả quạt hướng lên — dọn cụm enemy dày.",
+                cost = 1050,
+                category = Category.BULLET_TYPE_UNLOCK,
+            ),
             // Consumables (stockpile) — round 3 wires gameplay consumers.
             ShopItem(
                 id = "smartbomb_pack_3",

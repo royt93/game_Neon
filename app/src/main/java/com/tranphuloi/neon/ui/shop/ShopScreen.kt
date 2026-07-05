@@ -627,6 +627,7 @@ private fun bulletDesc(b: com.tranphuloi.neon.ui.game.ship.laser.BulletType): St
         // Wave 16 — đạn trào phúng.
         com.tranphuloi.neon.ui.game.ship.laser.BulletType.LOTTERY -> "Vé số — sát thương hên xui"
         com.tranphuloi.neon.ui.game.ship.laser.BulletType.FIREWORK -> "Pháo hoa — nổ chùm rộng"
+        com.tranphuloi.neon.ui.game.ship.laser.BulletType.AIRBURST -> "Nổ chùm — 8 mảnh toả quạt"
         com.tranphuloi.neon.ui.game.ship.laser.BulletType.BRICK -> "Cục gạch — to, nặng, mạnh"
         com.tranphuloi.neon.ui.game.ship.laser.BulletType.BANH_MI -> "Bánh mì — xuyên nhiều địch"
         com.tranphuloi.neon.ui.game.ship.laser.BulletType.DURIAN -> "Sầu riêng — nổ mùi AoE"
@@ -793,7 +794,7 @@ private fun ShipTab(
 
     if (discountRank > 0) {
         Text(
-            text = "✦ Giảm giá tàu -${discountRank * 10}% (TỔ HỢP HÀNG KHÔNG cấp $discountRank)",
+            text = "✦ Giảm giá tàu -${discountRank * 10}% (Tổ hợp hàng không cấp $discountRank)",
             style = TextStyle(color = NeonViolet, fontSize = 11.sp, fontWeight = FontWeight.Black),
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
         )
@@ -926,6 +927,19 @@ private fun ShipRow(
                                 .fillMaxWidth(if (maxed) 1f else progress)
                                 .fillMaxHeight()
                                 .background(NeonGold.copy(alpha = rowAlpha)),
+                        )
+                    }
+                    // Task 12 — mastery passive: hiện khi tàu đạt max level (mở khoá).
+                    if (maxed) {
+                        val passive = com.tranphuloi.neon.ui.game.ship.shape.ShipPassive.forShip(shape)
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            text = "${passive.glyph} ${passive.displayName}: ${passive.description}",
+                            style = TextStyle(
+                                color = Color(0xFFFF6EC7).copy(alpha = rowAlpha),
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                            ),
                         )
                     }
                 }

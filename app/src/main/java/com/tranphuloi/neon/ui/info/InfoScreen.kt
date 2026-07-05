@@ -237,6 +237,7 @@ private fun bulletShapeLabel(s: BulletShape): String = when (s) {
     BulletShape.TRIDENT -> "Đinh ba"
     BulletShape.TICKET -> "Vé số"
     BulletShape.FIREWORK -> "Pháo hoa"
+    BulletShape.AIRBURST_STAR -> "Nổ chùm"
     BulletShape.BRICK -> "Cục gạch"
     BulletShape.BAGUETTE -> "Ổ bánh mì"
     BulletShape.DURIAN -> "Sầu riêng"
@@ -285,6 +286,7 @@ private fun bulletDescription(b: BulletType): String = when (b) {
     // Wave 16 — đạn trào phúng.
     BulletType.LOTTERY -> "Vé Số: sát thương NGẪU NHIÊN mỗi viên (0.3×–3× cơ bản) — hên xui."
     BulletType.FIREWORK -> "Pháo Hoa: nổ chùm AoE 130px rộng khi va chạm — dọn cụm enemy."
+    BulletType.AIRBURST -> "Nổ Chùm: trúng địch nổ tung 8 đạn con toả quạt hướng lên — dọn cụm."
     BulletType.BRICK -> "Cục Gạch (Nokia 1280): to + nặng, damage ×2.2 nồi đồng cối đá."
     // Wave 16 batch 2.
     BulletType.BANH_MI -> "Bánh Mì: giòn rụm, xuyên qua 3 enemy (như PIERCING)."
@@ -349,6 +351,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawBulletCapsule(
         // DialogLoadoutPicker) → hết reuse shape đạn khác trong Bách Khoa.
         BulletType.LOTTERY -> drawLotteryBullet(cx, cy, w, color)
         BulletType.FIREWORK -> drawFireworkBullet(cx, cy, w, color)
+        BulletType.AIRBURST -> drawFireworkBullet(cx, cy, w, color)
         BulletType.BRICK -> drawBrickBullet(cx, cy, w, color)
         BulletType.BANH_MI -> drawBanhMiBullet(cx, cy, w, color)
         BulletType.DURIAN -> drawDurianBullet(cx, cy, w, color)
@@ -800,7 +803,7 @@ private fun ShipTab(
                 .padding(vertical = 12.dp, horizontal = 12.dp),
         ) {
             Text(
-                text = "✦ Mở khoá & chọn tàu ở CỬA HÀNG → tab Tàu",
+                text = "✦ Mở khoá & chọn tàu ở Cửa hàng → tab Tàu",
                 color = NeonCyan,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Black,
@@ -813,7 +816,7 @@ private fun ShipTab(
             color = NeonGold,
             title = "Phi thuyền — 3 lớp tuỳ chỉnh",
             subtitle = "Loại tàu · Màu sắc · Nâng cấp chỉ số",
-            description = "1) Mua LOẠI TÀU ở Cửa hàng (tab Tàu) — ảnh hưởng HP/Tốc độ/Sát thương\n" +
+            description = "1) Mua loại tàu ở Cửa hàng (tab Tàu) — ảnh hưởng HP/Tốc độ/Sát thương\n" +
                 "2) Đổi MÀU SẮC (skin) — chỉ thẩm mỹ\n" +
                 "3) NÂNG CẤP CHỈ SỐ vĩnh viễn — tốn khoáng",
             iconDraw = { c -> drawShipPreview(c, NeonGold, laserBoosted = false) },
@@ -860,7 +863,7 @@ private fun ShipTab(
         InfoCard(
             color = NeonViolet,
             title = "17 cây nâng cấp · 5 nền tảng",
-            subtitle = "Menu → NÂNG CẤP — tốn khoáng tích luỹ",
+            subtitle = "Menu → Nâng cấp — tốn khoáng tích luỹ",
             description = "5 cây nền tảng: HP (+10%/cấp) / Sát thương (+8%/cấp) / Tốc độ (+6%/cấp) / " +
                 "Nam châm (+15%/cấp) / Khiên (+1.5s/cấp). " +
                 "+ 10 cây nhánh + 2 cây tối thượng (legendary). " +
@@ -885,7 +888,7 @@ private fun ShipTab(
             color = NeonGold,
             title = "Tip — kết hợp 3 lớp",
             subtitle = "ShipShape + ShipSkin + MetaUpgrade",
-            description = "Mở khoá BOMBER (1000 khoáng) → ×1.25 HP. Combo với meta_hp rank 5 → ×1.5 HP total. " +
+            description = "Mở khoá Bomber (1000 khoáng) → ×1.25 HP. Combo với meta_hp rank 5 → ×1.5 HP total. " +
                 "TANK (5000 khoáng) max meta + LEGENDARY_HP → 3x HP cap.",
             iconDraw = { c ->
                 // 3 stacked rings cho 3-layer concept
@@ -988,9 +991,9 @@ private fun EnemiesTab() {
                 color = NeonMagenta,
                 title = "Trạng thái đặc biệt (3)",
                 subtitle = "Burn / slow / stun",
-                description = "BURN — 5HP/giây trong 3s (cam). SLOW — di chuyển ×0.5 (cyan). " +
-                    "STUN — ngưng bắn 2s (vàng). 10% mỗi hit (5% trên boss). " +
-                    "Đạn FIRE luôn apply BURN 100%.",
+                description = "Burn — 5HP/giây trong 3s (cam). Slow — di chuyển ×0.5 (cyan). " +
+                    "Stun — ngưng bắn 2s (vàng). 10% mỗi hit (5% trên boss). " +
+                    "Đạn Fire luôn apply Burn 100%.",
                 iconDraw = { c ->
                     val cy = c.height / 2
                     val r = c.height * 0.13f
@@ -1149,7 +1152,7 @@ private fun enemyVariantSpecs(): List<EnemyVariantSpec> {
             draw = { sc, c -> sc.drawEnemyMirrorTwinPreview(c, Color(0xFFFF60A0), Color.White) }),
         EnemyVariantSpec(
             title = "Bóng ma mờ ảo", subtitle = "Trạm Thù Địch / Lõi · HP 300 · 50% damage reduction",
-            description = "Ghost semi-transparent. 50% damage reduction (chỉ kill bằng ULTIMATE laser hoặc BURN status). Flicker every 2s.",
+            description = "Ghost semi-transparent. 50% damage reduction (chỉ kill bằng Ultimate laser hoặc Burn status). Flicker every 2s.",
             color = Color(0xFFB14CFF),
             draw = { sc, c -> sc.drawEnemyPhantomPreview(c, Color(0xFFB14CFF), Color(0xFFE8E8F0)) }),
         EnemyVariantSpec(
@@ -1164,28 +1167,28 @@ private fun enemyVariantSpecs(): List<EnemyVariantSpec> {
             draw = { sc, c -> sc.drawEnemyKamikazePreview(c, Color(0xFFFFE040), Color(0xFFFF6020)) }),
         // Task 09 (đợt 3) — 5 địch chủ đề mới. Shape khớp in-game (EnemyCanvas).
         EnemyVariantSpec(
-            title = "Phân thân", subtitle = "Trạm Thù Địch (ELITE) · HP ~225",
-            description = "2 nửa tam giác tách khe. Đòn RIÊNG: bắn 2 tia toả ra 2 bên (\"kéo mở\").",
+            title = "Phân thân", subtitle = "Trạm Thù Địch (Elite) · HP ~225",
+            description = "2 nửa tam giác tách khe. Đòn riêng: bắn 2 tia toả ra 2 bên (\"kéo mở\").",
             color = Color(0xFFE8C020),
             draw = { sc, c -> sc.drawEnemySplitterPreview(c, Color(0xFFE8C020), Color(0xFFFFF080)) }),
         EnemyVariantSpec(
-            title = "Đẩy lùi", subtitle = "Trạm Thù Địch (HEAVY) · HP ~288 · chậm & trâu",
-            description = "Đĩa + 6 gai toả. Đòn RIÊNG: nón 3 tia (giữa + 2 bên) dồn ép player.",
+            title = "Đẩy lùi", subtitle = "Trạm Thù Địch (Heavy) · HP ~288 · chậm & trâu",
+            description = "Đĩa + 6 gai toả. Đòn riêng: nón 3 tia (giữa + 2 bên) dồn ép player.",
             color = Color(0xFFD040FF),
             draw = { sc, c -> sc.drawEnemyRepulsorPreview(c, Color(0xFFD040FF), Color(0xFFF0A0FF)) }),
         EnemyVariantSpec(
-            title = "Nhiễu sóng", subtitle = "Hành Tinh Băng (SCOUT) · HP ~126 · nhanh mỏng",
-            description = "Chảo radar + cột + đèn đỏ. Đòn RIÊNG: 2 tia bay CONG thất thường (khó đoán).",
+            title = "Nhiễu sóng", subtitle = "Hành Tinh Băng (Scout) · HP ~126 · nhanh mỏng",
+            description = "Chảo radar + cột + đèn đỏ. Đòn riêng: 2 tia bay cong thất thường (khó đoán).",
             color = Color(0xFF40E0FF),
             draw = { sc, c -> sc.drawEnemyJammerPreview(c, Color(0xFF40E0FF), Color(0xFFFF4040)) }),
         EnemyVariantSpec(
-            title = "Pháo thủ", subtitle = "Lõi Thiên Hà (BERSERKER) · HP ~160 · đòn nặng",
-            description = "Tên lửa mũi nhọn + 2 cánh. Đòn RIÊNG: loạt 3 tia thẳng xuống (\"volley\").",
+            title = "Pháo thủ", subtitle = "Lõi Thiên Hà (Berserker) · HP ~160 · đòn nặng",
+            description = "Tên lửa mũi nhọn + 2 cánh. Đòn riêng: loạt 3 tia thẳng xuống (\"volley\").",
             color = Color(0xFFFF7020),
             draw = { sc, c -> sc.drawEnemyMissileerPreview(c, Color(0xFFFF7020), Color.White) }),
         EnemyVariantSpec(
-            title = "Săn mồi", subtitle = "Hành Tinh Băng (FIGHTER) · HP ~180 · chiến thuật",
-            description = "Trăng khuyết sleek + 2 mắt teal. Đòn RIÊNG: 1 tia HOMING bám đuổi tàu.",
+            title = "Săn mồi", subtitle = "Hành Tinh Băng (Fighter) · HP ~180 · chiến thuật",
+            description = "Trăng khuyết sleek + 2 mắt teal. Đòn riêng: 1 tia homing bám đuổi tàu.",
             color = Color(0xFF2E9E5B),
             draw = { sc, c -> sc.drawEnemyPredatorPreview(c, Color(0xFF2E9E5B), Color(0xFF40FFD0)) }),
     )
@@ -1413,7 +1416,7 @@ private fun BossesTab(
 ) {
     // Wave 24 — 2 mục: data-driven "MID-BOSS (model)" auto từ MidBossType.ALL
     // (39, mỗi card shape thật qua drawBossShapeByKind + bấm "▶ THỬ" để chơi thử)
-    // + "BOSS CHƯƠNG" hardcode (boss cuối/cốt truyện). Màu/chiêu đọc từ BossMeta.
+    // + "Boss chương" hardcode (boss cuối/cốt truyện). Màu/chiêu đọc từ BossMeta.
     val red = Color(0xFFFF5555); val redAcc = Color(0xFFCC1144)
     val green = Color(0xFF6EFFAA); val greenAcc = Color(0xFF24B86E)
     val gold = NeonGold; val goldAcc = Color(0xFFCC9900)
@@ -1424,7 +1427,7 @@ private fun BossesTab(
         // báo (HP · size · shape · skill · special · màu). Đọc trực tiếp từ
         // MidBossType nên luôn khớp game + không bao giờ lệch.
         Text(
-            text = "📖 39 MID-BOSS (model)",
+            text = "📖 39 mid-boss (model)",
             color = NeonGold, fontSize = 13.sp, fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(vertical = 6.dp),
         )
@@ -1455,7 +1458,7 @@ private fun BossesTab(
             Spacer(modifier = Modifier.height(6.dp))
         }
         Text(
-            text = "🏆 BOSS CHƯƠNG (cốt truyện)",
+            text = "🏆 Boss chương (cốt truyện)",
             color = NeonGold, fontSize = 13.sp, fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(vertical = 6.dp),
         )

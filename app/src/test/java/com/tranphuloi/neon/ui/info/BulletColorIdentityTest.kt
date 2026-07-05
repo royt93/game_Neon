@@ -74,6 +74,7 @@ class BulletColorIdentityTest {
         // Wave 18 batch 3
         BulletType.BUBBLE_TEA, BulletType.FISH_SAUCE, BulletType.SANDAL, BulletType.QR_CODE,
         BulletType.LIGHTNING, // Task 02 — literal điện lam 0xFF7DF9FF
+        BulletType.AIRBURST, // Task 15 — literal cam 0xFFFF8C42
     )
 
     @Test

@@ -210,7 +210,7 @@ fun StatsScreen(onBack: () -> Unit) {
 
             StaggeredSection(visible = revealStep >= 6) {
                 Text(
-                    text = "Ghi chú: thuộc tính đạn dùng cú đánh gây sát thương cuối; vũ khí phụ / REFLECT / CHAIN_LIGHTNING tính theo đạn đang kích hoạt.",
+                    text = "Ghi chú: thuộc tính đạn dùng cú đánh gây sát thương cuối; vũ khí phụ / Reflect / Chain lightning tính theo đạn đang kích hoạt.",
                     style = TextStyle(color = Color(0xFF8090A0), fontSize = 11.sp),
                     modifier = Modifier.padding(horizontal = 4.dp),
                 )

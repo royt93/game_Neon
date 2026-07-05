@@ -239,6 +239,22 @@ fun rememberGameState(): GameState {
             prestigeMul = com.tranphuloi.neon.data.prestigeMultiplier(prestigeLvl),
         )
     }
+    // Task 12 (đợt 4, Slice 2) — mastery passive đang hiệu lực (null nếu tàu chưa
+    // max level). Stat passive đã áp ở EffectiveStats; đây là các cờ HOOK runtime.
+    val masteryPassive = remember(runContext) {
+        com.tranphuloi.neon.ui.game.ship.shape.ShipPassive
+            .activeFor(runContext.shipShape, runContext.shipLevel)
+    }
+    val passiveStartShield = masteryPassive?.effect ==
+        com.tranphuloi.neon.ui.game.ship.shape.PassiveEffect.START_SHIELD
+    val passiveLifestealHp = if (masteryPassive?.effect ==
+        com.tranphuloi.neon.ui.game.ship.shape.PassiveEffect.LIFESTEAL) masteryPassive.magnitude.toInt() else 0
+    val passiveRegenHp = if (masteryPassive?.effect ==
+        com.tranphuloi.neon.ui.game.ship.shape.PassiveEffect.REGEN) masteryPassive.magnitude.toInt() else 0
+    val passiveComboKeep = masteryPassive?.effect ==
+        com.tranphuloi.neon.ui.game.ship.shape.PassiveEffect.COMBO_KEEP
+    // Task 13 (đợt 4) — Parry controller (cooldown/window phản đạn).
+    val parryController = remember { com.tranphuloi.neon.ui.game.ship.shape.ParryController() }
     // Task 05 — kỹ năng chủ động theo tàu (cooldown giảm theo level tàu).
     // effect hiện thực ở slice sau; hiện wiring cooldown + nút HUD.
     val shipAbility = remember { com.tranphuloi.neon.ui.game.ship.shape.ShipAbility.forShip(runContext.shipShape) }
@@ -341,8 +357,9 @@ fun rememberGameState(): GameState {
                 // it can't race the loadout head-start effect's ship mutation.
                 hasReviveToken = startingReviveStock > 0,
                 // Wave 14a — Gói Khiên Khởi Đầu: vào trận có sẵn khiên 8s.
-                shieldEnabled = startShield > 0,
-                shieldEndMillis = if (startShield > 0) System.currentTimeMillis() + 8000L else 0L,
+                // Task 12 — passive GIÁP THÉP cũng cấp khiên khởi đầu.
+                shieldEnabled = startShield > 0 || passiveStartShield,
+                shieldEndMillis = if (startShield > 0 || passiveStartShield) System.currentTimeMillis() + 8000L else 0L,
             )
         )
     }
@@ -1037,7 +1054,8 @@ fun rememberGameState(): GameState {
         // Round 75 (R75a) — COMBO_KEEP meta upgrade: +500ms decay window/rank (max 3 = +1.5s).
         val comboKeepRank = runContext.metaUpgrades[com.tranphuloi.neon.ui.game.state.EffectiveStats.META_KEY_COMBO_KEEP] ?: 0
         // Wave 14a — Gói Giữ Combo: cửa sổ giữ combo ×2 cả run.
-        val comboWindow = (2000L + comboKeepRank * 500L) * (if (startComboKeep > 0) 2L else 1L)
+        // Task 12 — passive TƠ NHỆN cũng nhân đôi cửa sổ giữ combo (như buff giữ combo).
+        val comboWindow = (2000L + comboKeepRank * 500L) * (if (startComboKeep > 0 || passiveComboKeep) 2L else 1L)
         com.tranphuloi.neon.ui.game.combo.ComboController(
             resetWindowMillis = comboWindow,
             onTierAdvance = { tier ->
@@ -1257,6 +1275,8 @@ fun rememberGameState(): GameState {
             },
             onEnemyKilled = { enemy ->
                 lastEnemyKillMillis = System.currentTimeMillis()
+                // Task 12 — passive LIFESTEAL (Hút linh hồn / Lưỡi hái): diệt địch hồi máu.
+                if (passiveLifestealHp > 0) shipController.healCapped(passiveLifestealHp, maxHp = 1000)
                 comboController.onEnemyKilled()
                 comboCount = comboController.count
                 comboTier = comboController.currentTier()
@@ -1811,6 +1831,10 @@ fun rememberGameState(): GameState {
                                         rank = regenRank,
                                         initialHp = initialShipHp,
                                     )
+                                    // Task 12 — passive REGEN (Hào quang hồi): +N hp/giây (không gate).
+                                    if (passiveRegenHp > 0) {
+                                        shipController.healCapped(passiveRegenHp, maxHp = 1000)
+                                    }
                                 },
                             )
                         }
@@ -2431,6 +2455,15 @@ fun rememberGameState(): GameState {
                 Logger.d("ShipAbility activated: ${shipAbility.name} effect=${shipAbility.effect} cd=${abilityCooldownMs}ms")
             }
         },
+        // Task 13 (đợt 4) — Parry: bấm mở cửa sổ reflect (tái dùng absorb+retaliate).
+        parryCooldownProgress = parryController.progress(System.currentTimeMillis()),
+        activateParry = {
+            val now = System.currentTimeMillis()
+            if (gameStatus == GameStatus.RUNNING && parryController.tryActivate(now)) {
+                shipController.grantReflectUntil(parryController.windowEndMillis)
+                Logger.d("Parry activated: window→${parryController.windowEndMillis}")
+            }
+        },
         activeSecondaryWeapon = activeSecondaryWeapon,
         secondaryCooldownProgress = run {
             if (lastSecondaryFireMillis == 0L) 1f
@@ -2619,6 +2652,9 @@ data class GameState(
     val shipAbility: com.tranphuloi.neon.ui.game.ship.shape.ShipAbility,
     /** Task 05 — cooldown kỹ năng: 0=vừa dùng, 1=sẵn sàng (cho vòng nút HUD). */
     val abilityCooldownProgress: Float,
+    /** Task 13 (đợt 4) — Parry: tiến trình hồi chiêu (0..1) + kích hoạt phản đạn. */
+    val parryCooldownProgress: Float,
+    val activateParry: () -> Unit,
     /** Task 05 — kích hoạt kỹ năng; no-op nếu đang cooldown / game không RUNNING. */
     val activateAbility: () -> Unit,
     /** Round 40-41 (29x) — active secondary weapon (MISSILE / MINE / BURST). */

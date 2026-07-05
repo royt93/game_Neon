@@ -27,6 +27,8 @@ enum class BulletShape {
     BOBA, BOTTLE, SANDAL, QR_CODE,
     // Task 02 — đạn sét chain.
     LIGHTNING_BOLT,
+    // Task 15 — đạn nổ chùm 360°.
+    AIRBURST_STAR,
 }
 
 @Immutable
@@ -167,6 +169,18 @@ enum class BulletType(
         glyph = "Ѱ",                               // psi (3-prong)
     ),
 
+    // Task 15 (đợt 4) — Airburst: trúng địch NỔ TUNG 8 đạn con toả 360° (khác
+    // SPLIT/FIREWORK chỉ bắn thẳng lên). Shop-gated (đạn dọn cụm mạnh).
+    AIRBURST(
+        displayName = "Nổ chùm",
+        activeDurationMillis = 12_000L,
+        damageMultiplier = 0.55f,
+        pierceCount = 0,
+        aoeRadius = 0f,
+        glyph = "❋",
+        shopUnlockId = "bullet_airburst",   // Task 15 — shop-gated
+    ),
+
     // Task 02 — Sét Chain: trúng địch → sét LAN tuần tự tối đa 3 địch gần nhau
     // (visited-set, ×0.7 dmg mỗi bước). Shop-gated (đạn premium điều khiển đám đông).
     LIGHTNING(
@@ -297,6 +311,7 @@ enum class BulletType(
             KAMEHAMEHA -> BulletShape.BEAM
             ATOMIC -> BulletShape.ATOM
             SPLIT -> BulletShape.TRIDENT
+            AIRBURST -> BulletShape.AIRBURST_STAR
             LOTTERY -> BulletShape.TICKET
             FIREWORK -> BulletShape.FIREWORK
             BRICK -> BulletShape.BRICK
@@ -320,6 +335,7 @@ enum class BulletType(
             HOMING -> 8f
             BOUNCE -> 9f
             SPLIT -> 11f
+            AIRBURST -> 19f
             HEART -> 12f
             LOTTERY -> 13f
             BRICK -> 14f
@@ -356,6 +372,7 @@ enum class BulletType(
             KAMEHAMEHA -> "Beam xuyên-tất ×3 sát thương"
             ATOMIC -> "Nổ AoE 150 + phóng xạ cháy"
             SPLIT -> "Trúng → tách 3 đạn con"
+            AIRBURST -> "Trúng → nổ 8 đạn con toả mọi hướng"
             LOTTERY -> "Sát thương ngẫu nhiên 0.3–3×"
             FIREWORK -> "Nổ AoE 130 + bắn ra 5 đạn con"
             BRICK -> "Nặng ×2.2 + hất văng địch"
@@ -386,6 +403,7 @@ enum class BulletType(
             SMOKE -> 250L
             SANDAL -> 250L         // dmg 0.8 nhưng đánh 2 chiều (tối đa 4 hit)
             SPLIT -> 250L
+            AIRBURST -> 260L
             // Tier TRUNG BÌNH (xuyên / DoT / CC / gamble) — ~3.3 viên/giây
             PIERCING -> 300L
             FIRE -> 300L

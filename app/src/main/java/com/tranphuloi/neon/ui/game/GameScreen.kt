@@ -633,6 +633,15 @@ fun GameScreen(
                 .padding(end = 8.dp, bottom = 256.dp)
                 .zIndex(310f),
         )
+        // Task 13 (đợt 4) — Parry button (stacked above ability). Phản đạn.
+        if (hudVisible) com.tranphuloi.neon.ui.game.controls.ParryButton(
+            cooldownProgress = gameState.parryCooldownProgress,
+            onActivate = { gameState.activateParry() },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 8.dp, bottom = 306.dp)
+                .zIndex(310f),
+        )
         // 1c: Compact boss HP bar (200dp wide). Pinned 16dp BELOW the Settings icon
         // (top-right). Settings ends ~y=76dp (top padding 16 + size 60), so 16dp gap
         // gives top=92dp.
@@ -846,6 +855,17 @@ fun GameScreen(
                         ),
                     )
                     .zIndex(252f)
+            )
+        }
+        // Task 14 (đợt 4) — glitch/RGB-tear dải ngang khi trúng đòn (bổ sung
+        // chromatic-mép). Subtle + gate reduceMotion. seed đổi mỗi hit.
+        val tearAlpha = if (reduceMotion) 0f
+        else com.tranphuloi.neon.ui.game.controls.VisualJuice.damageTearAlpha(damageElapsed)
+        if (tearAlpha > 0f) {
+            com.tranphuloi.neon.ui.game.controls.DamageTearOverlay(
+                intensity = tearAlpha,
+                seed = (gameState.lastShipDamageMillis % 1000L).toInt(),
+                modifier = Modifier.fillMaxSize().zIndex(253f),
             )
         }
         // 12c: Wave clear bonus banner — offset 180dp BELOW center. Hidden when

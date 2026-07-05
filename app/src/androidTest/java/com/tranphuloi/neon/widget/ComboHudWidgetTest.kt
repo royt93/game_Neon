@@ -14,7 +14,7 @@ import org.junit.Test
 /**
  * Widget test cho [ComboHud] — HUD combo hiển thị đúng theo state:
  *  - count == 0 → không render gì (early return).
- *  - count > 0 & vừa kill → render "x<count>" và "<mult>× MULT".
+ *  - count > 0 & vừa kill → render "x<count>" và "<mult>× Mult".
  *
  * autoAdvance = false: ComboHud có LaunchedEffect vòng lặp `while (currentTimeMillis
  * < deadline) { delay(100) }`. deadline tính theo wall-clock nhưng delay theo test
@@ -42,7 +42,7 @@ class ComboHudWidgetTest {
 
         composeRule.onNodeWithText("x5").assertIsDisplayed()
         // RAMPAGE.multiplier == 4 (xem ComboTier).
-        composeRule.onNodeWithText("4× MULT").assertIsDisplayed()
+        composeRule.onNodeWithText("4× Mult").assertIsDisplayed()
     }
 
     @Test
@@ -62,8 +62,8 @@ class ComboHudWidgetTest {
         // Không có bất kỳ node text combo nào. Dùng JUnit assertTrue (KHÔNG dùng
         // Kotlin assert() — nó bị tắt mặc định trên Android → assertion no-op).
         assertTrue(
-            "count == 0 thì ComboHud phải early-return, không render MULT",
-            composeRule.onAllNodesWithText("MULT", substring = true).fetchSemanticsNodes().isEmpty(),
+            "count == 0 thì ComboHud phải early-return, không render Mult",
+            composeRule.onAllNodesWithText("Mult", substring = true).fetchSemanticsNodes().isEmpty(),
         )
     }
 }

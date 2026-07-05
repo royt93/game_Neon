@@ -15,10 +15,11 @@ data class ShipLaser(
     // trong LaserCanvas. Default NORMAL = capsule. Stub bullets (FIRE/HOMING/
     // SMOKE/ZIGZAG/KAMEHAMEHA/ATOMIC/SPLIT) pass actual type cho visual diff.
     override val bulletType: BulletType = BulletType.NORMAL,
+    // Task 15 — đưa vào ctor (giữ default 0/7) để Airburst đặt vận tốc per-shard.
+    override val xOffsetMovementSpeed: Float = 0f,
+    override val yOffsetMovementSpeed: Float = 7f,
 ) : Laser {
 
-    override val xOffsetMovementSpeed: Float = 0f
-    override val yOffsetMovementSpeed: Float = 7f
     override var height: Float = 20f
     override var rotation: Float = 0f
     override var impactPower: Float = 25f
@@ -27,6 +28,7 @@ data class ShipLaser(
 
     override fun moveLaser() {
         yOffset -= yOffsetMovementSpeed
+        xOffset += xOffsetMovementSpeed   // Task 15 — Airburst con bay ngang (đạn khác xSpeed=0)
     }
 
     companion object {

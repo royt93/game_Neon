@@ -7,7 +7,9 @@ object Logger {
 
     // Round 44 — public so Logger.v (inline) can reference them. The inline
     // function compiles into call sites which can't access private members.
-    const val PREFIX = "roy93~"
+    // Prefix log: bỏ tag tác giả cũ "roy93~" (di sản com.roy93group) — tag
+    // DEFAULT_TAG="Neon" đã đủ phân biệt log app. Để rỗng = log gọn.
+    const val PREFIX = ""
     const val DEFAULT_TAG = "Neon"
 
     /**
@@ -20,12 +22,12 @@ object Logger {
 
     fun d(message: String) {
         if (!BuildConfig.DEBUG) return
-        Log.d(DEFAULT_TAG, "$PREFIX $message")
+        Log.d(DEFAULT_TAG, "$PREFIX$message")
     }
 
     fun d(tag: String, message: String) {
         if (!BuildConfig.DEBUG) return
-        Log.d(tag, "$PREFIX $message")
+        Log.d(tag, "$PREFIX$message")
     }
 
     /**
@@ -39,14 +41,14 @@ object Logger {
      */
     inline fun v(message: () -> String) {
         if (!BuildConfig.DEBUG || !VERBOSE) return
-        Log.d(DEFAULT_TAG, "$PREFIX ${message()}")
+        Log.d(DEFAULT_TAG, "$PREFIX${message()}")
     }
 
     fun w(message: String, throwable: Throwable? = null) {
-        Log.w(DEFAULT_TAG, "$PREFIX $message", throwable)
+        Log.w(DEFAULT_TAG, "$PREFIX$message", throwable)
     }
 
     fun e(message: String, throwable: Throwable? = null) {
-        Log.e(DEFAULT_TAG, "$PREFIX $message", throwable)
+        Log.e(DEFAULT_TAG, "$PREFIX$message", throwable)
     }
 }

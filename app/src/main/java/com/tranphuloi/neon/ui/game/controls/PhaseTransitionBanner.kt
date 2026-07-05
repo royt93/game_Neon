@@ -90,7 +90,7 @@ fun PhaseTransitionBanner(
             )
         }
         Text(
-            text = "GIAI ĐOẠN $phase",
+            text = "Giai đoạn $phase",
             color = NeonRedAlert.copy(alpha = 0.7f * alpha),
             fontSize = 60.sp,
             fontWeight = FontWeight.Black,
@@ -100,7 +100,7 @@ fun PhaseTransitionBanner(
             },
         )
         Text(
-            text = "GIAI ĐOẠN $phase",
+            text = "Giai đoạn $phase",
             color = NeonGold.copy(alpha = 0.95f * alpha),
             fontSize = 56.sp,
             fontWeight = FontWeight.Black,
@@ -110,7 +110,7 @@ fun PhaseTransitionBanner(
             },
         )
         Text(
-            text = "GIAI ĐOẠN $phase",
+            text = "Giai đoạn $phase",
             color = Color.White.copy(alpha = alpha),
             fontSize = 52.sp,
             fontWeight = FontWeight.Black,

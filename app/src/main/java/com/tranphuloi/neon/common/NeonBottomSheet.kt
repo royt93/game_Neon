@@ -78,7 +78,7 @@ import kotlinx.coroutines.launch
  *     ),
  * ) {
  *     NeonBottomSheet(
- *         title = "CÀI ĐẶT",
+ *         title = "Cài đặt",
  *         accentColor = NeonCyan,
  *         onDismiss = { navController.popBackStack() },
  *     ) {

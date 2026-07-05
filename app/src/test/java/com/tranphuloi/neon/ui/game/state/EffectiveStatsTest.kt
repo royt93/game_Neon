@@ -318,6 +318,34 @@ class EffectiveStatsTest {
         assertEquals(1f, id.hpMul, EPS); assertEquals(1f, id.scoreMul, EPS)
     }
 
+    // ── Task 12 (đợt 4) — mastery passive dạng stat áp ở max level ──
+
+    @Test
+    fun `passive DAMAGE_UP áp khi tàu đạt max level`() {
+        // FIGHTER passive = THIEN_XA (DAMAGE_UP +12%). Base damage FIGHTER = 1.0.
+        val s = EffectiveStats.compute(RunContext(
+            shipShape = ShipShape.FIGHTER,
+            shipLevel = com.tranphuloi.neon.ui.game.ship.shape.ShipXpLevels.MAX_LEVEL,
+        ))
+        assertEquals("max level ⇒ +12% damage", 1.12f, s.damageMul, EPS)
+    }
+
+    @Test
+    fun `passive KHÔNG áp khi tàu chưa max level`() {
+        val s = EffectiveStats.compute(RunContext(shipShape = ShipShape.FIGHTER, shipLevel = 1))
+        assertEquals("chưa max level ⇒ damage gốc 1.0", 1f, s.damageMul, EPS)
+    }
+
+    @Test
+    fun `passive HP_UP (TANK) cộng dồn với ship stat, trong cap`() {
+        // TANK shipHpMul 1.5 × passive GIÁP DÀY (+25%) = 1.875 — trong cap 3.0.
+        val s = EffectiveStats.compute(RunContext(
+            shipShape = ShipShape.TANK,
+            shipLevel = com.tranphuloi.neon.ui.game.ship.shape.ShipXpLevels.MAX_LEVEL,
+        ))
+        assertEquals("TANK 1.5 × 1.25 passive = 1.875", 1.875f, s.hpMul, 0.01f)
+    }
+
     @Test
     fun `prestige rất cao vẫn bị cap cuối rộng (hp 6_0)`() {
         val ctx = RunContext(metaUpgrades = mapOf(EffectiveStats.META_KEY_HP to 20), prestigeMul = 5f)
