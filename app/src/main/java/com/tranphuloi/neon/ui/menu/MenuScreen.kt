@@ -260,8 +260,8 @@ fun MenuScreen(
             // Wave 13b — 8 nút gộp 3 nhóm có header để bớt quá tải:
             //   • TRƯỚC TRẬN: Chế độ / Thử thách / Trang bị (lựa chọn per-run)
             //   • TIẾN TRÌNH: Cửa hàng / Nâng cấp / Thống kê (kinh tế + tiến độ)
-            //   • KHÁC: Bách khoa / Cài đặt
-            // 3-item groups render 3-wide (compact), nhóm cuối 2-wide thường.
+            //   • KHÁC: Luyện tập / Bách khoa / Cài đặt
+            // 3-item groups render 3-wide (compact) — gồm cả nhóm KHÁC (thêm Luyện tập).
             // "BUFF" → "THỬ THÁCH" lộ rõ tính đánh-đổi per-run (RunModifier), hết
             // nhầm với Nâng cấp (skill-tree vĩnh viễn).
             EntryAnim(stepIndex = 4) {
@@ -355,6 +355,7 @@ fun MenuScreen(
                             glyph = "◎",
                             color = NeonCyan,
                             modifier = Modifier.weight(1f).testTag("menu_practice"),
+                            compact = true,   // hàng "Khác" giờ 3 nút → compact tránh cắt "Bách khoa"
                             s = s,
                             onClick = {
                                 Logger.d("MenuScreen: PRACTICE tapped")
@@ -366,6 +367,7 @@ fun MenuScreen(
                             glyph = "❡",
                             color = NeonViolet,
                             modifier = Modifier.weight(1f),
+                            compact = true,
                             s = s,
                             onClick = {
                                 Logger.d("MenuScreen: INFO tapped")
@@ -377,6 +379,7 @@ fun MenuScreen(
                             glyph = "⚙",
                             color = NeonMagenta,
                             modifier = Modifier.weight(1f).testTag("menu_settings"),
+                            compact = true,
                             s = s,
                             onClick = {
                                 Logger.d("MenuScreen: SETTINGS tapped")
