@@ -24,6 +24,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.dialog
 import androidx.navigation.compose.rememberNavController
 import com.tranphuloi.neon.App
+import kotlinx.coroutines.launch
 import com.tranphuloi.neon.common.NeonTheme
 import com.tranphuloi.neon.data.LocalAchievements
 import com.tranphuloi.neon.data.LocalLeaderboard
@@ -237,6 +238,10 @@ class MainActivity : ComponentActivity() {
                                     Logger.d("Nav: Menu → Info (Bách Khoa)")
                                     navController.navigate(com.tranphuloi.neon.navigation.Info.route)
                                 },
+                                onOpenPractice = {
+                                    Logger.d("Nav: Menu → PracticePicker")
+                                    navController.navigate(com.tranphuloi.neon.navigation.PracticePicker.route)
+                                },
                                 onOpenStats = {
                                     Logger.d("Nav: Menu → Stats")
                                     navController.navigate(com.tranphuloi.neon.navigation.Stats.route)
@@ -353,6 +358,33 @@ class MainActivity : ComponentActivity() {
                                 // User picks Play from Menu to apply the new mode.
                                 Logger.d("Nav: ModePicker → back (mode saved)")
                                 navController.popBackStack()
+                            })
+                        }
+                        dialog(
+                            route = com.tranphuloi.neon.navigation.PracticePicker.route,
+                            dialogProperties = com.tranphuloi.neon.common.bottomSheetDialogProperties(),
+                        ) {
+                            val practiceScope = androidx.compose.runtime.rememberCoroutineScope()
+                            com.tranphuloi.neon.ui.dlg.practicepicker.DialogChapterPicker(onPicked = { chapterId ->
+                                if (chapterId <= 0) {
+                                    Logger.d("Nav: PracticePicker → back (no chapter)")
+                                    navController.popBackStack()
+                                } else {
+                                    val startStage = com.tranphuloi.neon.ui.game.stage.chapterStartIndex(chapterId)
+                                    Logger.d("Nav: PracticePicker → Game (practice chapter=$chapterId, stage=$startStage)")
+                                    practiceScope.launch {
+                                        app.runPersistence.saveCheckpoint(
+                                            com.tranphuloi.neon.ui.game.mode.GameMode.PRACTICE.key,
+                                            startStage,
+                                        )
+                                        app.settings.setLastMode(com.tranphuloi.neon.ui.game.mode.GameMode.PRACTICE.key)
+                                        // Replace picker trên back stack: back-press từ Game về Menu.
+                                        navController.navigate(Game.route) {
+                                            popUpTo(Menu.route)
+                                            launchSingleTop = true
+                                        }
+                                    }
+                                }
                             })
                         }
                         dialog(

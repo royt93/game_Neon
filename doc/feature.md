@@ -588,7 +588,8 @@ Phản biện: thủ phạm không phải kích thước HP mà là (a) cột ch
 
 ### 43x — Game modes (Survival / TimeAttack / BossRush)
 
-- ✅ **GameMode enum** (`ui/game/mode/GameMode.kt`): CAMPAIGN / SURVIVAL / TIME_ATTACK / BOSS_RUSH / ENDLESS / DAILY. SettingsRepository.lastMode persists pick. DialogModePicker (clone of DifficultyPicker style) under `ui/dlg/modepicker/`. Wired into Settings dialog "Game mode" entry + dedicated ModePicker route. Restart picks up new mode automatically.
+- ✅ **GameMode enum** (`ui/game/mode/GameMode.kt`): CAMPAIGN / SURVIVAL / TIME_ATTACK / BOSS_RUSH / ENDLESS / DAILY / PRACTICE. SettingsRepository.lastMode persists pick. DialogModePicker (clone of DifficultyPicker style) under `ui/dlg/modepicker/`. Wired into Settings dialog "Game mode" entry + dedicated ModePicker route. Restart picks up new mode automatically.
+- ✅ **QoL Practice mode** (`ui/dlg/practicepicker/DialogChapterPicker.kt` + `GameMode.PRACTICE`): nút "Luyện tập" ở Menu nhóm Khác → bottom-sheet liệt kê các chương; chương `id ≤ maxUnlockedChapter(campaign checkpoint)` mở được, còn lại khoá (🔒). Chọn chương → `saveCheckpoint("practice", chapterStartIndex(ch))` + `setLastMode("practice")` → vào Game từ đầu chương đó. Checkpoint namespace `practice` cô lập, KHÔNG ảnh hưởng tiến độ campaign. Helpers `stageChapterOf`/`chapterStartIndex`/`maxUnlockedChapter` trong `stage/Stage.kt`. Provider dùng chung `else -> StaticListProvider()`. Test: `PracticeStagesTest` (4). Eyeball OK trên emulator Pixel 10 Pro XL.
 - ✅ **StageProviders.kt** with SurvivalProvider (chapter-1 stages cycled, +15% scaling per cycle), BossRushProvider (all StageBoss entries in sequence + "Next!" gaps), TimeAttackProvider (chapter-1 cycled + 60s wall clock).
 - ✅ **TIME_ATTACK timer**: GameState's `monitorLoopInSec` forces GAME_OVER when `gameTimeSec >= 60`. Ship stays alive → victory branch in GameScreen.
 - ✅ **BOSS_RUSH heal between bosses**: onStageAdvance restores `ship.hp = 1000` when entering "Next!" StageMessage (so each boss is a fresh slate).
@@ -1855,7 +1856,7 @@ Các architectural refactors quá lớn để gộp chung:
 
 ## QoL
 - Difficulty per stage (mid-game adjust)
-- Practice mode (specific stage)
+- ✅ Practice mode (theo chương, mở theo tiến độ campaign) — xem Phần 1
 - Quick restart hotkey
 - One-handed mode
 

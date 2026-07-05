@@ -189,3 +189,32 @@ private fun buildGameStage(chapter: Chapter, gameStage: Int, tier: Int): StageGa
         chapterId = chapter.id,
     )
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Task: QoL Practice mode — helper thuần (testable) trên script `stages`.
+// ─────────────────────────────────────────────────────────────────────────
+
+private fun stageChapterOf(s: Stage): Int = when (s) {
+    is StageMessage -> s.chapterId
+    is StageGame -> s.chapterId
+    is StageBoss -> s.chapterId
+    is StageBreak -> 0
+}
+
+/** Chỉ số stage ĐẦU TIÊN của [chapterId] trong `stages` (0 nếu không thấy). */
+fun chapterStartIndex(chapterId: Int): Int =
+    stages.indexOfFirst { stageChapterOf(it) == chapterId }.coerceAtLeast(0)
+
+/**
+ * Chương cao nhất ĐÃ MỞ để luyện tập, suy từ checkpoint campaign (walk-back qua
+ * StageBreak). Luôn ≥ 1 (chương 1 luôn luyện được).
+ */
+fun maxUnlockedChapter(campaignCheckpointIndex: Int): Int {
+    if (campaignCheckpointIndex <= 0 || stages.isEmpty()) return 1
+    val i = campaignCheckpointIndex.coerceIn(0, stages.size - 1)
+    for (j in i downTo 0) {
+        val c = stageChapterOf(stages[j])
+        if (c >= 1) return c
+    }
+    return 1
+}

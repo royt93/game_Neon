@@ -11,6 +11,8 @@ object Settings : Navigation(route = "settings")
 object DifficultyPicker : Navigation(route = "difficulty-picker")
 /** Wave 5 (43x) — pick a GameMode for the next run. */
 object ModePicker : Navigation(route = "mode-picker")
+/** QoL Practice — pick an unlocked chapter to practice. */
+object PracticePicker : Navigation(route = "practice-picker")
 /** Wave 5 (25x) — pick a RunModifier (or skip) for the next run. */
 object ModifierPicker : Navigation(route = "modifier-picker")
 // Wave 13a (slice C) — MetaUpgrade route removed; skill-tree moved to Shop → Nâng cấp tab.

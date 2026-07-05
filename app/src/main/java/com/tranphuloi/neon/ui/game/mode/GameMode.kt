@@ -20,7 +20,9 @@ enum class GameMode(val key: String, val displayName: String) {
     TIME_ATTACK("time_attack", "Đua thời gian"),
     BOSS_RUSH("boss_rush", "Chiến boss"),
     ENDLESS("endless", "Vô tận"),
-    DAILY("daily", "Thử thách ngày");
+    DAILY("daily", "Thử thách ngày"),
+    // Task: QoL Practice — luyện tập 1 chương đã mở (checkpoint riêng, dùng chung stages).
+    PRACTICE("practice", "Luyện tập");
 
     companion object {
         fun fromKey(key: String?): GameMode =

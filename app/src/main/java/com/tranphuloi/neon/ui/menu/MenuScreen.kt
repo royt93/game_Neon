@@ -98,6 +98,7 @@ fun MenuScreen(
     onOpenModifierPicker: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenInfo: () -> Unit = {},
+    onOpenPractice: () -> Unit = {},
     onOpenLoadout: () -> Unit = {},
     /** Wave 11c — open Statistics screen. */
     onOpenStats: () -> Unit = {},
@@ -349,6 +350,17 @@ fun MenuScreen(
                         horizontalArrangement = Arrangement.spacedBy(12f.sdp(s)),
                         modifier = Modifier.fillMaxWidth(),
                     ) {
+                        MenuButton(
+                            label = "Luyện tập",
+                            glyph = "◎",
+                            color = NeonCyan,
+                            modifier = Modifier.weight(1f).testTag("menu_practice"),
+                            s = s,
+                            onClick = {
+                                Logger.d("MenuScreen: PRACTICE tapped")
+                                onOpenPractice()
+                            },
+                        )
                         MenuButton(
                             label = "Bách khoa",
                             glyph = "❡",
