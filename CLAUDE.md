@@ -29,7 +29,9 @@ Toolchain pinned in code (versions live in root `build.gradle`'s `ext { ... }` a
 - `kotlin.compilerOptions.freeCompilerArgs` includes `-Xannotation-default-target=param-property`. Don't strip it — it preserves Kotlin 1.x annotation-targeting semantics under Kotlin 2.x and the codebase has not been audited for the new defaults.
 - `org.gradle.configuration-cache=true` is enabled in `gradle.properties`. New Gradle code (plugins, custom tasks) must be configuration-cache-compatible (no `Project` access at execution time, no `Task.project`, etc.).
 
-The release signing key (`app/keystore.jks`) and `app/private_key.pepk` are checked in. `local.properties` is also checked in (only `sdk.dir`).
+Release signing reads credentials from root `keystore.properties` (`storeFile`/`storePassword`/`keyAlias`/`keyPassword`), loaded via `Properties()` in `app/build.gradle`; if that file is absent the `release` signing config is left unset and release builds are simply unsigned (CI/dev still build fine). `keystore.properties` **is** committed (private repo, intentional — see `keystore.properties.template` for the shape) alongside `app/keystore.jks` and `app/private_key.pepk`. `local.properties` is also checked in (only `sdk.dir`).
+
+A separate `:baselineprofile` Gradle module (`com.android.test` + `androidx.baselineprofile` plugin) generates the app's startup baseline profile via `baselineprofile/src/main/java/com/tranphuloi/neon/baselineprofile/BaselineProfileGenerator.kt` (macrobenchmark + UiAutomator, `useConnectedDevices = true` — needs a connected device/emulator, same as Tier 3 tests). `app/build.gradle` wires it with `baselineProfile project(":baselineprofile")`; the generated profile lands in `app/src/main/baseline-prof.txt` and is installed at runtime on API 24-30 via `androidx.profileinstaller` (API 31+ handles it natively). Regenerate with `./gradlew :baselineprofile:generateBaselineProfile` after major changes to app startup/first-frame code paths.
 
 ## Flavor-specific resValues
 
