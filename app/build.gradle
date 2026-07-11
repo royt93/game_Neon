@@ -40,8 +40,9 @@ android {
     }
 
     // Wave 25d (#6 ship-readiness) — wire release signing qua keystore.properties
-    // (root, GITIGNORED — không commit mật khẩu). Vắng file → release để UNSIGNED
-    // như cũ (dev/CI vẫn build được).
+    // (root, ĐÃ COMMIT vào git có chủ đích — private repo, xem comment trong
+    // chính keystore.properties). Vắng file → release để UNSIGNED như cũ
+    // (dev/CI vẫn build được).
     def keystorePropsFile = rootProject.file("keystore.properties")
     def hasReleaseKeystore = keystorePropsFile.exists()
     def keystoreProps = new Properties()
