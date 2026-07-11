@@ -1822,6 +1822,15 @@ Các architectural refactors quá lớn để gộp chung:
 > - 📋 Unlockable ships + XP/level (progression) → `03-unlockable-ships-xp.md`
 > - 📋 Boss dialogue / stage narrative / win epilogue (lore) → `04-boss-dialogue-narrative.md`
 
+> 📋 **PICKED 2026-07-11 (audit source code → AskUserQuestion 3 nhóm, đợt 4):**
+> rã task chi tiết ở `doc/task/todo/` (xem `00-index.md` mục "Backlog đợt 4"):
+> - 📋 Enhance — Per-ship loadout persistence (8c) → `17-per-ship-loadout-persistence.md`
+> - 📋 Enhance — Status effect chains + roguelike curses → `18-status-chains-curses.md`
+> - 📋 Enhance — Color blind mode full UI migration → `19-colorblind-full-migration.md`
+> - 📋 Optimize — Macrobenchmark/microbenchmark module (CCc) → `20-microbenchmark-module.md`
+> - 📋 New — Quick restart hotkey (QoL) → `21-quick-restart-hotkey.md`
+> - 📋 New — One-handed mode (QoL) → `22-one-handed-mode.md`
+
 > Brainstorm pool — nếu có cảm hứng thì pick lên selector đề xuất.
 
 ## Combat

@@ -38,6 +38,22 @@ Từ backlog còn treo thật sau khi đóng đợt 1+2:
 
 **Thứ tự:** 09 (an toàn, data-driven) → 10 (progression) → 11 (infra nặng, cần device, có fallback/defer nếu build khó).
 
+## Backlog đợt 4 (Picked 2026-07-11, audit source code → AskUserQuestion 3 nhóm)
+Enhance / Optimize / New feature, mỗi nhóm user chọn qua AskUserQuestion:
+
+| # | Task | Nhóm | Rủi ro | Trạng thái |
+|---|---|---|---|---|
+| 17 | [Per-ship loadout persistence](17-per-ship-loadout-persistence.md) | Enhance (8c) | Vừa (audit call site global setting) | 📋 TODO |
+| 18 | [Status chains + curses](18-status-chains-curses.md) | Enhance (Wave 4 combat) | Cao (cân bằng buff/curse) | 📋 TODO |
+| 19 | [Color blind full migration](19-colorblind-full-migration.md) | Enhance (accessibility) | Thấp (nhiều file nhỏ lẻ) | 📋 TODO |
+| 20 | [Microbenchmark module](20-microbenchmark-module.md) | Perf (CCc) | Cao (module Gradle mới + device) | 📋 TODO |
+| 21 | [Quick restart hotkey](21-quick-restart-hotkey.md) | New (QoL) | Thấp (tái dùng logic có sẵn) | 📋 TODO |
+| 22 | [One-handed mode](22-one-handed-mode.md) | New (QoL) | Thấp (layout chồng lấn) | 📋 TODO |
+
+**Đề xuất thứ tự bắt đầu:** 21 → 22 (QoL nhanh, risk thấp, thắng dễ trước) → 17
+(enhance nền tảng đã có) → 19 (accessibility, độc lập) → 20 (hạ tầng perf, không
+đụng gameplay) → 18 (rủi ro cân bằng cao nhất, để cuối khi đã quen nhịp).
+
 ## Quy ước
 - Mỗi task có **Slice 0 = chốt số liệu/thiết kế** trước khi code.
 - Mỗi feature user-facing: string **cả vi + en**; state class `@Immutable/@Stable`;
