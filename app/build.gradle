@@ -15,8 +15,8 @@ android {
         // gỡ 4 lỗi NewApi; Android 6.0 ~<1% thị phần 2026.
         minSdk = 24
         targetSdk = 37
-        versionCode = 20260705
-        versionName = "2026.07.05"
+        versionCode = 20260712
+        versionName = "2026.07.12"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
