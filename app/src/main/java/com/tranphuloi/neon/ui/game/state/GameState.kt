@@ -573,10 +573,16 @@ fun rememberGameState(): GameState {
     /** Round 41 (29x.2) — wall-clock when last BURST sweep fired; drives the
      *  fading horizontal sweep visual in GameWorld. 0 = no sweep active. */
     var lastBurstSweepMillis by remember { mutableLongStateOf(0L) }
-    /** Round 41 — collected SecondaryWeapon selection from Settings. */
-    val activeSecondaryWeapon by settingsRepo.secondaryWeapon.collectAsState(
-        initial = com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.MISSILE,
+    /** Round 41 — collected SecondaryWeapon selection from Settings. Task 17 — theo riêng runContext.shipShape. */
+    val shipLoadout by remember(runContext.shipShape) {
+        settingsRepo.loadoutForShip(runContext.shipShape)
+    }.collectAsState(
+        initial = com.tranphuloi.neon.data.ShipLoadout(
+            bulletType = com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL,
+            secondaryWeapon = com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.MISSILE,
+        ),
     )
+    val activeSecondaryWeapon = shipLoadout.secondaryWeapon
     /** 46x — count of smart bombs used in current run (for SMART_BOMB_5 achievement). */
     var smartBombsUsedCount by rememberSaveable { mutableIntStateOf(0) }
     /**
@@ -809,7 +815,7 @@ fun rememberGameState(): GameState {
             loadoutApplied = true
             return@LaunchedEffect
         }
-        val preferred = settingsRepo.preferredBulletType.first()
+        val preferred = settingsRepo.loadoutForShip(runContext.shipShape).first().bulletType
         // Wave 17q — đã revert mở-khoá-tạm roy93~: đạn shop-gated chưa mua → về
         // NORMAL ở run-start (khớp gate ở DialogLoadoutPicker).
         val resolved = if (com.tranphuloi.neon.data.ShopItem

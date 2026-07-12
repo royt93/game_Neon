@@ -23,7 +23,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tranphuloi.neon.common.NeonGold
 import kotlinx.coroutines.delay
 
 /**
@@ -36,6 +35,7 @@ fun WaveClearBanner(
 ) {
     if (shownAtMillis == 0L) return
 
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(shownAtMillis) {
         repeat(55) {                                                    // ~1.8s
@@ -67,8 +67,8 @@ fun WaveClearBanner(
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        NeonGold.copy(alpha = 0.55f),
-                        NeonGold.copy(alpha = 0.18f),
+                        palette.gold.copy(alpha = 0.55f),
+                        palette.gold.copy(alpha = 0.18f),
                         Color.Transparent,
                     ),
                     center = Offset(size.width / 2f, size.height / 2f),
@@ -81,7 +81,7 @@ fun WaveClearBanner(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "Hoàn thành đợt!",
-                color = NeonGold,
+                color = palette.gold,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Black,
                 style = TextStyle(letterSpacing = 3.sp),

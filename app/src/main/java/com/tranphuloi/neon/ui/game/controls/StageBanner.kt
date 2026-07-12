@@ -20,9 +20,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonGold
-import com.tranphuloi.neon.common.NeonMagenta
 import kotlinx.coroutines.delay
 
 /**
@@ -40,6 +37,7 @@ fun StageBanner(
 ) {
     if (message.isBlank()) return
 
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     // Tick a "shown at" timestamp keyed on message — so changing message resets animation.
     var shownAtMillis by remember { mutableLongStateOf(0L) }
     LaunchedEffect(message) {
@@ -54,7 +52,7 @@ fun StageBanner(
     }
     val elapsed = (nowMillis - shownAtMillis).coerceAtLeast(0L)
     val t = (elapsed.toFloat() / 1500f).coerceIn(0f, 1f)
-    val color = pickColor(message)
+    val color = pickColor(message, palette)
     val isCountdown = message in COUNTDOWN_TOKENS
     // Pop-in 0..0.2: 0.5 → 1.4, settle 0.2..0.5: 1.4 → 1.0, hold, fade out 0.85..1
     val baseScale = when {
@@ -129,13 +127,13 @@ fun StageBanner(
     }
 }
 
-private fun pickColor(message: String): Color {
+private fun pickColor(message: String, palette: com.tranphuloi.neon.common.NeonPalette): Color {
     val lower = message.lowercase()
     return when {
-        lower.contains("go") -> NeonGold
-        lower.contains("boss") -> NeonMagenta
-        lower.contains("rekt") || lower.contains("end") -> NeonMagenta
-        else -> NeonCyan
+        lower.contains("go") -> palette.gold
+        lower.contains("boss") -> palette.magenta
+        lower.contains("rekt") || lower.contains("end") -> palette.magenta
+        else -> palette.cyan
     }
 }
 

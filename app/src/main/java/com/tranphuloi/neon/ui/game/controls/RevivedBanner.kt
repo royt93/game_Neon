@@ -20,8 +20,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.R
-import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.utils.Logger
 import kotlinx.coroutines.delay
 
@@ -37,6 +35,7 @@ fun RevivedBanner(
 ) {
     if (shownAtMillis == 0L) return
 
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(shownAtMillis) {
         Logger.d("RevivedBanner shown @ $shownAtMillis")
@@ -80,8 +79,8 @@ fun RevivedBanner(
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        NeonGold.copy(alpha = 0.45f),
-                        NeonCyan.copy(alpha = 0.20f),
+                        palette.gold.copy(alpha = 0.45f),
+                        palette.cyan.copy(alpha = 0.20f),
                         Color.Transparent,
                     ),
                     center = androidx.compose.ui.geometry.Offset(cx, cy),
@@ -94,7 +93,7 @@ fun RevivedBanner(
         // Three-layer Text stack — outer cyan glow, mid gold, inner white.
         Text(
             text = stringResource(id = R.string.revived_banner),
-            color = NeonCyan.copy(alpha = 0.65f * alpha),
+            color = palette.cyan.copy(alpha = 0.65f * alpha),
             fontSize = 64.sp,
             fontWeight = FontWeight.Black,
             modifier = Modifier.graphicsLayer {
@@ -104,7 +103,7 @@ fun RevivedBanner(
         )
         Text(
             text = stringResource(id = R.string.revived_banner),
-            color = NeonGold.copy(alpha = 0.95f * alpha),
+            color = palette.gold.copy(alpha = 0.95f * alpha),
             fontSize = 60.sp,
             fontWeight = FontWeight.Black,
             modifier = Modifier.graphicsLayer {

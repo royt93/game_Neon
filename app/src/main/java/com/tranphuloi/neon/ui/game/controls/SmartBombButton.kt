@@ -21,8 +21,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tranphuloi.neon.common.NeonGold
-import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.neonGlow
 
 /**
@@ -35,8 +33,9 @@ fun SmartBombButton(
     onDispatch: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val enabled = count > 0
-    val accent = if (enabled) NeonGold else Color.White.copy(alpha = 0.25f)
+    val accent = if (enabled) palette.gold else Color.White.copy(alpha = 0.25f)
     // Pixel-3 round 5 — reverted Pixel-3 #5 label addition per user feedback
     // "tôi không cần label sóng nổ + bomb". Column wrapper removed; restored
     // to single Box icon as original.
@@ -58,7 +57,7 @@ fun SmartBombButton(
                 .background(Color.Black.copy(alpha = 0.55f))
                 .border(BorderStroke(1.5.dp, accent), CircleShape)
                 .neonGlow(
-                    color = if (enabled) NeonRedAlert else accent,
+                    color = if (enabled) palette.redAlert else accent,
                     intensity = if (enabled) 0.55f else 0.0f,
                     radiusFactor = 1.5f,
                 ),
@@ -70,7 +69,7 @@ fun SmartBombButton(
                 val bombR = size.width * 0.35f
                 // Bomb sphere
                 drawCircle(
-                    color = if (enabled) NeonRedAlert else accent,
+                    color = if (enabled) palette.redAlert else accent,
                     radius = bombR,
                     center = Offset(cx, cy),
                 )
@@ -91,7 +90,7 @@ fun SmartBombButton(
                 )
                 // Spark at fuse tip
                 drawCircle(
-                    color = NeonGold,
+                    color = palette.gold,
                     radius = size.width * 0.07f,
                     center = fuseEnd,
                 )

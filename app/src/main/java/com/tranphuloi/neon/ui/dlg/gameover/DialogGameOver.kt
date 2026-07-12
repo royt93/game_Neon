@@ -34,12 +34,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.R
-import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonDialog
 import com.tranphuloi.neon.common.NeonDialogButton
-import com.tranphuloi.neon.common.NeonGold
-import com.tranphuloi.neon.common.NeonMagenta
-import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.data.LeaderboardEntry
 import com.tranphuloi.neon.data.LocalLeaderboard
@@ -56,6 +52,7 @@ fun DialogGameOver(
     onRestartGame: () -> Unit,
     onBackToMenu: () -> Unit = {},
 ) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val leaderboard = LocalLeaderboard.current
     val meta = com.tranphuloi.neon.data.LocalMetaProgression.current
     val runPersistence = com.tranphuloi.neon.data.LocalRunPersistence.current
@@ -170,7 +167,7 @@ fun DialogGameOver(
     // The ✕ acts like "VỀ MENU" since GameOver doesn't have a passive close.
     com.tranphuloi.neon.common.NeonBottomSheet(
         title = stringResource(id = R.string.game_over_dialog_title),
-        accentColor = NeonRedAlert,
+        accentColor = palette.redAlert,
         titleSize = 32.sp,
         dismissible = false,
         onDismiss = {
@@ -185,7 +182,7 @@ fun DialogGameOver(
                 ScoreRow(
                     label = "Khoáng vật",
                     value = score,
-                    accentColor = NeonGold,
+                    accentColor = palette.gold,
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -193,7 +190,7 @@ fun DialogGameOver(
                 ScoreRow(
                     label = "Kỷ lục",
                     value = highestSoFar.toString(),
-                    accentColor = NeonCyan,
+                    accentColor = palette.cyan,
                 )
             }
             if (isNewBest && currentScore > 0) {
@@ -215,16 +212,16 @@ fun DialogGameOver(
                         modifier = Modifier
                             .graphicsLayer { scaleX = pulseScale; scaleY = pulseScale }
                             .clip(RoundedCornerShape(4.dp))
-                            .background(NeonGold.copy(alpha = 0.25f))
+                            .background(palette.gold.copy(alpha = 0.25f))
                             .border(
-                                BorderStroke(1.5.dp, NeonGold),
+                                BorderStroke(1.5.dp, palette.gold),
                                 RoundedCornerShape(4.dp),
                             )
                             .padding(horizontal = 14.dp, vertical = 4.dp),
                     ) {
                         Text(
                             text = "★ Kỷ lục mới ★",
-                            color = NeonGold,
+                            color = palette.gold,
                             fontWeight = FontWeight.Black,
                             fontSize = 13.sp,
                             style = TextStyle(letterSpacing = 3.sp),
@@ -248,6 +245,7 @@ fun DialogGameOver(
                     EndlessPanel(
                         currentSeconds = runStatsState.timeSec.toInt(),
                         endlessEntries = endlessEntries,
+                        violet = palette.violet,
                     )
                 }
             }
@@ -257,6 +255,7 @@ fun DialogGameOver(
                     dayKey = todayKey,
                     dailyEntries = dailyEntries,
                     currentScore = currentScore,
+                    magenta = palette.magenta,
                 )
             }
             Spacer(modifier = Modifier.height(14.dp))
@@ -265,6 +264,7 @@ fun DialogGameOver(
                     entries = entries,
                     currentScore = currentScore,
                     playerRank = playerRank,
+                    palette = palette,
                 )
             }
             Spacer(modifier = Modifier.height(18.dp))
@@ -275,7 +275,7 @@ fun DialogGameOver(
             ) {
                 NeonDialogButton(
                     text = "Chơi lại",
-                    color = NeonCyan,
+                    color = palette.cyan,
                     leadingGlyph = "▶",
                     onClick = {
                         Logger.d("DialogGameOver: Restart pressed — clearing checkpoint then navigate Game")
@@ -286,7 +286,7 @@ fun DialogGameOver(
                 )
                 NeonDialogButton(
                     text = "Về menu",
-                    color = NeonMagenta,
+                    color = palette.magenta,
                     leadingGlyph = "◀",
                     onClick = {
                         Logger.d("DialogGameOver: Back to Menu pressed (checkpoint preserved)")
@@ -300,6 +300,7 @@ fun DialogGameOver(
 
 @Composable
 private fun VictoryPanel() {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val difficulty by com.tranphuloi.neon.data.LocalSettings.current.difficulty
         .collectAsState(initial = com.tranphuloi.neon.data.Difficulty.NORMAL)
     val (heading, subtitle) = when (difficulty) {
@@ -324,17 +325,17 @@ private fun VictoryPanel() {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(NeonGold.copy(alpha = 0.15f))
+            .background(palette.gold.copy(alpha = 0.15f))
             .border(
-                BorderStroke(2.dp, NeonGold),
+                BorderStroke(2.dp, palette.gold),
                 RoundedCornerShape(8.dp),
             )
-            .neonGlow(NeonGold, intensity = 0.55f, radiusFactor = 1.4f)
+            .neonGlow(palette.gold, intensity = 0.55f, radiusFactor = 1.4f)
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Text(
             text = "★ $heading ★",
-            color = NeonGold,
+            color = palette.gold,
             fontSize = 16.sp,
             fontWeight = FontWeight.Black,
             style = TextStyle(letterSpacing = 2.sp),
@@ -361,6 +362,7 @@ private fun VictoryPanel() {
 private fun EndlessPanel(
     currentSeconds: Int,
     endlessEntries: List<LeaderboardEntry>,
+    violet: Color,
 ) {
     val bestSeconds = endlessEntries.maxByOrNull { it.score }?.score ?: currentSeconds
     val currentStr = String.format(Locale.US, "%02d:%02d", currentSeconds / 60, currentSeconds % 60)
@@ -370,28 +372,28 @@ private fun EndlessPanel(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(6.dp))
-            .background(com.tranphuloi.neon.common.NeonViolet.copy(alpha = 0.12f))
+            .background(violet.copy(alpha = 0.12f))
             .border(
-                BorderStroke(1.dp, com.tranphuloi.neon.common.NeonViolet.copy(alpha = 0.55f)),
+                BorderStroke(1.dp, violet.copy(alpha = 0.55f)),
                 RoundedCornerShape(6.dp),
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Text(
             text = "Vô tận",
-            color = com.tranphuloi.neon.common.NeonViolet,
+            color = violet,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             style = TextStyle(letterSpacing = 4.sp),
         )
         Spacer(modifier = Modifier.height(2.dp))
-        StatLine(label = "Sống sót", value = currentStr)
-        StatLine(label = "Tốt nhất", value = bestStr)
+        StatLine(label = "Sống sót", value = currentStr, color = violet)
+        StatLine(label = "Tốt nhất", value = bestStr, color = violet)
         if (currentSeconds >= bestSeconds && currentSeconds > 0) {
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "★ Kỷ lục mới vô tận ★",
-                color = com.tranphuloi.neon.common.NeonViolet,
+                color = violet,
                 fontWeight = FontWeight.Black,
                 fontSize = 12.sp,
                 style = TextStyle(letterSpacing = 2.sp),
@@ -405,6 +407,7 @@ private fun DailyPanel(
     dayKey: Long,
     dailyEntries: List<LeaderboardEntry>,
     currentScore: Int,
+    magenta: Color,
 ) {
     val bestToday = dailyEntries.maxByOrNull { it.score }?.score ?: currentScore
     Column(
@@ -412,9 +415,9 @@ private fun DailyPanel(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(6.dp))
-            .background(NeonMagenta.copy(alpha = 0.10f))
+            .background(magenta.copy(alpha = 0.10f))
             .border(
-                BorderStroke(1.dp, NeonMagenta.copy(alpha = 0.45f)),
+                BorderStroke(1.dp, magenta.copy(alpha = 0.45f)),
                 RoundedCornerShape(6.dp),
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
@@ -426,14 +429,14 @@ private fun DailyPanel(
         ) {
             Text(
                 text = stringResource(id = R.string.daily_challenge_label).uppercase(),
-                color = NeonMagenta,
+                color = magenta,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 style = TextStyle(letterSpacing = 4.sp),
             )
             Text(
                 text = stringResource(id = R.string.daily_seed_label, dayKey.toString()),
-                color = NeonMagenta.copy(alpha = 0.65f),
+                color = magenta.copy(alpha = 0.65f),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -442,18 +445,20 @@ private fun DailyPanel(
         StatLine(
             label = "Tốt nhất hôm nay",
             value = bestToday.toString(),
+            color = magenta,
         )
         if (dailyEntries.size >= 2) {
             StatLine(
                 label = "Số lần chơi",
                 value = dailyEntries.size.toString(),
+                color = magenta,
             )
         }
         if (currentScore > 0 && currentScore == bestToday && dailyEntries.size >= 2) {
             Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = "★ Kỷ lục hôm nay ★",
-                color = NeonMagenta,
+                color = magenta,
                 fontWeight = FontWeight.Black,
                 fontSize = 12.sp,
                 style = TextStyle(letterSpacing = 2.sp),
@@ -464,6 +469,7 @@ private fun DailyPanel(
 
 @Composable
 private fun StatsPanel(stats: com.tranphuloi.neon.data.RunStats) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val timeStr = String.format(
         java.util.Locale.US,
         "%02d:%02d",
@@ -477,36 +483,36 @@ private fun StatsPanel(stats: com.tranphuloi.neon.data.RunStats) {
             .clip(RoundedCornerShape(6.dp))
             .background(Color.Black.copy(alpha = 0.35f))
             .border(
-                BorderStroke(1.dp, NeonCyan.copy(alpha = 0.3f)),
+                BorderStroke(1.dp, palette.cyan.copy(alpha = 0.3f)),
                 RoundedCornerShape(6.dp),
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Text(
             text = "Thống kê",
-            color = NeonCyan.copy(alpha = 0.7f),
+            color = palette.cyan.copy(alpha = 0.7f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             style = TextStyle(letterSpacing = 4.sp),
         )
         Spacer(modifier = Modifier.height(2.dp))
-        StatLine(label = "Thời gian", value = timeStr)
-        StatLine(label = "Màn đạt", value = stats.stagesReached.toString())
+        StatLine(label = "Thời gian", value = timeStr, color = palette.cyan)
+        StatLine(label = "Màn đạt", value = stats.stagesReached.toString(), color = palette.cyan)
         // Wave 22 (#4) — thưởng mốc màn (hiện khi có).
         val stageBonus = com.tranphuloi.neon.data.stageMilestoneBonus(stats.stagesReached)
         if (stageBonus > 0) {
-            StatLine(label = "Thưởng mốc màn", value = "+$stageBonus ◇")
+            StatLine(label = "Thưởng mốc màn", value = "+$stageBonus ◇", color = palette.cyan)
         }
-        StatLine(label = "Diệt địch", value = stats.enemiesKilled.toString())
+        StatLine(label = "Diệt địch", value = stats.enemiesKilled.toString(), color = palette.cyan)
         if (stats.bossesDefeated > 0) {
-            StatLine(label = "Hạ boss", value = stats.bossesDefeated.toString())
+            StatLine(label = "Hạ boss", value = stats.bossesDefeated.toString(), color = palette.cyan)
         }
-        StatLine(label = "Combo tối đa", value = "×${stats.maxCombo}")
+        StatLine(label = "Combo tối đa", value = "×${stats.maxCombo}", color = palette.cyan)
     }
 }
 
 @Composable
-private fun StatLine(label: String, value: String) {
+private fun StatLine(label: String, value: String, color: Color) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -521,7 +527,7 @@ private fun StatLine(label: String, value: String) {
         )
         Text(
             text = value,
-            color = NeonCyan,
+            color = color,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
         )
@@ -586,6 +592,7 @@ private fun LeaderboardList(
     entries: List<LeaderboardEntry>,
     currentScore: Int,
     playerRank: Int?,
+    palette: com.tranphuloi.neon.common.NeonPalette,
 ) {
     if (entries.isEmpty()) return
     val df = remember { SimpleDateFormat("MM/dd HH:mm", Locale.US) }
@@ -596,14 +603,14 @@ private fun LeaderboardList(
             .clip(RoundedCornerShape(6.dp))
             .background(Color.Black.copy(alpha = 0.35f))
             .border(
-                BorderStroke(1.dp, NeonCyan.copy(alpha = 0.3f)),
+                BorderStroke(1.dp, palette.cyan.copy(alpha = 0.3f)),
                 RoundedCornerShape(6.dp),
             )
             .padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
         Text(
             text = "Top cao điểm",
-            color = NeonCyan.copy(alpha = 0.7f),
+            color = palette.cyan.copy(alpha = 0.7f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             style = TextStyle(letterSpacing = 4.sp),
@@ -612,10 +619,10 @@ private fun LeaderboardList(
         entries.take(5).forEachIndexed { idx, e ->
             val isCurrent = playerRank == (idx + 1) && e.score == currentScore
             val rankColor = when {
-                isCurrent -> NeonGold
-                idx == 0 -> NeonGold
-                idx == 1 -> NeonCyan
-                idx == 2 -> NeonMagenta
+                isCurrent -> palette.gold
+                idx == 0 -> palette.gold
+                idx == 1 -> palette.cyan
+                idx == 2 -> palette.magenta
                 else -> Color.White.copy(alpha = 0.6f)
             }
             Row(
@@ -623,7 +630,7 @@ private fun LeaderboardList(
                 modifier = if (isCurrent) {
                     Modifier
                         .fillMaxWidth()
-                        .background(NeonGold.copy(alpha = 0.18f))
+                        .background(palette.gold.copy(alpha = 0.18f))
                         .padding(horizontal = 4.dp, vertical = 2.dp)
                 } else {
                     Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp)
@@ -638,7 +645,7 @@ private fun LeaderboardList(
                 )
                 Text(
                     text = "${e.score}",
-                    color = if (isCurrent) NeonGold else Color.White,
+                    color = if (isCurrent) palette.gold else Color.White,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
                     modifier = Modifier.weight(1f),

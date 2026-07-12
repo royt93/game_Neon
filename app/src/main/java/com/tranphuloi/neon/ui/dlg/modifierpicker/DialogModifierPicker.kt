@@ -33,10 +33,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.common.NeonBgMid
-import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonGold
-import com.tranphuloi.neon.common.NeonMagenta
-import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.data.LocalSettings
 import com.tranphuloi.neon.ui.game.modifier.RunModifier
@@ -53,6 +49,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun DialogModifierPicker(onPicked: () -> Unit) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val settings = LocalSettings.current
     val scope = rememberCoroutineScope()
     val choices = remember { RunModifier.pickThree() }
@@ -63,7 +60,7 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
 
     com.tranphuloi.neon.common.NeonBottomSheet(
         title = "Chọn thử thách",
-        accentColor = NeonGold,
+        accentColor = palette.gold,
         onDismiss = {
             // Round 29 — ✕ tap = skip picker = apply NONE modifier.
             Logger.d("DialogModifierPicker: ✕ dismissed → skipping = apply NONE")
@@ -94,8 +91,8 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
                     .padding(bottom = 10.dp)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(NeonGold.copy(alpha = 0.16f))
-                    .border(BorderStroke(2.dp, NeonGold), RoundedCornerShape(14.dp))
+                    .background(palette.gold.copy(alpha = 0.16f))
+                    .border(BorderStroke(2.dp, palette.gold), RoundedCornerShape(14.dp))
                     .clickable {
                         Logger.d("ModifierPicker: DAILY CHALLENGE chose ${dailyMod.key} (day=$today)")
                         scope.launch {
@@ -106,16 +103,16 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                    Text(text = "⚡", color = NeonGold, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                    Text(text = "⚡", color = palette.gold, fontSize = 22.sp, fontWeight = FontWeight.Black)
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = "Thử thách hôm nay",
-                        color = NeonGold,
+                        color = palette.gold,
                         fontWeight = FontWeight.Black,
                         fontSize = 16.sp,
                         modifier = Modifier.weight(1f),
                     )
-                    Text(text = "+${com.tranphuloi.neon.ui.game.modifier.DailyChallenge.REWARD_MINERALS}◇", color = NeonGold, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                    Text(text = "+${com.tranphuloi.neon.ui.game.modifier.DailyChallenge.REWARD_MINERALS}◇", color = palette.gold, fontWeight = FontWeight.Black, fontSize = 14.sp)
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
@@ -127,9 +124,9 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
 
             choices.forEachIndexed { idx, mod ->
                 val color = when (idx) {
-                    0 -> NeonCyan
-                    1 -> NeonMagenta
-                    else -> NeonRedAlert
+                    0 -> palette.cyan
+                    1 -> palette.magenta
+                    else -> palette.redAlert
                 }
                 val glyph = when (mod.key) {
                     "triple_speed" -> "⚡"
@@ -192,13 +189,13 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(NeonGold.copy(alpha = 0.25f))
-                                .border(BorderStroke(1.dp, NeonGold), RoundedCornerShape(8.dp))
+                                .background(palette.gold.copy(alpha = 0.25f))
+                                .border(BorderStroke(1.dp, palette.gold), RoundedCornerShape(8.dp))
                                 .padding(horizontal = 10.dp, vertical = 4.dp),
                         ) {
                             Text(
                                 text = "×${mod.scoreMul}",
-                                color = NeonGold,
+                                color = palette.gold,
                                 fontWeight = FontWeight.Black,
                                 fontSize = 15.sp,
                             )
@@ -227,11 +224,12 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
  */
 @Composable
 private fun StatBarsRow(mod: RunModifier) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val items = listOf(
-        Triple("HP", mod.hpMul, NeonRedAlert),
-        Triple("DMG", mod.damageMul, com.tranphuloi.neon.common.NeonGold),
-        Triple("SPD", mod.speedMul, com.tranphuloi.neon.common.NeonCyan),
-        Triple("MAG", mod.magnetMul, com.tranphuloi.neon.common.NeonViolet),
+        Triple("HP", mod.hpMul, palette.redAlert),
+        Triple("DMG", mod.damageMul, palette.gold),
+        Triple("SPD", mod.speedMul, palette.cyan),
+        Triple("MAG", mod.magnetMul, palette.violet),
     )
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -245,12 +243,13 @@ private fun StatBarsRow(mod: RunModifier) {
 
 @Composable
 private fun StatBar(label: String, mul: Float, accent: Color, modifier: Modifier = Modifier) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val isNeutral = kotlin.math.abs(mul - 1f) < 0.01f
     val fillFrac = (mul / 3f).coerceIn(0.1f, 1f)              // 1.0× = ~0.33 fill, 3.0× = 1.0
     val barColor = when {
         isNeutral -> Color.White.copy(alpha = 0.35f)
         mul > 1f -> accent
-        else -> NeonRedAlert
+        else -> palette.redAlert
     }
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(

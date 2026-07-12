@@ -26,7 +26,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind
 import com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyUI
@@ -41,6 +40,7 @@ fun BossHpBar(
     modifier: Modifier = Modifier,
 ) {
     val boss = enemies.firstOrNull { it.isBoss } ?: return
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val ratio = (boss.currentHp / boss.initialHp).coerceIn(0f, 1f)
 
     val pulse = rememberInfiniteTransition(label = "bossPulse")
@@ -62,7 +62,7 @@ fun BossHpBar(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = boss.displayName,
-                color = NeonRedAlert.copy(alpha = warningAlpha),
+                color = palette.redAlert.copy(alpha = warningAlpha),
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Black,
             )
@@ -92,7 +92,7 @@ fun BossHpBar(
                 .clip(MaterialTheme.shapes.small)
                 .background(Color.Black.copy(alpha = 0.55f))
                 .neonGlow(
-                    color = NeonRedAlert,
+                    color = palette.redAlert,
                     intensity = 0.25f + (1f - ratio) * 0.35f,
                     radiusFactor = 1.2f,
                 ),
@@ -102,7 +102,7 @@ fun BossHpBar(
                     .fillMaxHeight()
                     .fillMaxWidth(fraction = ratio)
                     .clip(MaterialTheme.shapes.small)
-                    .background(NeonRedAlert),
+                    .background(palette.redAlert),
             )
         }
     }

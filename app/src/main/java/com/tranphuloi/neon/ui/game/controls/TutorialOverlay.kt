@@ -25,8 +25,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonMagenta
 import com.tranphuloi.neon.data.LocalSettings
 import com.tranphuloi.neon.utils.Logger
 import kotlinx.coroutines.delay
@@ -39,6 +37,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun TutorialOverlay(modifier: Modifier = Modifier) {
     val settings = LocalSettings.current
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val scope = rememberCoroutineScope()
     var dismissed by remember { mutableStateOf(false) }
 
@@ -73,7 +72,7 @@ fun TutorialOverlay(modifier: Modifier = Modifier) {
             Spacer(modifier = Modifier.height(80.dp))
             Text(
                 text = "Giữ & di",
-                color = NeonCyan,
+                color = palette.cyan,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Center,
@@ -88,8 +87,8 @@ fun TutorialOverlay(modifier: Modifier = Modifier) {
             )
             Spacer(modifier = Modifier.weight(1f))
             Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxSize()) {
-                Text("◀", color = NeonCyan, fontSize = 80.sp, fontWeight = FontWeight.Bold)
-                Text("▶", color = NeonMagenta, fontSize = 80.sp, fontWeight = FontWeight.Bold)
+                Text("◀", color = palette.cyan, fontSize = 80.sp, fontWeight = FontWeight.Bold)
+                Text("▶", color = palette.magenta, fontSize = 80.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(16.dp))
             Text(

@@ -20,7 +20,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.neonGlow
 
 /**
@@ -34,8 +33,9 @@ fun ParryButton(
     onActivate: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val ready = cooldownProgress >= 1f
-    val accent = if (ready) NeonCyan else Color.White.copy(alpha = 0.25f)
+    val accent = if (ready) palette.cyan else Color.White.copy(alpha = 0.25f)
     Box(
         modifier = modifier
             .size(42.dp)
@@ -72,7 +72,7 @@ fun ParryButton(
             ) {
                 val sweep = (1f - cooldownProgress).coerceIn(0f, 1f) * 360f
                 drawArc(
-                    color = NeonCyan.copy(alpha = 0.85f),
+                    color = palette.cyan.copy(alpha = 0.85f),
                     startAngle = -90f,
                     sweepAngle = sweep,
                     useCenter = false,

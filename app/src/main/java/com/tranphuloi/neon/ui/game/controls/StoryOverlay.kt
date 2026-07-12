@@ -24,8 +24,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.common.NeonBgMid
-import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonMagenta
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.ui.game.story.StoryLine
 import com.tranphuloi.neon.utils.Logger
@@ -44,6 +42,7 @@ fun StoryOverlay(
 ) {
     if (line == null || shownAtMillis == 0L) return
 
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(shownAtMillis) {
         Logger.d("StoryOverlay shown: ${line.speaker} \"${line.text}\"")
@@ -74,7 +73,7 @@ fun StoryOverlay(
     // Round 24 — Vietnamese speaker label "ĐỘI TRƯỞNG" (Captain) gets cyan;
     // boss taunts (anything else) get magenta.
     val speakerColor =
-        if (line.speaker == "Đội trưởng") NeonCyan else NeonMagenta
+        if (line.speaker == "Đội trưởng") palette.cyan else palette.magenta
 
     Column(
         modifier = modifier

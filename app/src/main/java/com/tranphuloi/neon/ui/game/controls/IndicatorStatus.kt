@@ -24,9 +24,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.R
-import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonGold
-import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.ui.game.combo.ComboTier
 import kotlinx.coroutines.delay
@@ -114,6 +111,7 @@ private fun CombatColumn(
     activeBulletName: String = "",
     activeBulletColorArgb: Long = 0L,
 ) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     // Per-stat flash timer ticks at 50ms only while a flash is in flight (350ms each).
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     val mineralFlashElapsed = nowMillis - lastMineralPickupMillis
@@ -144,9 +142,9 @@ private fun CombatColumn(
     val height = 38.dp
     val hpRatio = (hp.toFloat() / MAX_HP).coerceIn(0f, 1f)
     val hpColor = when {
-        hp >= 700 -> NeonCyan
-        hp >= 300 -> NeonGold
-        else -> NeonRedAlert
+        hp >= 700 -> palette.cyan
+        hp >= 300 -> palette.gold
+        else -> palette.redAlert
     }
 
     Column {
@@ -233,7 +231,7 @@ private fun CombatColumn(
                         scaleY = mineralPulse
                     }
                     .neonGlow(
-                        color = NeonGold,
+                        color = palette.gold,
                         intensity = 0.5f + mineralFlashIntensity,
                         radiusFactor = 1.6f + mineralFlashIntensity * 0.5f,
                     ),
@@ -249,8 +247,8 @@ private fun CombatColumn(
                     lineTo(cx - halfW, cy)
                     close()
                 }
-                drawPath(path, NeonGold)
-                drawPath(path, NeonCyan,
+                drawPath(path, palette.gold)
+                drawPath(path, palette.cyan,
                     style = androidx.compose.ui.graphics.drawscope.Stroke(width = size.width * 0.08f))
                 PathPool.release(path)
                 drawLine(
@@ -264,7 +262,7 @@ private fun CombatColumn(
                 text = mineralsEarnedTotal,
                 fontWeight = FontWeight.SemiBold,
                 style = MaterialTheme.typography.h5,
-                color = NeonGold,
+                color = palette.gold,
                 modifier = Modifier.graphicsLayer {
                     scaleX = mineralPulse
                     scaleY = mineralPulse
@@ -304,16 +302,17 @@ private fun ProgressionColumn(
     bossesDefeatedTotal: Int,
     shipShape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape,
 ) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     Column {
         if (currentChapterId > 0) {
             // Wave 18 — gộp "Ch.X" + "Stage Y" về 1 dòng (trước 3 dòng → chật top-center).
             Text(
                 text = if (stagesReached > 0) "Ch.$currentChapterId · St.$stagesReached"
                 else "Ch.$currentChapterId",
-                color = NeonGold,
+                color = palette.gold,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Black,
-                modifier = Modifier.neonGlow(NeonGold, intensity = 0.4f, radiusFactor = 1.2f),
+                modifier = Modifier.neonGlow(palette.gold, intensity = 0.4f, radiusFactor = 1.2f),
             )
             if (currentChapterName.isNotEmpty()) {
                 Text(
@@ -331,14 +330,14 @@ private fun ProgressionColumn(
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = "⚔ $enemiesKilledTotal",
-                color = NeonCyan.copy(alpha = 0.85f),
+                color = palette.cyan.copy(alpha = 0.85f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
             )
             if (bossesDefeatedTotal > 0) {
                 Text(
                     text = "☠ $bossesDefeatedTotal",
-                    color = NeonRedAlert.copy(alpha = 0.85f),
+                    color = palette.redAlert.copy(alpha = 0.85f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                 )
@@ -348,12 +347,12 @@ private fun ProgressionColumn(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "◈ ${shipShape.displayName}",
-                color = Color(0xFFB14CFF),
+                color = palette.violet,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .clip(MaterialTheme.shapes.small)
-                    .background(Color(0xFFB14CFF).copy(alpha = 0.18f))
+                    .background(palette.violet.copy(alpha = 0.18f))
                     .padding(horizontal = 6.dp, vertical = 2.dp),
             )
         }

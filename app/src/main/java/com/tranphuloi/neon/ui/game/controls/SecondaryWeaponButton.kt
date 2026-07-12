@@ -23,8 +23,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon
 import com.tranphuloi.neon.common.PathPool
@@ -41,8 +39,9 @@ fun SecondaryWeaponButton(
     onFire: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val ready = cooldownProgress >= 1f
-    val accent = if (ready) NeonCyan else Color.White.copy(alpha = 0.25f)
+    val accent = if (ready) palette.cyan else Color.White.copy(alpha = 0.25f)
     // Pixel-3 round 5 — reverted label addition per user feedback "tôi không
     // cần label sóng nổ + bomb". Column wrapper removed; restored to single
     // Box icon as original.
@@ -71,7 +70,7 @@ fun SecondaryWeaponButton(
         ) {
             // Round 67.7 — vector icon per weapon. Replaced emoji rendering.
             Canvas(modifier = Modifier.size(22.dp)) {
-                drawWeaponIcon(weapon, accent)
+                drawWeaponIcon(weapon, accent, palette.gold)
             }
         }
         // Cooldown ring overlay
@@ -83,7 +82,7 @@ fun SecondaryWeaponButton(
             ) {
                 val sweep = (1f - cooldownProgress).coerceIn(0f, 1f) * 360f
                 drawArc(
-                    color = NeonCyan.copy(alpha = 0.85f),
+                    color = palette.cyan.copy(alpha = 0.85f),
                     startAngle = -90f,
                     sweepAngle = sweep,
                     useCenter = false,
@@ -105,6 +104,7 @@ fun SecondaryWeaponButton(
 private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawWeaponIcon(
     weapon: SecondaryWeapon,
     accent: Color,
+    gold: Color,
 ) {
     val w = size.width
     val h = size.height
@@ -144,7 +144,7 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawWeaponIcon(
             drawPath(finPath2, accent)
             PathPool.release(finPath2)
             // Flame trail
-            drawCircle(NeonGold, w * 0.06f, Offset(cx, baseY + h * 0.04f))
+            drawCircle(gold, w * 0.06f, Offset(cx, baseY + h * 0.04f))
         }
         SecondaryWeapon.MINE -> {
             // 4-spike diamond shape: vertical + horizontal lines crossing

@@ -14,8 +14,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
-import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonGold
 import kotlinx.coroutines.delay
 import com.tranphuloi.neon.common.PathPool
 
@@ -47,6 +45,7 @@ fun BossHitLightning(
 ) {
     if (triggerMillis <= 0L) return
 
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(triggerMillis) {
         while (true) {
@@ -106,13 +105,13 @@ fun BossHitLightning(
             // Outer cyan glow (wide, dim).
             drawPath(
                 path = path,
-                color = NeonCyan.copy(alpha = boltAlpha * 0.35f),
+                color = palette.cyan.copy(alpha = boltAlpha * 0.35f),
                 style = Stroke(width = 9.dp.toPx(), cap = StrokeCap.Round),
             )
             // Mid gold flash (medium).
             drawPath(
                 path = path,
-                color = NeonGold.copy(alpha = boltAlpha * 0.55f),
+                color = palette.gold.copy(alpha = boltAlpha * 0.55f),
                 style = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round),
             )
             // Inner white core (thin, bright).

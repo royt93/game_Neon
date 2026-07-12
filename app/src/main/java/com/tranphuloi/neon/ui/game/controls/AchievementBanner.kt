@@ -25,8 +25,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.common.NeonBgMid
-import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.data.Achievement
 import com.tranphuloi.neon.data.AchievementTier
@@ -44,6 +42,7 @@ fun AchievementBanner(
 ) {
     if (achievement == null || shownAtMillis == 0L) return
 
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(shownAtMillis) {
         Logger.d("AchievementBanner shown: id=${achievement.id} tier=${achievement.tier} title=\"${achievement.title}\"")
@@ -73,7 +72,7 @@ fun AchievementBanner(
     val tierColor = when (achievement.tier) {
         AchievementTier.BRONZE -> Color(0xFFCD7F32)                  // bronze
         AchievementTier.SILVER -> Color(0xFFB0C4DE)                  // light steel blue (silver)
-        AchievementTier.GOLD -> NeonGold
+        AchievementTier.GOLD -> palette.gold
     }
     val tierLabel = when (achievement.tier) {
         AchievementTier.BRONZE -> "Đồng"

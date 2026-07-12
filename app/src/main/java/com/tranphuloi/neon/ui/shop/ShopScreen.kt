@@ -496,8 +496,16 @@ private fun BulletTab(
     onRequestPurchase: (PurchaseRequest) -> Unit,
 ) {
     val settings = LocalSettings.current
-    val preferred by settings.preferredBulletType
-        .collectAsState(initial = com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL)
+    // Task 17 — loadout riêng theo ship đang chọn (không phải global nữa).
+    val selectedShape by settings.selectedShipShape.collectAsState(initial = ShipShape.FIGHTER)
+    val loadout by remember(selectedShape) { settings.loadoutForShip(selectedShape) }
+        .collectAsState(
+            initial = com.tranphuloi.neon.data.ShipLoadout(
+                bulletType = com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL,
+                secondaryWeapon = com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.MISSILE,
+            ),
+        )
+    val preferred = loadout.bulletType
 
     // Migration (Wave 14a) — if the player's selected bullet just became
     // shop-gated (GIANT/PLASMA were free before), grant it for free so it stays
@@ -546,8 +554,8 @@ private fun BulletTab(
                 )
             },
             onSelect = {
-                Logger.d("Shop bullet: select ${bullet.name}")
-                scope.launch { settings.setPreferredBulletType(bullet) }
+                Logger.d("Shop bullet: select ${bullet.name} for ship=${selectedShape.key}")
+                scope.launch { settings.setLoadoutForShip(selectedShape, bullet, loadout.secondaryWeapon) }
             },
         )
     }

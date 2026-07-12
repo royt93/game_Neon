@@ -19,10 +19,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonGold
-import com.tranphuloi.neon.common.NeonMagenta
-import com.tranphuloi.neon.common.NeonViolet
 import com.tranphuloi.neon.ui.game.buff.LocalActiveBuffs
 
 /**
@@ -34,6 +30,7 @@ import com.tranphuloi.neon.ui.game.buff.LocalActiveBuffs
  */
 @Composable
 fun ActiveBuffsHud(modifier: Modifier = Modifier) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val activeBuffs by LocalActiveBuffs.current
     if (activeBuffs.isEmpty()) return
 
@@ -48,10 +45,10 @@ fun ActiveBuffsHud(modifier: Modifier = Modifier) {
         grouped.forEach { (buff, count) ->
             // Color cycle: cyan, gold, magenta, violet based on key hash
             val color = when (buff.key.hashCode() % 4) {
-                0 -> NeonCyan
-                1 -> NeonGold
-                2 -> NeonMagenta
-                else -> NeonViolet
+                0 -> palette.cyan
+                1 -> palette.gold
+                2 -> palette.magenta
+                else -> palette.violet
             }
             Box(
                 contentAlignment = Alignment.Center,

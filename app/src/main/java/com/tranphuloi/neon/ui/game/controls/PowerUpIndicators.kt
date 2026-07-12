@@ -22,10 +22,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonGold
-import com.tranphuloi.neon.common.NeonMagenta
-import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.ui.game.ship.ship.Ship
 import kotlinx.coroutines.delay
@@ -41,6 +37,7 @@ fun PowerUpIndicators(
     // Task 01 (Slice 6) — số drone đang hoạt động (không countdown vì hết theo HP).
     droneCount: Int = 0,
 ) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     // Only tick when at least 1 booster is active — saves CPU when no powerups.
     val anyActive = ship.shieldEnabled || ship.laserBoosterEnabled || ship.tripleLaserBoosterEnabled
@@ -60,7 +57,7 @@ fun PowerUpIndicators(
         if (ship.shieldEnabled && ship.shieldEndMillis > 0L) {
             PowerUpBadge(
                 label = "S",
-                color = NeonCyan,
+                color = palette.cyan,
                 endMillis = ship.shieldEndMillis,
                 durationMillis = SHIELD_DURATION,
                 nowMillis = nowMillis,
@@ -69,7 +66,7 @@ fun PowerUpIndicators(
         if (ship.laserBoosterEnabled && ship.laserBoosterEndMillis > 0L) {
             PowerUpBadge(
                 label = "L",
-                color = NeonGold,
+                color = palette.gold,
                 endMillis = ship.laserBoosterEndMillis,
                 durationMillis = LASER_DURATION,
                 nowMillis = nowMillis,
@@ -78,7 +75,7 @@ fun PowerUpIndicators(
         if (ship.tripleLaserBoosterEnabled && ship.tripleLaserBoosterEndMillis > 0L) {
             PowerUpBadge(
                 label = "T",
-                color = NeonMagenta,
+                color = palette.magenta,
                 endMillis = ship.tripleLaserBoosterEndMillis,
                 durationMillis = TRIPLE_DURATION,
                 nowMillis = nowMillis,
@@ -95,10 +92,11 @@ private fun PowerUpBadge(
     durationMillis: Long,
     nowMillis: Long,
 ) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val remainingMillis = (endMillis - nowMillis).coerceAtLeast(0L)
     val progress = (remainingMillis.toFloat() / durationMillis).coerceIn(0f, 1f)
     val warning = remainingMillis < 2000L && remainingMillis > 0L
-    val effectiveColor = if (warning) NeonRedAlert else color
+    val effectiveColor = if (warning) palette.redAlert else color
 
     Box(
         contentAlignment = Alignment.Center,
@@ -143,17 +141,18 @@ private fun PowerUpBadge(
  */
 @Composable
 private fun DroneBadge(count: Int) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .size(36.dp)
             .clip(CircleShape)
-            .neonGlow(color = NeonCyan, intensity = 0.4f),
+            .neonGlow(color = palette.cyan, intensity = 0.4f),
     ) {
         Canvas(modifier = Modifier.size(36.dp)) {
             val r = size.minDimension / 2 - 4f
             drawCircle(
-                color = NeonCyan,
+                color = palette.cyan,
                 radius = r,
                 center = Offset(size.width / 2, size.height / 2),
                 style = Stroke(width = 3f),
@@ -161,7 +160,7 @@ private fun DroneBadge(count: Int) {
         }
         Text(
             text = "◈$count",
-            color = NeonCyan,
+            color = palette.cyan,
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold,
         )

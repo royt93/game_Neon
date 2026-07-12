@@ -41,7 +41,22 @@ object SettingsKeys {
     val SELECTED_DRONE_VARIANT = stringPreferencesKey("selected_drone_variant")
     /** Round 77 (R77g) — camera zoom level. Default MEDIUM. */
     val CAMERA_ZOOM = stringPreferencesKey("camera_zoom")
+    /** Task 22 — tay thuận điều khiển. Default TWO_HANDED. */
+    val CONTROL_HAND_MODE = stringPreferencesKey("control_hand_mode")
+    /**
+     * Task 17 — loadout riêng theo ship. CSV, mỗi dòng
+     * "<shipShape.key>|<bulletType.name>|<secondaryWeapon.name>". Ship chưa có
+     * dòng riêng → fallback [PREFERRED_BULLET_TYPE]/[SECONDARY_WEAPON] (pick
+     * global từ trước Task 17).
+     */
+    val SHIP_LOADOUTS = stringPreferencesKey("ship_loadouts_csv")
 }
+
+/** Task 17 — loadout (đạn chính + vũ khí phụ) gắn với 1 [ShipShape] cụ thể. */
+data class ShipLoadout(
+    val bulletType: com.tranphuloi.neon.ui.game.ship.laser.BulletType,
+    val secondaryWeapon: com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon,
+)
 
 /**
  * Wave 6 (27x) round 39 — accessibility mode for UI palette. Game entity
@@ -154,24 +169,30 @@ class SettingsRepository(private val appContext: Context) {
         ColorBlindMode.fromKey(it[SettingsKeys.COLOR_BLIND_MODE])
     }
     /**
-     * Wave 6 (29x) round 41 — secondary-weapon selection. Defaults to MISSILE.
-     * Read via [com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.fromName].
+     * Task 17 — loadout (đạn chính + vũ khí phụ) riêng theo ship đang chọn.
+     * Ship chưa từng set riêng → fallback pick global cũ (trước Task 17, các
+     * key [SettingsKeys.PREFERRED_BULLET_TYPE]/[SettingsKeys.SECONDARY_WEAPON])
+     * để không mất tiến trình user cũ.
      */
-    val secondaryWeapon: Flow<com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon> =
-        appContext.dataStore.data.map {
-            com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon
-                .fromName(it[SettingsKeys.SECONDARY_WEAPON])
-        }
-    /**
-     * Wave 6 (36x) round 45 — pre-game BulletType preference (Loadout). Default
-     * NORMAL = no head-start. GameState applies this with a 10s expiry at run
-     * init so the loadout is a "starting buff" rather than a permanent weapon
-     * swap (keeps booster pickups meaningful).
-     */
-    val preferredBulletType: Flow<com.tranphuloi.neon.ui.game.ship.laser.BulletType> =
-        appContext.dataStore.data.map {
-            com.tranphuloi.neon.ui.game.ship.laser.BulletType
-                .fromName(it[SettingsKeys.PREFERRED_BULLET_TYPE])
+    fun loadoutForShip(shipShape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape): Flow<ShipLoadout> =
+        appContext.dataStore.data.map { prefs ->
+            val row = prefs[SettingsKeys.SHIP_LOADOUTS].orEmpty()
+                .lineSequence()
+                .firstOrNull { it.startsWith("${shipShape.key}|") }
+                ?.split("|")
+            if (row != null && row.size == 3) {
+                ShipLoadout(
+                    bulletType = com.tranphuloi.neon.ui.game.ship.laser.BulletType.fromName(row[1]),
+                    secondaryWeapon = com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.fromName(row[2]),
+                )
+            } else {
+                ShipLoadout(
+                    bulletType = com.tranphuloi.neon.ui.game.ship.laser.BulletType
+                        .fromName(prefs[SettingsKeys.PREFERRED_BULLET_TYPE]),
+                    secondaryWeapon = com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon
+                        .fromName(prefs[SettingsKeys.SECONDARY_WEAPON]),
+                )
+            }
         }
     /**
      * Round 62 — VoiceAnnouncer (TTS) toggle. Default `true`. When off, TTS
@@ -198,6 +219,10 @@ class SettingsRepository(private val appContext: Context) {
     /** Round 77 (R77g) — camera zoom level. Defaults to MEDIUM. */
     val cameraZoom: Flow<CameraZoom> = appContext.dataStore.data.map {
         CameraZoom.fromKey(it[SettingsKeys.CAMERA_ZOOM])
+    }
+    /** Task 22 — tay thuận điều khiển. Defaults to TWO_HANDED. */
+    val controlHandMode: Flow<ControlHandMode> = appContext.dataStore.data.map {
+        ControlHandMode.fromKey(it[SettingsKeys.CONTROL_HAND_MODE])
     }
 
     suspend fun setReduceMotion(value: Boolean) {
@@ -253,14 +278,21 @@ class SettingsRepository(private val appContext: Context) {
         appContext.dataStore.edit { it[SettingsKeys.COLOR_BLIND_MODE] = value.key }
     }
 
-    suspend fun setSecondaryWeapon(value: com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon) {
-        Logger.d("SettingsRepository.setSecondaryWeapon=${value.name}")
-        appContext.dataStore.edit { it[SettingsKeys.SECONDARY_WEAPON] = value.name }
-    }
-
-    suspend fun setPreferredBulletType(value: com.tranphuloi.neon.ui.game.ship.laser.BulletType) {
-        Logger.d("SettingsRepository.setPreferredBulletType=${value.name}")
-        appContext.dataStore.edit { it[SettingsKeys.PREFERRED_BULLET_TYPE] = value.name }
+    /** Task 17 — set loadout (đạn + vũ khí phụ) cho riêng 1 ship, không ảnh hưởng ship khác. */
+    suspend fun setLoadoutForShip(
+        shipShape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape,
+        bulletType: com.tranphuloi.neon.ui.game.ship.laser.BulletType,
+        secondaryWeapon: com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon,
+    ) {
+        Logger.d("SettingsRepository.setLoadoutForShip ship=${shipShape.key} bullet=${bulletType.name} secondary=${secondaryWeapon.name}")
+        appContext.dataStore.edit { prefs ->
+            val otherRows = prefs[SettingsKeys.SHIP_LOADOUTS].orEmpty()
+                .lineSequence()
+                .filter { it.isNotBlank() && !it.startsWith("${shipShape.key}|") }
+                .toList()
+            prefs[SettingsKeys.SHIP_LOADOUTS] = (otherRows + "${shipShape.key}|${bulletType.name}|${secondaryWeapon.name}")
+                .joinToString("\n")
+        }
     }
 
     suspend fun setVoiceAnnouncerEnabled(value: Boolean) {
@@ -287,5 +319,11 @@ class SettingsRepository(private val appContext: Context) {
     suspend fun setCameraZoom(value: CameraZoom) {
         Logger.d("SettingsRepository.setCameraZoom=${value.key}")
         appContext.dataStore.edit { it[SettingsKeys.CAMERA_ZOOM] = value.key }
+    }
+
+    /** Task 22 — lưu tay thuận điều khiển. */
+    suspend fun setControlHandMode(value: ControlHandMode) {
+        Logger.d("SettingsRepository.setControlHandMode=${value.key}")
+        appContext.dataStore.edit { it[SettingsKeys.CONTROL_HAND_MODE] = value.key }
     }
 }

@@ -20,7 +20,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tranphuloi.neon.common.NeonMagenta
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.ui.game.ship.shape.ShipAbility
 
@@ -36,8 +35,9 @@ fun AbilityButton(
     onActivate: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val ready = cooldownProgress >= 1f
-    val accent = if (ready) NeonMagenta else Color.White.copy(alpha = 0.25f)
+    val accent = if (ready) palette.magenta else Color.White.copy(alpha = 0.25f)
     Box(
         modifier = modifier
             .size(42.dp)
@@ -74,7 +74,7 @@ fun AbilityButton(
             ) {
                 val sweep = (1f - cooldownProgress).coerceIn(0f, 1f) * 360f
                 drawArc(
-                    color = NeonMagenta.copy(alpha = 0.85f),
+                    color = palette.magenta.copy(alpha = 0.85f),
                     startAngle = -90f,
                     sweepAngle = sweep,
                     useCenter = false,

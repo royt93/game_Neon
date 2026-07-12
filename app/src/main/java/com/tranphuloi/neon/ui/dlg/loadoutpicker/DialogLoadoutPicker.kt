@@ -82,12 +82,17 @@ fun DialogLoadoutPicker(
     // first real emission, so card selection only highlights after the
     // resolved value arrives. The cards stay un-highlighted for ~10-30ms but
     // no longer briefly show the wrong selection.
-    val bulletType: BulletType? by produceState<BulletType?>(initialValue = null, settings) {
-        settings.preferredBulletType.collect { value = it }
-    }
-    val secondary: SecondaryWeapon? by produceState<SecondaryWeapon?>(initialValue = null, settings) {
-        settings.secondaryWeapon.collect { value = it }
-    }
+    // Task 17 — loadout riêng theo ship đang chọn (không phải global nữa).
+    val selectedShipShape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape? by
+        produceState<com.tranphuloi.neon.ui.game.ship.shape.ShipShape?>(initialValue = null, settings) {
+            settings.selectedShipShape.collect { value = it }
+        }
+    val loadout: com.tranphuloi.neon.data.ShipLoadout? by
+        produceState<com.tranphuloi.neon.data.ShipLoadout?>(initialValue = null, settings, selectedShipShape) {
+            selectedShipShape?.let { shape -> settings.loadoutForShip(shape).collect { value = it } }
+        }
+    val bulletType: BulletType? = loadout?.bulletType
+    val secondary: SecondaryWeapon? = loadout?.secondaryWeapon
     // Task 06 — biến thể drone đang chọn.
     val droneVariant: com.tranphuloi.neon.ui.game.drone.DroneVariant? by produceState(initialValue = null, settings) {
         settings.selectedDroneVariant.collect { value = it }
@@ -161,7 +166,11 @@ fun DialogLoadoutPicker(
                                 Logger.d("LoadoutPicker: BulletType $b locked — buy in shop")
                             } else {
                                 Logger.d("LoadoutPicker: BulletType pick=$b")
-                                scope.launch { settings.setPreferredBulletType(b) }
+                                selectedShipShape?.let { shape ->
+                                    scope.launch {
+                                        settings.setLoadoutForShip(shape, b, secondary ?: SecondaryWeapon.MISSILE)
+                                    }
+                                }
                             }
                         },
                     )
@@ -191,7 +200,11 @@ fun DialogLoadoutPicker(
                         bulletPreview = null,                            // glyph mode for secondary
                         onClick = {
                             Logger.d("LoadoutPicker: SecondaryWeapon pick=$w")
-                            scope.launch { settings.setSecondaryWeapon(w) }
+                            selectedShipShape?.let { shape ->
+                                scope.launch {
+                                    settings.setLoadoutForShip(shape, bulletType ?: BulletType.NORMAL, w)
+                                }
+                            }
                         },
                     )
                 }

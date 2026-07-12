@@ -28,11 +28,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.common.NeonBgMid
-import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonGold
-import com.tranphuloi.neon.common.NeonMagenta
-import com.tranphuloi.neon.common.NeonRedAlert
-import com.tranphuloi.neon.common.NeonViolet
 import com.tranphuloi.neon.data.LocalSettings
 import com.tranphuloi.neon.ui.game.mode.GameMode
 import com.tranphuloi.neon.utils.Logger
@@ -49,6 +44,7 @@ import kotlinx.coroutines.launch
  */
 @Composable
 fun DialogModePicker(onPicked: () -> Unit) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val settings = LocalSettings.current
     val scope = rememberCoroutineScope()
 
@@ -68,7 +64,7 @@ fun DialogModePicker(onPicked: () -> Unit) {
 
     com.tranphuloi.neon.common.NeonBottomSheet(
         title = "Chọn chế độ",
-        accentColor = NeonViolet,
+        accentColor = palette.violet,
         onDismiss = {
             Logger.d("DialogModePicker: dismissed")
             onPicked()
@@ -87,12 +83,12 @@ fun DialogModePicker(onPicked: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
             pickable.forEach { mode ->
                 val color = when (mode) {
-                    GameMode.CAMPAIGN -> NeonCyan
-                    GameMode.SURVIVAL -> NeonGold
-                    GameMode.TIME_ATTACK -> NeonMagenta
-                    GameMode.BOSS_RUSH -> NeonRedAlert
-                    GameMode.ENDLESS -> NeonViolet
-                    else -> NeonCyan
+                    GameMode.CAMPAIGN -> palette.cyan
+                    GameMode.SURVIVAL -> palette.gold
+                    GameMode.TIME_ATTACK -> palette.magenta
+                    GameMode.BOSS_RUSH -> palette.redAlert
+                    GameMode.ENDLESS -> palette.violet
+                    else -> palette.cyan
                 }
                 val glyph = when (mode) {
                     GameMode.CAMPAIGN -> "⊕"

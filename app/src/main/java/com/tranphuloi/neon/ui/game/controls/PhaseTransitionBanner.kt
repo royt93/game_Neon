@@ -18,8 +18,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import com.tranphuloi.neon.common.NeonGold
-import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.utils.Logger
 import kotlinx.coroutines.delay
 
@@ -36,6 +34,7 @@ fun PhaseTransitionBanner(
     modifier: Modifier = Modifier,
 ) {
     if (phaseTransitionMillis == 0L || phase < 2) return
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
 
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(phaseTransitionMillis) {
@@ -78,8 +77,8 @@ fun PhaseTransitionBanner(
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        NeonRedAlert.copy(alpha = 0.55f),
-                        NeonGold.copy(alpha = 0.25f),
+                        palette.redAlert.copy(alpha = 0.55f),
+                        palette.gold.copy(alpha = 0.25f),
                         Color.Transparent,
                     ),
                     center = Offset(cx, cy),
@@ -91,7 +90,7 @@ fun PhaseTransitionBanner(
         }
         Text(
             text = "Giai đoạn $phase",
-            color = NeonRedAlert.copy(alpha = 0.7f * alpha),
+            color = palette.redAlert.copy(alpha = 0.7f * alpha),
             fontSize = 60.sp,
             fontWeight = FontWeight.Black,
             modifier = Modifier.graphicsLayer {
@@ -101,7 +100,7 @@ fun PhaseTransitionBanner(
         )
         Text(
             text = "Giai đoạn $phase",
-            color = NeonGold.copy(alpha = 0.95f * alpha),
+            color = palette.gold.copy(alpha = 0.95f * alpha),
             fontSize = 56.sp,
             fontWeight = FontWeight.Black,
             modifier = Modifier.graphicsLayer {

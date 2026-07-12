@@ -43,16 +43,16 @@ Enhance / Optimize / New feature, mỗi nhóm user chọn qua AskUserQuestion:
 
 | # | Task | Nhóm | Rủi ro | Trạng thái |
 |---|---|---|---|---|
-| 17 | [Per-ship loadout persistence](17-per-ship-loadout-persistence.md) | Enhance (8c) | Vừa (audit call site global setting) | 📋 TODO |
+| 17 | [Per-ship loadout persistence](../done/17-per-ship-loadout-persistence.md) | Enhance (8c) | Vừa (audit call site global setting) | ✅ Done (4/4 slice, 2026-07-11, verify device Pixel 7 Pro) |
 | 18 | [Status chains + curses](18-status-chains-curses.md) | Enhance (Wave 4 combat) | Cao (cân bằng buff/curse) | 📋 TODO |
-| 19 | [Color blind full migration](19-colorblind-full-migration.md) | Enhance (accessibility) | Thấp (nhiều file nhỏ lẻ) | 📋 TODO |
+| 19 | [Color blind full migration](../done/19-colorblind-full-migration.md) | Enhance (accessibility) | Thấp (nhiều file nhỏ lẻ) | ✅ Done (4/4 slice, 2026-07-12, verify device Pixel 7 Pro) |
 | 20 | [Microbenchmark module](20-microbenchmark-module.md) | Perf (CCc) | Cao (module Gradle mới + device) | 📋 TODO |
-| 21 | [Quick restart hotkey](21-quick-restart-hotkey.md) | New (QoL) | Thấp (tái dùng logic có sẵn) | 📋 TODO |
-| 22 | [One-handed mode](22-one-handed-mode.md) | New (QoL) | Thấp (layout chồng lấn) | 📋 TODO |
+| 21 | [Quick restart hotkey](../done/21-quick-restart-hotkey.md) | New (QoL) | Thấp (tái dùng logic có sẵn) | ✅ Done (4/4 slice, 2026-07-11, verify device Pixel 7 Pro) |
+| 22 | [One-handed mode](../done/22-one-handed-mode.md) | New (QoL) | Thấp (layout chồng lấn) | ✅ Done (4/4 slice, 2026-07-11, verify device Pixel 7 Pro) |
 
-**Đề xuất thứ tự bắt đầu:** 21 → 22 (QoL nhanh, risk thấp, thắng dễ trước) → 17
-(enhance nền tảng đã có) → 19 (accessibility, độc lập) → 20 (hạ tầng perf, không
-đụng gameplay) → 18 (rủi ro cân bằng cao nhất, để cuối khi đã quen nhịp).
+**Đề xuất thứ tự bắt đầu:** 21 (✅ xong) → 22 (✅ xong) → 17 (✅ xong) → 19 (✅ xong)
+→ 20 (hạ tầng perf, không đụng gameplay) → 18 (rủi ro cân bằng cao nhất, để cuối
+khi đã quen nhịp).
 
 ## Quy ước
 - Mỗi task có **Slice 0 = chốt số liệu/thiết kế** trước khi code.

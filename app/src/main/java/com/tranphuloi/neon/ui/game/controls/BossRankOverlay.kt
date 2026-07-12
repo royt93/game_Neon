@@ -68,6 +68,7 @@ fun BossRankOverlay(
 ) {
     if (rank == null || shownAtMillis == 0L) return
 
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(shownAtMillis) {
         repeat((DURATION_MILLIS / 33).toInt()) {
@@ -85,7 +86,13 @@ fun BossRankOverlay(
         else -> 1.0f
     }
     val alpha = if (t < 0.85f) 1f else 1f - ((t - 0.85f) / 0.15f)
-    val color = rank.color()
+    val color = when (rank) {
+        BossRank.S -> palette.gold
+        BossRank.A -> palette.cyan
+        BossRank.B -> palette.magenta
+        BossRank.C -> palette.cyan.copy(alpha = 0.7f)
+        BossRank.D -> palette.redAlert
+    }
 
     Box(
         contentAlignment = Alignment.Center,

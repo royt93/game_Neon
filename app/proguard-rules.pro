@@ -42,6 +42,7 @@
 -keep class com.tranphuloi.neon.data.ShipSkin { *; }
 -keep class com.tranphuloi.neon.data.Difficulty { *; }
 -keep class com.tranphuloi.neon.data.CameraZoom { *; }
+-keep class com.tranphuloi.neon.data.ControlHandMode { *; }
 -keep class com.tranphuloi.neon.data.ColorBlindMode { *; }
 -keep class com.tranphuloi.neon.data.Achievement { *; }
 -keep class com.tranphuloi.neon.data.AchievementTier { *; }

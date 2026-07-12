@@ -22,9 +22,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tranphuloi.neon.common.NeonGold
-import com.tranphuloi.neon.common.NeonMagenta
-import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.ui.game.combo.ComboTier
 import kotlinx.coroutines.delay
@@ -46,6 +43,7 @@ fun ComboHud(
     modifier: Modifier = Modifier,
 ) {
     if (count == 0 || lastKillMillis == 0L) return
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
 
     // Tick at ~10fps to update decay ring (100ms) — combo decay over 2s doesn't need finer res.
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -62,9 +60,9 @@ fun ComboHud(
     if (progress <= 0f) return                                          // expired
 
     val color = when (tier) {
-        ComboTier.GODLIKE -> NeonRedAlert
-        ComboTier.UNSTOPPABLE, ComboTier.RAMPAGE -> NeonMagenta
-        else -> NeonGold
+        ComboTier.GODLIKE -> palette.redAlert
+        ComboTier.UNSTOPPABLE, ComboTier.RAMPAGE -> palette.magenta
+        else -> palette.gold
     }
     val chainBonus = count * tier.multiplier
 

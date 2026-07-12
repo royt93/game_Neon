@@ -25,7 +25,6 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.tranphuloi.neon.R
-import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.utils.Logger
 import com.tranphuloi.neon.common.PathPool
 
@@ -35,6 +34,7 @@ fun ButtonsMovement(
     onMoveRight: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
 
     val buttonSize = dimensionResource(id = R.dimen.button_size)
     val buttonPadding = dimensionResource(id = R.dimen.button_padding)
@@ -48,7 +48,7 @@ fun ButtonsMovement(
         MovementButton(
             pointsLeft = true,
             contentDescription = stringResource(id = R.string.game_left_button),
-            glowColor = NeonCyan,
+            glowColor = palette.cyan,
             buttonSize = buttonSize,
             label = "Left",
             onPressedChange = onMoveLeft,
@@ -56,7 +56,7 @@ fun ButtonsMovement(
         MovementButton(
             pointsLeft = false,
             contentDescription = stringResource(id = R.string.game_right_button),
-            glowColor = NeonCyan,
+            glowColor = palette.cyan,
             buttonSize = buttonSize,
             label = "Right",
             onPressedChange = onMoveRight,

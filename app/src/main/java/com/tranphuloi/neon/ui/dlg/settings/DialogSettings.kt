@@ -48,10 +48,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.common.NeonBgMid
-import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonGold
-import com.tranphuloi.neon.common.NeonMagenta
-import com.tranphuloi.neon.common.NeonViolet
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.data.Difficulty
 import com.tranphuloi.neon.data.LocalSettings
@@ -97,7 +93,7 @@ fun DialogSettings(
 
     com.tranphuloi.neon.common.NeonBottomSheet(
         title = "Cài đặt",
-        accentColor = NeonCyan,
+        accentColor = palette.cyan,
         onDismiss = {
             Logger.d("DialogSettings: dismissed")
             onDismiss()
@@ -111,18 +107,18 @@ fun DialogSettings(
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
             // ────── Section 1: Âm thanh ──────
-            SectionPanel(headerLabel = "Âm thanh", glyph = "♪", color = NeonCyan) {
+            SectionPanel(headerLabel = "Âm thanh", glyph = "♪", color = palette.cyan) {
                 SettingSlider(
                     label = "Nhạc",
                     value = musicVolume,
-                    color = NeonCyan,
+                    color = palette.cyan,
                     onChange = { scope.launch { settings.setMusicVolume(it) } },
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 SettingSlider(
                     label = "Hiệu ứng",
                     value = sfxVolume,
-                    color = NeonGold,
+                    color = palette.gold,
                     onChange = { scope.launch { settings.setSfxVolume(it) } },
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -145,7 +141,7 @@ fun DialogSettings(
             // ────── Section 2: Chơi ──────
             // Round 32 — each control group lives in its own subtle sub-panel
             // so Rung / Giảm chuyển động / Độ khó / Skin tàu feel separated.
-            SectionPanel(headerLabel = "Chơi", glyph = "⊞", color = NeonMagenta) {
+            SectionPanel(headerLabel = "Chơi", glyph = "⊞", color = palette.magenta) {
                 ControlGroup {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -177,7 +173,7 @@ fun DialogSettings(
                             Pill(
                                 label = labelText,
                                 selected = d == difficulty,
-                                color = NeonMagenta,
+                                color = palette.magenta,
                                 onClick = { scope.launch { settings.setDifficulty(d) } }
                             )
                         }
@@ -208,6 +204,24 @@ fun DialogSettings(
                         }
                     }
                 }
+                // Task 22 — tay thuận điều khiển (dồn cụm nút SmartBomb/
+                // SecondaryWeapon/Ability/Parry sang trái khi LEFT_HANDED).
+                Spacer(modifier = Modifier.height(10.dp))
+                ControlGroup {
+                    val controlHandMode by settings.controlHandMode.collectAsState(
+                        initial = com.tranphuloi.neon.data.ControlHandMode.TWO_HANDED,
+                    )
+                    LabelledPillRow(label = "Tay thuận", color = palette.cyan) {
+                        com.tranphuloi.neon.data.ControlHandMode.entries.forEach { m ->
+                            Pill(
+                                label = m.displayName,
+                                selected = m == controlHandMode,
+                                color = palette.cyan,
+                                onClick = { scope.launch { settings.setControlHandMode(m) } }
+                            )
+                        }
+                    }
+                }
             }
 
             // ────── Section 3: Ứng dụng ──────
@@ -218,7 +232,7 @@ fun DialogSettings(
                 ) {
                     FlatLink(
                         label = "Đánh giá",
-                        color = NeonCyan,
+                        color = palette.cyan,
                         modifier = Modifier.weight(1f),
                     ) {
                         Logger.d("Settings: Rate clicked")
@@ -232,7 +246,7 @@ fun DialogSettings(
                     }
                     FlatLink(
                         label = "Chia sẻ",
-                        color = NeonMagenta,
+                        color = palette.magenta,
                         modifier = Modifier.weight(1f),
                     ) {
                         Logger.d("Settings: Share clicked")
@@ -250,7 +264,7 @@ fun DialogSettings(
                     }
                     FlatLink(
                         label = "Riêng tư",
-                        color = NeonGold,
+                        color = palette.gold,
                         modifier = Modifier.weight(1f),
                     ) {
                         Logger.d("Settings: Privacy clicked")
@@ -379,7 +393,7 @@ private fun SettingCheck(
         Checkbox(
             checked = value,
             onCheckedChange = onChange,
-            colors = CheckboxDefaults.colors(checkedColor = NeonCyan)
+            colors = CheckboxDefaults.colors(checkedColor = com.tranphuloi.neon.common.LocalNeonPalette.current.cyan)
         )
         Text(label, color = Color.White, fontSize = 15.sp)
     }

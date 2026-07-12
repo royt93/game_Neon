@@ -26,10 +26,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.tranphuloi.neon.common.NeonBgMid
-import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonGold
-import com.tranphuloi.neon.common.NeonMagenta
-import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.data.Difficulty
 import com.tranphuloi.neon.data.LocalSettings
@@ -38,6 +34,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun DialogDifficultyPicker(onPicked: () -> Unit) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val settings = LocalSettings.current
     val scope = rememberCoroutineScope()
 
@@ -45,7 +42,7 @@ fun DialogDifficultyPicker(onPicked: () -> Unit) {
 
     com.tranphuloi.neon.common.NeonBottomSheet(
         title = "Chọn độ khó",
-        accentColor = NeonMagenta,
+        accentColor = palette.magenta,
         onDismiss = {
             Logger.d("DialogDifficultyPicker: dismissed")
             onPicked()
@@ -63,9 +60,9 @@ fun DialogDifficultyPicker(onPicked: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
             Difficulty.values().forEach { d ->
                 val color = when (d) {
-                    Difficulty.EASY -> NeonCyan
-                    Difficulty.NORMAL -> NeonGold
-                    Difficulty.HARD -> NeonRedAlert
+                    Difficulty.EASY -> palette.cyan
+                    Difficulty.NORMAL -> palette.gold
+                    Difficulty.HARD -> palette.redAlert
                 }
                 Box(
                     contentAlignment = Alignment.Center,

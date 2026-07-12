@@ -27,10 +27,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.common.NeonBottomSheet
-import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonGold
-import com.tranphuloi.neon.common.NeonMagenta
-import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.ui.game.buff.RunBuff
 import com.tranphuloi.neon.utils.Logger
 
@@ -45,6 +41,7 @@ import com.tranphuloi.neon.utils.Logger
 fun DialogBuffPicker(
     onPicked: (RunBuff?) -> Unit,
 ) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val choices = remember { RunBuff.pickThree() }
 
     LaunchedEffect(Unit) {
@@ -53,7 +50,7 @@ fun DialogBuffPicker(
 
     NeonBottomSheet(
         title = "Chọn buff",
-        accentColor = NeonMagenta,
+        accentColor = palette.magenta,
         titleSize = 22.sp,
         dismissible = true,
         onDismiss = {
@@ -72,9 +69,9 @@ fun DialogBuffPicker(
             Spacer(modifier = Modifier.height(14.dp))
             choices.forEachIndexed { idx, buff ->
                 val color = when (idx) {
-                    0 -> NeonCyan
-                    1 -> NeonMagenta
-                    else -> NeonRedAlert
+                    0 -> palette.cyan
+                    1 -> palette.magenta
+                    else -> palette.redAlert
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -127,7 +124,7 @@ fun DialogBuffPicker(
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Hoặc tap ✕ để bỏ qua",
-                color = NeonGold.copy(alpha = 0.65f),
+                color = palette.gold.copy(alpha = 0.65f),
                 fontSize = 11.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),

@@ -35,6 +35,48 @@ class PersistenceRoundtripTest {
         assertEquals(Difficulty.EASY, app.settings.difficulty.first())
     }
 
+    /** Task 22 — tay thuận điều khiển roundtrip trên DataStore thật. */
+    @Test
+    fun settings_controlHandMode_roundtrips() = runBlocking {
+        app.settings.setControlHandMode(com.tranphuloi.neon.data.ControlHandMode.LEFT_HANDED)
+        assertEquals(
+            com.tranphuloi.neon.data.ControlHandMode.LEFT_HANDED,
+            app.settings.controlHandMode.first(),
+        )
+
+        app.settings.setControlHandMode(com.tranphuloi.neon.data.ControlHandMode.TWO_HANDED)
+        assertEquals(
+            com.tranphuloi.neon.data.ControlHandMode.TWO_HANDED,
+            app.settings.controlHandMode.first(),
+        )
+    }
+
+    /** Task 17 — loadout riêng theo ship, ship A đổi không ảnh hưởng ship B; ship chưa set riêng → fallback global. */
+    @Test
+    fun settings_loadoutForShip_isPerShip_and_falls_back_to_global() = runBlocking {
+        val shipA = com.tranphuloi.neon.ui.game.ship.shape.ShipShape.INTERCEPTOR
+        val shipB = com.tranphuloi.neon.ui.game.ship.shape.ShipShape.TANK
+        val bulletA = com.tranphuloi.neon.ui.game.ship.laser.BulletType.PIERCING
+        val secondaryA = com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.MINE
+
+        app.settings.setLoadoutForShip(shipA, bulletA, secondaryA)
+        val loadoutA = app.settings.loadoutForShip(shipA).first()
+        assertEquals(bulletA, loadoutA.bulletType)
+        assertEquals(secondaryA, loadoutA.secondaryWeapon)
+
+        // shipB chưa từng set riêng → fallback global cũ (mặc định NORMAL/MISSILE), KHÔNG bị shipA đè.
+        val loadoutB = app.settings.loadoutForShip(shipB).first()
+        assertEquals(com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL, loadoutB.bulletType)
+        assertEquals(com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.MISSILE, loadoutB.secondaryWeapon)
+
+        // cleanup — trả shipA về mặc định để không rò state sang test khác.
+        app.settings.setLoadoutForShip(
+            shipA,
+            com.tranphuloi.neon.ui.game.ship.laser.BulletType.NORMAL,
+            com.tranphuloi.neon.ui.game.ship.weapon.SecondaryWeapon.MISSILE,
+        )
+    }
+
     @Test
     fun settings_volume_roundtrips() = runBlocking {
         app.settings.setMusicVolume(37)

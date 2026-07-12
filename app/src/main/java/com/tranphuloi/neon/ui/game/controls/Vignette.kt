@@ -13,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import com.tranphuloi.neon.common.NeonRedAlert
 
 /**
  * Edge-darkening vignette + low-HP red pulse warning (1c cinematic).
@@ -25,6 +24,7 @@ fun Vignette(
     hp: Int,
     modifier: Modifier = Modifier,
 ) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val lowHp = hp in 1..299
     val transition = rememberInfiniteTransition(label = "vignettePulse")
     // Softened — was 0.25..0.8 (too intense), now 0.10..0.30. Slower pulse (1100ms vs 700ms).
@@ -59,7 +59,7 @@ fun Vignette(
                     colors = listOf(
                         Color.Transparent,
                         Color.Transparent,
-                        NeonRedAlert.copy(alpha = pulse),
+                        palette.redAlert.copy(alpha = pulse),
                     ),
                     center = Offset(size.width / 2, size.height / 2),
                     radius = baseRadius * 1.4f,

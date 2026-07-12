@@ -150,6 +150,21 @@ fun GameScreen(
     val reduceMotion by settings.reduceMotion.collectAsState(initial = false)
     val vibrationEnabled by settings.vibrationEnabled.collectAsState(initial = true)
     val tutorialShown by settings.tutorialShown.collectAsState(initial = true) // optimistic to avoid flash on first compose
+    // Task 22 — tay thuận điều khiển. Chỉ dồn cụm nút hành động (SmartBomb/
+    // SecondaryWeapon/Ability/Parry) sang BottomStart khi LEFT_HANDED; xem
+    // ControlHandMode.kt vì sao ButtonSettings không mirror theo.
+    val controlHandMode by settings.controlHandMode.collectAsState(initial = com.tranphuloi.neon.data.ControlHandMode.TWO_HANDED)
+    val actionButtonsAlign = if (controlHandMode == com.tranphuloi.neon.data.ControlHandMode.LEFT_HANDED) {
+        Alignment.BottomStart
+    } else {
+        Alignment.BottomEnd
+    }
+    fun actionButtonEdgePadding(bottom: androidx.compose.ui.unit.Dp) =
+        if (controlHandMode == com.tranphuloi.neon.data.ControlHandMode.LEFT_HANDED) {
+            Modifier.padding(start = 8.dp, bottom = bottom)
+        } else {
+            Modifier.padding(end = 8.dp, bottom = bottom)
+        }
 
     val gameState = rememberGameState()
 
@@ -608,8 +623,8 @@ fun GameScreen(
             count = gameState.smartBombs,
             onDispatch = { gameState.dispatchSmartBomb() },
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 8.dp, bottom = 156.dp)
+                .align(actionButtonsAlign)
+                .then(actionButtonEdgePadding(156.dp))
                 .zIndex(310f)
         )
         // Round 40 (29x) → 41 — secondary weapon button. Glyph reflects active
@@ -619,8 +634,8 @@ fun GameScreen(
             cooldownProgress = gameState.secondaryCooldownProgress,
             onFire = { gameState.fireSecondary() },
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 8.dp, bottom = 206.dp)
+                .align(actionButtonsAlign)
+                .then(actionButtonEdgePadding(206.dp))
                 .zIndex(310f),
         )
         // Task 05 — ship active ability button (stacked above secondary weapon).
@@ -629,8 +644,8 @@ fun GameScreen(
             cooldownProgress = gameState.abilityCooldownProgress,
             onActivate = { gameState.activateAbility() },
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 8.dp, bottom = 256.dp)
+                .align(actionButtonsAlign)
+                .then(actionButtonEdgePadding(256.dp))
                 .zIndex(310f),
         )
         // Task 13 (đợt 4) — Parry button (stacked above ability). Phản đạn.
@@ -638,8 +653,8 @@ fun GameScreen(
             cooldownProgress = gameState.parryCooldownProgress,
             onActivate = { gameState.activateParry() },
             modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(end = 8.dp, bottom = 306.dp)
+                .align(actionButtonsAlign)
+                .then(actionButtonEdgePadding(306.dp))
                 .zIndex(310f),
         )
         // 1c: Compact boss HP bar (200dp wide). Pinned 16dp BELOW the Settings icon

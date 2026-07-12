@@ -13,7 +13,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.dp
 import com.tranphuloi.neon.R
-import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.neonGlow
 
 /**
@@ -26,6 +25,7 @@ import com.tranphuloi.neon.common.neonGlow
  */
 @Composable
 fun ButtonSettings(modifier: Modifier = Modifier, onSettings: () -> Unit) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val buttonPaddingEnd = dimensionResource(id = R.dimen.button_padding)
     val buttonPaddingTop = 12.dp
     // Round 77 (R77a) — user feedback "pause icon cần nhỏ lại 30%". 48dp × 0.7 = 34dp.
@@ -35,7 +35,7 @@ fun ButtonSettings(modifier: Modifier = Modifier, onSettings: () -> Unit) {
         modifier = modifier
             .padding(top = buttonPaddingTop, end = buttonPaddingEnd)
             .size(buttonSize)
-            .neonGlow(color = NeonCyan, intensity = 0.55f, radiusFactor = 1.35f)
+            .neonGlow(color = palette.cyan, intensity = 0.55f, radiusFactor = 1.35f)
             .clickable { onSettings() },
     ) {
         val cx = size.width / 2f
@@ -48,14 +48,14 @@ fun ButtonSettings(modifier: Modifier = Modifier, onSettings: () -> Unit) {
         val corner = CornerRadius(barW / 2f)
         // Left bar
         drawRoundRect(
-            color = NeonCyan,
+            color = palette.cyan,
             topLeft = Offset(cx - gap / 2f - barW, topY),
             size = Size(barW, barH),
             cornerRadius = corner,
         )
         // Right bar
         drawRoundRect(
-            color = NeonCyan,
+            color = palette.cyan,
             topLeft = Offset(cx + gap / 2f, topY),
             size = Size(barW, barH),
             cornerRadius = corner,
@@ -63,7 +63,7 @@ fun ButtonSettings(modifier: Modifier = Modifier, onSettings: () -> Unit) {
         // Subtle circular border for affordance — outlines the tappable region.
         val borderR = minOf(size.width, size.height) * 0.46f
         drawCircle(
-            color = NeonCyan.copy(alpha = 0.45f),
+            color = palette.cyan.copy(alpha = 0.45f),
             radius = borderR,
             center = Offset(cx, cy),
             style = Stroke(width = size.width * 0.035f),

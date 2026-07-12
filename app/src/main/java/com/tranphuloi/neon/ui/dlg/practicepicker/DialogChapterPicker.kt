@@ -29,7 +29,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.App
 import com.tranphuloi.neon.common.NeonBottomSheet
-import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.ui.game.mode.GameMode
 import com.tranphuloi.neon.ui.game.stage.Chapter
 import com.tranphuloi.neon.ui.game.stage.maxUnlockedChapter
@@ -42,6 +41,7 @@ import com.tranphuloi.neon.utils.Logger
  */
 @Composable
 fun DialogChapterPicker(onPicked: (Int) -> Unit) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val app = LocalContext.current.applicationContext as App
     val campaignCp by app.runPersistence.checkpointFor(GameMode.CAMPAIGN.key).collectAsState(initial = 0)
     val maxCh = maxUnlockedChapter(campaignCp)
@@ -50,7 +50,7 @@ fun DialogChapterPicker(onPicked: (Int) -> Unit) {
 
     NeonBottomSheet(
         title = "Luyện tập — chọn chương",
-        accentColor = NeonCyan,
+        accentColor = palette.cyan,
         onDismiss = { Logger.d("DialogChapterPicker: dismissed"); onPicked(0) },
     ) {
         Column(

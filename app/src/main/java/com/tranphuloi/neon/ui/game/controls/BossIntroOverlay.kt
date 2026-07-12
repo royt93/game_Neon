@@ -33,7 +33,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.tranphuloi.neon.common.NeonBgDeep
-import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.common.neonGlow
 
 /** Wave 16 — full-screen cinematic duration (matches HitStopController freeze). */
@@ -62,6 +61,7 @@ fun BossIntroOverlay(
 ) {
     if (shownAtMillis == 0L || bossName.isBlank()) return
 
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(shownAtMillis) {
         // ~33ms ticks for the cinematic's own animation (independent of the
@@ -104,7 +104,7 @@ fun BossIntroOverlay(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .border(BorderStroke(10.dp, NeonRedAlert.copy(alpha = borderAlpha)), RectangleShape),
+                .border(BorderStroke(10.dp, palette.redAlert.copy(alpha = borderAlpha)), RectangleShape),
         )
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -115,7 +115,7 @@ fun BossIntroOverlay(
         ) {
             Text(
                 text = "⚠ Nguy hiểm",
-                color = NeonRedAlert.copy(alpha = (0.6f + 0.4f * pulse)),
+                color = palette.redAlert.copy(alpha = (0.6f + 0.4f * pulse)),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Center,
@@ -135,7 +135,7 @@ fun BossIntroOverlay(
                         scaleX = nameScale
                         scaleY = nameScale
                     }
-                    .neonGlow(NeonRedAlert, intensity = 0.6f, radiusFactor = 1.4f),
+                    .neonGlow(palette.redAlert, intensity = 0.6f, radiusFactor = 1.4f),
             )
             if (bossTaunt.isNotBlank()) {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -145,7 +145,7 @@ fun BossIntroOverlay(
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
                         .background(Color.Black.copy(alpha = 0.45f))
-                        .border(BorderStroke(1.dp, NeonRedAlert.copy(alpha = 0.6f)), RoundedCornerShape(8.dp))
+                        .border(BorderStroke(1.dp, palette.redAlert.copy(alpha = 0.6f)), RoundedCornerShape(8.dp))
                         .padding(vertical = 10.dp, horizontal = 14.dp),
                 ) {
                     Text(

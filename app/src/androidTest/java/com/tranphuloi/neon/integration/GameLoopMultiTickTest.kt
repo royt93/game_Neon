@@ -136,4 +136,63 @@ class GameLoopMultiTickTest {
         )
         assertTrue("Sau resume vẫn ở Game, không quay về Menu", !device.hasObject(By.res("menu_play")))
     }
+
+    /**
+     * Task 21 (Quick restart hotkey) — nút "Chơi lại" trong Pause phải hỏi confirm
+     * trước khi thực sự restart. Phủ 2 nhánh: Hủy (quay lại menu nút bình thường)
+     * và Đồng ý (dialog đóng, quay lại Game — không văng về Menu).
+     */
+    @Test
+    fun pause_dialog_restart_asks_confirm_then_cancel_returns() {
+        enterGame()
+        Thread.sleep(1_500)
+        device.pressBack()
+        assertTrue(
+            "Phải mở dialog TẠM DỪNG",
+            device.wait(Until.hasObject(By.text("Tạm dừng")), 8_000) != null,
+        )
+        device.waitForIdle()
+        val restart = device.findByTag("pause_restart")
+        assertTrue("Pause phải có nút Restart (testTag pause_restart)", restart != null)
+        restart!!.click()
+
+        assertTrue(
+            "Bấm Restart phải hiện bước confirm (testTag pause_restart_confirm_yes)",
+            device.wait(Until.hasObject(By.res("pause_restart_confirm_yes")), 5_000) != null,
+        )
+        val cancel = device.findByTag("pause_restart_cancel")
+        assertTrue("Confirm phải có nút Hủy (testTag pause_restart_cancel)", cancel != null)
+        cancel!!.click()
+
+        assertTrue(
+            "Bấm Hủy phải quay lại nút Resume (chưa restart)",
+            device.wait(Until.hasObject(By.res("pause_resume")), 5_000) != null,
+        )
+        assertTrue("Vẫn còn dialog Tạm dừng sau khi hủy", device.hasObject(By.text("Tạm dừng")))
+    }
+
+    @Test
+    fun pause_dialog_restart_confirm_restarts_game() {
+        enterGame()
+        Thread.sleep(1_500)
+        device.pressBack()
+        assertTrue(
+            "Phải mở dialog TẠM DỪNG",
+            device.wait(Until.hasObject(By.text("Tạm dừng")), 8_000) != null,
+        )
+        device.waitForIdle()
+        val restart = device.findByTag("pause_restart")
+        assertTrue("Pause phải có nút Restart (testTag pause_restart)", restart != null)
+        restart!!.click()
+
+        val confirmYes = device.wait(Until.findObject(By.res("pause_restart_confirm_yes")), 5_000)
+        assertTrue("Confirm phải có nút Đồng ý (testTag pause_restart_confirm_yes)", confirmYes != null)
+        confirmYes!!.click()
+
+        assertTrue(
+            "Đồng ý restart phải đóng dialog Tạm dừng",
+            device.wait(Until.gone(By.text("Tạm dừng")), 8_000),
+        )
+        assertTrue("Sau restart vẫn ở Game, không văng về Menu", !device.hasObject(By.res("menu_play")))
+    }
 }

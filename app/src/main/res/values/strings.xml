@@ -13,6 +13,9 @@
     <string name="laser">Tia laser</string>
     <string name="splash">Ảnh khởi động</string>
     <string name="restart_game_button">Chơi lại</string>
+    <string name="restart_confirm_message">Tiến trình màn hiện tại sẽ mất. Chơi lại từ đầu?</string>
+    <string name="restart_confirm_yes_button">Đồng ý</string>
+    <string name="restart_confirm_cancel_button">Hủy</string>
     <string name="resume_game_button">Tiếp tục</string>
     <string name="settings_button">Cài đặt</string>
     <string name="game_pause_dialog_title">Tạm dừng</string>

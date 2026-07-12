@@ -20,9 +20,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tranphuloi.neon.common.NeonGold
-import com.tranphuloi.neon.common.NeonMagenta
-import com.tranphuloi.neon.common.NeonRedAlert
 import com.tranphuloi.neon.ui.game.combo.ComboTier
 import kotlinx.coroutines.delay
 
@@ -39,6 +36,7 @@ fun ComboPopup(
     modifier: Modifier = Modifier,
 ) {
     if (tier == ComboTier.NONE || shownAtMillis == 0L) return
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
 
     var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(shownAtMillis) {
@@ -60,9 +58,9 @@ fun ComboPopup(
     val alpha = if (t < 0.7f) 1.0f else 1f - ((t - 0.7f) / 0.3f)            // hold then fade
 
     val color = when (tier) {
-        ComboTier.GODLIKE -> NeonRedAlert
-        ComboTier.UNSTOPPABLE, ComboTier.RAMPAGE -> NeonMagenta
-        else -> NeonGold
+        ComboTier.GODLIKE -> palette.redAlert
+        ComboTier.UNSTOPPABLE, ComboTier.RAMPAGE -> palette.magenta
+        else -> palette.gold
     }
 
     Box(
