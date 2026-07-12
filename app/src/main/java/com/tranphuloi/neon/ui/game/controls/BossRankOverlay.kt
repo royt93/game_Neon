@@ -21,21 +21,18 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.tranphuloi.neon.common.NeonCyan
-import com.tranphuloi.neon.common.NeonGold
-import com.tranphuloi.neon.common.NeonMagenta
-import com.tranphuloi.neon.common.NeonRedAlert
+import com.tranphuloi.neon.common.NeonPalette
 import kotlinx.coroutines.delay
 
 private const val DURATION_MILLIS = 1800L
 
 /** S = perfect, A = excellent, B = good, C = OK, D = poor */
-enum class BossRank(val letter: String, val color: () -> Color, val label: String) {
-    S(letter = "S", color = { NeonGold }, label = "Perfect kill"),
-    A(letter = "A", color = { NeonCyan }, label = "Excellent"),
-    B(letter = "B", color = { NeonMagenta }, label = "Good"),
-    C(letter = "C", color = { NeonCyan.copy(alpha = 0.7f) }, label = "OK"),
-    D(letter = "D", color = { NeonRedAlert }, label = "Barely");
+enum class BossRank(val letter: String, val label: String) {
+    S(letter = "S", label = "Perfect kill"),
+    A(letter = "A", label = "Excellent"),
+    B(letter = "B", label = "Good"),
+    C(letter = "C", label = "OK"),
+    D(letter = "D", label = "Barely");
 
     companion object {
         /**
@@ -54,6 +51,15 @@ enum class BossRank(val letter: String, val color: () -> Color, val label: Strin
             }
         }
     }
+}
+
+/** Single source of truth for BossRank → palette color, shared with StatsScreen's RankBar. */
+fun BossRank.color(palette: NeonPalette): Color = when (this) {
+    BossRank.S -> palette.gold
+    BossRank.A -> palette.cyan
+    BossRank.B -> palette.magenta
+    BossRank.C -> palette.cyan.copy(alpha = 0.7f)
+    BossRank.D -> palette.redAlert
 }
 
 /**
@@ -86,13 +92,7 @@ fun BossRankOverlay(
         else -> 1.0f
     }
     val alpha = if (t < 0.85f) 1f else 1f - ((t - 0.85f) / 0.15f)
-    val color = when (rank) {
-        BossRank.S -> palette.gold
-        BossRank.A -> palette.cyan
-        BossRank.B -> palette.magenta
-        BossRank.C -> palette.cyan.copy(alpha = 0.7f)
-        BossRank.D -> palette.redAlert
-    }
+    val color = rank.color(palette)
 
     Box(
         contentAlignment = Alignment.Center,

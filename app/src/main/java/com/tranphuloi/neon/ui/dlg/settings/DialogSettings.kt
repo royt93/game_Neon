@@ -386,6 +386,7 @@ private fun SettingCheck(
     onChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier,
@@ -393,7 +394,7 @@ private fun SettingCheck(
         Checkbox(
             checked = value,
             onCheckedChange = onChange,
-            colors = CheckboxDefaults.colors(checkedColor = com.tranphuloi.neon.common.LocalNeonPalette.current.cyan)
+            colors = CheckboxDefaults.colors(checkedColor = palette.cyan)
         )
         Text(label, color = Color.White, fontSize = 15.sp)
     }

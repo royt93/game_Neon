@@ -60,6 +60,7 @@ import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.data.LocalMetaProgression
 import com.tranphuloi.neon.data.ShipSkin
 import com.tranphuloi.neon.ui.game.controls.BossRank
+import com.tranphuloi.neon.ui.game.controls.color
 import com.tranphuloi.neon.ui.game.enemy.ship.model.BossKind
 import com.tranphuloi.neon.ui.game.ship.laser.BulletType
 import kotlinx.coroutines.delay
@@ -460,7 +461,8 @@ private fun ShipTimeBar(skin: ShipSkin, millis: Long, total: Long) {
 @Composable
 private fun RankBar(rank: BossRank, count: Int, total: Int) {
     val pct = if (total == 0) 0f else count.toFloat() / total.toFloat()
-    val rankColor = rank.color()
+    val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
+    val rankColor = rank.color(palette)
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
