@@ -872,17 +872,6 @@ fun GameScreen(
                     .zIndex(252f)
             )
         }
-        // Task 14 (đợt 4) — glitch/RGB-tear dải ngang khi trúng đòn (bổ sung
-        // chromatic-mép). Subtle + gate reduceMotion. seed đổi mỗi hit.
-        val tearAlpha = if (reduceMotion) 0f
-        else com.tranphuloi.neon.ui.game.controls.VisualJuice.damageTearAlpha(damageElapsed)
-        if (tearAlpha > 0f) {
-            com.tranphuloi.neon.ui.game.controls.DamageTearOverlay(
-                intensity = tearAlpha,
-                seed = (gameState.lastShipDamageMillis % 1000L).toInt(),
-                modifier = Modifier.fillMaxSize().zIndex(253f),
-            )
-        }
         // 12c: Wave clear bonus banner — offset 180dp BELOW center. Hidden when
         // boss-kill rank is active.
         if (!bossRankActive) {
