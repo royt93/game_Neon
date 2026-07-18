@@ -54,6 +54,33 @@ Enhance / Optimize / New feature, mỗi nhóm user chọn qua AskUserQuestion:
 → 20 (hạ tầng perf, không đụng gameplay) → 18 (rủi ro cân bằng cao nhất, để cuối
 khi đã quen nhịp).
 
+## Backlog đợt 5 (Picked 2026-07-18, audit source code → AskUserQuestion 4 nhóm)
+Enhance / New / Exclusive (tính năng độc quyền) / Performance, mỗi nhóm user chọn cả 4 candidate qua AskUserQuestion (scope lớn nhất từ trước tới nay — 16 task):
+
+| # | Task | Nhóm | Rủi ro | Trạng thái |
+|---|---|---|---|---|
+| 23 | [Wire bossesOnly modifier](23-wire-bossesonly-modifier.md) | Enhance | Thấp (field cô lập, không đụng entity khác) | 📋 TODO |
+| 24 | [Mở rộng skill-tree](24-expand-skill-tree.md) | Enhance | Vừa (cân bằng node mới + persistence) | 📋 TODO |
+| 25 | [Booster synergy](25-booster-synergy.md) | Enhance | Vừa (combo 26 booster, dễ OP) | 📋 TODO |
+| 26 | [Achievement round 2](26-achievement-round-2.md) | Enhance | Thấp (tái dùng repo có sẵn) | 📋 TODO |
+| 27 | [Enemy type mới](27-new-enemy-type.md) | New | Vừa (attack pattern riêng + spawn table) | 📋 TODO |
+| 28 | [Endless/Survival mode](28-endless-survival-mode.md) | New | Cao (scaling độ khó vô hạn + leaderboard riêng) | 📋 TODO |
+| 29 | [Weekly/seasonal event](29-weekly-seasonal-event.md) | New | Vừa (lịch UTC + content rotation) | 📋 TODO |
+| 30 | [Boss Rush mode](30-boss-rush-mode.md) | New | Vừa (tái dùng boss AI, cần chuỗi transition mới) | 📋 TODO |
+| 31 | [Overdrive bullet-time](31-overdrive-bullet-time.md) | Exclusive | Cao (đụng timing toàn bộ game loop) | 📋 TODO |
+| 32 | [Nhạc nền reactive combat](32-reactive-combat-music.md) | Exclusive | Vừa (đụng AudioPlayer/ExoPlayer, cần asset nhạc lớp) | 📋 TODO |
+| 33 | [Ship fusion](33-ship-fusion.md) | Exclusive | Cao (cân bằng + UI chọn tổ hợp mới) | 📋 TODO |
+| 34 | [Procedural run-modifier draft] (34-procedural-run-modifier-draft.md) | Exclusive | Cao (RNG cân bằng, dễ tạo modifier phá game) | 📋 TODO |
+| 35 | [Audit Compose recomposition](35-audit-compose-recomposition.md) | Performance | Thấp (chỉ thêm annotation/audit, không đổi logic) | 📋 TODO |
+| 36 | [Giảm allocation game loop](36-reduce-gameloop-allocation.md) | Performance | Vừa (đụng hot path nhiều controller) | 📋 TODO |
+| 37 | [Refresh baseline profile](37-refresh-baseline-profile.md) | Performance | Thấp (đã có module, chỉ regenerate) | 📋 TODO |
+| 38 | [Canvas batching audit](38-canvas-batching-audit.md) | Performance | Thấp (audit + tinh chỉnh Canvas hiện có) | 📋 TODO |
+
+**Đề xuất thứ tự bắt đầu:** 37, 35, 38 (perf, ít rủi ro, không đụng gameplay)
+→ 26, 23 (enhance an toàn) → 27, 30, 29 (new, tái dùng hệ có sẵn)
+→ 24, 25 (enhance cân bằng vừa) → 28 (new rủi ro cao)
+→ 36 (perf đụng hot path) → 32, 33, 31, 34 (exclusive, rủi ro cao nhất, để cuối).
+
 ## Quy ước
 - Mỗi task có **Slice 0 = chốt số liệu/thiết kế** trước khi code.
 - Mỗi feature user-facing: string **cả vi + en**; state class `@Immutable/@Stable`;
