@@ -1615,16 +1615,18 @@ fun rememberGameState(): GameState {
                         }
                     }
                 }
-                // 43x BOSS_RUSH — heal ship to full HP when entering a StageMessage
-                // between bosses ("Next!" gap). Gives the player a clean slate per boss
-                // instead of cumulative damage carry-over (which would make rush unwinnable).
+                // Task 30 (2026-07-19) — BOSS_RUSH: hồi 1 phần HP (không phải full)
+                // khi entering StageMessage giữa 2 boss ("Next!" gap). Full-heal cũ
+                // (setHp(initialShipHp)) làm damage tích luỹ giữa các boss vô nghĩa;
+                // partial heal (+40% max HP, cap ở max) vẫn tránh permadeath cả run
+                // nhưng buộc người chơi thật sự cẩn trọng trong từng trận đấu.
                 if (runMode == com.tranphuloi.neon.ui.game.mode.GameMode.BOSS_RUSH &&
                     newStage is com.tranphuloi.neon.ui.game.stage.StageMessage &&
                     newStage.message == com.tranphuloi.neon.ui.game.stage.BossRushProvider.BOSS_RUSH_GAP_MESSAGE
                 ) {
                     val before = ship.hp
-                    shipController.setHp(initialShipHp)   // Wave 17r — qua controller (tránh clobber); polish — max hp thật (không hardcode 1000)
-                    Logger.d("BOSS_RUSH: heal ship between bosses (hp $before → $initialShipHp)")
+                    shipController.healCapped((initialShipHp * 0.4f).toInt(), maxHp = initialShipHp)
+                    Logger.d("BOSS_RUSH: partial heal between bosses (hp $before → ${ship.hp}, cap $initialShipHp)")
                 }
                 // Round 25 — persist checkpoint so cold-launch can resume here.
                 // Coroutine launch so DataStore write doesn't block the game loop.

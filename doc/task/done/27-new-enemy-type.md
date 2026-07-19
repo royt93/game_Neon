@@ -82,13 +82,15 @@ game ngoài attack pattern.
   hiển thị đúng — icon 2 thùy xanh lục + rãnh giữa, subtitle "Trạm Thù Địch
   (Fighter) · HP ~180 · tách khi chết", description mô tả mitosis đúng thiết
   kế. Không crash, không quảng cáo che UI (R4 — n/a, InfoScreen không có ad).
-- **KHÔNG** verify combat trực tiếp trong Chương 4: checkpoint hiện tại chỉ ở
-  Chương 1 · Màn 13 (còn xa Chương 4), chơi xuyên 3 chương tốn nhiều thời
-  gian. Hỏi user qua AskUserQuestion → chọn dừng ở mức build+test+bestiary
-  hiện tại thay vì playtest sâu. Rủi ro còn lại (chấp nhận được): chưa thấy
-  tận mắt Amip bắn/tách đôi trong gameplay thật — logic đã cover đủ bởi 3 unit
-  test ở Slice 2.
+- **Combat trực tiếp — verify sau, cùng ngày:** checkpoint campaign đã tiến
+  quá xa Chương 4 để test tiện; thay vì chơi xuyên nhiều chương, dùng
+  `Luyện tập` (Practice mode) vào Chương 1 · Màn đầu, tạm swap TOÀN BỘ
+  `regularEnemyDrawables` của `ASTEROID_BELT` thành `enemy_amoeba` (revert
+  ngay sau khi test, không commit). Kết quả on-device: bắn hạ 1 Amip mẹ →
+  quan sát trực tiếp 2 Amip con xuất hiện tại chỗ, kích thước ~40% bản gốc,
+  không tự tách tiếp (combo "Unstoppable" x9 giết sạch dây chuyền), không
+  crash. Xác nhận trực quan khớp đúng thiết kế + 3 unit test ở Slice 2.
 
 ## Trạng thái
-✅ **Done** — Slice 0-3 xong đầy đủ + verify device (InfoScreen). Slice 4 combat
-in-game chưa playtest (chấp nhận theo quyết định user 2026-07-19).
+✅ **Done** — Slice 0-4 xong đầy đủ + verify device (InfoScreen + combat
+in-game trực tiếp, cả 2 lần trên Pixel 7 Pro, 2026-07-19).

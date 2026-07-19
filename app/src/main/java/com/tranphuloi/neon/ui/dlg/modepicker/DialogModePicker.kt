@@ -55,10 +55,14 @@ fun DialogModePicker(onPicked: () -> Unit) {
     // with cross-wired names. ENDLESS is the richer twin (exp scaling + theme
     // rotation + endless leaderboard) so it stays; SurvivalProvider is kept only
     // for back-compat of any saved lastMode=survival (GameMode.fromKey fallback).
+    // Task 30 (2026-07-19) — BOSS_RUSH bỏ khỏi picker chung: mở qua nút riêng
+    // "Chiến Boss" ở MenuScreen, gated bởi Achievement.FINAL_BOSS_KILL (unlock
+    // sau khi clear campaign lần đầu). Nhánh `when` bên dưới vẫn giữ case
+    // BOSS_RUSH (không đụng) — pattern nhất quán với SURVIVAL/DAILY/PRACTICE
+    // vốn cũng có nhánh nhưng không nằm trong `pickable`.
     val pickable = listOf(
         GameMode.CAMPAIGN,
         GameMode.TIME_ATTACK,
-        GameMode.BOSS_RUSH,
         GameMode.ENDLESS,
     )
 

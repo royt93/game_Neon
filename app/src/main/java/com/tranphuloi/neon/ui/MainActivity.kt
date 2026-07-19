@@ -206,6 +206,7 @@ class MainActivity : ComponentActivity() {
                             // tap "TRANG BỊ" or turn the setting off.
                             val autoSkipLoadout by app.settings.autoSkipLoadout
                                 .collectAsState(initial = true)
+                            val menuScope = androidx.compose.runtime.rememberCoroutineScope()
                             MenuScreen(
                                 onPlay = {
                                     // Wave 25 — run thường: xoá mọi trial đang treo.
@@ -249,6 +250,19 @@ class MainActivity : ComponentActivity() {
                                 onOpenShop = {
                                     Logger.d("Nav: Menu → Shop")
                                     navController.navigate(com.tranphuloi.neon.navigation.Shop.route)
+                                },
+                                onOpenBossRush = {
+                                    menuScope.launch {
+                                        app.runPersistence.clearCheckpoint(
+                                            com.tranphuloi.neon.ui.game.mode.GameMode.BOSS_RUSH.key
+                                        )
+                                        app.settings.setLastMode(com.tranphuloi.neon.ui.game.mode.GameMode.BOSS_RUSH.key)
+                                        Logger.d("Nav: Menu → Game (Boss Rush, fresh start)")
+                                        navController.navigate(Game.route) {
+                                            popUpTo(Menu.route)
+                                            launchSingleTop = true
+                                        }
+                                    }
                                 },
                             )
                         }

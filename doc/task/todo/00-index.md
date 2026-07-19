@@ -63,10 +63,10 @@ Enhance / New / Exclusive (tính năng độc quyền) / Performance, mỗi nhó
 | 24 | [Mở rộng skill-tree](24-expand-skill-tree.md) | Enhance | Vừa (cân bằng node mới + persistence) | 📋 TODO |
 | 25 | [Booster synergy](25-booster-synergy.md) | Enhance | Vừa (combo 26 booster, dễ OP) | 📋 TODO |
 | 26 | [Achievement round 2](../done/26-achievement-round-2.md) | Enhance | Thấp (tái dùng repo có sẵn) | ✅ Done (2026-07-19, verify device Pixel 7 Pro — 7 achievement mới, 957 test pass) |
-| 27 | [Enemy type mới](../done/27-new-enemy-type.md) | New | Vừa (attack pattern riêng + spawn table) | ✅ Done (2026-07-19, verify device Pixel 7 Pro — Amip Vũ Trụ mitosis-on-death, 956 test pass, chưa playtest combat Ch4 trực tiếp) |
+| 27 | [Enemy type mới](../done/27-new-enemy-type.md) | New | Vừa (attack pattern riêng + spawn table) | ✅ Done (2026-07-19, verify device Pixel 7 Pro — Amip Vũ Trụ mitosis-on-death, 956 test pass, đã playtest trực tiếp qua Luyện tập Ch1 (swap tạm toàn bộ slot địch → enemy_amoeba, revert sau test): xác nhận trực quan tách 2 con ~40% size, không tự tách tiếp, không crash) |
 | 28 | [Endless/Survival mode](28-endless-survival-mode.md) | New | Cao (scaling độ khó vô hạn + leaderboard riêng) | 📋 TODO |
 | 29 | [Weekly/seasonal event](29-weekly-seasonal-event.md) | New | Vừa (lịch UTC + content rotation) | 📋 TODO |
-| 30 | [Boss Rush mode](30-boss-rush-mode.md) | New | Vừa (tái dùng boss AI, cần chuỗi transition mới) | 📋 TODO |
+| 30 | [Boss Rush mode](30-boss-rush-mode.md) | New | Vừa (tái dùng boss AI, cần chuỗi transition mới) | 🟡 In progress (2026-07-19 — đã tồn tại sẵn từ Wave trước, reconcile 3 điểm Slice 0 lệch: thứ tự boss/heal/entry point; build+test xanh; Slice 2/3 xác nhận gap thật nhưng ngoài phạm vi; chờ verify device) |
 | 31 | [Overdrive bullet-time](31-overdrive-bullet-time.md) | Exclusive | Cao (đụng timing toàn bộ game loop) | 📋 TODO |
 | 32 | [Nhạc nền reactive combat](32-reactive-combat-music.md) | Exclusive | Vừa (đụng AudioPlayer/ExoPlayer, cần asset nhạc lớp) | 📋 TODO |
 | 33 | [Ship fusion](33-ship-fusion.md) | Exclusive | Cao (cân bằng + UI chọn tổ hợp mới) | 📋 TODO |
@@ -86,6 +86,7 @@ Enhance / New / Exclusive (tính năng độc quyền) / Performance, mỗi nhó
 | # | Task | Loại | Trạng thái |
 |---|---|---|---|
 | 39 | [Investigate AIBinder_linkToDeath warning](../done/39-investigate-aibinder-linktodeath-warning.md) | Bugfix/tech-debt | ✅ Done (2026-07-19) — root cause: Codec2 HAL platform bug, không phải code app |
+| 40 | [Fix boss model serialization crash](../done/40-boss-serialization-crash-fix.md) | Bugfix | ✅ Done (2026-07-19) — phát hiện qua playtest Task 27, fix `@Transient` trên `getShip` lambda field ở LevelOneBoss/FinalBoss/MidBoss, verify device |
 
 ## Quy ước
 - Mỗi task có **Slice 0 = chốt số liệu/thiết kế** trước khi code.

@@ -2566,6 +2566,21 @@ Chi tiết: [doc/task/done/39-investigate-aibinder-linktodeath-warning.md](task/
   binary platform/vendor). Không crash trong bất kỳ lần test nào — khép lại
   điều tra, theo dõi thụ động khi lên Android version mới.
 
+## 🆕 Task 40 — Fix boss model serialization crash (✅ DONE 2026-07-19)
+
+Chi tiết: [doc/task/done/40-boss-serialization-crash-fix.md](task/done/40-boss-serialization-crash-fix.md).
+- Phát hiện qua logcat review khi playtest Task 27 trên Pixel 7 Pro: che
+  Activity (Home/dialog app khác) giữa lúc combat boss → `NotSerializableException`
+  trên lambda `getShip: () -> Ship` (synthetic class không implement
+  `Serializable`) → `BadParcelableException` → crash toàn app. Bug tiền tồn
+  tại, ảnh hưởng **mọi** boss type (LevelOneBoss/FinalBoss/MidBoss), không
+  riêng gì Amip Vũ Trụ.
+- Fix: `@Transient` trên field `getShip` ở cả 3 file boss model — không cần
+  khôi phục lambda sau restore, ship reference luôn re-inject lại từ
+  `GameState.kt` khi factory tạo boss mới.
+- Verify device: reproduce đúng trigger (Home 2 lần liên tiếp giữa trận boss
+  Ch1 St30) — process không còn crash/restart, HP/timer giữ nguyên.
+
 ---
 
 # Notes

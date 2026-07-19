@@ -63,6 +63,7 @@ import com.tranphuloi.neon.common.NeonMagenta
 import com.tranphuloi.neon.common.NeonViolet
 import kotlinx.coroutines.launch
 import com.tranphuloi.neon.common.neonGlow
+import com.tranphuloi.neon.data.LocalAchievements
 import com.tranphuloi.neon.data.LocalMetaProgression
 import com.tranphuloi.neon.data.LocalRunPersistence
 import com.tranphuloi.neon.data.LocalSettings
@@ -104,10 +105,15 @@ fun MenuScreen(
     onOpenStats: () -> Unit = {},
     /** Wave 12 — open Shop screen. */
     onOpenShop: () -> Unit = {},
+    /** Task 30 (2026-07-19) — open Boss Rush (gated by Achievement.FINAL_BOSS_KILL). */
+    onOpenBossRush: () -> Unit = {},
 ) {
     val settings = LocalSettings.current
     val meta = LocalMetaProgression.current
     val runPersist = LocalRunPersistence.current
+    val achievements = LocalAchievements.current
+    val unlockedAchievements by achievements.unlockedFlow.collectAsState(initial = emptySet())
+    val bossRushUnlocked = "final_boss_kill" in unlockedAchievements
 
     val lastModeKey by settings.lastMode.collectAsState(initial = "campaign")
     val mode = GameMode.fromKey(lastModeKey)
@@ -320,11 +326,14 @@ fun MenuScreen(
                     ) {
                         // Wave 13a (slice C) — NÂNG CẤP (skill-tree) đã gộp vào Cửa hàng
                         // → tab Nâng cấp. Hàng này còn Cửa hàng + Thống kê.
+                        // Task 30 (2026-07-19) — thêm "Chiến Boss" → hàng 3 nút, đổi cả
+                        // 3 sang compact (khớp 2 hàng 3-nút còn lại).
                         MenuButton(
                             label = "Cửa hàng",
                             glyph = "◇",
                             color = NeonCyan,
                             modifier = Modifier.weight(1f),
+                            compact = true,
                             s = s,
                             onClick = {
                                 Logger.d("MenuScreen: SHOP tapped")
@@ -336,10 +345,27 @@ fun MenuScreen(
                             glyph = "▦",
                             color = NeonGold,
                             modifier = Modifier.weight(1f),
+                            compact = true,
                             s = s,
                             onClick = {
                                 Logger.d("MenuScreen: STATS tapped")
                                 onOpenStats()
+                            },
+                        )
+                        MenuButton(
+                            label = "Chiến Boss",
+                            glyph = "☠",
+                            color = if (bossRushUnlocked) NeonMagenta else NeonMagenta.copy(alpha = 0.4f),
+                            modifier = Modifier.weight(1f),
+                            compact = true,
+                            s = s,
+                            onClick = {
+                                if (bossRushUnlocked) {
+                                    Logger.d("MenuScreen: BOSS RUSH tapped")
+                                    onOpenBossRush()
+                                } else {
+                                    Logger.d("MenuScreen: BOSS RUSH locked (chưa clear campaign)")
+                                }
                             },
                         )
                     }

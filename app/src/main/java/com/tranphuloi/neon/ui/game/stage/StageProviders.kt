@@ -18,23 +18,23 @@ internal val chapter1GameStages: List<StageGame> by lazy {
 /**
  * Wave 16 — Boss Rush roster ĐẦY ĐỦ. Trước đây = `stages.filterIsInstance<StageBoss>()`
  * → chỉ ~2-3 boss cuối chương; mid-boss variant (spawn qua Chapter.midBossTypes
- * giữa chương, KHÔNG phải StageBoss) bị bỏ sót khỏi boss-rush (user báo). Nay dựng
- * trực tiếp: toàn bộ `MidBossType.ALL` (Wave 24: 39) + boss cuối/biến-thể-chương.
+ * giữa chương, KHÔNG phải StageBoss) bị bỏ sót khỏi boss-rush (user báo).
+ *
+ * Task 30 (2026-07-19) — rebuild trực tiếp từ `Chapter.entries` (đã đúng thứ
+ * tự campaign 1→5) thay vì `MidBossType.ALL.forEachIndexed` + round-robin gán
+ * chapter tay + 6 dòng special-case final/biến-thể. Vì `chapterId` giờ đúng
+ * theo chương thật, `BossKindResolver` tự resolve đúng biến thể hình ảnh
+ * (DEATH_MOON ở ch3, SATAN_GLYPH/HELL_LORD ở ch4) không cần special-case tay —
+ * `Chapter.kt` là nguồn duy nhất, hết rủi ro lệch khi thêm boss mới về sau.
  */
 private val allBosses: List<StageBoss> by lazy {
     buildList {
-        com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType.ALL.forEachIndexed { i, mb ->
-            // OFFENSIVE giữ chapter 1 (→ ORB); HELL_LORD (OFFENSIVE@ch4) thêm riêng bên dưới.
-            val ch = if (mb == com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType.OFFENSIVE) 1 else (i % 5) + 1
-            add(StageBoss(bossId = "rush_${mb.displayName}", enemyType = mb, chapterId = ch))
+        Chapter.entries.forEach { chapter ->
+            chapter.midBossTypes.forEachIndexed { idx, mb ->
+                add(StageBoss(bossId = "rush_ch${chapter.id}_mid$idx", enemyType = mb, chapterId = chapter.id))
+            }
+            add(StageBoss(bossId = "rush_ch${chapter.id}_final", enemyType = chapter.finalBossType, chapterId = chapter.id))
         }
-        // Boss cuối chương + biến thể chương (phủ nốt STAR/DEATH_MOON/CROSS/SATAN/HELL_LORD/SPIDER).
-        add(StageBoss("rush_star", com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBossType, chapterId = 1))
-        add(StageBoss("rush_deathmoon", com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBossType, chapterId = 3))
-        add(StageBoss("rush_cross", com.tranphuloi.neon.ui.game.enemy.ship.model.LevelTwoBossType, chapterId = 2))
-        add(StageBoss("rush_satan", com.tranphuloi.neon.ui.game.enemy.ship.model.LevelTwoBossType, chapterId = 4))
-        add(StageBoss("rush_hell", com.tranphuloi.neon.ui.game.enemy.ship.model.MidBossType.OFFENSIVE, chapterId = 4))
-        add(StageBoss("rush_final", com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBossType, chapterId = 5))
     }
 }
 
