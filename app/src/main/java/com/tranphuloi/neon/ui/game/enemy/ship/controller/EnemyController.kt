@@ -22,6 +22,13 @@ class EnemyController(
     // Wave 16 — SLOW status hook: slowed enemies skip movement on alternate
     // ticks (≈50% speed). Was a no-op before (isSlowed defined but never read).
     private val isSlowed: (enemyId: String) -> Boolean = { false },
+    /**
+     * Task 23 — RunModifier.BOSSES_ONLY ("Chỉ boss"): khi true, bỏ qua hoàn
+     * toàn spawn enemy thường, chỉ boss được thêm vào. readyForNextStage chỉ
+     * cần enemy+space-object list rỗng (không đếm kill) nên an toàn, không
+     * treo stage.
+     */
+    private val bossesOnly: () -> Boolean = { false },
 ) {
 
     /** Wave 16 — alternating gate for SLOW (skip move every other tick). */
@@ -92,6 +99,10 @@ class EnemyController(
             type is com.tranphuloi.neon.ui.game.enemy.ship.model.LevelOneBossType ||
             type is com.tranphuloi.neon.ui.game.enemy.ship.model.LevelTwoBossType ||
             type is com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBossType
+        if (!isBossSpawn && bossesOnly()) {
+            Logger.v { "EnemyController.addEnemy: SKIPPED (BOSSES_ONLY modifier active)" }
+            return
+        }
         if (!isBossSpawn && enemies.size >= MAX_REGULAR_ENEMIES) {
             // Round 47 + audit fix — must be Logger.v: stage script attempts a
             // spawn every 200-1000ms, so when the cap holds we'd otherwise

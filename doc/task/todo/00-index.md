@@ -59,7 +59,7 @@ Enhance / New / Exclusive (tính năng độc quyền) / Performance, mỗi nhó
 
 | # | Task | Nhóm | Rủi ro | Trạng thái |
 |---|---|---|---|---|
-| 23 | [Wire bossesOnly modifier](23-wire-bossesonly-modifier.md) | Enhance | Thấp (field cô lập, không đụng entity khác) | 📋 TODO |
+| 23 | [Wire bossesOnly modifier](../done/23-wire-bossesonly-modifier.md) | Enhance | Thấp (field cô lập, không đụng entity khác) | ✅ Done (2026-07-19, verify device Pixel 7 Pro — 953 test pass) |
 | 24 | [Mở rộng skill-tree](24-expand-skill-tree.md) | Enhance | Vừa (cân bằng node mới + persistence) | 📋 TODO |
 | 25 | [Booster synergy](25-booster-synergy.md) | Enhance | Vừa (combo 26 booster, dễ OP) | 📋 TODO |
 | 26 | [Achievement round 2](../done/26-achievement-round-2.md) | Enhance | Thấp (tái dùng repo có sẵn) | ✅ Done (2026-07-19, verify device Pixel 7 Pro — 7 achievement mới, 957 test pass) |
@@ -77,7 +77,7 @@ Enhance / New / Exclusive (tính năng độc quyền) / Performance, mỗi nhó
 | 38 | [Canvas batching audit](../done/38-canvas-batching-audit.md) | Performance | Thấp (audit + tinh chỉnh Canvas hiện có) | ✅ Done (2026-07-19, verify device Pixel 7 Pro — tìm+sửa 3 bug double-release PathPool) |
 
 **Đề xuất thứ tự bắt đầu:** 37 (✅ xong) → 35 (✅ xong) → 38 (✅ xong) → 26 (✅ xong)
-→ 23 (enhance an toàn) → 27, 30, 29 (new, tái dùng hệ có sẵn)
+→ 23 (✅ xong) → 27, 30, 29 (new, tái dùng hệ có sẵn)
 → 24, 25 (enhance cân bằng vừa) → 28 (new rủi ro cao)
 → 36 (perf đụng hot path) → 32, 33, 31, 34 (exclusive, rủi ro cao nhất, để cuối).
 

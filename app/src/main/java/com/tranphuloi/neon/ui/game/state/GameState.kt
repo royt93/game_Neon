@@ -1270,6 +1270,8 @@ fun rememberGameState(): GameState {
             setEnemies = { enemies = it },
             // Wave 16 — SLOW status now actually slows enemy movement (DURIAN bullet).
             isSlowed = { enemyId -> statusEffectController.isSlowed(enemyId) },
+            // Task 23 — RunModifier.BOSSES_ONLY ("Chỉ boss"): bỏ qua spawn enemy thường.
+            bossesOnly = { effectiveStats.bossesOnly },
             addMinerals = { xOffset: Float, yOffset: Float, width: Float, mineralAmount: Int ->
                 mineralsController.addMinerals(
                     xOffset = xOffset,
