@@ -627,7 +627,6 @@ private fun DrawScope.drawSpike(
     drawPath(path, accent,
         style = androidx.compose.ui.graphics.drawscope.Stroke(width = wPx * 0.04f))
     PathPool.release(path)
-        PathPool.release(path)
     drawCircle(accent, innerR * 0.55f, androidx.compose.ui.geometry.Offset(cx, cy))
 }
 
@@ -1928,7 +1927,6 @@ private fun DrawScope.drawCardClub(
         close()
     }
     drawPath(baseTri, body)
-    PathPool.release(baseTri)
     PathPool.release(baseTri)
     // Accent in center
     drawCircle(accent, lobeR * 0.40f, Offset(cx, cy - offsetD))

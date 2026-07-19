@@ -1,5 +1,6 @@
 package com.tranphuloi.neon.ui.game.state
 
+import com.tranphuloi.neon.data.ControlHandMode
 import com.tranphuloi.neon.ui.game.ship.shape.ShipXpLevels
 
 /**
@@ -27,4 +28,19 @@ object AchievementUnlocks {
 
     /** SHIP_COLLECTOR — sở hữu ≥10 tàu. */
     fun shipCollector(ownedShipCount: Int): Boolean = ownedShipCount >= SHIP_COLLECTOR_TARGET
+
+    // --- Task 26 (round 2) ---
+    const val PRESTIGE_MASTER_LEVEL: Int = 5
+    const val LOADOUT_TINKERER_TARGET: Int = 5
+    const val DAILY_STREAK_SILVER_TARGET: Int = 7
+    const val DAILY_STREAK_GOLD_TARGET: Int = 30
+
+    fun prestigeFirst(prestigeLevel: Int): Boolean = prestigeLevel >= 1
+    fun prestigeMaster(prestigeLevel: Int): Boolean = prestigeLevel >= PRESTIGE_MASTER_LEVEL
+    fun loadoutTinkerer(customizedShipCount: Int): Boolean = customizedShipCount >= LOADOUT_TINKERER_TARGET
+    fun shipAllMaxLevel(ownedShipKeys: List<String>, allShipXp: Map<String, Int>): Boolean =
+        ownedShipKeys.isNotEmpty() && ownedShipKeys.all { ShipXpLevels.levelForXp(allShipXp[it] ?: 0) >= ShipXpLevels.MAX_LEVEL }
+    fun oneHandBossKill(handMode: ControlHandMode): Boolean = handMode != ControlHandMode.TWO_HANDED
+    fun dailyStreak7(streak: Int): Boolean = streak >= DAILY_STREAK_SILVER_TARGET
+    fun dailyStreak30(streak: Int): Boolean = streak >= DAILY_STREAK_GOLD_TARGET
 }

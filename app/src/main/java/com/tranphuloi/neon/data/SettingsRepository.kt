@@ -194,6 +194,12 @@ class SettingsRepository(private val appContext: Context) {
                 )
             }
         }
+    /** Task 26 — số tàu đã tùy biến loadout riêng (mỗi dòng `SHIP_LOADOUTS` = 1 tàu). */
+    val customizedShipLoadoutCount: Flow<Int> = appContext.dataStore.data.map { prefs ->
+        prefs[SettingsKeys.SHIP_LOADOUTS].orEmpty()
+            .lineSequence()
+            .count { it.isNotBlank() }
+    }
     /**
      * Round 62 — VoiceAnnouncer (TTS) toggle. Default `true`. When off, TTS
      * still initializes but `announce()` is a no-op. Player can disable if

@@ -357,6 +357,32 @@ fun GameScreen(
             if (com.tranphuloi.neon.ui.game.state.AchievementUnlocks.shipCollector(ownedShipCount)) {
                 awardLifetime(com.tranphuloi.neon.data.Achievement.SHIP_COLLECTOR)
             }
+            // Task 26 (đợt 5, round 2) — prestige / per-ship loadout / all-ship
+            // max level / daily streak. Cùng pattern: ngưỡng qua AchievementUnlocks.
+            val prestigeLevel = metaRepo.prestigeLevel.first()
+            if (com.tranphuloi.neon.ui.game.state.AchievementUnlocks.prestigeFirst(prestigeLevel)) {
+                awardLifetime(com.tranphuloi.neon.data.Achievement.PRESTIGE_FIRST)
+            }
+            if (com.tranphuloi.neon.ui.game.state.AchievementUnlocks.prestigeMaster(prestigeLevel)) {
+                awardLifetime(com.tranphuloi.neon.data.Achievement.PRESTIGE_MASTER)
+            }
+            val customizedShipCount = settings.customizedShipLoadoutCount.first()
+            if (com.tranphuloi.neon.ui.game.state.AchievementUnlocks.loadoutTinkerer(customizedShipCount)) {
+                awardLifetime(com.tranphuloi.neon.data.Achievement.LOADOUT_TINKERER)
+            }
+            val ownedShipKeys = com.tranphuloi.neon.ui.game.ship.shape.ShipShape.entries.filter {
+                com.tranphuloi.neon.ui.game.ship.shape.ShipShopLogic.isOwned(it, ownedShipRanks)
+            }.map { it.key }
+            if (com.tranphuloi.neon.ui.game.state.AchievementUnlocks.shipAllMaxLevel(ownedShipKeys, shipXpMap)) {
+                awardLifetime(com.tranphuloi.neon.data.Achievement.SHIP_ALL_MAX_LEVEL)
+            }
+            val dailyStreak = metaRepo.dailyStreak.first()
+            if (com.tranphuloi.neon.ui.game.state.AchievementUnlocks.dailyStreak7(dailyStreak)) {
+                awardLifetime(com.tranphuloi.neon.data.Achievement.DAILY_STREAK_7)
+            }
+            if (com.tranphuloi.neon.ui.game.state.AchievementUnlocks.dailyStreak30(dailyStreak)) {
+                awardLifetime(com.tranphuloi.neon.data.Achievement.DAILY_STREAK_30)
+            }
             Logger.d("Snapshot RunStats: score=${gameState.mineralsEarnedTotal}, time=${gameState.gameTimeSec}s, enemies=${gameState.enemiesKilledTotal}, bosses=${gameState.bossesDefeatedTotal}, maxCombo=${gameState.maxComboReached}, stages=${gameState.stagesReached}, mode=${gameState.gameMode.key}")
             // Round 26 — only CLEAR checkpoint on VICTORY (run truly complete).
             // On death: keep checkpoint so user can retry from last stage via

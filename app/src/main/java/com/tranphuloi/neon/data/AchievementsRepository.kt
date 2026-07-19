@@ -99,6 +99,23 @@ enum class Achievement(
         "Đưa 1 tàu lên cấp tối đa (Lv5)", AchievementTier.SILVER),
     SHIP_COLLECTOR("ship_collector", "Nhà sưu tầm",
         "Sở hữu 10 tàu", AchievementTier.GOLD),
+
+    // --- Task 26 (đợt 5) — round 2, gắn kết feature đợt 3-5 (prestige/
+    // per-ship loadout/one-handed mode/daily streak) ---
+    PRESTIGE_FIRST("prestige_first", "Tái sinh",
+        "Prestige Reset lần đầu tiên", AchievementTier.BRONZE),
+    PRESTIGE_MASTER("prestige_master", "Vòng lặp vĩnh cửu",
+        "Đạt cấp Prestige 5", AchievementTier.GOLD),
+    LOADOUT_TINKERER("loadout_tinkerer", "Kỹ sư vũ khí",
+        "Tùy biến loadout riêng cho 5 tàu khác nhau", AchievementTier.SILVER),
+    SHIP_ALL_MAX_LEVEL("ship_all_max_level", "Đội hình hoàn hảo",
+        "Đưa TẤT CẢ tàu đang sở hữu lên cấp tối đa", AchievementTier.GOLD),
+    ONE_HAND_BOSS_KILL("one_hand_boss_kill", "Một tay một kiếm",
+        "Hạ boss khi đang chơi chế độ 1 tay", AchievementTier.SILVER),
+    DAILY_STREAK_7("daily_streak_7", "Kiên trì mỗi ngày",
+        "Điểm danh thử thách hằng ngày 7 ngày liên tiếp", AchievementTier.SILVER),
+    DAILY_STREAK_30("daily_streak_30", "Thói quen thép",
+        "Điểm danh thử thách hằng ngày 30 ngày liên tiếp", AchievementTier.GOLD),
     ;
 }
 

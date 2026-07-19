@@ -62,7 +62,7 @@ Enhance / New / Exclusive (tính năng độc quyền) / Performance, mỗi nhó
 | 23 | [Wire bossesOnly modifier](23-wire-bossesonly-modifier.md) | Enhance | Thấp (field cô lập, không đụng entity khác) | 📋 TODO |
 | 24 | [Mở rộng skill-tree](24-expand-skill-tree.md) | Enhance | Vừa (cân bằng node mới + persistence) | 📋 TODO |
 | 25 | [Booster synergy](25-booster-synergy.md) | Enhance | Vừa (combo 26 booster, dễ OP) | 📋 TODO |
-| 26 | [Achievement round 2](26-achievement-round-2.md) | Enhance | Thấp (tái dùng repo có sẵn) | 📋 TODO |
+| 26 | [Achievement round 2](../done/26-achievement-round-2.md) | Enhance | Thấp (tái dùng repo có sẵn) | ✅ Done (2026-07-19, verify device Pixel 7 Pro — 7 achievement mới, 957 test pass) |
 | 27 | [Enemy type mới](27-new-enemy-type.md) | New | Vừa (attack pattern riêng + spawn table) | 📋 TODO |
 | 28 | [Endless/Survival mode](28-endless-survival-mode.md) | New | Cao (scaling độ khó vô hạn + leaderboard riêng) | 📋 TODO |
 | 29 | [Weekly/seasonal event](29-weekly-seasonal-event.md) | New | Vừa (lịch UTC + content rotation) | 📋 TODO |
@@ -74,10 +74,10 @@ Enhance / New / Exclusive (tính năng độc quyền) / Performance, mỗi nhó
 | 35 | [Audit Compose recomposition](../done/35-audit-compose-recomposition.md) | Performance | Thấp (chỉ thêm annotation/audit, không đổi logic) | ✅ Done (2026-07-19, verify device Pixel 7 Pro) |
 | 36 | [Giảm allocation game loop](36-reduce-gameloop-allocation.md) | Performance | Vừa (đụng hot path nhiều controller) | 📋 TODO |
 | 37 | [Refresh baseline profile](../done/37-refresh-baseline-profile.md) | Performance | Thấp (đã có module, chỉ regenerate) | ✅ Done (2026-07-18, verify device Pixel 7 Pro) |
-| 38 | [Canvas batching audit](38-canvas-batching-audit.md) | Performance | Thấp (audit + tinh chỉnh Canvas hiện có) | 📋 TODO |
+| 38 | [Canvas batching audit](../done/38-canvas-batching-audit.md) | Performance | Thấp (audit + tinh chỉnh Canvas hiện có) | ✅ Done (2026-07-19, verify device Pixel 7 Pro — tìm+sửa 3 bug double-release PathPool) |
 
-**Đề xuất thứ tự bắt đầu:** 37 (✅ xong) → 35 (✅ xong) → 38 (perf, ít rủi ro, không đụng gameplay)
-→ 26, 23 (enhance an toàn) → 27, 30, 29 (new, tái dùng hệ có sẵn)
+**Đề xuất thứ tự bắt đầu:** 37 (✅ xong) → 35 (✅ xong) → 38 (✅ xong) → 26 (✅ xong)
+→ 23 (enhance an toàn) → 27, 30, 29 (new, tái dùng hệ có sẵn)
 → 24, 25 (enhance cân bằng vừa) → 28 (new rủi ro cao)
 → 36 (perf đụng hot path) → 32, 33, 31, 34 (exclusive, rủi ro cao nhất, để cuối).
 

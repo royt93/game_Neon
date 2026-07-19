@@ -395,13 +395,14 @@ private fun DrawScope.drawHeartBody(xPx: Float, yPx: Float, wPx: Float, hPx: Flo
     val lobe = s * 0.42f
     drawCircle(glow, lobe, Offset(cx - lobe * 0.8f, cy - lobe * 0.4f))
     drawCircle(glow, lobe, Offset(cx + lobe * 0.8f, cy - lobe * 0.4f))
-    val tri = androidx.compose.ui.graphics.Path().apply {
+    val tri = PathPool.acquire().apply {
         moveTo(cx - lobe * 1.7f, cy - lobe * 0.1f)
         lineTo(cx + lobe * 1.7f, cy - lobe * 0.1f)
         lineTo(cx, cy + s * 0.95f)
         close()
     }
     drawPath(tri, glow)
+    PathPool.release(tri)
 }
 
 private fun DrawScope.drawFireBody(xPx: Float, yPx: Float, wPx: Float, hPx: Float, glow: Color) {
@@ -455,7 +456,6 @@ private fun DrawScope.drawZigzagBody(xPx: Float, yPx: Float, wPx: Float, hPx: Fl
         cap = androidx.compose.ui.graphics.StrokeCap.Round,
         join = androidx.compose.ui.graphics.StrokeJoin.Round,
     ))
-    PathPool.release(path)
     PathPool.release(path)
 }
 

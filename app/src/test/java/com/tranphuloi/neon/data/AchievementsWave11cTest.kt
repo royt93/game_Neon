@@ -88,10 +88,11 @@ class AchievementsWave11cTest {
         // Pre-Wave-11c: 10 (Wave 1) + 20 (Wave 5 46x) = 30.
         // Wave 11c adds 6 → 36.
         // Task 07 adds 5 (drone/lightning/ship-XP) → 41.
+        // Task 26 adds 7 (prestige/loadout/one-hand/daily streak) → 48.
         // If anyone adds more without updating this count, audit fires.
         assertEquals(
             "Achievement count drift — update test",
-            41, Achievement.entries.size,
+            48, Achievement.entries.size,
         )
     }
 

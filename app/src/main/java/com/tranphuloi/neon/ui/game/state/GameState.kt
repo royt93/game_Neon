@@ -1024,6 +1024,10 @@ fun rememberGameState(): GameState {
     val selectedDroneVariant = remember {
         kotlinx.coroutines.runBlocking { settingsRepo.selectedDroneVariant.first() }
     }
+    // Task 26 — tay thuận điều khiển (đọc 1 lần/run) cho ONE_HAND_BOSS_KILL.
+    val controlHandMode = remember {
+        kotlinx.coroutines.runBlocking { settingsRepo.controlHandMode.first() }
+    }
     var drones: List<Drone> by rememberSaveable { mutableStateOf(emptyList()) }
     val droneController = remember {
         DroneController(
@@ -1389,6 +1393,10 @@ fun rememberGameState(): GameState {
                     // 46x boss milestones
                     if (enemy.isBoss && bossesDefeatedTotal >= 3) unlockAchievement(Achievement.BOSS_3)
                     if (enemy.isBoss && bossesDefeatedTotal >= 5) unlockAchievement(Achievement.BOSS_5)
+                    // Task 26 — hạ boss khi đang chơi chế độ 1 tay.
+                    if (enemy.isBoss && AchievementUnlocks.oneHandBossKill(controlHandMode)) {
+                        unlockAchievement(Achievement.ONE_HAND_BOSS_KILL)
+                    }
                     // 46x FinalBoss kill
                     if (enemy is com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBoss) {
                         unlockAchievement(Achievement.FINAL_BOSS_KILL)
