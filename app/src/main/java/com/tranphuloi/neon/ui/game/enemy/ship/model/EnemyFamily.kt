@@ -47,6 +47,8 @@ enum class EnemyFamily(
             R.drawable.enemy_jammer -> SCOUT         // nhiễu sóng, nhanh & mỏng
             R.drawable.enemy_missileer -> BERSERKER  // pháo thủ, đòn nặng
             R.drawable.enemy_predator -> FIGHTER     // săn mồi, cân bằng
+            // Task 27 — Amip Vũ Trụ: mitosis tự nó đã là điểm nhấn, cân bằng.
+            R.drawable.enemy_amoeba -> FIGHTER
             else -> FIGHTER
         }
     }

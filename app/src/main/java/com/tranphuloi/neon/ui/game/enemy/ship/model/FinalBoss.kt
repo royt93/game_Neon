@@ -30,6 +30,10 @@ object FinalBossType : EnemyType(spawnRate = Once)
 data class FinalBoss(
     private val screenWidth: Float,
     private val screenHeight: Float,
+    // Crash fix — lambda capture không Serializable; Bundle instance-state
+    // save (dumpStats khi Activity bị che khuất giữa combat boss) từng
+    // NotSerializableException → BadParcelableException crash toàn app.
+    @Transient
     private val getShip: () -> Ship,
 ) : Enemy {
 

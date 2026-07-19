@@ -145,6 +145,8 @@ enum class Chapter(
             // Task 09 (đợt 3) — Splitter (phân thân, ELITE) + Repulsor (đẩy lùi, HEAVY).
             R.drawable.enemy_splitter,
             R.drawable.enemy_repulsor,
+            // Task 27 — Amip Vũ Trụ: mitosis-on-death, cơ chế hành vi đầu tiên.
+            R.drawable.enemy_amoeba,
         ),
         hazard = null,                                // station = open zone
         // Round 82 — Ch4: OFFENSIVE reuse (→HELL_LORD via factory) + TWIN_SUMMITS + VOID_GLOBES

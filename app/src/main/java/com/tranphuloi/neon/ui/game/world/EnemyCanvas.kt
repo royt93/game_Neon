@@ -271,6 +271,8 @@ private fun bodyColorFor(drawableId: Int): Color = when (drawableId) {
     R.drawable.enemy_jammer -> Color(0xFF40E0FF)                     // cyan (nhiễu)
     R.drawable.enemy_missileer -> Color(0xFFFF7020)                  // cam (pháo)
     R.drawable.enemy_predator -> Color(0xFF2E9E5B)                   // xanh lá đậm (săn)
+    // Task 27 — Amip Vũ Trụ (mitosis-on-death).
+    R.drawable.enemy_amoeba -> Color(0xFF60C060)                     // xanh lục nhạt (tế bào)
     else -> Color(0xFFCCCCCC)
 }
 
@@ -304,6 +306,8 @@ private fun accentColorFor(drawableId: Int): Color = when (drawableId) {
     R.drawable.enemy_jammer -> Color(0xFFFF4040)                     // đỏ cảnh báo
     R.drawable.enemy_missileer -> Color(0xFFFFFFFF)                  // trắng mũi
     R.drawable.enemy_predator -> Color(0xFF40FFD0)                   // teal glow
+    // Task 27 — accent Amip Vũ Trụ.
+    R.drawable.enemy_amoeba -> Color(0xFFD0FFD0)                     // trắng-lục nhạt
     else -> Color(0xFF666666)
 }
 
@@ -524,6 +528,7 @@ private fun DrawScope.drawEnemyShape(
         R.drawable.enemy_jammer -> drawEnemyJammer(cx, cy, wPx, hPx, body, accent)
         R.drawable.enemy_missileer -> drawEnemyMissileer(cx, cy, wPx, hPx, body, accent)
         R.drawable.enemy_predator -> drawEnemyPredator(cx, cy, wPx, hPx, body, accent)
+        R.drawable.enemy_amoeba -> drawEnemyAmoeba(cx, cy, wPx, hPx, body, accent)
         // Boss drawables fallback (bossKind null — defensive).
         R.drawable.enemy_green_boss, R.drawable.enemy_red_boss ->
             drawBossStar(cx, cy, wPx, hPx, body, accent)
@@ -3349,4 +3354,14 @@ private fun DrawScope.drawEnemyPredator(cx: Float, cy: Float, w: Float, h: Float
         style = Stroke(width = w * 0.16f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
     drawCircle(accent, w * 0.05f, Offset(cx - w * 0.12f, cy - h * 0.04f))
     drawCircle(accent, w * 0.05f, Offset(cx + w * 0.12f, cy - h * 0.04f))
+}
+
+/** Task 27 — Amip Vũ Trụ: 2 thùy chồng lấn + rãnh giữa, gợi ý sắp tách đôi khi chết. */
+private fun DrawScope.drawEnemyAmoeba(cx: Float, cy: Float, w: Float, h: Float, body: Color, accent: Color) {
+    val r = minOf(w, h) * 0.3f
+    drawCircle(body, r, Offset(cx - w * 0.16f, cy))
+    drawCircle(body, r, Offset(cx + w * 0.16f, cy))
+    drawLine(accent, Offset(cx, cy - r * 0.7f), Offset(cx, cy + r * 0.7f), strokeWidth = w * 0.05f)
+    drawCircle(accent, r * 0.22f, Offset(cx - w * 0.16f, cy))
+    drawCircle(accent, r * 0.22f, Offset(cx + w * 0.16f, cy))
 }

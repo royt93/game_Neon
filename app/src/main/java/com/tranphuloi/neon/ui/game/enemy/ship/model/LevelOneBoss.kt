@@ -13,6 +13,10 @@ import java.util.*
 data class LevelOneBoss(
     private val screenWidth: Float,
     private val screenHeight: Float,
+    // Crash fix — lambda capture không Serializable; Bundle instance-state
+    // save (dumpStats khi Activity bị che khuất giữa combat boss) từng
+    // NotSerializableException → BadParcelableException crash toàn app.
+    @Transient
     private val getShip: () -> Ship,
     /** Round 79 (#1) — optional override để Ch3End có thể render là DEATH_MOON
      * thay vì duplicate STAR/SUN của Ch1End. Null = giữ default STAR. */

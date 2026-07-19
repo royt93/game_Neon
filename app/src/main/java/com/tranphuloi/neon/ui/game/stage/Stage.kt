@@ -1,5 +1,6 @@
 package com.tranphuloi.neon.ui.game.stage
 
+import com.tranphuloi.neon.R
 import com.tranphuloi.neon.ui.game.common.Millis
 import com.tranphuloi.neon.ui.game.common.Never
 import com.tranphuloi.neon.ui.game.common.RepeatTime
@@ -171,6 +172,8 @@ private fun buildGameStage(chapter: Chapter, gameStage: Int, tier: Int): StageGa
         enemySpawnRate = Millis(1000 - tier * 100),                  // 1000/900/800ms
         // Task 09 — 5 địch chủ đề có đòn RIÊNG; địch cũ mặc định SINGLE.
         attackKind = com.tranphuloi.neon.ui.game.enemy.ship.model.EnemyAttackKind.forDrawable(drawable),
+        // Task 27 — Amip Vũ Trụ: tách đôi khi chết (mitosis-on-death).
+        splitsOnDeath = drawable == R.drawable.enemy_amoeba,
     )
 
     // Chapter hazard determines spaceRock spawn cadence.

@@ -63,7 +63,7 @@ Enhance / New / Exclusive (tính năng độc quyền) / Performance, mỗi nhó
 | 24 | [Mở rộng skill-tree](24-expand-skill-tree.md) | Enhance | Vừa (cân bằng node mới + persistence) | 📋 TODO |
 | 25 | [Booster synergy](25-booster-synergy.md) | Enhance | Vừa (combo 26 booster, dễ OP) | 📋 TODO |
 | 26 | [Achievement round 2](../done/26-achievement-round-2.md) | Enhance | Thấp (tái dùng repo có sẵn) | ✅ Done (2026-07-19, verify device Pixel 7 Pro — 7 achievement mới, 957 test pass) |
-| 27 | [Enemy type mới](27-new-enemy-type.md) | New | Vừa (attack pattern riêng + spawn table) | 📋 TODO |
+| 27 | [Enemy type mới](../done/27-new-enemy-type.md) | New | Vừa (attack pattern riêng + spawn table) | ✅ Done (2026-07-19, verify device Pixel 7 Pro — Amip Vũ Trụ mitosis-on-death, 956 test pass, chưa playtest combat Ch4 trực tiếp) |
 | 28 | [Endless/Survival mode](28-endless-survival-mode.md) | New | Cao (scaling độ khó vô hạn + leaderboard riêng) | 📋 TODO |
 | 29 | [Weekly/seasonal event](29-weekly-seasonal-event.md) | New | Vừa (lịch UTC + content rotation) | 📋 TODO |
 | 30 | [Boss Rush mode](30-boss-rush-mode.md) | New | Vừa (tái dùng boss AI, cần chuỗi transition mới) | 📋 TODO |
@@ -77,7 +77,7 @@ Enhance / New / Exclusive (tính năng độc quyền) / Performance, mỗi nhó
 | 38 | [Canvas batching audit](../done/38-canvas-batching-audit.md) | Performance | Thấp (audit + tinh chỉnh Canvas hiện có) | ✅ Done (2026-07-19, verify device Pixel 7 Pro — tìm+sửa 3 bug double-release PathPool) |
 
 **Đề xuất thứ tự bắt đầu:** 37 (✅ xong) → 35 (✅ xong) → 38 (✅ xong) → 26 (✅ xong)
-→ 23 (✅ xong) → 27, 30, 29 (new, tái dùng hệ có sẵn)
+→ 23 (✅ xong) → 27 (✅ xong) → 30, 29 (new, tái dùng hệ có sẵn)
 → 24, 25 (enhance cân bằng vừa) → 28 (new rủi ro cao)
 → 36 (perf đụng hot path) → 32, 33, 31, 34 (exclusive, rủi ro cao nhất, để cuối).
 

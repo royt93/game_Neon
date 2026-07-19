@@ -27,6 +27,10 @@ data class MidBoss(
     private val screenWidth: Float,
     private val screenHeight: Float,
     private val variant: MidBossType,
+    // Crash fix — lambda capture không Serializable; Bundle instance-state
+    // save (dumpStats khi Activity bị che khuất giữa combat boss) từng
+    // NotSerializableException → BadParcelableException crash toàn app.
+    @Transient
     private val getShip: () -> Ship,
     /** Round 79 (#1) — chapter-aware bossKind override. */
     private val bossKindOverride: BossKind? = null,

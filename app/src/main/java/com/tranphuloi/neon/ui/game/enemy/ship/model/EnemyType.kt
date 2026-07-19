@@ -22,6 +22,8 @@ data class RegularEnemyType(
     val enemySpawnRate: RepeatTime,
     /** Task 09 — kiểu đòn RIÊNG (5 địch chủ đề). Mặc định SINGLE = 1 tia như cũ. */
     val attackKind: EnemyAttackKind = EnemyAttackKind.SINGLE,
+    /** Task 27 — Amip Vũ Trụ: tách làm 2 địch con khi chết. Mặc định false. */
+    val splitsOnDeath: Boolean = false,
 ) : EnemyType(spawnRate = enemySpawnRate)
 
 @Keep object LevelOneBossType : EnemyType(spawnRate = Once)

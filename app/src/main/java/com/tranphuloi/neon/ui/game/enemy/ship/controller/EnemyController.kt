@@ -261,6 +261,13 @@ class EnemyController(
                     it.height
                 )
                 onEnemyKilled(it)
+                // Task 27 — Amip Vũ Trụ mitosis-on-death. isMitosisChild guard
+                // chặn con sinh ra tách tiếp (không cần đụng Enemy interface).
+                if (it is com.tranphuloi.neon.ui.game.enemy.ship.model.RegularEnemy &&
+                    it.type.splitsOnDeath && !it.isMitosisChild
+                ) {
+                    enemies += enemyFactory.spawnMitosisChildren(it)
+                }
             } else if (visuallyOffScreen) {
                 enemies -= it
                 leftScreen++

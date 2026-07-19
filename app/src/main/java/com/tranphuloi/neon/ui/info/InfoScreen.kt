@@ -1191,6 +1191,13 @@ private fun enemyVariantSpecs(): List<EnemyVariantSpec> {
             description = "Trăng khuyết sleek + 2 mắt teal. Đòn riêng: 1 tia homing bám đuổi tàu.",
             color = Color(0xFF2E9E5B),
             draw = { sc, c -> sc.drawEnemyPredatorPreview(c, Color(0xFF2E9E5B), Color(0xFF40FFD0)) }),
+        // Task 27 — Amip Vũ Trụ: mitosis-on-death, cơ chế hành vi đầu tiên
+        // ngoài attack pattern.
+        EnemyVariantSpec(
+            title = "Amip Vũ Trụ", subtitle = "Trạm Thù Địch (Fighter) · HP ~180 · tách đôi khi chết",
+            description = "Tế bào 2 thùy xanh lục. Khi bị hạ, tách thành 2 địch con nhỏ hơn (mỗi con 40% HP, nhanh hơn) — con không tách tiếp.",
+            color = Color(0xFF60C060),
+            draw = { sc, c -> sc.drawEnemyAmoebaPreview(c, Color(0xFF60C060), Color(0xFFD0FFD0)) }),
     )
 }
 
@@ -3641,4 +3648,17 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyPredatorPr
             width = w * 0.14f, cap = androidx.compose.ui.graphics.StrokeCap.Round))
     drawCircle(accent, w * 0.05f, androidx.compose.ui.geometry.Offset(cx - w * 0.11f, cy - h * 0.04f))
     drawCircle(accent, w * 0.05f, androidx.compose.ui.geometry.Offset(cx + w * 0.11f, cy - h * 0.04f))
+}
+
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawEnemyAmoebaPreview(
+    canvasSize: androidx.compose.ui.geometry.Size, body: Color, accent: Color,
+) {
+    val w = canvasSize.width; val h = canvasSize.height; val cx = w / 2; val cy = h / 2
+    val r = minOf(w, h) * 0.28f
+    drawCircle(body, r, androidx.compose.ui.geometry.Offset(cx - w * 0.16f, cy))
+    drawCircle(body, r, androidx.compose.ui.geometry.Offset(cx + w * 0.16f, cy))
+    drawLine(accent, androidx.compose.ui.geometry.Offset(cx, cy - r * 0.7f),
+        androidx.compose.ui.geometry.Offset(cx, cy + r * 0.7f), strokeWidth = w * 0.05f)
+    drawCircle(accent, r * 0.22f, androidx.compose.ui.geometry.Offset(cx - w * 0.16f, cy))
+    drawCircle(accent, r * 0.22f, androidx.compose.ui.geometry.Offset(cx + w * 0.16f, cy))
 }

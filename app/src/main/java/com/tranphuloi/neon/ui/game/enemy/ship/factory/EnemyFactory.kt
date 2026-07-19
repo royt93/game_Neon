@@ -182,4 +182,27 @@ class EnemyFactory(
         }
         return enemies
     }
+
+    /**
+     * Task 27 — Amip Vũ Trụ mitosis-on-death: sinh 2 địch con nhỏ hơn tại vị
+     * trí cha vừa chết. Tận dụng lại `sizeScale` (Wave 13c) thay vì công thức
+     * stat mới — `childScale = parent.sizeScale * 0.4f` khiến HP/width/height
+     * mỗi con còn 40% cha (~80% tổng), speed nhanh hơn tự động qua
+     * `EnemySize.speedFactor`. `isMitosisChild = true` chặn tách đệ quy.
+     */
+    fun spawnMitosisChildren(parent: RegularEnemy): List<RegularEnemy> {
+        val childScale = parent.sizeScale * 0.4f
+        val offsetX = parent.width * 0.3f
+        return listOf(-1f, 1f).map { sign ->
+            RegularEnemy(
+                screenWidth = screenWidth,
+                screenHeight = screenHeight,
+                xOffset = parent.xOffset + sign * offsetX,
+                type = parent.type,
+                sizeScale = childScale,
+                initialYOffset = parent.yOffset,
+                isMitosisChild = true,
+            )
+        }
+    }
 }

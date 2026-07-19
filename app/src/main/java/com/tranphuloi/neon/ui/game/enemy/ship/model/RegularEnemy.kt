@@ -12,7 +12,9 @@ data class RegularEnemy(
     private val screenWidth: Float,
     private val screenHeight: Float,
     override var xOffset: Float,
-    private val type: RegularEnemyType,
+    // Task 27 — public (was private) so mitosis-on-death can read
+    // `type.splitsOnDeath` / reconstruct children (EnemyController/EnemyFactory).
+    val type: RegularEnemyType,
     /**
      * Wave 13c — per-enemy size scale (see [EnemySize]). Scales hitbox (width/
      * height → enemyRect), HP, movement speed (inverse), and mineral reward.
@@ -22,6 +24,12 @@ data class RegularEnemy(
     override var hp: Float = type.hp * EnemySize.hpFactor(sizeScale),
     /** Wave 5 (28x) — V/SineWave formations stagger spawn y position. Default 0 = top of screen. */
     private val initialYOffset: Float = 0f,
+    /**
+     * Task 27 — true nếu enemy này là con sinh ra từ mitosis-on-death (Amip Vũ
+     * Trụ). Chặn đệ quy: con mang cờ này khi chết sẽ KHÔNG tách tiếp — xem
+     * `EnemyController.processEnemies()`.
+     */
+    val isMitosisChild: Boolean = false,
 ) : Enemy {
 
     override val enemyId: String = UUID.randomUUID().toString()
