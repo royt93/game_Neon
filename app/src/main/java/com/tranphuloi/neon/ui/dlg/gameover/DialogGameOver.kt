@@ -457,13 +457,13 @@ private fun DailyPanel(
         }
         Spacer(modifier = Modifier.height(2.dp))
         StatLine(
-            label = "Tốt nhất hôm nay",
+            label = stringResource(id = R.string.stat_label_best_today),
             value = bestToday.toString(),
             color = magenta,
         )
         if (dailyEntries.size >= 2) {
             StatLine(
-                label = "Số lần chơi",
+                label = stringResource(id = R.string.stat_label_play_count),
                 value = dailyEntries.size.toString(),
                 color = magenta,
             )
@@ -471,7 +471,7 @@ private fun DailyPanel(
         if (currentScore > 0 && currentScore == bestToday && dailyEntries.size >= 2) {
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "★ Kỷ lục hôm nay ★",
+                text = stringResource(id = R.string.daily_new_best_banner),
                 color = magenta,
                 fontWeight = FontWeight.Black,
                 fontSize = 12.sp,
@@ -522,13 +522,13 @@ private fun WeeklyPanel(
         }
         Spacer(modifier = Modifier.height(2.dp))
         StatLine(
-            label = "Tốt nhất tuần này",
+            label = stringResource(id = R.string.stat_label_best_this_week),
             value = bestThisWeek.toString(),
             color = violet,
         )
         if (weeklyEntries.size >= 2) {
             StatLine(
-                label = "Số lần chơi",
+                label = stringResource(id = R.string.stat_label_play_count),
                 value = weeklyEntries.size.toString(),
                 color = violet,
             )
@@ -536,7 +536,7 @@ private fun WeeklyPanel(
         if (currentScore > 0 && currentScore == bestThisWeek && weeklyEntries.size >= 2) {
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "★ Kỷ lục tuần này ★",
+                text = stringResource(id = R.string.weekly_new_best_banner),
                 color = violet,
                 fontWeight = FontWeight.Black,
                 fontSize = 12.sp,

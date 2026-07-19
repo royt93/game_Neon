@@ -20,6 +20,7 @@ import androidx.compose.material.Card
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
+import com.tranphuloi.neon.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -28,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -106,7 +108,7 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
                     Text(text = "⚡", color = palette.gold, fontSize = 22.sp, fontWeight = FontWeight.Black)
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Thử thách hôm nay",
+                        text = stringResource(id = R.string.daily_challenge_card_title),
                         color = palette.gold,
                         fontWeight = FontWeight.Black,
                         fontSize = 16.sp,
@@ -116,7 +118,7 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${dailyMod.displayName} · thưởng 1 lần/ngày · đua BXH ngày",
+                    text = stringResource(id = R.string.daily_challenge_card_desc, dailyMod.displayName),
                     color = Color.White.copy(alpha = 0.85f),
                     fontSize = 12.sp,
                 )
@@ -146,7 +148,7 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
                     Text(text = "◈", color = palette.violet, fontSize = 22.sp, fontWeight = FontWeight.Black)
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = "Sự kiện tuần này",
+                        text = stringResource(id = R.string.weekly_event_card_title),
                         color = palette.violet,
                         fontWeight = FontWeight.Black,
                         fontSize = 16.sp,
@@ -156,7 +158,7 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
                 }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${weeklyMod.displayName} · thưởng 1 lần/tuần · đua BXH tuần",
+                    text = stringResource(id = R.string.weekly_event_card_desc, weeklyMod.displayName),
                     color = Color.White.copy(alpha = 0.85f),
                     fontSize = 12.sp,
                 )

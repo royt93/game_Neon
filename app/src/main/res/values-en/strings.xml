@@ -23,10 +23,17 @@
     <string name="revived_banner">Revived!</string>
     <string name="daily_challenge_label">Daily Challenge</string>
     <string name="daily_seed_label">Day %1$s</string>
-    <string name="daily_best_today">Today\'s best: %1$s</string>
+    <string name="daily_challenge_card_title">Daily Challenge</string>
+    <string name="daily_challenge_card_desc">%1$s · reward once/day · daily leaderboard</string>
+    <string name="stat_label_best_today">Best today</string>
+    <string name="stat_label_play_count">Plays</string>
+    <string name="daily_new_best_banner">★ New best today ★</string>
     <string name="weekly_event_label">Weekly Event</string>
     <string name="weekly_seed_label">Week %1$s</string>
-    <string name="weekly_best_this_week">This week\'s best: %1$s</string>
+    <string name="weekly_event_card_title">Weekly Event</string>
+    <string name="weekly_event_card_desc">%1$s · reward once/week · weekly leaderboard</string>
+    <string name="stat_label_best_this_week">Best this week</string>
+    <string name="weekly_new_best_banner">★ New best this week ★</string>
 
     <!-- Round 62 — VoiceAnnouncer (TTS) phrases. -->
     <!-- Wave 11d Bug #3 fix — 3 variants per event reduce repetition. -->

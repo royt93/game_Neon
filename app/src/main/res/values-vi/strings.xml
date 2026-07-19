@@ -23,10 +23,17 @@
     <string name="revived_banner">Sống lại!</string>
     <string name="daily_challenge_label">Thử Thách Hàng Ngày</string>
     <string name="daily_seed_label">Ngày %1$s</string>
-    <string name="daily_best_today">Kỷ lục hôm nay: %1$s</string>
+    <string name="daily_challenge_card_title">Thử thách hôm nay</string>
+    <string name="daily_challenge_card_desc">%1$s · thưởng 1 lần/ngày · đua BXH ngày</string>
+    <string name="stat_label_best_today">Tốt nhất hôm nay</string>
+    <string name="stat_label_play_count">Số lần chơi</string>
+    <string name="daily_new_best_banner">★ Kỷ lục hôm nay ★</string>
     <string name="weekly_event_label">Sự Kiện Tuần</string>
     <string name="weekly_seed_label">Tuần %1$s</string>
-    <string name="weekly_best_this_week">Kỷ lục tuần này: %1$s</string>
+    <string name="weekly_event_card_title">Sự kiện tuần này</string>
+    <string name="weekly_event_card_desc">%1$s · thưởng 1 lần/tuần · đua BXH tuần</string>
+    <string name="stat_label_best_this_week">Tốt nhất tuần này</string>
+    <string name="weekly_new_best_banner">★ Kỷ lục tuần này ★</string>
 
     <!-- Round 62 — VoiceAnnouncer (TTS) phrases. -->
     <!-- Wave 11d Bug #3 fix — 3 variants per event giảm lặp lại. Random picker
