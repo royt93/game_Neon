@@ -2550,6 +2550,22 @@ Chi tiết: [doc/task/todo/08-daily-challenge-modifiers.md](task/todo/08-daily-c
 - +7 test (DailyChallenge 5 + integration 2). JVM **896**. Verify device A50s (chọn glass_cannon → chơi → `Daily challenge complete +100◇`).
 - Defer: deterministic-spawn (cùng địch) — rủi ro seed toàn RNG.
 
+## 🆕 Task 39 — Investigate AIBinder_linkToDeath warning (✅ DONE 2026-07-19)
+
+Chi tiết: [doc/task/done/39-investigate-aibinder-linktodeath-warning.md](task/done/39-investigate-aibinder-linktodeath-warning.md).
+- Phát hiện qua on-device playtest + logcat review trên Pixel 7 Pro
+  (2026-07-18, production release): `AIBinder_linkToDeath ... This will
+  become an abort` — 2 lần, tag thẳng process app, ngay sau cold start.
+- Root cause xác nhận qua reproduce cold-start log theo PID (`adb logcat
+  --pid=<pid> -v threadtime`): warning bắn ra từ chính thư viện nền tảng
+  `libstagefright_ccodec`/Codec2 HAL client khi `CCodec` tạo component
+  decoder MP3 — **không phải bug code app**. Xuất hiện 2 lần vì
+  `AudioPlayerHolder` dùng 1 `ExoPlayer` playlist (`REPEAT_MODE_ALL`) tự
+  pre-buffer decoder cho track hiện tại + track kế tiếp.
+- Không có call site nào trong app/Media3 để vá (nằm dưới cả Media3, trong
+  binary platform/vendor). Không crash trong bất kỳ lần test nào — khép lại
+  điều tra, theo dõi thụ động khi lên Android version mới.
+
 ---
 
 # Notes
