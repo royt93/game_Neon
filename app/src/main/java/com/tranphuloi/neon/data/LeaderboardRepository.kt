@@ -13,6 +13,7 @@ private val Context.leaderboardDataStore by preferencesDataStore(name = "neon_le
 private val ENTRIES_KEY = stringPreferencesKey("entries_csv")
 private val DAILY_KEY = stringPreferencesKey("daily_csv")            // 17c Daily challenge — separate top-10 list per UTC day. Format: `dateKey|score|timestamp` lines. dateKey = days-since-epoch UTC.
 private val ENDLESS_KEY = stringPreferencesKey("endless_csv")        // 23x Endless mode — separate top-10 ranked by survival seconds. Format: `seconds|timestamp` lines.
+private val WEEKLY_KEY = stringPreferencesKey("weekly_csv")          // 29x Weekly event — separate top-10 list per UTC week. Format: `weekKey|score|timestamp` lines. weekKey = weeks-since-epoch UTC.
 
 /**
  * Top-10 local leaderboard. Entries serialized as CSV: `score|timestamp` lines, newline-separated.
@@ -110,6 +111,45 @@ class LeaderboardRepository(private val appContext: Context) {
     }
 
     /**
+     * 29x Weekly event — submit a score tagged with this week's UTC week key.
+     * Returns the top-10 entries for [weekKey] (this week by default), best-first.
+     * Older weeks remain in storage so users can browse history if we add a UI later.
+     */
+    suspend fun submitWeekly(score: Int, weekKey: Long = todayUtcWeekKey()): List<LeaderboardEntry> {
+        Logger.d("LeaderboardRepository.submitWeekly score=$score week=$weekKey")
+        var weekList: List<LeaderboardEntry> = emptyList()
+        appContext.leaderboardDataStore.edit { prefs ->
+            val all = prefs[WEEKLY_KEY].orEmpty()
+                .lineSequence()
+                .filter { it.isNotBlank() }
+                .mapNotNull { line ->
+                    val parts = line.split("|")
+                    if (parts.size != 3) return@mapNotNull null
+                    val w = parts[0].toLongOrNull() ?: return@mapNotNull null
+                    val s = parts[1].toIntOrNull() ?: return@mapNotNull null
+                    val t = parts[2].toLongOrNull() ?: return@mapNotNull null
+                    Triple(w, s, t)
+                }
+                .toMutableList()
+            all.add(Triple(weekKey, score, System.currentTimeMillis()))
+            // Cap per-week at MAX_ENTRIES top entries; keep history of older weeks.
+            val byWeek = all.groupBy { it.first }
+            val rebuilt = byWeek.flatMap { (_, list) ->
+                list.sortedByDescending { it.second }.take(MAX_ENTRIES)
+            }
+            prefs[WEEKLY_KEY] = rebuilt.joinToString(separator = "\n") {
+                "${it.first}|${it.second}|${it.third}"
+            }
+            weekList = rebuilt
+                .filter { it.first == weekKey }
+                .sortedByDescending { it.second }
+                .map { LeaderboardEntry(it.second, it.third) }
+            Logger.d("LeaderboardRepository.submitWeekly: week=$weekKey size=${weekList.size} best=${weekList.firstOrNull()?.score}")
+        }
+        return weekList
+    }
+
+    /**
      * 23x Endless mode — submit survival time (seconds). Reuses LeaderboardEntry
      * (score = seconds survived). Top-10 best survival times kept.
      */
@@ -176,11 +216,34 @@ class LeaderboardRepository(private val appContext: Context) {
                 .toList()
         }
 
+    /** Top-10 of [weekKey] (this week by default), best-first. */
+    fun weeklyEntries(weekKey: Long = todayUtcWeekKey()): Flow<List<LeaderboardEntry>> =
+        appContext.leaderboardDataStore.data.map { prefs ->
+            prefs[WEEKLY_KEY].orEmpty()
+                .lineSequence()
+                .filter { it.isNotBlank() }
+                .mapNotNull { line ->
+                    val parts = line.split("|")
+                    if (parts.size != 3) return@mapNotNull null
+                    val w = parts[0].toLongOrNull() ?: return@mapNotNull null
+                    if (w != weekKey) return@mapNotNull null
+                    val s = parts[1].toIntOrNull() ?: return@mapNotNull null
+                    val t = parts[2].toLongOrNull() ?: return@mapNotNull null
+                    LeaderboardEntry(s, t)
+                }
+                .sortedByDescending { it.score }
+                .toList()
+        }
+
     companion object {
         const val MAX_ENTRIES = 10
         private const val MILLIS_PER_DAY: Long = 86_400_000L
+        private const val MILLIS_PER_WEEK: Long = MILLIS_PER_DAY * 7
 
         /** Days since UTC epoch — stable per calendar day regardless of device time zone. */
         fun todayUtcDayKey(): Long = System.currentTimeMillis() / MILLIS_PER_DAY
+
+        /** Weeks since UTC epoch — stable per 7-day bucket regardless of device time zone. */
+        fun todayUtcWeekKey(): Long = System.currentTimeMillis() / MILLIS_PER_WEEK
     }
 }

@@ -24,6 +24,8 @@ private val LAST_DAILY_CLAIM_KEY = longPreferencesKey("last_daily_claim_day")
 private val DAILY_STREAK_KEY = intPreferencesKey("daily_streak")
 // Task 08 — ngày cuối nhận thưởng THỬ THÁCH HẰNG NGÀY (chống farm, 1 lần/ngày).
 private val LAST_DAILY_CHALLENGE_KEY = longPreferencesKey("last_daily_challenge_day")
+// Task 29 — tuần cuối nhận thưởng SỰ KIỆN TUẦN (chống farm, 1 lần/tuần).
+private val LAST_WEEKLY_EVENT_KEY = longPreferencesKey("last_weekly_event_week")
 private const val NODE_PREFIX = "node_"
 // Task 10 (đợt 3) — Prestige. Shop unlock (skin/đạn) cũng lưu dưới `node_shop_*`;
 // prestige CHỈ reset skill-tree nên loại trừ nhánh shop này.
@@ -233,6 +235,23 @@ class MetaProgressionRepository(private val appContext: Context) {
             prefs[LIFETIME_MINERALS_KEY] = (prefs[LIFETIME_MINERALS_KEY] ?: 0) + reward
             granted = reward
             Logger.d("MetaProgressionRepository.claimDailyChallenge day=$today +$reward◇")
+        }
+        return granted
+    }
+
+    /** Task 29 — còn nhận thưởng sự kiện tuần [weekKey] không (chưa claim). */
+    fun weeklyEventAvailable(weekKey: Long): Flow<Boolean> =
+        appContext.metaDataStore.data.map { (it[LAST_WEEKLY_EVENT_KEY] ?: -1L) != weekKey }
+
+    /** Task 29 — mirror [claimDailyChallenge] nhưng theo tuần (chống farm, 1 lần/tuần). */
+    suspend fun claimWeeklyEvent(weekKey: Long, reward: Int): Int {
+        var granted = 0
+        appContext.metaDataStore.edit { prefs ->
+            if ((prefs[LAST_WEEKLY_EVENT_KEY] ?: -1L) == weekKey) return@edit
+            prefs[LAST_WEEKLY_EVENT_KEY] = weekKey
+            prefs[LIFETIME_MINERALS_KEY] = (prefs[LIFETIME_MINERALS_KEY] ?: 0) + reward
+            granted = reward
+            Logger.d("MetaProgressionRepository.claimWeeklyEvent week=$weekKey +$reward◇")
         }
         return granted
     }

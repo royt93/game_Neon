@@ -122,6 +122,46 @@ fun DialogModifierPicker(onPicked: () -> Unit) {
                 )
             }
 
+            // Task 29 — SỰ KIỆN TUẦN: modifier cố định theo tuần UTC (mọi người
+            // cùng chơi + đua weekly leaderboard), thưởng +minerals 1 lần/tuần.
+            val thisWeek = remember { com.tranphuloi.neon.data.LeaderboardRepository.todayUtcWeekKey() }
+            val weeklyMod = remember(thisWeek) { com.tranphuloi.neon.ui.game.modifier.WeeklyEvent.modifierFor(thisWeek) }
+            Column(
+                modifier = Modifier
+                    .padding(bottom = 10.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(palette.violet.copy(alpha = 0.16f))
+                    .border(BorderStroke(2.dp, palette.violet), RoundedCornerShape(14.dp))
+                    .clickable {
+                        Logger.d("ModifierPicker: WEEKLY EVENT chose ${weeklyMod.key} (week=$thisWeek)")
+                        scope.launch {
+                            settings.setLastModifier(weeklyMod.key)
+                            onPicked()
+                        }
+                    }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Text(text = "◈", color = palette.violet, fontSize = 22.sp, fontWeight = FontWeight.Black)
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Sự kiện tuần này",
+                        color = palette.violet,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 16.sp,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(text = "+${com.tranphuloi.neon.ui.game.modifier.WeeklyEvent.REWARD_MINERALS}◇", color = palette.violet, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "${weeklyMod.displayName} · thưởng 1 lần/tuần · đua BXH tuần",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 12.sp,
+                )
+            }
+
             choices.forEachIndexed { idx, mod ->
                 val color = when (idx) {
                     0 -> palette.cyan

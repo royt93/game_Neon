@@ -62,6 +62,10 @@ fun DialogGameOver(
     // alongside the all-time list.
     val todayKey = remember { com.tranphuloi.neon.data.LeaderboardRepository.todayUtcDayKey() }
     val dailyEntries by leaderboard.dailyEntries(todayKey).collectAsState(initial = emptyList())
+    // Task 29 — Weekly event: separate top-N for this UTC week key, mirrors
+    // the daily challenge panel above.
+    val thisWeek = remember { com.tranphuloi.neon.data.LeaderboardRepository.todayUtcWeekKey() }
+    val weeklyEntries by leaderboard.weeklyEntries(thisWeek).collectAsState(initial = emptyList())
     // 23x Endless — top-10 by survival seconds. Shown only when current run was endless.
     val endlessEntries by leaderboard.endlessEntries.collectAsState(initial = emptyList())
     var submitted by remember { mutableStateOf(false) }
@@ -76,7 +80,7 @@ fun DialogGameOver(
     // shorter individual duration → ít overlap, less Compose transition overhead).
     var revealStep by remember { mutableStateOf(0) }
     LaunchedEffect(Unit) {
-        for (i in 1..8) {
+        for (i in 1..9) {
             kotlinx.coroutines.delay(50L)
             revealStep = i
         }
@@ -90,6 +94,7 @@ fun DialogGameOver(
                 Logger.d("DialogGameOver: submitting score=$parsed to leaderboard + daily(day=$todayKey)")
                 leaderboard.submit(parsed)
                 leaderboard.submitDaily(parsed, todayKey)
+                leaderboard.submitWeekly(parsed, thisWeek)
                 if (isEndless) {
                     val sec = runStatsState.timeSec.toInt().coerceAtLeast(0)
                     Logger.d("DialogGameOver: submitting endless survival=${sec}s")
@@ -260,6 +265,15 @@ fun DialogGameOver(
             }
             Spacer(modifier = Modifier.height(14.dp))
             RevealWrap(visible = revealStep >= 8) {
+                WeeklyPanel(
+                    weekKey = thisWeek,
+                    weeklyEntries = weeklyEntries,
+                    currentScore = currentScore,
+                    violet = palette.violet,
+                )
+            }
+            Spacer(modifier = Modifier.height(14.dp))
+            RevealWrap(visible = revealStep >= 9) {
                 LeaderboardList(
                     entries = entries,
                     currentScore = currentScore,
@@ -459,6 +473,71 @@ private fun DailyPanel(
             Text(
                 text = "★ Kỷ lục hôm nay ★",
                 color = magenta,
+                fontWeight = FontWeight.Black,
+                fontSize = 12.sp,
+                style = TextStyle(letterSpacing = 2.sp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeeklyPanel(
+    weekKey: Long,
+    weeklyEntries: List<LeaderboardEntry>,
+    currentScore: Int,
+    violet: Color,
+) {
+    val bestThisWeek = weeklyEntries.maxByOrNull { it.score }?.score ?: currentScore
+    Column(
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .background(violet.copy(alpha = 0.10f))
+            .border(
+                BorderStroke(1.dp, violet.copy(alpha = 0.45f)),
+                RoundedCornerShape(6.dp),
+            )
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                text = stringResource(id = R.string.weekly_event_label).uppercase(),
+                color = violet,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                style = TextStyle(letterSpacing = 4.sp),
+            )
+            Text(
+                text = stringResource(id = R.string.weekly_seed_label, weekKey.toString()),
+                color = violet.copy(alpha = 0.65f),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        Spacer(modifier = Modifier.height(2.dp))
+        StatLine(
+            label = "Tốt nhất tuần này",
+            value = bestThisWeek.toString(),
+            color = violet,
+        )
+        if (weeklyEntries.size >= 2) {
+            StatLine(
+                label = "Số lần chơi",
+                value = weeklyEntries.size.toString(),
+                color = violet,
+            )
+        }
+        if (currentScore > 0 && currentScore == bestThisWeek && weeklyEntries.size >= 2) {
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "★ Kỷ lục tuần này ★",
+                color = violet,
                 fontWeight = FontWeight.Black,
                 fontSize = 12.sp,
                 style = TextStyle(letterSpacing = 2.sp),

@@ -24,6 +24,9 @@
     <string name="daily_challenge_label">Daily Challenge</string>
     <string name="daily_seed_label">Day %1$s</string>
     <string name="daily_best_today">Today\'s best: %1$s</string>
+    <string name="weekly_event_label">Weekly Event</string>
+    <string name="weekly_seed_label">Week %1$s</string>
+    <string name="weekly_best_this_week">This week\'s best: %1$s</string>
 
     <!-- Round 62 — VoiceAnnouncer (TTS) phrases. -->
     <!-- Wave 11d Bug #3 fix — 3 variants per event reduce repetition. -->

@@ -302,6 +302,18 @@ fun GameScreen(
                     if (granted > 0) Logger.d("Daily challenge complete → +$granted◇")
                 }
             }
+            // Task 29 — thưởng SỰ KIỆN TUẦN nếu run này chơi đúng modifier
+            // của tuần (1 lần/tuần, chống farm qua claimWeeklyEvent).
+            run {
+                val thisWeek = com.tranphuloi.neon.data.LeaderboardRepository.todayUtcWeekKey()
+                val runMod = com.tranphuloi.neon.ui.game.modifier.RunModifier.fromKey(settings.lastModifier.first())
+                if (runMod == com.tranphuloi.neon.ui.game.modifier.WeeklyEvent.modifierFor(thisWeek)) {
+                    val granted = metaRepo.claimWeeklyEvent(
+                        thisWeek, com.tranphuloi.neon.ui.game.modifier.WeeklyEvent.REWARD_MINERALS,
+                    )
+                    if (granted > 0) Logger.d("Weekly event complete → +$granted◇")
+                }
+            }
             // Wave 11c — telemetry-driven achievement checks. Runs once after
             // recordRunMetrics commits, so totals are fresh. .first() pulls a
             // single emission from each Flow; suspend keeps us inside this
