@@ -71,15 +71,21 @@ Enhance / New / Exclusive (tính năng độc quyền) / Performance, mỗi nhó
 | 32 | [Nhạc nền reactive combat](32-reactive-combat-music.md) | Exclusive | Vừa (đụng AudioPlayer/ExoPlayer, cần asset nhạc lớp) | 📋 TODO |
 | 33 | [Ship fusion](33-ship-fusion.md) | Exclusive | Cao (cân bằng + UI chọn tổ hợp mới) | 📋 TODO |
 | 34 | [Procedural run-modifier draft] (34-procedural-run-modifier-draft.md) | Exclusive | Cao (RNG cân bằng, dễ tạo modifier phá game) | 📋 TODO |
-| 35 | [Audit Compose recomposition](35-audit-compose-recomposition.md) | Performance | Thấp (chỉ thêm annotation/audit, không đổi logic) | 📋 TODO |
+| 35 | [Audit Compose recomposition](../done/35-audit-compose-recomposition.md) | Performance | Thấp (chỉ thêm annotation/audit, không đổi logic) | ✅ Done (2026-07-19, verify device Pixel 7 Pro) |
 | 36 | [Giảm allocation game loop](36-reduce-gameloop-allocation.md) | Performance | Vừa (đụng hot path nhiều controller) | 📋 TODO |
-| 37 | [Refresh baseline profile](37-refresh-baseline-profile.md) | Performance | Thấp (đã có module, chỉ regenerate) | 📋 TODO |
+| 37 | [Refresh baseline profile](../done/37-refresh-baseline-profile.md) | Performance | Thấp (đã có module, chỉ regenerate) | ✅ Done (2026-07-18, verify device Pixel 7 Pro) |
 | 38 | [Canvas batching audit](38-canvas-batching-audit.md) | Performance | Thấp (audit + tinh chỉnh Canvas hiện có) | 📋 TODO |
 
-**Đề xuất thứ tự bắt đầu:** 37, 35, 38 (perf, ít rủi ro, không đụng gameplay)
+**Đề xuất thứ tự bắt đầu:** 37 (✅ xong) → 35 (✅ xong) → 38 (perf, ít rủi ro, không đụng gameplay)
 → 26, 23 (enhance an toàn) → 27, 30, 29 (new, tái dùng hệ có sẵn)
 → 24, 25 (enhance cân bằng vừa) → 28 (new rủi ro cao)
 → 36 (perf đụng hot path) → 32, 33, 31, 34 (exclusive, rủi ro cao nhất, để cuối).
+
+## Ngoài backlog (phát hiện qua playtest/audit, không thuộc 16 task đợt 5)
+
+| # | Task | Loại | Trạng thái |
+|---|---|---|---|
+| 39 | [Investigate AIBinder_linkToDeath warning](../done/39-investigate-aibinder-linktodeath-warning.md) | Bugfix/tech-debt | ✅ Done (2026-07-19) — root cause: Codec2 HAL platform bug, không phải code app |
 
 ## Quy ước
 - Mỗi task có **Slice 0 = chốt số liệu/thiết kế** trước khi code.

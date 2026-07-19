@@ -1,6 +1,7 @@
 package com.tranphuloi.neon.ui.game.ship.weapon
 
 import androidx.annotation.Keep
+import androidx.compose.runtime.Stable
 import java.io.Serializable
 
 /**
@@ -12,6 +13,7 @@ import java.io.Serializable
  * pulse a warning glow.
  */
 @Keep
+@Stable
 data class Mine(
     val id: String,
     val xOffset: Float,

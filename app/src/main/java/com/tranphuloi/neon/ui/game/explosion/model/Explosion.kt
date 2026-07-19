@@ -1,9 +1,11 @@
 package com.tranphuloi.neon.ui.game.explosion.model
 
 import androidx.annotation.Keep
+import androidx.compose.runtime.Stable
 import java.io.Serializable
 
 @Keep
+@Stable
 data class Explosion(
     val xOffset: Float,
     val yOffset: Float,
