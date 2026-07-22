@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -60,6 +61,7 @@ import com.tranphuloi.neon.common.NeonCyan
 import com.tranphuloi.neon.common.NeonGold
 import com.tranphuloi.neon.common.NeonMagenta
 import com.tranphuloi.neon.common.NeonViolet
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.tranphuloi.neon.common.neonGlow
 import com.tranphuloi.neon.data.LocalAchievements
@@ -113,7 +115,7 @@ fun MenuScreen(
     val achievements = LocalAchievements.current
     val unlockedAchievements by achievements.unlockedFlow.collectAsState(initial = emptySet())
     val bossRushUnlocked = "final_boss_kill" in unlockedAchievements
-    var bossRushLockedHintAt by androidx.compose.runtime.remember { androidx.compose.runtime.mutableLongStateOf(0L) }
+    var bossRushLockedHintAt by remember { mutableLongStateOf(0L) }
 
     val lastModeKey by settings.lastMode.collectAsState(initial = "campaign")
     val mode = GameMode.fromKey(lastModeKey)
@@ -250,7 +252,7 @@ fun MenuScreen(
         LockedFeatureToast(
             message = stringResource(id = R.string.boss_rush_locked_hint),
             shownAtMillis = bossRushLockedHintAt,
-            modifier = Modifier.align(Alignment.BottomCenter),
+            modifier = Modifier.align(Alignment.TopCenter),
         )
     }
 }
@@ -268,12 +270,12 @@ private fun LockedFeatureToast(
 ) {
     if (shownAtMillis == 0L) return
 
-    var nowMillis by remember { androidx.compose.runtime.mutableLongStateOf(System.currentTimeMillis()) }
+    var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(shownAtMillis) {
         nowMillis = System.currentTimeMillis()
         repeat(66) {                                                   // ~2.2s @ 33ms
             nowMillis = System.currentTimeMillis()
-            kotlinx.coroutines.delay(33L)
+            delay(33L)
         }
     }
     val elapsed = (nowMillis - shownAtMillis).coerceAtLeast(0L)
