@@ -10,6 +10,7 @@ import com.tranphuloi.neon.ui.game.common.Millis
 import com.tranphuloi.neon.ui.game.enemy.ship.model.Enemy
 import com.tranphuloi.neon.ui.game.laser.Laser
 import com.tranphuloi.neon.ui.game.spaceObject.SpaceObject
+import com.tranphuloi.neon.ui.game.state.EffectiveStats
 import com.tranphuloi.neon.utils.Logger
 import java.util.*
 import kotlin.math.PI
@@ -76,12 +77,25 @@ class ShipController(
     private val shieldDurationRank: () -> Int = { 0 },
     private val dashRank: () -> Int = { 0 },
     /**
+     * Task 24 — BOOSTER_DURATION skill node rank; +8%/rank layered on top of
+     * booster rarity multiplier for all duration-scaled booster effects.
+     */
+    private val boosterDurationRank: () -> Int = { 0 },
+    /**
+     * Task 24 — SECOND_WIND skill node rank (max 1, binary). If > 0 and not
+     * yet used this run, grants one extra revive on hp→0 after hasReviveToken
+     * is already spent.
+     */
+    private val secondWindRank: () -> Int = { 0 },
+    /**
      * Round 75 (R75c) — SHIELD_BURST callback. Khi shield expire, gọi callback
      * với position ship để GameState spawn mini explosion AoE damage enemies
      * trong bán kính. Max rank 2 = scale damage/radius.
      */
     private val shieldBurstRank: () -> Int = { 0 },
     private val onShieldExpireBurst: (xOffset: Float, yOffset: Float, rank: Int) -> Unit = { _, _, _ -> },
+    /** Task 25 — fired once per run the first time a synergy pair activates. */
+    private val onSynergyActivated: (SynergyKind) -> Unit = {},
     /**
      * Wave 11a Phase 3 — REFLECT_BOOSTER retaliation. Fired when an enemy laser
      * overlaps ship while reflect is active. GameState binds this to find the
@@ -602,6 +616,11 @@ class ShipController(
         Logger.d("Booster: mini ${if (enable) "ON (+${newEnd - now}ms, scale=0.6 speed=1.3)" else "OFF"}")
     }
 
+    // Task 25 — one-shot-per-run gates for the two continuously-checked synergy
+    // pairs (MAGNET_SUPERCHARGE is event-triggered instead, gated in GameState).
+    private var shieldWeaponSynergyShown = false
+    private var vampireDmgSynergyShown = false
+
     /** VAMPIRE: 50% lifesteal for 10s. LasersController callback queries ship.vampireEndMillis. */
     private val vampireTimeMillis: Long = 10_000
     private fun enableVampire(enable: Boolean, multiplier: Float = 1f) {
@@ -678,7 +697,13 @@ class ShipController(
 
     fun applyVampireHeal(damageDealt: Int) {
         if (ship.vampireEndMillis <= System.currentTimeMillis() || damageDealt <= 0) return
-        val heal = (damageDealt * 0.5f).toInt().coerceAtLeast(1)
+        // Task 25 — synergy pair "Hút máu": any dmg booster active alongside
+        // VAMPIRE → +10% lifesteal. CHAIN_LIGHTNING excluded on purpose — its
+        // chain damage already isn't lifesteal-eligible (see Ship.kt note above).
+        val dmgBoosterActive = ship.berserkEnabled || ship.critSurgeEnabled ||
+            ship.spreadShotEnabled || ship.doubleFireEnabled
+        val lifestealMul = if (dmgBoosterActive) 0.6f else 0.5f
+        val heal = (damageDealt * lifestealMul).toInt().coerceAtLeast(1)
         updateHp(heal, silent = true)
     }
 
@@ -922,12 +947,16 @@ class ShipController(
                 )
                 // Round 43 (39x) — apply rarity multiplier to duration/amount effects.
                 val mul = booster.rarity.multiplier
+                // Task 24 — BOOSTER_DURATION skill node: extra multiplier layered on
+                // top of rarity, applied ONLY to duration-scaled calls below. HEALTH_
+                // BOOSTER/QUICK_HEAL restore flat hp amounts and must keep using `mul`.
+                val durationMul = mul * (1f + boosterDurationRank() * EffectiveStats.META_BOOSTER_DURATION_PER_RANK)
                 when (booster.type) {
                     BoosterType.ULTIMATE_WEAPON_BOOSTER -> fileUltimateLaser()
-                    BoosterType.SHIELD_BOOSTER -> enableShield(enable = true, multiplier = mul)
-                    BoosterType.LASER_BOOSTER -> enableLaserBooster(enable = true, multiplier = mul)
+                    BoosterType.SHIELD_BOOSTER -> enableShield(enable = true, multiplier = durationMul)
+                    BoosterType.LASER_BOOSTER -> enableLaserBooster(enable = true, multiplier = durationMul)
                     BoosterType.TRIPLE_LASER_BOOSTER ->
-                        enableTripleLaserBooster(enable = true, multiplier = mul)
+                        enableTripleLaserBooster(enable = true, multiplier = durationMul)
                     BoosterType.HEALTH_BOOSTER -> updateHp((100 * mul).toInt())
                     BoosterType.REVIVE_TOKEN -> {
                         if (!ship.hasReviveToken) {
@@ -943,67 +972,67 @@ class ShipController(
                     // tier-up combat behaviour (pierce count + AoE radius).
                     BoosterType.PIERCING_BOOSTER -> setBulletType(
                         com.tranphuloi.neon.ui.game.ship.laser.BulletType.PIERCING,
-                        multiplier = mul,
+                        multiplier = durationMul,
                         rarity = booster.rarity,
                     )
                     BoosterType.PLASMA_BOOSTER -> setBulletType(
                         com.tranphuloi.neon.ui.game.ship.laser.BulletType.PLASMA,
-                        multiplier = mul,
+                        multiplier = durationMul,
                         rarity = booster.rarity,
                     )
                     // Round 67 (Wave 10a) — 3 bullet-type boosters.
                     BoosterType.FIRE_BOOSTER -> setBulletType(
                         com.tranphuloi.neon.ui.game.ship.laser.BulletType.FIRE,
-                        multiplier = mul,
+                        multiplier = durationMul,
                         rarity = booster.rarity,
                     )
                     BoosterType.HOMING_BOOSTER -> setBulletType(
                         com.tranphuloi.neon.ui.game.ship.laser.BulletType.HOMING,
-                        multiplier = mul,
+                        multiplier = durationMul,
                         rarity = booster.rarity,
                     )
                     BoosterType.BOUNCE_BOOSTER -> setBulletType(
                         com.tranphuloi.neon.ui.game.ship.laser.BulletType.BOUNCE,
-                        multiplier = mul,
+                        multiplier = durationMul,
                         rarity = booster.rarity,
                     )
                     BoosterType.GIANT_BOOSTER -> setBulletType(
                         com.tranphuloi.neon.ui.game.ship.laser.BulletType.GIANT,
-                        multiplier = mul,
+                        multiplier = durationMul,
                         rarity = booster.rarity,
                     )
                     // Round 68 (Wave 10 finish) — 5 bullets stub dispatch.
                     BoosterType.SMOKE_BOOSTER -> setBulletType(
                         com.tranphuloi.neon.ui.game.ship.laser.BulletType.SMOKE,
-                        multiplier = mul, rarity = booster.rarity,
+                        multiplier = durationMul, rarity = booster.rarity,
                     )
                     BoosterType.ZIGZAG_BOOSTER -> setBulletType(
                         com.tranphuloi.neon.ui.game.ship.laser.BulletType.ZIGZAG,
-                        multiplier = mul, rarity = booster.rarity,
+                        multiplier = durationMul, rarity = booster.rarity,
                     )
                     BoosterType.KAMEHAMEHA_BOOSTER -> setBulletType(
                         com.tranphuloi.neon.ui.game.ship.laser.BulletType.KAMEHAMEHA,
-                        multiplier = mul, rarity = booster.rarity,
+                        multiplier = durationMul, rarity = booster.rarity,
                     )
                     BoosterType.ATOMIC_BOOSTER -> setBulletType(
                         com.tranphuloi.neon.ui.game.ship.laser.BulletType.ATOMIC,
-                        multiplier = mul, rarity = booster.rarity,
+                        multiplier = durationMul, rarity = booster.rarity,
                     )
                     BoosterType.SPLIT_BOOSTER -> setBulletType(
                         com.tranphuloi.neon.ui.game.ship.laser.BulletType.SPLIT,
-                        multiplier = mul, rarity = booster.rarity,
+                        multiplier = durationMul, rarity = booster.rarity,
                     )
                     // Round 60 (38x) — 10 new boosters dispatch. 8 are timed
                     // buffs (enable + auto-expire), 2 are one-shot (QUICK_HEAL
                     // applies HP directly, MINERAL_SUPERCHARGE delegates to
                     // MineralsController via callback).
-                    BoosterType.MAGNET_BOOST -> enableMagnetBoost(enable = true, multiplier = mul)
-                    BoosterType.CRIT_SURGE -> enableCritSurge(enable = true, multiplier = mul)
-                    BoosterType.SPREAD_SHOT -> enableSpreadShot(enable = true, multiplier = mul)
-                    BoosterType.BERSERK -> enableBerserk(enable = true, multiplier = mul)
+                    BoosterType.MAGNET_BOOST -> enableMagnetBoost(enable = true, multiplier = durationMul)
+                    BoosterType.CRIT_SURGE -> enableCritSurge(enable = true, multiplier = durationMul)
+                    BoosterType.SPREAD_SHOT -> enableSpreadShot(enable = true, multiplier = durationMul)
+                    BoosterType.BERSERK -> enableBerserk(enable = true, multiplier = durationMul)
                     BoosterType.PHASE_SHIELD -> {
                         val now = System.currentTimeMillis()
-                        val ext = (phaseShieldTimeMillis * mul).toLong()
+                        val ext = (phaseShieldTimeMillis * durationMul).toLong()
                         iframesEndMillis = maxOf(iframesEndMillis, now + ext)
                         // Round 61 — surface phase-shield specifically on Ship state
                         // so GameWorld can render a translucent ghost overlay. Without
@@ -1014,30 +1043,30 @@ class ShipController(
                         setShip(ship)
                         Logger.d("Booster: phase-shield ON (+${ext}ms iframes, mul=$mul)")
                     }
-                    BoosterType.SCORE_X3 -> enableScoreX3(enable = true, multiplier = mul)
+                    BoosterType.SCORE_X3 -> enableScoreX3(enable = true, multiplier = durationMul)
                     BoosterType.QUICK_HEAL -> updateHp((250 * mul).toInt())
                     BoosterType.MINERAL_SUPERCHARGE -> {
                         Logger.d("Booster: mineral-supercharge ONE-SHOT (mul=$mul)")
                         onMineralSupercharge()
                     }
                     BoosterType.HEALING_AURA -> {
-                        enableHealingAura(enable = true, multiplier = mul)
+                        enableHealingAura(enable = true, multiplier = durationMul)
                         healingAuraLastTickMillis = System.currentTimeMillis()
                     }
-                    BoosterType.DOUBLE_FIRE -> enableDoubleFire(enable = true, multiplier = mul)
+                    BoosterType.DOUBLE_FIRE -> enableDoubleFire(enable = true, multiplier = durationMul)
                     // Wave 11a — 3 new timed buffs.
                     BoosterType.REGEN_BOOSTER -> {
-                        enableRegen(enable = true, multiplier = mul)
+                        enableRegen(enable = true, multiplier = durationMul)
                         regenLastTickMillis = System.currentTimeMillis()
                     }
-                    BoosterType.TIME_FREEZE_BOOSTER -> enableTimeFreeze(enable = true, multiplier = mul)
-                    BoosterType.MINI_BOOSTER -> enableMini(enable = true, multiplier = mul)
-                    BoosterType.VAMPIRE_BOOSTER -> enableVampire(enable = true, multiplier = mul)
-                    BoosterType.GHOST_BOOSTER -> enableGhost(enable = true, multiplier = mul)
-                    BoosterType.GRAVITY_BOOSTER -> enableGravity(enable = true, multiplier = mul)
-                    BoosterType.REFLECT_BOOSTER -> enableReflect(enable = true, multiplier = mul)
-                    BoosterType.CHAIN_LIGHTNING_BOOSTER -> enableChainLightning(enable = true, multiplier = mul)
-                    BoosterType.CLONE_BOOSTER -> enableClone(enable = true, multiplier = mul)
+                    BoosterType.TIME_FREEZE_BOOSTER -> enableTimeFreeze(enable = true, multiplier = durationMul)
+                    BoosterType.MINI_BOOSTER -> enableMini(enable = true, multiplier = durationMul)
+                    BoosterType.VAMPIRE_BOOSTER -> enableVampire(enable = true, multiplier = durationMul)
+                    BoosterType.GHOST_BOOSTER -> enableGhost(enable = true, multiplier = durationMul)
+                    BoosterType.GRAVITY_BOOSTER -> enableGravity(enable = true, multiplier = durationMul)
+                    BoosterType.REFLECT_BOOSTER -> enableReflect(enable = true, multiplier = durationMul)
+                    BoosterType.CHAIN_LIGHTNING_BOOSTER -> enableChainLightning(enable = true, multiplier = durationMul)
+                    BoosterType.CLONE_BOOSTER -> enableClone(enable = true, multiplier = durationMul)
                     // Task 01 (Slice 4) — spawn drone companion (logic ở DroneController qua GameState).
                     BoosterType.DRONE_BOOSTER -> onDroneBoosterPickedUp()
                 }
@@ -1097,6 +1126,27 @@ class ShipController(
         }
 
         val currentTime = System.currentTimeMillis()
+        // Task 25 — fire each synergy banner once, the first time its pair is
+        // simultaneously active this run. Checked at 100ms cadence like the
+        // buff-expiry sweep below; the actual gameplay bonuses (damage/mineral/
+        // lifesteal) are applied independently at their own read sites.
+        if (!shieldWeaponSynergyShown) {
+            val weaponBoosterActive = ship.laserBoosterEnabled || ship.tripleLaserBoosterEnabled ||
+                (ship.activeBulletType == com.tranphuloi.neon.ui.game.ship.laser.BulletType.PLASMA &&
+                    ship.bulletTypeEndMillis > currentTime)
+            if (ship.shieldEnabled && weaponBoosterActive) {
+                shieldWeaponSynergyShown = true
+                onSynergyActivated(SynergyKind.SHIELD_WEAPON)
+            }
+        }
+        if (!vampireDmgSynergyShown && ship.vampireEndMillis > currentTime) {
+            val dmgBoosterActive = ship.berserkEnabled || ship.critSurgeEnabled ||
+                ship.spreadShotEnabled || ship.doubleFireEnabled
+            if (dmgBoosterActive) {
+                vampireDmgSynergyShown = true
+                onSynergyActivated(SynergyKind.VAMPIRE_DMG)
+            }
+        }
         // Round 75 (R75c) — detect shield expiry edge để fire SHIELD_BURST.
         // Track previous wasShieldEnabled so we only fire ON transition (not every tick).
         val wasShielded = ship.shieldEnabled
@@ -1391,6 +1441,16 @@ class ShipController(
                 setShip(ship)
                 iframesEndMillis = System.currentTimeMillis() + REVIVE_IFRAMES_MILLIS
                 Logger.w("Ship REVIVED via auto-revive token: hp=$REVIVE_HP iframes=${REVIVE_IFRAMES_MILLIS}ms")
+                onShipRevived()
+                return
+            }
+            // Task 24 — SECOND_WIND skill node: 1 extra revive per run, checked AFTER
+            // hasReviveToken so a dropped token is always spent first.
+            if (!ship.secondWindUsed && secondWindRank() > 0) {
+                ship = ship.copy(hp = REVIVE_HP, secondWindUsed = true)
+                setShip(ship)
+                iframesEndMillis = System.currentTimeMillis() + REVIVE_IFRAMES_MILLIS
+                Logger.w("Ship REVIVED via SECOND_WIND skill: hp=$REVIVE_HP iframes=${REVIVE_IFRAMES_MILLIS}ms")
                 onShipRevived()
                 return
             }

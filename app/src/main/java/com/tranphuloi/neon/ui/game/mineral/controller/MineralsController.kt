@@ -2,6 +2,7 @@ package com.tranphuloi.neon.ui.game.mineral.controller
 
 import com.tranphuloi.neon.ui.game.common.Millis
 import com.tranphuloi.neon.ui.game.mineral.model.Mineral
+import com.tranphuloi.neon.ui.game.state.EffectiveStats
 import com.tranphuloi.neon.utils.Logger
 import java.util.*
 
@@ -11,6 +12,16 @@ class MineralsController(
     private val updateMineralsEarnedTotal: (Int) -> Unit,
     private val getShipCenter: () -> Pair<Float, Float>,
     private val getMagnetRadius: () -> Float,
+    /** Task 24 — MAGNET_PULL_SPEED skill node rank; scales pull *speed*, not radius. */
+    private val getMagnetPullSpeedRank: () -> Int = { 0 },
+    /**
+     * Task 24 — MINERAL_BOOST skill node rank; +10%/rank on every mineral award.
+     * Single choke point: addMinerals() has 3 call sites in GameState.kt (enemy
+     * death, wave-clear bonus, bomb detonation) — applying here covers all of them.
+     */
+    private val getMineralBoostRank: () -> Int = { 0 },
+    /** Task 25 — synergy: MAGNET_BOOST active when SUPERCHARGE fires → +25% bonus. */
+    private val isMagnetBoostActive: () -> Boolean = { false },
 ) {
 
     init {
@@ -27,9 +38,11 @@ class MineralsController(
             width = width
         )
         minerals += mineral
-        Logger.v { "MineralsController.addMinerals: at (${xOffset.toInt()},${yOffset.toInt()}) +$mineralAmount → total active=${minerals.size}" }
+        val boostedAmount = (mineralAmount * (1f + getMineralBoostRank() * EffectiveStats.META_MINERAL_BOOST_PER_RANK))
+            .toInt().coerceAtLeast(mineralAmount)
+        Logger.v { "MineralsController.addMinerals: at (${xOffset.toInt()},${yOffset.toInt()}) +$boostedAmount (base=$mineralAmount) → total active=${minerals.size}" }
         updateMinerals(minerals)
-        updateMineralsEarnedTotal(mineralAmount)
+        updateMineralsEarnedTotal(boostedAmount)
     }
 
     val processMineralsId = UUID.randomUUID().toString()
@@ -38,13 +51,15 @@ class MineralsController(
     fun processMinerals() {
         val (cx, cy) = getShipCenter()
         val r = getMagnetRadius()
+        val pullSpeed = Mineral.MAGNET_PULL_SPEED * (1f + getMagnetPullSpeedRank() * EffectiveStats.META_MAGNET_PULL_SPEED_PER_RANK)
         var picked = 0
         minerals.forEach { mineral ->
             val wasRemoved = mineral.removed
             mineral.process(
                 magnetTargetX = cx,
                 magnetTargetY = cy,
-                magnetRadius = r
+                magnetRadius = r,
+                pullSpeed = pullSpeed,
             )
             if (mineral.removed && !wasRemoved) {
                 // Magnet pickup → award the same +1 like death-pickup. The original pickup
@@ -53,11 +68,17 @@ class MineralsController(
                 picked++
             }
         }
-        minerals = minerals.filterNot { it.removed }
         // Round 37 — was logging picked count per 5ms tick. During a magnet sweep
         // through a mineral cluster this fired up to 200×/sec. GameState already
         // emits a per-event log when minerals are awarded via consumePickedThisTick.
         pickedThisTick = picked
+        // Task 36 — `picked > 0` is already the exact signal that something was
+        // removed this tick; gate only the list rebuild (rare event). Positions
+        // mutate every tick via drift/magnet pull in Mineral.process(), so
+        // updateMinerals() must still fire unconditionally to animate movement.
+        if (picked > 0) {
+            minerals = minerals.filterNot { it.removed }
+        }
         updateMinerals(minerals)
     }
 
@@ -83,7 +104,10 @@ class MineralsController(
             Logger.d("MineralsController.flushAllToShip: no minerals on screen — no-op")
             return
         }
-        val bonus = count * 5
+        // Task 25 — synergy pair "Kinh tế": MAGNET_BOOST is duration-tracked but
+        // SUPERCHARGE is instant, so "both active" is checked at the moment this
+        // one-shot fires rather than continuously.
+        val bonus = (count * 5 * (if (isMagnetBoostActive()) 1.25f else 1f)).toInt()
         Logger.d("MineralsController.flushAllToShip: instant-collect $count minerals → bonus +$bonus")
         minerals = emptyList()
         updateMinerals(minerals)

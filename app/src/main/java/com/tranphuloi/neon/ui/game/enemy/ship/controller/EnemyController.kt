@@ -88,6 +88,12 @@ class EnemyController(
 
     private var enemies: List<Enemy> = initialEnemies
 
+    // Task 36 — cache for applySeparationForces()'s RegularEnemy partition,
+    // keyed by reference identity of `enemies`. Rebuilds only when the list
+    // is actually reassigned (add/remove), not on every 5ms call.
+    private var cachedEnemiesRef: List<Enemy>? = null
+    private var cachedRegulars: List<com.tranphuloi.neon.ui.game.enemy.ship.model.RegularEnemy> = emptyList()
+
     val addEnemyId = uuidUtils.getUuid()
     fun addEnemy(type: EnemyType) {
         // Round 47 — entity cap (perf fix). At peak (chapter 2 NEBULA_FOG) the
@@ -241,13 +247,18 @@ class EnemyController(
         // the threshold — symmetric.
         val effectiveHeight = screenHeight + extraYSpan
         slowTick++
+        // Audit-6 (Task 36) — was `enemies -= it` inside this forEach: each
+        // removed enemy triggered a separate full-list copy in the same tick
+        // (compounding with N kills). Now only flag removal here; the list is
+        // rebuilt once below via a single filterNot pass.
+        var anyRemoved = false
         enemies.forEach {
             // Wave 16 — SLOW: slowed enemies move only every other tick (~50%).
             val skipMove = isSlowed(it.enemyId) && (slowTick % 2 == 0)
             if (!skipMove) it.process()
             val visuallyOffScreen = it.yOffset + it.height > effectiveHeight
             if (it.destroyed) {
-                enemies -= it
+                anyRemoved = true
                 addMinerals(
                     it.xOffset,
                     it.yOffset + it.height / 2,
@@ -269,9 +280,12 @@ class EnemyController(
                     enemies += enemyFactory.spawnMitosisChildren(it)
                 }
             } else if (visuallyOffScreen) {
-                enemies -= it
+                anyRemoved = true
                 leftScreen++
             }
+        }
+        if (anyRemoved) {
+            enemies = enemies.filterNot { it.destroyed || it.yOffset + it.height > effectiveHeight }
         }
         // Pixel-2 #3 fix — runtime separation force. Knockback velocity (when
         // ship rams an enemy), ZigZag bounce off screen edges, and overlapping
@@ -295,9 +309,15 @@ class EnemyController(
         // Audit-5 P1 fix — partition once at top, avoid 870 casts/tick at peak.
         // Filter to RegularEnemies; bosses skip separation (intimidation
         // intent). Also early-out the inner loop on Y-distance before sqrt.
-        val regulars = list.mapNotNull {
-            it as? com.tranphuloi.neon.ui.game.enemy.ship.model.RegularEnemy
+        // Task 36 — only recompute the partition when `enemies` was actually
+        // reassigned (add/remove) since the last call, instead of every 5ms tick.
+        if (list !== cachedEnemiesRef) {
+            cachedEnemiesRef = list
+            cachedRegulars = list.mapNotNull {
+                it as? com.tranphuloi.neon.ui.game.enemy.ship.model.RegularEnemy
+            }
         }
+        val regulars = cachedRegulars
         if (regulars.size < 2) return
         for (i in regulars.indices) {
             val a = regulars[i]

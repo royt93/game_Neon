@@ -21,6 +21,15 @@
     <string name="game_over_dialog_score">Minerals: %1$s</string>
     <string name="mineral_content_description">Mineral</string>
     <string name="revived_banner">Revived!</string>
+    <!-- Task 25: Booster synergy banners -->
+    <string name="synergy_shield_weapon_title">Shield + Firepower!</string>
+    <string name="synergy_shield_weapon_desc">+15% damage</string>
+    <string name="synergy_magnet_supercharge_title">Economy Boost!</string>
+    <string name="synergy_magnet_supercharge_desc">+25% mineral value</string>
+    <string name="synergy_vampire_dmg_title">Lifesteal!</string>
+    <string name="synergy_vampire_dmg_desc">+10% lifesteal</string>
+    <!-- Task 31: Overdrive bullet-time meter -->
+    <string name="overdrive_active_label">OVERDRIVE!</string>
     <string name="daily_challenge_label">Daily Challenge</string>
     <string name="daily_seed_label">Day %1$s</string>
     <string name="daily_challenge_card_title">Daily Challenge</string>
@@ -60,6 +69,7 @@
     <string name="voice_new_best_2">Record shattered!</string>
     <string name="voice_new_best_3">New peak!</string>
     <string name="settings_voice_announcer">Voice announcer</string>
+    <string name="boss_rush_locked_hint">🔒 Defeat the galaxy overlord to unlock Boss Rush</string>
 
     <!-- Task 04 — Boss dialogue / narrative / epilogue -->
     <string name="story_beat_ch1">Halfway through the Belt. Keep your hands steady, pilot.</string>

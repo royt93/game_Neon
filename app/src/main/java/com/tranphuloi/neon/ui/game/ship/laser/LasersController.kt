@@ -11,6 +11,7 @@ import com.tranphuloi.neon.ui.game.ship.laser.ShipLaser.Companion.SHIP_LASER_WID
 import com.tranphuloi.neon.ui.game.ship.ship.Ship
 import com.tranphuloi.neon.ui.game.ship.ship.ShipController.Companion.TRIPLE_LASER_SIDE_OFFSET
 import com.tranphuloi.neon.ui.game.spaceObject.SpaceObject
+import com.tranphuloi.neon.ui.game.state.EffectiveStats
 import com.tranphuloi.neon.utils.Logger
 import com.tranphuloi.neon.utils.UuidUtils
 
@@ -34,6 +35,10 @@ class LasersController(
      * FIREPOWER node. Default 1.0 = no boost.
      */
     private val damageMultiplier: () -> Float = { 1f },
+    /** Task 24 — FIRE_RATE skill node rank; -5%/rank on fire interval. */
+    private val fireRateRank: () -> Int = { 0 },
+    /** Task 24 — PIERCE_CHANCE skill node rank; +10%/rank chance a NORMAL bullet also pierces once. */
+    private val pierceChanceRank: () -> Int = { 0 },
 ) {
 
     init {
@@ -150,8 +155,11 @@ class LasersController(
         // Wave 18b — NHỊP BẮN tiếp theo do ITEM ĐẠN quy định (mạnh→thưa). Đọc bởi
         // game-loop tinker ở lần kế. Gói Bắn Nhanh thu nhỏ qua rapidFireMultiplier.
         // Sàn 20ms để không bao giờ thành bắn-vô-hạn.
+        // Task 24 — FIRE_RATE skill node nhân thêm hệ số vào nhịp bắn, sàn 0.5x
+        // (không cho phép cộng dồn Gói Bắn Nhanh + FIRE_RATE làm bắn liên thanh vô hạn).
+        val fireRateFactor = (1f - fireRateRank() * EffectiveStats.META_FIRE_RATE_PER_RANK).coerceAtLeast(0.5f)
         fireLaserRepeatTime = Millis(
-            (ship.activeBulletType.fireIntervalMillis * rapidFireMultiplier).toInt().coerceAtLeast(20),
+            (ship.activeBulletType.fireIntervalMillis * rapidFireMultiplier * fireRateFactor).toInt().coerceAtLeast(20),
         )
     }
 
@@ -171,7 +179,7 @@ class LasersController(
         // ép width + căn giữa sau when nên đổi size chỉ ở model, buildOneLaser
         // không còn hardcode lệch. (width từng nhánh dưới chỉ là khởi tạo, bị ghi đè.)
         val bw = ship.activeBulletType.bodyWidth
-        return (when (ship.activeBulletType) {
+        val laser = (when (ship.activeBulletType) {
             BulletType.PIERCING -> PiercingShipLaser(
                 id = uuidUtils.getUuid(),
                 xOffset = ship.xOffset + ship.width / 2 - 3f + dx,
@@ -436,6 +444,15 @@ class LasersController(
             it.width = bw
             it.xOffset = ship.xOffset + ship.width / 2f - bw / 2f + dx
         }
+        // Task 24 — PIERCE_CHANCE skill node: chỉ roll khi laser chưa có pierce
+        // sẵn từ chính bulletType (PIERCING/KAMEHAMEHA/BANH_MI/GIANT đã set > 0
+        // ở trên) — tránh chồng pierce lên các đạn vốn đã xuyên.
+        if (laser.pierceRemaining <= 0 && pierceChanceRank() > 0 &&
+            kotlin.random.Random.nextFloat() < pierceChanceRank() * EffectiveStats.META_PIERCE_CHANCE_PER_RANK
+        ) {
+            laser.pierceRemaining = 1
+        }
+        return laser
     }
 
     val processShipLasersId = uuidUtils.getUuid()
@@ -744,7 +761,16 @@ class LasersController(
                             destroyShipLaser(laser)
                         }
                     }
-                    BulletType.NORMAL -> destroyShipLaser(laser)
+                    // Task 24 — PIERCE_CHANCE có thể set pierceRemaining=1 lên đạn
+                    // NORMAL tại buildOneLaser(); decrement/destroy giống nhánh PIERCING.
+                    BulletType.NORMAL -> {
+                        if (laser.pierceRemaining > 0) {
+                            laser.pierceRemaining = laser.pierceRemaining - 1
+                            if (laser.pierceRemaining <= 0) destroyShipLaser(laser)
+                        } else {
+                            destroyShipLaser(laser)
+                        }
+                    }
                     // Task 02 — Sét Chain: huỷ khi trúng 1 địch; chuỗi lan xử lý
                     // upstream ở onLaserHit (GameState) khi bulletType==LIGHTNING.
                     BulletType.LIGHTNING -> destroyShipLaser(laser)

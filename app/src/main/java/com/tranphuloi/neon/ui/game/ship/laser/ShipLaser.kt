@@ -25,6 +25,9 @@ data class ShipLaser(
     override var impactPower: Float = 25f
     override val drawableId: Int = R.drawable.ic_laser_blue_7
     override var destroyed: Boolean = false
+    // Task 24 — real backing field so PIERCE_CHANCE skill node can grant a
+    // NORMAL bullet 1 extra pierce (interface default setter is a no-op).
+    override var pierceRemaining: Int = 0
 
     override fun moveLaser() {
         yOffset -= yOffsetMovementSpeed

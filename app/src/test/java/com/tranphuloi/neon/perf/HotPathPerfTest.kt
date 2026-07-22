@@ -1,12 +1,20 @@
 package com.tranphuloi.neon.perf
 
 import com.tranphuloi.neon.common.PathPool
+import com.tranphuloi.neon.ui.game.common.Once
+import com.tranphuloi.neon.ui.game.enemy.ship.controller.EnemyController
 import com.tranphuloi.neon.ui.game.enemy.ship.model.FinalBoss
+import com.tranphuloi.neon.ui.game.enemy.ship.model.RegularEnemy
+import com.tranphuloi.neon.ui.game.enemy.ship.model.RegularEnemyType
+import com.tranphuloi.neon.ui.game.enemy.ship.model.Row
+import com.tranphuloi.neon.ui.game.explosion.controller.ExplosionController
+import com.tranphuloi.neon.ui.game.explosion.model.Explosion
 import com.tranphuloi.neon.ui.game.ship.ship.Ship
 import com.tranphuloi.neon.ui.game.status.StatusEffect
 import com.tranphuloi.neon.ui.game.status.StatusEffectController
 import com.tranphuloi.neon.utils.DateUtils
 import com.tranphuloi.neon.utils.Logger
+import com.tranphuloi.neon.utils.UuidUtils
 import org.junit.After
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -138,6 +146,77 @@ class HotPathPerfTest {
         }
         assertTrue(
             "10k chain-target scans (30 địch) phải dưới 500ms, thực tế ${elapsedMs}ms",
+            elapsedMs < 500L,
+        )
+    }
+
+    // ── Task 36 — EnemyController.processEnemies() / applySeparationForces() ──
+    // Was `enemies -= it` inside the per-enemy forEach (1 full-list copy per
+    // kill, same tick) plus an unconditional mapNotNull rebuild of the
+    // RegularEnemy partition on every call. Cap-sized roster (30, some
+    // pre-killed via hp=0) exercises both the one-time removal pass and the
+    // steady-state reference-identity cache hit path across repeated ticks.
+    @Test
+    fun `EnemyController processEnemies stays within budget across 10k calls on a full roster`() {
+        val type = RegularEnemyType(
+            drawableId = 0,
+            width = 40f,
+            height = 40f,
+            hp = 100f,
+            impactPower = 1f,
+            formation = Row(rowCount = 1),
+            xOffsetSpeed = 0f,
+            yOffsetSpeed = 5f,
+            enemySpawnRate = Once,
+        )
+        val initialEnemies = (0 until 30).map { i ->
+            RegularEnemy(
+                screenWidth = 400f,
+                screenHeight = 800f,
+                xOffset = (i % 6) * 60f,
+                type = type,
+                initialYOffset = (i / 6) * 120f,
+                // ~40% pre-killed to exercise the removal pass once at the start.
+                hp = if (i % 5 < 2) 0f else 100f,
+            )
+        }
+        val controller = EnemyController(
+            screenWidth = 400f,
+            screenHeight = 800f,
+            uuidUtils = UuidUtils(),
+            getShip = { Ship(xOffset = 200f, yOffset = 700f) },
+            initialEnemies = initialEnemies,
+            setEnemies = {},
+            addMinerals = { _, _, _, _ -> },
+            addExplosion = { _, _, _, _ -> },
+        )
+        val elapsedMs = timeMillis {
+            repeat(10_000) { controller.processEnemies() }
+        }
+        assertTrue(
+            "10k processEnemies() calls (30 địch, cap) phải dưới 1000ms, thực tế ${elapsedMs}ms",
+            elapsedMs < 1_000L,
+        )
+    }
+
+    // ── Task 36 — ExplosionController.processExplosions() ──
+    // Was `explosions -= it` inside the forEach (1 full-list copy per expired
+    // explosion, same tick). MAX_ACTIVE-sized batch, steady-state (none expire
+    // mid-test since the 10k-call loop runs well under Explosion's 450ms TTL).
+    @Test
+    fun `ExplosionController processExplosions stays within budget across 10k calls`() {
+        val initialExplosions = (0 until 8).map { i ->
+            Explosion(xOffset = i * 40f, yOffset = i * 30f, size = 80f)
+        }
+        val controller = ExplosionController(
+            initialExplosions = initialExplosions,
+            updateExplosions = {},
+        )
+        val elapsedMs = timeMillis {
+            repeat(10_000) { controller.processExplosions() }
+        }
+        assertTrue(
+            "10k processExplosions() calls (MAX_ACTIVE=8) phải dưới 500ms, thực tế ${elapsedMs}ms",
             elapsedMs < 500L,
         )
     }

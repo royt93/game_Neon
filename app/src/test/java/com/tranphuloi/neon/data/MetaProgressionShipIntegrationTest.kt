@@ -2,6 +2,7 @@ package com.tranphuloi.neon.data
 
 import androidx.datastore.preferences.core.edit
 import androidx.test.core.app.ApplicationProvider
+import com.tranphuloi.neon.ui.game.meta.SkillNode
 import com.tranphuloi.neon.ui.game.ship.shape.ShipShape
 import com.tranphuloi.neon.ui.game.ship.shape.ShipShopLogic
 import kotlinx.coroutines.flow.first
@@ -108,5 +109,35 @@ class MetaProgressionShipIntegrationTest {
         assertTrue(ShipShopLogic.isOwned(ShipShape.BOMBER, r))
         assertEquals(1, r["shop_skin_aura_violet"])
         assertTrue(r.containsKey("shop_ship_bomber"))
+    }
+
+    // Task 24 — Mở rộng skill-tree: roundtrip persistence cho node mới.
+
+    @Test
+    fun `MINERAL_BOOST node spends across multiple ranks and persists`() {
+        val node = SkillNode.MINERAL_BOOST
+        runBlocking {
+            repo.addMinerals(10_000)
+            repeat(2) { rank ->
+                val ok = repo.spendOnNode(node.key, node.costForNextRank(rank), node.maxRank)
+                assertTrue("rank ${rank + 1} purchase should succeed", ok)
+            }
+        }
+        assertEquals(2, ranks()[node.key])
+        val expectedSpent = node.costForNextRank(0) + node.costForNextRank(1)
+        assertEquals(10_000 - expectedSpent, balance())
+    }
+
+    @Test
+    fun `SECOND_WIND node (maxRank 1) cannot be bought twice`() {
+        val node = SkillNode.SECOND_WIND
+        runBlocking {
+            repo.addMinerals(2_000)
+            val first = repo.spendOnNode(node.key, node.costForNextRank(0), node.maxRank)
+            assertTrue("first purchase should succeed", first)
+            val second = repo.spendOnNode(node.key, node.costForNextRank(1), node.maxRank)
+            assertFalse("second purchase must be refused at maxRank", second)
+        }
+        assertEquals(1, ranks()[node.key])
     }
 }

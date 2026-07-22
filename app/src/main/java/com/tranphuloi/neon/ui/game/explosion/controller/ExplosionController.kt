@@ -33,12 +33,13 @@ class ExplosionController(
     val processExplosionsId = UUID.randomUUID().toString()
     val processExplosionsRepeatTime = Millis(5)
     fun processExplosions() {
-        val before = explosions.size
+        var anyRemoved = false
         explosions.forEach {
             it.process()
-            if (it.removed) explosions -= it
+            if (it.removed) anyRemoved = true
         }
-        if (before != explosions.size) {
+        if (anyRemoved) {
+            explosions = explosions.filterNot { it.removed }
             updateExplosions(explosions)
         }
     }

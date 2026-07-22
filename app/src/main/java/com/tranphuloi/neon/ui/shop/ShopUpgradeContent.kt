@@ -285,6 +285,12 @@ private fun nodeGlyph(key: String): String = when (key) {
     EffectiveStats.META_KEY_LEGENDARY_DMG -> "✪"
     EffectiveStats.META_KEY_SHIP_UNLOCK_DISCOUNT -> "◈"
     EffectiveStats.META_KEY_BULLET_DURATION -> "⏲"
+    EffectiveStats.META_KEY_MINERAL_BOOST -> "◆"
+    EffectiveStats.META_KEY_FIRE_RATE -> "»"
+    EffectiveStats.META_KEY_BOOSTER_DURATION -> "⏳"
+    EffectiveStats.META_KEY_MAGNET_PULL_SPEED -> "⇊"
+    EffectiveStats.META_KEY_PIERCE_CHANCE -> "⇒"
+    EffectiveStats.META_KEY_SECOND_WIND -> "♻"
     else -> "?"
 }
 

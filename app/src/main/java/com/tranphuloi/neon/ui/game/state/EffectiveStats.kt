@@ -107,6 +107,27 @@ data class EffectiveStats(
         /** Round 74 — per-rank bullet active duration % bonus. */
         const val META_BULLET_DURATION_PER_RANK = 0.10f
 
+        // Task 24 (Wave 5) — 6 skill-tree node mới. Đọc trực tiếp tại nơi dùng
+        // (GameState/controller), không aggregate trong compute() — giống pattern
+        // DASH/CRIT/COMBO_KEEP/REVIVE_DROP/BULLET_DURATION ở trên.
+        const val META_KEY_MINERAL_BOOST = "meta_mineral_boost"
+        const val META_KEY_FIRE_RATE = "meta_fire_rate"
+        const val META_KEY_BOOSTER_DURATION = "meta_booster_duration"
+        const val META_KEY_MAGNET_PULL_SPEED = "meta_magnet_pull_speed"
+        const val META_KEY_PIERCE_CHANCE = "meta_pierce_chance"
+        const val META_KEY_SECOND_WIND = "meta_second_wind"
+
+        /** Task 24 — per-rank mineral amount % bonus. */
+        const val META_MINERAL_BOOST_PER_RANK = 0.10f
+        /** Task 24 — per-rank fire-interval % reduction (faster firing). */
+        const val META_FIRE_RATE_PER_RANK = 0.05f
+        /** Task 24 — per-rank % bonus applied on top of every timed booster duration. */
+        const val META_BOOSTER_DURATION_PER_RANK = 0.08f
+        /** Task 24 — per-rank magnet pull-speed % bonus (distinct from radius). */
+        const val META_MAGNET_PULL_SPEED_PER_RANK = 0.20f
+        /** Task 24 — per-rank chance (0..1) a NORMAL bullet also gets 1 pierce. */
+        const val META_PIERCE_CHANCE_PER_RANK = 0.10f
+
         fun compute(ctx: RunContext): EffectiveStats {
             // 1) Difficulty (incoming dmg multiplier) → inverse hp scale
             val diffHp = 1f / ctx.difficulty.multiplier

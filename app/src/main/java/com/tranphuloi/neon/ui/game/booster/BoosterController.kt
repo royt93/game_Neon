@@ -92,9 +92,15 @@ class BoosterController(
     fun processBoosters() {
         // Round 37 — was logging "$before → $after" every 5ms tick whenever boosters
         // were removed. Redundant with GameState's per-event booster pickup log.
+        // Task 36 — was `boosters -= it` inside this forEach (1 full-list copy
+        // per collected booster, same tick). Flag then filter once instead.
+        var anyCollected = false
         boosters.forEach {
-            if (it.collected) boosters -= it
+            if (it.collected) anyCollected = true
             it.moveObject()
+        }
+        if (anyCollected) {
+            boosters = boosters.filterNot { it.collected }
         }
         updateBoosters()
     }

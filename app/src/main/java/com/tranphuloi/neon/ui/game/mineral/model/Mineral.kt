@@ -28,6 +28,9 @@ data class Mineral(
         magnetTargetY: Float? = null,
         magnetRadius: Float = 0f,
         pickupDistance: Float = 16f,
+        // Task 24 — MAGNET_PULL_SPEED skill node scales pull *speed*, distinct
+        // from BASE_MAGNET which scales pull *radius* (magnetRadius above).
+        pullSpeed: Float = MAGNET_PULL_SPEED,
     ) {
         if (magnetTargetX != null && magnetTargetY != null && magnetRadius > 0f) {
             val dx = magnetTargetX - xOffset
@@ -39,7 +42,7 @@ data class Mineral(
                 return
             }
             if (distSq < rSq) {
-                val pull = MAGNET_PULL_SPEED
+                val pull = pullSpeed
                 xOffset += dx / kotlin.math.sqrt(distSq) * pull
                 yOffset += dy / kotlin.math.sqrt(distSq) * pull
                 if (yOffset <= animationYOffset) alpha -= alphaAnimationSpeed

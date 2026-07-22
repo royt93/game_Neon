@@ -52,6 +52,9 @@ fun IndicatorStatus(
     lastEnemyKillMillis: Long,
     lastMineralPickupMillis: Long,
     lastBoosterPickupMillis: Long,
+    overdriveKillCount: Int = 0,
+    overdriveThreshold: Int = 20,
+    overdriveActive: Boolean = false,
     hasReviveToken: Boolean = false,
     // Round 76 (R76d) — chapter / stage / enemies killed / bosses / ship badge.
     currentChapterId: Int = 0,
@@ -80,6 +83,9 @@ fun IndicatorStatus(
             lastEnemyKillMillis = lastEnemyKillMillis,
             lastMineralPickupMillis = lastMineralPickupMillis,
             lastBoosterPickupMillis = lastBoosterPickupMillis,
+            overdriveKillCount = overdriveKillCount,
+            overdriveThreshold = overdriveThreshold,
+            overdriveActive = overdriveActive,
             hasReviveToken = hasReviveToken,
             activeBulletName = activeBulletName,
             activeBulletColorArgb = activeBulletColorArgb,
@@ -107,6 +113,9 @@ private fun CombatColumn(
     lastEnemyKillMillis: Long,
     lastMineralPickupMillis: Long,
     lastBoosterPickupMillis: Long,
+    overdriveKillCount: Int = 0,
+    overdriveThreshold: Int = 20,
+    overdriveActive: Boolean = false,
     hasReviveToken: Boolean,
     activeBulletName: String = "",
     activeBulletColorArgb: Long = 0L,
@@ -287,6 +296,12 @@ private fun CombatColumn(
             count = comboCount,
             tier = comboTier,
             lastKillMillis = lastEnemyKillMillis,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        OverdriveMeterHud(
+            killCount = overdriveKillCount,
+            threshold = overdriveThreshold,
+            active = overdriveActive,
         )
     }
 }

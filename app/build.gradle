@@ -19,6 +19,16 @@ android {
         versionName = "2026.07.12"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Task 20 — app là com.android.application, plugin androidx.benchmark chỉ
+        // support com.android.library nên không apply được ở đây; suppress lỗi
+        // "unreliable benchmark on debuggable build" thủ công thay vì qua plugin.
+        // ACTIVITY-MISSING: microbenchmark in-process không launch activity (không
+        // dùng AndroidBenchmarkRunner vì runner đó dùng chung cho mọi androidTest
+        // của module, đổi sẽ ảnh hưởng widget/integration test khác).
+        // NOT-AOT-COMPILED: không có build type "benchmark" AOT-compiled riêng cho
+        // :app (lý do như DEBUGGABLE ở trên) — số liệu chấp nhận sai số, ghi chú
+        // trong doc/task/done/20-microbenchmark-module.md.
+        testInstrumentationRunnerArguments["androidx.benchmark.suppressErrors"] = "DEBUGGABLE,EMULATOR,UNLOCKED,ACTIVITY-MISSING,NOT-AOT-COMPILED"
         vectorDrawables {
             useSupportLibrary = true
         }
@@ -173,6 +183,9 @@ dependencies {
        thay dispatcher của app → effect chạy trên main như production → hết crash.
        Compose test rule vẫn dùng cho widget test cô lập (không auto-navigate). */
     androidTestImplementation "androidx.test.uiautomator:uiautomator:2.3.0"
+    // Task 20 — microbenchmark (in-process, JMH-style) cho các hot-path
+    // function đã có JVM proxy ở HotPathPerfTest — đo trên CPU thiết bị thật.
+    androidTestImplementation "androidx.benchmark:benchmark-junit4:1.5.0-alpha07"
     // ui-test-manifest cung cấp activity stub cho ComposeTestRule; cần trên
     // classpath debug (androidTest chạy trên debug build).
     debugImplementation "androidx.compose.ui:ui-test-manifest"

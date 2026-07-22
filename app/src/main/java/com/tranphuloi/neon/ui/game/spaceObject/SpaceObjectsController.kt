@@ -41,8 +41,17 @@ class SpaceObjectsController(
     fun processSpaceObjects() {
         // Round 37 — was logging "removed N" every 5ms tick. Redundant with the
         // per-rock onLaserHit log path. Aggregate stats add noise without signal.
-        spaceObjects.forEach { it.moveObject() }
-        spaceObjects = spaceObjects.toMutableList().apply { removeAll { it.hp <= 0 } }
+        // Task 36 — gate only the list rebuild (rare event); positions mutate
+        // every tick via moveObject(), so the UI notify must stay unconditional
+        // to animate movement.
+        var anyDead = false
+        spaceObjects.forEach {
+            it.moveObject()
+            if (it.hp <= 0) anyDead = true
+        }
+        if (anyDead) {
+            spaceObjects = spaceObjects.filterNot { it.hp <= 0 }
+        }
         updateSpaceObjectsUI()
     }
 

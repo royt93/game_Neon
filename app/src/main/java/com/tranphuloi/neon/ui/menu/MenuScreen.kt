@@ -13,12 +13,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,10 +42,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -114,6 +113,7 @@ fun MenuScreen(
     val achievements = LocalAchievements.current
     val unlockedAchievements by achievements.unlockedFlow.collectAsState(initial = emptySet())
     val bossRushUnlocked = "final_boss_kill" in unlockedAchievements
+    var bossRushLockedHintAt by androidx.compose.runtime.remember { androidx.compose.runtime.mutableLongStateOf(0L) }
 
     val lastModeKey by settings.lastMode.collectAsState(initial = "campaign")
     val mode = GameMode.fromKey(lastModeKey)
@@ -155,106 +155,260 @@ fun MenuScreen(
         // Layer 1b: comet streak (round 28) — parabolic trajectory, 8-15s gap
         CometStreak(modifier = Modifier.fillMaxSize())
 
-        // Layer 2: content — adaptive *scaling* layout via BoxWithConstraints.
+        // Layer 2: content — adaptive *scaling* layout via SubcomposeLayout.
         //   Yêu cầu sản phẩm: menu KHÔNG scroll, mọi thứ phải vừa đúng 1 màn.
-        //   Trước đây dùng ngưỡng cứng 720dp + dp cố định → nội dung nội tại
-        //   ~810dp (≈900dp khi có nút ĐIỂM DANH / checkpoint) > màn hình tầm
-        //   trung (800–860dp) nhưng nhánh ≥720dp KHÔNG scroll → Compose clip
-        //   đáy (mất nút CÀI ĐẶT / version). Giờ tính 1 hệ số `s` từ maxHeight
-        //   rồi co tỉ lệ logo/nút/font/spacing để luôn vừa, không clip, không
-        //   scroll. `mustScroll` chỉ là lưới an toàn cho split-screen/multi-window
-        //   khi đã co tới sàn mà vẫn tràn.
-        BoxWithConstraints(
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            val showDaily = dailyAvailable || dailyClaimedAmount > 0
-            // Chiều cao nội tại (dp) ở scale 1, đo từ tổng các phần tử cố định.
-            val neededH = 810f +
-                (if (showDaily) 72f else 0f) +
-                (if (checkpoint > 0) 23f else 0f)
+        //   Trước đây tính `s` từ ước lượng chiều cao cứng (neededH = 810dp +
+        //   offset theo showDaily/checkpoint) → sai lệch theo device/density/
+        //   độ dài chuỗi dịch → phải verticalScroll dự phòng khi ước lượng sai
+        //   (chính là nguồn gốc bug "menu bị scroll"). Giờ ĐO THẬT chiều cao
+        //   nội dung ở scale 1 bằng 1 pass "probe" vô hình (maxHeight =
+        //   Infinity), tính `s` chính xác từ số đo thật đó, rồi compose lại
+        //   đúng 1 lần ở `s` đã tính (pass "content", cái duy nhất được đặt
+        //   lên màn hình) — luôn vừa khít theo đúng nghĩa, không còn cần
+        //   scroll fallback.
+        SubcomposeLayout(modifier = Modifier.fillMaxSize()) { constraints ->
             val minScale = 0.72f
-            // *0.97f: chừa ~3% lề đáy để phần tử cuối không sát viền do làm tròn.
-            val rawScale = maxHeight.value * 0.97f / neededH
-            val s = rawScale.coerceIn(minScale, 1f)
+            val onClaimDaily: () -> Unit = {
+                scope.launch {
+                    val granted = meta.claimDaily(todayKey)
+                    if (granted > 0) dailyClaimedAmount = granted
+                    Logger.d("MenuScreen: điểm danh +$granted◇")
+                }
+            }
 
-            val baseColumnMod = Modifier
-                .fillMaxSize()
-                // Round 33 — windowInsetsPadding clears notch / status-bar cutout area
-                // so title isn't masked. Activity hides status bar (round 25)
-                // but display cutout still occupies layout space → must reserve.
-                .windowInsetsPadding(WindowInsets.displayCutout)
-                .padding(horizontal = 22.dp, vertical = 24f.sdp(s))
-            // BUG FIX (clip nút chơi): trước đây chỉ scroll khi rawScale < minScale.
-            // Nhưng `neededH` là ƯỚC LƯỢNG chiều cao — nếu nội dung thật cao hơn ước
-            // lượng ở scale s (< 1f), Column không-scroll sẽ CLIP phần giữa (mất nút
-            // "▶ BẮT ĐẦU"). Giờ: hễ đang co (s < 1f) thì luôn cho verticalScroll —
-            // nếu co vừa khít thì không hề scroll (giữ yêu cầu "menu không scroll"),
-            // còn nếu ước lượng lệch thì scroll thay vì clip. Nhánh s >= 1f (dư chỗ,
-            // có Spacer weight) không bao giờ tràn nên không cần scroll (và weight
-            // không hợp lệ trong verticalScroll).
-            val columnMod = if (s < 1f) baseColumnMod.verticalScroll(rememberScrollState())
-            else baseColumnMod
-        Column(
-            modifier = columnMod,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12f.sdp(s)),
-        ) {
-            // ─── Title (stagger 0ms) ───
-            EntryAnim(stepIndex = 0) { TitleBlock(s = s) }
-
-            // Breathing spacer after title — chỉ khi có dư chỗ (s == 1f, màn
-            // cao hơn nội dung). Khi đang co (s < 1f) nội dung vừa khít nên
-            // không thêm spacer (tránh đẩy tràn → clip).
-            if (s >= 1f) Spacer(modifier = Modifier.weight(0.3f))
-
-            // ─── Splash ship logo (stagger 120ms) ───
-            EntryAnim(stepIndex = 1) { ShipLogo(s = s) }
-
-            // ─── Info card (stagger 240ms) ───
-            EntryAnim(stepIndex = 2) {
-                InfoCard(
+            val probeHeightPx = subcompose("probe") {
+                MenuContent(
+                    s = 1f,
+                    showBreathingSpacer = false,
                     mode = mode,
                     runModifier = runModifier,
                     balance = balance,
                     checkpoint = checkpoint,
-                    s = s,
+                    dailyAvailable = dailyAvailable,
+                    dailyClaimedAmount = dailyClaimedAmount,
+                    dailyStreak = dailyStreak,
+                    bossRushUnlocked = bossRushUnlocked,
+                    onPlay = onPlay,
+                    onOpenModePicker = onOpenModePicker,
+                    onOpenModifierPicker = onOpenModifierPicker,
+                    onOpenLoadout = onOpenLoadout,
+                    onOpenShop = onOpenShop,
+                    onOpenStats = onOpenStats,
+                    onOpenBossRush = onOpenBossRush,
+                    onBossRushLockedTap = { bossRushLockedHintAt = System.currentTimeMillis() },
+                    onOpenPractice = onOpenPractice,
+                    onOpenInfo = onOpenInfo,
+                    onOpenSettings = onOpenSettings,
+                    onClaimDaily = onClaimDaily,
                 )
+            }.first()
+                .measure(Constraints(maxWidth = constraints.maxWidth, maxHeight = Constraints.Infinity))
+                .height
+
+            // *0.97f: chừa ~3% lề đáy để phần tử cuối không sát viền do làm tròn.
+            val s = if (probeHeightPx > 0) {
+                (constraints.maxHeight * 0.97f / probeHeightPx).coerceIn(minScale, 1f)
+            } else {
+                1f
             }
 
-            // ─── PLAY button (stagger 360ms) ───
+            val contentPlaceable = subcompose("content") {
+                MenuContent(
+                    s = s,
+                    showBreathingSpacer = true,
+                    mode = mode,
+                    runModifier = runModifier,
+                    balance = balance,
+                    checkpoint = checkpoint,
+                    dailyAvailable = dailyAvailable,
+                    dailyClaimedAmount = dailyClaimedAmount,
+                    dailyStreak = dailyStreak,
+                    bossRushUnlocked = bossRushUnlocked,
+                    onPlay = onPlay,
+                    onOpenModePicker = onOpenModePicker,
+                    onOpenModifierPicker = onOpenModifierPicker,
+                    onOpenLoadout = onOpenLoadout,
+                    onOpenShop = onOpenShop,
+                    onOpenStats = onOpenStats,
+                    onOpenBossRush = onOpenBossRush,
+                    onBossRushLockedTap = { bossRushLockedHintAt = System.currentTimeMillis() },
+                    onOpenPractice = onOpenPractice,
+                    onOpenInfo = onOpenInfo,
+                    onOpenSettings = onOpenSettings,
+                    onClaimDaily = onClaimDaily,
+                )
+            }.first().measure(constraints)
+
+            layout(constraints.maxWidth, constraints.maxHeight) {
+                contentPlaceable.placeRelative(0, 0)
+            }
+        }
+
+        // Layer 3: locked-Boss-Rush tap hint — custom Neon-styled toast (không
+        // dùng Toast.makeText mặc định của Android theo yêu cầu), phong cách
+        // banner đồng bộ với AchievementBanner.
+        LockedFeatureToast(
+            message = stringResource(id = R.string.boss_rush_locked_hint),
+            shownAtMillis = bossRushLockedHintAt,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+    }
+}
+
+/**
+ * Toast báo "tính năng đang khóa" khi bấm nút bị khóa (ví dụ Chiến Boss chưa
+ * mở). Auto-dismiss sau ~2.2s, style theo [AchievementBanner]: nền NeonBgMid,
+ * viền + glow màu NeonMagenta (khớp màu nút Chiến Boss).
+ */
+@Composable
+private fun LockedFeatureToast(
+    message: String,
+    shownAtMillis: Long,
+    modifier: Modifier = Modifier,
+) {
+    if (shownAtMillis == 0L) return
+
+    var nowMillis by remember { androidx.compose.runtime.mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(shownAtMillis) {
+        nowMillis = System.currentTimeMillis()
+        repeat(66) {                                                   // ~2.2s @ 33ms
+            nowMillis = System.currentTimeMillis()
+            kotlinx.coroutines.delay(33L)
+        }
+    }
+    val elapsed = (nowMillis - shownAtMillis).coerceAtLeast(0L)
+    if (elapsed > 2200L) return
+
+    val t = elapsed.toFloat() / 2200f
+    val slideOffset = when {
+        t < 0.15f -> 100f * (1f - t / 0.15f)
+        t < 0.85f -> 0f
+        else -> 100f * ((t - 0.85f) / 0.15f)
+    }
+    val alpha = when {
+        t < 0.15f -> t / 0.15f
+        t < 0.85f -> 1f
+        else -> 1f - (t - 0.85f) / 0.15f
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 40.dp)
+            .graphicsLayer {
+                translationY = slideOffset
+                this.alpha = alpha
+            }
+            .clip(RoundedCornerShape(8.dp))
+            .background(NeonBgMid)
+            .border(BorderStroke(2.dp, NeonMagenta), RoundedCornerShape(8.dp))
+            .neonGlow(NeonMagenta, intensity = 0.45f, radiusFactor = 1.2f)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = message,
+            color = Color.White,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+        )
+    }
+}
+
+/**
+ * Extracted content Column cho [MenuScreen] — dùng bởi SubcomposeLayout ở 2
+ * pass đo: "probe" vô hình ở `s = 1f` (không breathing spacer — Modifier.weight()
+ * cần bounded constraints, mà probe đo dưới maxHeight = Infinity) để lấy chiều
+ * cao nội tại thật, rồi "content" ở `s` đã tính từ số đo đó — pass này mới thật
+ * sự được đặt lên màn hình.
+ */
+@Composable
+private fun MenuContent(
+    s: Float,
+    showBreathingSpacer: Boolean,
+    mode: GameMode,
+    runModifier: com.tranphuloi.neon.ui.game.modifier.RunModifier,
+    balance: Int,
+    checkpoint: Int,
+    dailyAvailable: Boolean,
+    dailyClaimedAmount: Int,
+    dailyStreak: Int,
+    bossRushUnlocked: Boolean,
+    onPlay: () -> Unit,
+    onOpenModePicker: () -> Unit,
+    onOpenModifierPicker: () -> Unit,
+    onOpenLoadout: () -> Unit,
+    onOpenShop: () -> Unit,
+    onOpenStats: () -> Unit,
+    onOpenBossRush: () -> Unit,
+    onBossRushLockedTap: () -> Unit,
+    onOpenPractice: () -> Unit,
+    onOpenInfo: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onClaimDaily: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            // Round 33 — windowInsetsPadding clears notch / status-bar cutout area
+            // so title isn't masked. Activity hides status bar (round 25)
+            // but display cutout still occupies layout space → must reserve.
+            .windowInsetsPadding(WindowInsets.displayCutout)
+            .padding(horizontal = 22.dp, vertical = 24f.sdp(s)),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(12f.sdp(s)),
+    ) {
+        // ─── Title (stagger 0ms) ───
+        EntryAnim(stepIndex = 0) { TitleBlock(s = s) }
+
+        // Breathing spacer after title — chỉ khi có dư chỗ (s == 1f, màn
+        // cao hơn nội dung) VÀ đang ở pass "content" thật (không phải probe —
+        // Modifier.weight() cần bounded constraints, probe đo dưới
+        // maxHeight = Infinity nên không thể đặt spacer weight ở đó).
+        if (showBreathingSpacer && s >= 1f) Spacer(modifier = Modifier.weight(0.3f))
+
+        // ─── Splash ship logo (stagger 120ms) ───
+        EntryAnim(stepIndex = 1) { ShipLogo(s = s) }
+
+        // ─── Info card (stagger 240ms) ───
+        EntryAnim(stepIndex = 2) {
+            InfoCard(
+                mode = mode,
+                runModifier = runModifier,
+                balance = balance,
+                checkpoint = checkpoint,
+                s = s,
+            )
+        }
+
+        // ─── PLAY button (stagger 360ms) ───
+        EntryAnim(stepIndex = 3) {
+            PlayButton(
+                hasCheckpoint = checkpoint > 0,
+                s = s,
+                onClick = {
+                    Logger.d("MenuScreen: PLAY tapped (checkpoint=$checkpoint)")
+                    onPlay()
+                },
+            )
+        }
+
+        // Wave 21 (#4) — nút ĐIỂM DANH: hiện khi còn quà hôm nay; sau khi
+        // claim đổi thành thông báo "+X◇" (streak ngày liên tiếp).
+        if (dailyAvailable || dailyClaimedAmount > 0) {
             EntryAnim(stepIndex = 3) {
-                PlayButton(
-                    hasCheckpoint = checkpoint > 0,
+                DailyCheckInButton(
+                    claimed = dailyClaimedAmount > 0,
+                    claimedAmount = dailyClaimedAmount,
+                    streak = dailyStreak,
                     s = s,
-                    onClick = {
-                        Logger.d("MenuScreen: PLAY tapped (checkpoint=$checkpoint)")
-                        onPlay()
-                    },
+                    onClaim = onClaimDaily,
                 )
             }
-
-            // Wave 21 (#4) — nút ĐIỂM DANH: hiện khi còn quà hôm nay; sau khi
-            // claim đổi thành thông báo "+X◇" (streak ngày liên tiếp).
-            if (dailyAvailable || dailyClaimedAmount > 0) {
-                EntryAnim(stepIndex = 3) {
-                    DailyCheckInButton(
-                        claimed = dailyClaimedAmount > 0,
-                        claimedAmount = dailyClaimedAmount,
-                        streak = dailyStreak,
-                        s = s,
-                        onClaim = {
-                            scope.launch {
-                                val granted = meta.claimDaily(todayKey)
-                                if (granted > 0) dailyClaimedAmount = granted
-                                Logger.d("MenuScreen: điểm danh +$granted◇")
-                            }
-                        },
-                    )
-                }
-                // Wave 25 fix — tách nút ĐIỂM DANH (CTA thưởng, thuộc cụm hero/PLAY)
-                // khỏi label nhóm "TRƯỚC TRẬN" bên dưới (user: "bị khít"). +~28dp tổng.
-                Spacer(modifier = Modifier.height(8f.sdp(s)))
-            }
+            // Wave 25 fix — tách nút ĐIỂM DANH (CTA thưởng, thuộc cụm hero/PLAY)
+            // khỏi label nhóm "TRƯỚC TRẬN" bên dưới (user: "bị khít"). +~28dp tổng.
+            Spacer(modifier = Modifier.height(8f.sdp(s)))
+        }
 
             // Round 70 fix (Issue 1) — KHÔNG thêm Spacer riêng. Column outer
             // đã có `verticalArrangement = Arrangement.spacedBy(12.dp)` → gap
@@ -365,6 +519,7 @@ fun MenuScreen(
                                     onOpenBossRush()
                                 } else {
                                     Logger.d("MenuScreen: BOSS RUSH locked (chưa clear campaign)")
+                                    onBossRushLockedTap()
                                 }
                             },
                         )
@@ -436,9 +591,7 @@ fun MenuScreen(
             }
 
         }
-        }       // end BoxWithConstraints (round 31)
     }
-}
 
 /**
  * Stagger entry animation wrapper. Each child fades in + slides up 20px on

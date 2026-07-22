@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 fun Vignette(
     hp: Int,
     modifier: Modifier = Modifier,
+    overdriveActive: Boolean = false,
 ) {
     val palette = com.tranphuloi.neon.common.LocalNeonPalette.current
     val lowHp = hp in 1..299
@@ -60,6 +61,21 @@ fun Vignette(
                         Color.Transparent,
                         Color.Transparent,
                         palette.redAlert.copy(alpha = pulse),
+                    ),
+                    center = Offset(size.width / 2, size.height / 2),
+                    radius = baseRadius * 1.4f,
+                )
+            )
+        }
+        // Task 31 — Overdrive bullet-time cyan pulse. Ungated by lowHp: both can
+        // show at once (cyan ring outside the tighter red-alert ring).
+        if (overdriveActive) {
+            drawRect(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color.Transparent,
+                        palette.cyan.copy(alpha = pulse),
                     ),
                     center = Offset(size.width / 2, size.height / 2),
                     radius = baseRadius * 1.4f,

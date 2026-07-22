@@ -46,7 +46,7 @@ Enhance / Optimize / New feature, mỗi nhóm user chọn qua AskUserQuestion:
 | 17 | [Per-ship loadout persistence](../done/17-per-ship-loadout-persistence.md) | Enhance (8c) | Vừa (audit call site global setting) | ✅ Done (4/4 slice, 2026-07-11, verify device Pixel 7 Pro) |
 | 18 | [Status chains + curses](18-status-chains-curses.md) | Enhance (Wave 4 combat) | Cao (cân bằng buff/curse) | 📋 TODO |
 | 19 | [Color blind full migration](../done/19-colorblind-full-migration.md) | Enhance (accessibility) | Thấp (nhiều file nhỏ lẻ) | ✅ Done (4/4 slice, 2026-07-12, verify device Pixel 7 Pro) |
-| 20 | [Microbenchmark module](20-microbenchmark-module.md) | Perf (CCc) | Cao (module Gradle mới + device) | 📋 TODO |
+| 20 | [Microbenchmark module](../done/20-microbenchmark-module.md) | Perf (CCc) | Cao (module Gradle mới + device) | ✅ Done (macro+micro baseline đo trên S24 Ultra, 2026-07-21) |
 | 21 | [Quick restart hotkey](../done/21-quick-restart-hotkey.md) | New (QoL) | Thấp (tái dùng logic có sẵn) | ✅ Done (4/4 slice, 2026-07-11, verify device Pixel 7 Pro) |
 | 22 | [One-handed mode](../done/22-one-handed-mode.md) | New (QoL) | Thấp (layout chồng lấn) | ✅ Done (4/4 slice, 2026-07-11, verify device Pixel 7 Pro) |
 
@@ -60,19 +60,19 @@ Enhance / New / Exclusive (tính năng độc quyền) / Performance, mỗi nhó
 | # | Task | Nhóm | Rủi ro | Trạng thái |
 |---|---|---|---|---|
 | 23 | [Wire bossesOnly modifier](../done/23-wire-bossesonly-modifier.md) | Enhance | Thấp (field cô lập, không đụng entity khác) | ✅ Done (2026-07-19, verify device Pixel 7 Pro — 953 test pass) |
-| 24 | [Mở rộng skill-tree](24-expand-skill-tree.md) | Enhance | Vừa (cân bằng node mới + persistence) | 📋 TODO |
-| 25 | [Booster synergy](25-booster-synergy.md) | Enhance | Vừa (combo 26 booster, dễ OP) | 📋 TODO |
+| 24 | [Mở rộng skill-tree](../done/24-expand-skill-tree.md) | Enhance | Vừa (cân bằng node mới + persistence) | ✅ Done (2026-07-19, verify device Samsung SM-S928B — 6 node mới, mua+unlock đúng thứ tự, chạy Boss Rush nhiều màn không crash) |
+| 25 | [Booster synergy](../done/25-booster-synergy.md) | Enhance | Vừa (combo 26 booster, dễ OP) | ✅ Done (2026-07-20, verify device Samsung SM-S928B — SHIELD_WEAPON xác nhận log đầy đủ, MAGNET_SUPERCHARGE xác nhận cơ chế nền, VAMPIRE_DMG/banner UI suy luận qua pattern-reuse) |
 | 26 | [Achievement round 2](../done/26-achievement-round-2.md) | Enhance | Thấp (tái dùng repo có sẵn) | ✅ Done (2026-07-19, verify device Pixel 7 Pro — 7 achievement mới, 957 test pass) |
 | 27 | [Enemy type mới](../done/27-new-enemy-type.md) | New | Vừa (attack pattern riêng + spawn table) | ✅ Done (2026-07-19, verify device Pixel 7 Pro — Amip Vũ Trụ mitosis-on-death, 956 test pass, đã playtest trực tiếp qua Luyện tập Ch1 (swap tạm toàn bộ slot địch → enemy_amoeba, revert sau test): xác nhận trực quan tách 2 con ~40% size, không tự tách tiếp, không crash) |
-| 28 | [Endless/Survival mode](28-endless-survival-mode.md) | New | Cao (scaling độ khó vô hạn + leaderboard riêng) | 📋 TODO |
+| 28 | [Endless/Survival mode](../done/28-endless-survival-mode.md) | New | Cao (scaling độ khó vô hạn + leaderboard riêng) | ✅ Done (phát hiện lại 2026-07-20 — đã code+test+tune balance device từ trước qua "Wave" cũ, chỉ đóng sổ doc) |
 | 29 | [Weekly/seasonal event](../done/29-weekly-seasonal-event.md) | New | Vừa (lịch UTC + content rotation) | ✅ Done (2026-07-19, verify device Samsung SM-S928B) |
-| 30 | [Boss Rush mode](30-boss-rush-mode.md) | New | Vừa (tái dùng boss AI, cần chuỗi transition mới) | 🟡 In progress (2026-07-19 — đã tồn tại sẵn từ Wave trước, reconcile 3 điểm Slice 0 lệch: thứ tự boss/heal/entry point; build+test xanh; Slice 2/3 xác nhận gap thật nhưng ngoài phạm vi; chờ verify device) |
-| 31 | [Overdrive bullet-time](31-overdrive-bullet-time.md) | Exclusive | Cao (đụng timing toàn bộ game loop) | 📋 TODO |
-| 32 | [Nhạc nền reactive combat](32-reactive-combat-music.md) | Exclusive | Vừa (đụng AudioPlayer/ExoPlayer, cần asset nhạc lớp) | 📋 TODO |
+| 30 | [Boss Rush mode](../done/30-boss-rush-mode.md) | New | Vừa (tái dùng boss AI, cần chuỗi transition mới) | ✅ Done (2026-07-19, verify device Samsung SM-S928B — 4/4 check Slice 4: locked-state, chapter-1 direct-launch, heal-cap, không lọt vào modifier picker) |
+| 31 | [Overdrive bullet-time](../done/31-overdrive-bullet-time.md) | Exclusive | Cao (đụng timing toàn bộ game loop) | ✅ Done (2026-07-20, verify device TECNO BG6 — meter tích độc lập, trigger đúng ngưỡng 20, vignette cyan, tick-skip 40% qua idiom frameCount có sẵn, reset/refill đúng) |
+| 32 | [Nhạc nền reactive combat](../done/32-reactive-combat-music.md) | Exclusive | Vừa (đụng AudioPlayer/ExoPlayer, cần asset nhạc lớp) | ✅ Done (phát hiện lại 2026-07-20 — volume-based intensity đã code+verify từ Round 19/8c, chỉ đóng sổ doc) |
 | 33 | [Ship fusion](33-ship-fusion.md) | Exclusive | Cao (cân bằng + UI chọn tổ hợp mới) | 📋 TODO |
 | 34 | [Procedural run-modifier draft] (34-procedural-run-modifier-draft.md) | Exclusive | Cao (RNG cân bằng, dễ tạo modifier phá game) | 📋 TODO |
 | 35 | [Audit Compose recomposition](../done/35-audit-compose-recomposition.md) | Performance | Thấp (chỉ thêm annotation/audit, không đổi logic) | ✅ Done (2026-07-19, verify device Pixel 7 Pro) |
-| 36 | [Giảm allocation game loop](36-reduce-gameloop-allocation.md) | Performance | Vừa (đụng hot path nhiều controller) | 📋 TODO |
+| 36 | [Giảm allocation game loop](../done/36-reduce-gameloop-allocation.md) | Performance | Vừa (đụng hot path nhiều controller) | ✅ Done (2026-07-19, verify device Samsung SM-S928B — Java/Dalvik Heap Pss giảm 42%/60% dù run "sau" chơi lâu/xa hơn, TOTAL PSS +1.5%) |
 | 37 | [Refresh baseline profile](../done/37-refresh-baseline-profile.md) | Performance | Thấp (đã có module, chỉ regenerate) | ✅ Done (2026-07-18, verify device Pixel 7 Pro) |
 | 38 | [Canvas batching audit](../done/38-canvas-batching-audit.md) | Performance | Thấp (audit + tinh chỉnh Canvas hiện có) | ✅ Done (2026-07-19, verify device Pixel 7 Pro — tìm+sửa 3 bug double-release PathPool) |
 

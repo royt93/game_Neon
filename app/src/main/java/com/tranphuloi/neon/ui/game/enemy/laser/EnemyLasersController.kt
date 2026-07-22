@@ -108,6 +108,12 @@ class EnemyLasersController(
                 }
             }
         }
+        // Task 36 — was calling destroyEnemyLaser() (a filterNot-by-id, O(n)
+        // scan) inside this forEach per over-threshold laser → O(n²) when many
+        // cull the same tick. Flag then filter once by recomputing the same
+        // predicate — no id/equals concern since it filters each item's own
+        // properties, not object identity.
+        var anyDestroyed = false
         enemyLasers.forEach {
             it.moveLaser()
             // Cull đáy (mọi đạn) + Wave 17: cull ĐỈNH cho đạn HOMING quay đầu bay
@@ -116,21 +122,19 @@ class EnemyLasersController(
             // Đạn thường spawn ~y170 đi xuống nên ngưỡng -250 không giết nhầm.
             val offSide = it.xOffset < -SIDE_CULL || it.xOffset > screenWidth + SIDE_CULL
             if (it.yOffset > effectiveHeight || it.yOffset < TOP_CULL_Y || offSide || it.destroyed) {
-                destroyEnemyLaser(it)
+                anyDestroyed = true
+            }
+        }
+        if (anyDestroyed) {
+            enemyLasers = enemyLasers.filterNot {
+                val offSide = it.xOffset < -SIDE_CULL || it.xOffset > screenWidth + SIDE_CULL
+                it.yOffset > effectiveHeight || it.yOffset < TOP_CULL_Y || offSide || it.destroyed
             }
         }
         updateShipLasers()
     }
 
     fun hasEnemyLasers() = enemyLasers.isNotEmpty()
-
-    private fun destroyEnemyLaser(laser: Laser) {
-        // Wave 17 — xoá theo ID (duy nhất/UUID), KHÔNG dùng `- laser` (value-equals).
-        // EnemyLaser là data class với `id` ở body (không thuộc equals) → 2 đạn
-        // cùng tham số mà trùng vị trí sau khi bay sẽ bị `- laser` xoá NHẦM con
-        // còn sống. Lọc theo id diệt đúng instance.
-        enemyLasers = enemyLasers.filterNot { it.id == laser.id }
-    }
 
     private fun updateShipLasers() {
         setEnemyLasers(enemyLasers)

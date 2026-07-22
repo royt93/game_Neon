@@ -73,6 +73,9 @@ data class Ship(
     // controller consumes the token: hp restored to 300 + 1.5s i-frames + banner.
     // Max one stored at a time; further pickups while held are wasted (rare anyway).
     val hasReviveToken: Boolean = false,
+    // Task 24 — SECOND_WIND skill node one-time revive. Reset to false every
+    // run since Ship is constructed fresh each time Game.route is entered.
+    val secondWindUsed: Boolean = false,
     // Round 60 (38x) — 4 timed flags surfaced on Ship so render/laser code can
     // observe them without reaching into ShipController's private state. End
     // timestamps are kept private in ShipController; the booleans are flipped

@@ -53,6 +53,7 @@ import com.tranphuloi.neon.ui.game.controls.HazardOverlay
 import com.tranphuloi.neon.ui.game.controls.PhaseTransitionBanner
 import com.tranphuloi.neon.ui.game.controls.SmartBombButton
 import com.tranphuloi.neon.ui.game.controls.StageBanner
+import com.tranphuloi.neon.ui.game.controls.SynergyBanner
 import com.tranphuloi.neon.ui.game.controls.WaveClearBanner
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -606,6 +607,9 @@ fun GameScreen(
             mineralsEarnedTotal = gameState.mineralsEarnedTotal,
             comboCount = gameState.comboCount,
             comboTier = gameState.comboTier,
+            overdriveKillCount = gameState.overdriveKillCount,
+            overdriveThreshold = gameState.overdriveThreshold,
+            overdriveActive = gameState.overdriveActive,
             lastEnemyKillMillis = gameState.lastEnemyKillMillis,
             lastMineralPickupMillis = gameState.lastMineralPickupMillis,
             lastBoosterPickupMillis = gameState.lastBoosterPickupMillis,
@@ -812,7 +816,8 @@ fun GameScreen(
         // Vignette dark frame (1c cinematic).
         Vignette(
             hp = gameState.ship.hp,
-            modifier = Modifier.fillMaxSize().zIndex(150f)
+            modifier = Modifier.fillMaxSize().zIndex(150f),
+            overdriveActive = gameState.overdriveActive,
         )
         // 6c: Slow-motion critical pulse vignette — red radial gradient pulsing 2× sec,
         // gated by reduceMotion. Layered above hp vignette so boss-low-HP reads even
@@ -960,6 +965,15 @@ fun GameScreen(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .zIndex(450f)
+        )
+        // Task 25: Booster synergy banner — offset 120dp below center, once per run.
+        SynergyBanner(
+            kind = gameState.synergyKind,
+            shownAtMillis = gameState.synergyShownAtMillis,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(top = 120.dp)
+                .zIndex(425f)
         )
         // 47x: Story dialogue — round 24: TOP anchored (was bottom, overlapped ship).
         // Ship is locked at maxYOffset (screenHeight-140) → bottom half is gameplay

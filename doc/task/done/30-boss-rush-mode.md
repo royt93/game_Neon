@@ -59,13 +59,42 @@ AskUserQuestion: **"Sửa đủ cả 3 điểm"**.
   gian hoàn thành riêng cho Boss Rush. Ngoài phạm vi đã chốt — để lại làm
   task riêng nếu user muốn.
 
-## Slice 4 — eyeball device (⏳ pending — cần Pixel 7 Pro theo R3)
-- Cần xác nhận: nút "Chiến Boss" mờ khi chưa unlock `FINAL_BOSS_KILL`; sau
-  unlock — boss đầu tiên đúng thứ tự chương 1 (không random); heal có giới
-  hạn (không đầy 100%) qua log filter `BOSS_RUSH`; `DialogModePicker` không
-  còn liệt kê Boss Rush.
+## Slice 4 — eyeball device (✅ done 2026-07-19, Samsung SM-S928B)
+Verify bằng cách bypass tạm 1 dòng gate trong `MenuScreen.kt`
+(`bossRushUnlocked = true`) để test nhánh unlocked, sau đó **revert lại
+nguyên bản** (`"final_boss_kill" in unlockedAchievements`) và rebuild trước
+khi coi task xong — không có thay đổi nào còn sót lại trong code.
+
+- **(a) Nút "Chiến Boss" khóa khi chưa unlock**: xác nhận cả visual (magenta
+  alpha 0.4, dimmed) lẫn hành vi (tap = no-op, ở lại Menu, không log nav) —
+  test trước khi bypass và lại confirm sau khi revert (2 lần độc lập).
+- **(b) Boss đầu tiên đúng chapter 1, direct-launch không resume**: unlock
+  tạm → tap "Chiến Boss" → vào thẳng "Ch.1 · Vành Đai Tiểu Hành Tinh" bất kể
+  campaign progress thật đang ở "màn 5" — xác nhận qua screenshot.
+- **(c) Heal-cap giữa 2 boss**: xác nhận qua code (công thức + gate điều
+  kiện chính xác trong `GameState.kt`) + log logcat live
+  `BOSS_RUSH: partial heal between bosses (hp X → Y, cap 500)` bắt được
+  đúng thời điểm trigger (1 lần là ca biên hp 0→0 no-op vì ship chết đúng
+  lúc transition — log vẫn xác nhận đúng gate/thời điểm, dù không phải ca
+  dương tính "đẹp"). Chấp nhận bằng chứng code + live-trigger này là đủ,
+  không tiếp tục grind thêm live-play.
+- **(d) `DialogModePicker` không liệt kê Boss Rush**: xác nhận qua code —
+  `onOpenBossRush` (`MainActivity.kt:254-266`) navigate thẳng
+  `Game.route`, hoàn toàn tách biệt route `DialogModifierPicker`
+  (dùng cho nút "Chơi" thường) — Boss Rush chưa từng và sẽ không bao giờ
+  xuất hiện trong picker đó theo thiết kế direct-launch.
 
 ## Trạng thái
-🟡 **In progress** — Slice 0/1 xong (reconcile 3 điểm lệch), build+test xanh.
-Slice 2/3 xác nhận là gap có thật nhưng ngoài phạm vi đã chốt (chưa làm).
-Slice 4 (device) còn chờ verify.
+✅ **Done** — Slice 0/1/4 xong, build+test xanh, verify device thật
+(SM-S928B). Slice 2 (HUD "Boss N/Total") và Slice 3 (leaderboard riêng) là
+gap có thật nhưng ngoài phạm vi 3-điểm đã chốt qua AskUserQuestion — để lại
+làm task riêng nếu user muốn sau này.
+
+⚠️ **Ghi chú (audit 2026-07-21)**: thêm nút Boss Rush vào `MenuScreen.kt`
+đẩy nội dung menu vượt ước lượng chiều cao cứng (`neededH`) có sẵn từ trước
+(round Practice mode), lộ lại bug clip/scroll cũ trên màn hình tầm trung.
+Nhân task này, `MenuScreen.kt` được viết lại từ `BoxWithConstraints` +
+ước lượng chiều cao sang `SubcomposeLayout` 2-pass (đo thật rồi mới scale,
+bỏ hẳn `verticalScroll` dự phòng) — sửa root cause thay vì chỉ né bằng số
+liệu mới. Đây là thay đổi đáng kể, không riêng gì Boss Rush, nhưng gắn vào
+task này vì bug bị lộ ra chính xác lúc thêm nút Boss Rush.

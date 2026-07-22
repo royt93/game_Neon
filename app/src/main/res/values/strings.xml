@@ -24,6 +24,15 @@
     <string name="mineral_content_description">Khoáng vật</string>
     <!-- 14c Auto-revive token -->
     <string name="revived_banner">Hồi sinh!</string>
+    <!-- Task 25: Booster synergy banners -->
+    <string name="synergy_shield_weapon_title">Khiên + Hỏa lực!</string>
+    <string name="synergy_shield_weapon_desc">+15% sát thương</string>
+    <string name="synergy_magnet_supercharge_title">Kinh tế!</string>
+    <string name="synergy_magnet_supercharge_desc">+25% giá trị khoáng vật</string>
+    <string name="synergy_vampire_dmg_title">Hút máu!</string>
+    <string name="synergy_vampire_dmg_desc">+10% hút máu</string>
+    <!-- Task 31: Overdrive bullet-time meter -->
+    <string name="overdrive_active_label">OVERDRIVE!</string>
     <!-- 17c Daily challenge -->
     <string name="daily_challenge_label">Thử Thách Ngày</string>
     <string name="daily_seed_label">Ngày %1$s</string>
@@ -65,6 +74,7 @@
     <string name="voice_new_best_2">Phá kỷ lục!</string>
     <string name="voice_new_best_3">Đỉnh cao mới!</string>
     <string name="settings_voice_announcer">Lời thoại trận đấu</string>
+    <string name="boss_rush_locked_hint">🔒 Hạ bá vương thiên hà để mở khóa Chiến Boss</string>
 
     <!-- Task 04 — Boss dialogue / narrative / epilogue (default = VN) -->
     <string name="story_beat_ch1">Nửa đường Vành đai rồi. Giữ vững tay lái, phi công.</string>
