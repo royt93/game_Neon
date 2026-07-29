@@ -44,7 +44,7 @@ Enhance / Optimize / New feature, mỗi nhóm user chọn qua AskUserQuestion:
 | # | Task | Nhóm | Rủi ro | Trạng thái |
 |---|---|---|---|---|
 | 17 | [Per-ship loadout persistence](../done/17-per-ship-loadout-persistence.md) | Enhance (8c) | Vừa (audit call site global setting) | ✅ Done (4/4 slice, 2026-07-11, verify device Pixel 7 Pro) |
-| 18 | [Status chains + curses](18-status-chains-curses.md) | Enhance (Wave 4 combat) | Cao (cân bằng buff/curse) | 📋 TODO |
+| 18 | [Status chains + curses](../done/18-status-chains-curses.md) | Enhance (Wave 4 combat) | Cao (cân bằng buff/curse) | ✅ Done (4/4 slice, 2026-07-28, verify device — chain-spread xác nhận qua logcat thật; curse-picker text xác nhận qua code+unit test, chưa qua mắt thường do chưa sống tới boss) |
 | 19 | [Color blind full migration](../done/19-colorblind-full-migration.md) | Enhance (accessibility) | Thấp (nhiều file nhỏ lẻ) | ✅ Done (4/4 slice, 2026-07-12, verify device Pixel 7 Pro) |
 | 20 | [Microbenchmark module](../done/20-microbenchmark-module.md) | Perf (CCc) | Cao (module Gradle mới + device) | ✅ Done (macro+micro baseline đo trên S24 Ultra, 2026-07-21) |
 | 21 | [Quick restart hotkey](../done/21-quick-restart-hotkey.md) | New (QoL) | Thấp (tái dùng logic có sẵn) | ✅ Done (4/4 slice, 2026-07-11, verify device Pixel 7 Pro) |

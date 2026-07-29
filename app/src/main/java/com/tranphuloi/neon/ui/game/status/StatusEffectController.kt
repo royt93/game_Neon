@@ -1,7 +1,30 @@
 package com.tranphuloi.neon.ui.game.status
 
 import com.tranphuloi.neon.ui.game.enemy.ship.model.Enemy
+import com.tranphuloi.neon.ui.game.laser.LightningChain
 import com.tranphuloi.neon.utils.Logger
+
+/**
+ * Task 18 Slice 1 — lọc các địch (trừ [excludeEnemyId]) nằm trong [radius] quanh
+ * ([originX], [originY]). Pure function, không side-effect — dùng cho status chain-spread
+ * và unit test độc lập. [radius] mặc định dùng chung [LightningChain.RADIUS] (cùng 120f)
+ * để tránh 2 hằng số bán kính lệch nhau khi tune balance sau này.
+ */
+internal fun enemiesInChainRadius(
+    enemies: List<Enemy>,
+    originX: Float,
+    originY: Float,
+    excludeEnemyId: String,
+    radius: Float = LightningChain.RADIUS,
+): List<Enemy> = enemies.filter { enemy ->
+    if (enemy.enemyId == excludeEnemyId) return@filter false
+    if (enemy.destroyed || enemy.hp <= 0f) return@filter false
+    val ex = enemy.xOffset + enemy.width / 2
+    val ey = enemy.yOffset + enemy.height / 2
+    val dx = ex - originX
+    val dy = ey - originY
+    kotlin.math.sqrt(dx * dx + dy * dy) <= radius
+}
 
 /**
  * Wave 4 (41x) round 34 — manages active status effects per enemy.
@@ -19,6 +42,15 @@ class StatusEffectController {
 
     private val effectsByEnemy: MutableMap<String, MutableList<ActiveStatusEffect>> =
         mutableMapOf()
+
+    /**
+     * Task 18 Slice 1 — implementation of the neighbor-spread step, wired in by
+     * GameState once the live `enemies` list is in scope (same "assign the real
+     * behavior later" idea as the game loop's other deferred refs). `applyWithChain`
+     * invokes this for chainable effects; left `null` it's simply a no-op (e.g. in
+     * unit tests that only exercise [apply]).
+     */
+    var chainSpreadHandler: ((enemyId: String, type: StatusEffect, hitX: Float, hitY: Float, nowMillis: Long) -> Unit)? = null
 
     init {
         Logger.d("StatusEffectController init")
@@ -42,6 +74,19 @@ class StatusEffectController {
             list.add(refreshed)
             Logger.v { "StatusEffect: apply $type on enemy=${enemyId.take(6)} (expires=${refreshed.expiresAtMillis})" }
         }
+    }
+
+    /**
+     * Task 18 Slice 1 — primary entrypoint for hit-driven status application.
+     * Applies [type] to [enemyId], then — only when [type] is [StatusEffect.chainable] —
+     * runs [chainSpreadHandler] once to probabilistically spread it to nearby enemies.
+     * This is the only public path that can trigger chain-spread; the neighbor applies
+     * inside [chainSpreadHandler] call [apply] directly (not this method) so a single
+     * hit only ever spreads 1 hop, never re-chains.
+     */
+    fun applyWithChain(enemyId: String, type: StatusEffect, nowMillis: Long, hitX: Float, hitY: Float) {
+        apply(enemyId, type, nowMillis)
+        if (type.chainable) chainSpreadHandler?.invoke(enemyId, type, hitX, hitY, nowMillis)
     }
 
     /** Active effect types currently affecting [enemyId]. Empty if none. */
@@ -116,4 +161,9 @@ class StatusEffectController {
 
     /** Snapshot for UI/debug. Size = total active effects across all enemies. */
     fun totalActive(): Int = effectsByEnemy.values.sumOf { it.size }
+
+    companion object {
+        /** Task 18 Slice 1 — per-neighbor probability of spreading a chainable effect. */
+        const val CHAIN_SPREAD_CHANCE: Float = 0.35f
+    }
 }

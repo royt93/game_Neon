@@ -1,5 +1,6 @@
 package com.tranphuloi.neon.ui.game.buff
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 
 /**
@@ -11,6 +12,11 @@ import androidx.compose.runtime.Immutable
  * Each buff has displayName, description, glyph icon, and multiplicative
  * effects on hp/damage/speed/magnet/score. ActiveBuffs holder in GameState
  * sums multipliers when feeding EffectiveStats.
+ *
+ * Task 18 — curse entries (GLASS_CANNON/SLOTH/RECKLESS) set [displayNameRes]/
+ * [descriptionRes] and are resolved via stringResource() in DialogBuffPicker;
+ * the 9 original entries keep hardcoded [displayName]/[description] (existing
+ * precedent, out of Task 18's scope).
  */
 @Immutable
 enum class RunBuff(
@@ -23,6 +29,8 @@ enum class RunBuff(
     val speedMul: Float = 1f,
     val magnetMul: Float = 1f,
     val scoreMul: Float = 1f,
+    @StringRes val displayNameRes: Int? = null,
+    @StringRes val descriptionRes: Int? = null,
 ) {
     HP_BOOST(
         key = "buff_hp",
@@ -93,6 +101,38 @@ enum class RunBuff(
         glyph = "✪",
         hpMul = 0.70f,
         scoreMul = 2.0f,
+    ),
+    // Task 18 — curse buffs: đánh đổi nặng hơn 9 entry gốc, string resolve qua
+    // stringResource() (displayNameRes/descriptionRes) thay vì hardcode.
+    GLASS_CANNON(
+        key = "buff_glass_cannon",
+        displayName = "Pháo thủy tinh",
+        description = "+80% sát thương, -50% HP",
+        glyph = "💎",
+        hpMul = 0.50f,
+        damageMul = 1.80f,
+        displayNameRes = com.tranphuloi.neon.R.string.buff_glass_cannon_name,
+        descriptionRes = com.tranphuloi.neon.R.string.buff_glass_cannon_desc,
+    ),
+    SLOTH(
+        key = "buff_sloth",
+        displayName = "Lười biếng",
+        description = "Điểm ×1.6, tốc độ -30%",
+        glyph = "🐌",
+        scoreMul = 1.60f,
+        speedMul = 0.70f,
+        displayNameRes = com.tranphuloi.neon.R.string.buff_sloth_name,
+        descriptionRes = com.tranphuloi.neon.R.string.buff_sloth_desc,
+    ),
+    RECKLESS(
+        key = "buff_reckless",
+        displayName = "Liều lĩnh",
+        description = "+50% bán kính hút, -25% HP",
+        glyph = "🧲",
+        hpMul = 0.75f,
+        magnetMul = 1.50f,
+        displayNameRes = com.tranphuloi.neon.R.string.buff_reckless_name,
+        descriptionRes = com.tranphuloi.neon.R.string.buff_reckless_desc,
     );
 
     companion object {

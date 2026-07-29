@@ -94,4 +94,12 @@
     <string name="story_epilogue_easy">Vành sáng bình minh trải khắp các hành tinh vừa được cứu. Một khởi đầu đẹp, phi công — thiên hà sẽ nhớ tên anh.</string>
     <string name="story_epilogue_normal">Khói tan, các vì sao lặng yên trở lại. Đội trưởng, anh đã trả lại bình yên cho cả một thiên hà.</string>
     <string name="story_epilogue_hard">Ngay cả bóng tối sâu nhất cũng phải lùi bước. Tên anh giờ khắc giữa những vì sao — huyền thoại Sky Force U*S*A.</string>
+
+    <!-- Task 18: curse buffs -->
+    <string name="buff_glass_cannon_name">Pháo thủy tinh</string>
+    <string name="buff_glass_cannon_desc">+80% sát thương, -50% HP</string>
+    <string name="buff_sloth_name">Lười biếng</string>
+    <string name="buff_sloth_desc">Điểm ×1.6, tốc độ -30%</string>
+    <string name="buff_reckless_name">Liều lĩnh</string>
+    <string name="buff_reckless_desc">+50% bán kính hút, -25% HP</string>
 </resources>

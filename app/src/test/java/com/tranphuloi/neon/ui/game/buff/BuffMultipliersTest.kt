@@ -60,6 +60,34 @@ class BuffMultipliersTest {
     }
 
     @Test
+    fun `GLASS_CANNON trades hp for damage harder than BERSERKER`() {
+        val m = BuffMultipliers.from(listOf(RunBuff.GLASS_CANNON))
+        assertEquals(0.50f, m.hpMul, EPS)
+        assertEquals(1.80f, m.damageMul, EPS)
+    }
+
+    @Test
+    fun `SLOTH trades speed for score`() {
+        val m = BuffMultipliers.from(listOf(RunBuff.SLOTH))
+        assertEquals(1.60f, m.scoreMul, EPS)
+        assertEquals(0.70f, m.speedMul, EPS)
+    }
+
+    @Test
+    fun `RECKLESS trades hp for magnet radius`() {
+        val m = BuffMultipliers.from(listOf(RunBuff.RECKLESS))
+        assertEquals(0.75f, m.hpMul, EPS)
+        assertEquals(1.50f, m.magnetMul, EPS)
+    }
+
+    @Test
+    fun `curse buffs carry a string-resource id for i18n`() {
+        assertEquals(true, RunBuff.GLASS_CANNON.displayNameRes != null)
+        assertEquals(true, RunBuff.SLOTH.descriptionRes != null)
+        assertEquals(true, RunBuff.RECKLESS.displayNameRes != null)
+    }
+
+    @Test
     fun `pickThree returns three distinct buffs`() {
         val picks = RunBuff.pickThree()
         assertEquals(3, picks.size)

@@ -19,9 +19,10 @@ import androidx.compose.runtime.Immutable
 enum class StatusEffect(
     val durationMs: Long,
     val tintColorArgb: Long,                // 0xAARRGGBB tint overlay color
+    val chainable: Boolean = false,         // Task 18 Slice 1 — có lan sang địch gần khi trúng đòn
 ) {
-    BURN(durationMs = 3000L, tintColorArgb = 0x55FF6020),   // orange-red translucent
-    SLOW(durationMs = 2500L, tintColorArgb = 0x4400D4FF),   // cyan translucent
+    BURN(durationMs = 3000L, tintColorArgb = 0x55FF6020, chainable = true),   // orange-red translucent
+    SLOW(durationMs = 2500L, tintColorArgb = 0x4400D4FF, chainable = true),   // cyan translucent
     STUN(durationMs = 1200L, tintColorArgb = 0x55FFD400),   // yellow translucent
 
     // Wave 18 — Nước Mắm: ăn mòn DoT. Mạnh hơn BURN mỗi tick (7 vs 5) và KÉO

@@ -1330,6 +1330,17 @@ fun rememberGameState(): GameState {
             prevY = cy2
         }
     }
+    // Task 18 Slice 1 — status chain-spread: BURN/SLOW lan sang địch gần (radius
+    // 120f, 35% mỗi địch tìm thấy). Chỉ lan 1 bước (gọi statusEffectController.apply
+    // trực tiếp, KHÔNG re-chain) — tránh chain phản ứng vô hạn trong 1 frame.
+    statusEffectController.chainSpreadHandler = { excludeEnemyId, effect, x, y, now ->
+        com.tranphuloi.neon.ui.game.status.enemiesInChainRadius(enemies, x, y, excludeEnemyId).forEach { enemy ->
+            if (kotlin.random.Random.nextFloat() < com.tranphuloi.neon.ui.game.status.StatusEffectController.CHAIN_SPREAD_CHANCE) {
+                statusEffectController.apply(enemy.enemyId, effect, now)
+                Logger.v { "STATUS_CHAIN: $effect spread to enemy ${enemy.enemyId.take(6)}" }
+            }
+        }
+    }
     // Wave 16 Slice 4b — BRICK knockback: đẩy địch trúng đòn lùi lên (ra xa tàu).
     knockbackRef.run = { targetId ->
         enemies.firstOrNull { it.enemyId == targetId }?.let { e ->
@@ -3270,17 +3281,19 @@ private fun rememberLasersAndStatusEffectsDomain(p: LasersAndStatusEffectsDomain
                 val chance = if (isBoss) 0.05f else 0.10f
                 if (kotlin.random.Random.nextFloat() < chance) {
                     val effect = com.tranphuloi.neon.ui.game.status.StatusEffect.values().random()
-                    statusEffectController.apply(targetId, effect, System.currentTimeMillis())
+                    statusEffectController.applyWithChain(targetId, effect, System.currentTimeMillis(), x, y)
                 }
                 // Round 67 (Wave 10a) — FIRE bullet always applies BURN status
                 // on hit (100% chance during the FIRE buff window). This is
                 // the GUARANTEED effect, separate from the random 10% above.
                 val ship = getShip()
                 if (ship.activeBulletType == com.tranphuloi.neon.ui.game.ship.laser.BulletType.FIRE) {
-                    statusEffectController.apply(
+                    statusEffectController.applyWithChain(
                         targetId,
                         com.tranphuloi.neon.ui.game.status.StatusEffect.BURN,
                         System.currentTimeMillis(),
+                        x,
+                        y,
                     )
                 }
                 // Wave 17 — ATOMIC: ngoài splash AoE 150, để lại "phóng xạ" =
@@ -3288,10 +3301,12 @@ private fun rememberLasersAndStatusEffectsDomain(p: LasersAndStatusEffectsDomain
                 // onLaserHit được gọi cho từng nạn nhân với bulletType=ATOMIC).
                 // → phân biệt hẳn PLASMA (chỉ splash tức thời, không DoT).
                 if (bulletType == com.tranphuloi.neon.ui.game.ship.laser.BulletType.ATOMIC) {
-                    statusEffectController.apply(
+                    statusEffectController.applyWithChain(
                         targetId,
                         com.tranphuloi.neon.ui.game.status.StatusEffect.BURN,
                         System.currentTimeMillis(),
+                        x,
+                        y,
                     )
                 }
                 // Wave 16/18 — đạn trào phúng: CƠ CHẾ RIÊNG (tách bạch).
@@ -3313,7 +3328,7 @@ private fun rememberLasersAndStatusEffectsDomain(p: LasersAndStatusEffectsDomain
                         val nowStatus = System.currentTimeMillis()
                         com.tranphuloi.neon.ui.game.status.BulletOnHitStatus
                             .statusEffectsFor(bulletType)
-                            .forEach { statusEffectController.apply(targetId, it, nowStatus) }
+                            .forEach { statusEffectController.applyWithChain(targetId, it, nowStatus, x, y) }
                     }
                 }
             },

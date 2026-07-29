@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -106,14 +107,14 @@ fun DialogBuffPicker(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            text = buff.displayName,
+                            text = buff.displayNameRes?.let { stringResource(it) } ?: buff.displayName,
                             color = color,
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Black,
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = buff.description,
+                            text = buff.descriptionRes?.let { stringResource(it) } ?: buff.description,
                             color = Color.White.copy(alpha = 0.85f),
                             fontSize = 13.sp,
                         )

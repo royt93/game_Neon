@@ -89,4 +89,12 @@
     <string name="story_epilogue_easy">Dawn spreads across the worlds you saved. A fine start, pilot — the galaxy will remember your name.</string>
     <string name="story_epilogue_normal">As the smoke clears, the stars fall quiet again. Captain, you\'ve returned peace to an entire galaxy.</string>
     <string name="story_epilogue_hard">Even the deepest dark had to retreat. Your name is carved among the stars now — a Sky Force U*S*A legend.</string>
+
+    <!-- Task 18: curse buffs -->
+    <string name="buff_glass_cannon_name">Glass Cannon</string>
+    <string name="buff_glass_cannon_desc">+80% damage, -50% HP</string>
+    <string name="buff_sloth_name">Sloth</string>
+    <string name="buff_sloth_desc">Score ×1.6, speed -30%</string>
+    <string name="buff_reckless_name">Reckless</string>
+    <string name="buff_reckless_desc">+50% magnet radius, -25% HP</string>
 </resources>
