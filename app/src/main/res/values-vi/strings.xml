@@ -93,11 +93,11 @@
 
     <!-- Task 18: curse buffs -->
     <string name="buff_glass_cannon_name">Pháo thủy tinh</string>
-    <string name="buff_glass_cannon_desc">+80% sát thương, -50% HP</string>
+    <string name="buff_glass_cannon_desc" formatted="false">+80% sát thương, -50% HP</string>
     <string name="buff_sloth_name">Lười biếng</string>
     <string name="buff_sloth_desc">Điểm ×1.6, tốc độ -30%</string>
     <string name="buff_reckless_name">Liều lĩnh</string>
-    <string name="buff_reckless_desc">+50% bán kính hút, -25% HP</string>
+    <string name="buff_reckless_desc" formatted="false">+50% bán kính hút, -25% HP</string>
 
     <!-- Task 33: ship fusion -->
     <string name="ship_fusion_title">Dung hợp tàu</string>

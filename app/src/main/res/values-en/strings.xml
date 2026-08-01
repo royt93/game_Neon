@@ -92,11 +92,11 @@
 
     <!-- Task 18: curse buffs -->
     <string name="buff_glass_cannon_name">Glass Cannon</string>
-    <string name="buff_glass_cannon_desc">+80% damage, -50% HP</string>
+    <string name="buff_glass_cannon_desc" formatted="false">+80% damage, -50% HP</string>
     <string name="buff_sloth_name">Sloth</string>
     <string name="buff_sloth_desc">Score ×1.6, speed -30%</string>
     <string name="buff_reckless_name">Reckless</string>
-    <string name="buff_reckless_desc">+50% magnet radius, -25% HP</string>
+    <string name="buff_reckless_desc" formatted="false">+50% magnet radius, -25% HP</string>
 
     <!-- Task 33: ship fusion -->
     <string name="ship_fusion_title">Ship fusion</string>

@@ -109,7 +109,6 @@ android {
             returnDefaultValues = true
         }
     }
-
     lint {
         // material3 is only on the classpath transitively; source uses Material 1 only.
         disable += "UsingMaterialAndMaterial3Libraries"
@@ -119,20 +118,22 @@ android {
         disable += "GifUsage"
         // Fullscreen portrait-locked game; Configuration screen size is sufficient.
         disable += "ConfigurationScreenWidthHeight"
+        // stringResource() call sites are Composables reading LocalContext implicitly; false positive.
+        disable += "LocalContextGetResourceValueCall"
     }
 }
 
 dependencies {
     /*Core*/
-    implementation "androidx.core:core-ktx:1.18.0"
+    implementation "androidx.core:core-ktx:1.19.0"
     // Task 11 (đợt 3) — cài baseline profile (src/main/baseline-prof.txt) lúc chạy
     // đầu để giảm jank cold-start. AGP tự merge profile vào APK; lib này install nó
     // trên API 24-30 (API 31+ nền tảng tự dùng). Không phụ thuộc AGP nên an toàn.
     implementation "androidx.profileinstaller:profileinstaller:1.4.1"
     baselineProfile project(":baselineprofile")
-    implementation "com.google.android.material:material:1.13.0"
+    implementation "com.google.android.material:material:1.14.0"
     implementation "androidx.activity:activity-compose:1.13.0"
-    implementation "androidx.lifecycle:lifecycle-runtime-compose:2.10.0"
+    implementation "androidx.lifecycle:lifecycle-runtime-compose:2.11.0"
     /*Compose (BOM aligns versions)*/
     implementation platform("androidx.compose:compose-bom:$compose_bom_version")
     implementation "androidx.compose.ui:ui"
@@ -140,16 +141,16 @@ dependencies {
     implementation "androidx.compose.ui:ui-tooling-preview"
     debugImplementation "androidx.compose.ui:ui-tooling"
     /*Audio player (Media3, replaces ExoPlayer 2.x)*/
-    implementation "androidx.media3:media3-exoplayer:1.10.0"
-    implementation "androidx.media3:media3-common:1.10.0"
+    implementation "androidx.media3:media3-exoplayer:1.10.1"
+    implementation "androidx.media3:media3-common:1.10.1"
     // Round 72 — Coil 3 deps removed. ExplosionCanvas thay GIF asset Round 72.
     // Nếu future cần Coil cho ảnh remote, re-add.
     /*Navigation*/
     implementation "androidx.navigation:navigation-compose:2.9.8"
     /*Persistence*/
-    implementation "androidx.datastore:datastore-preferences:1.1.7"
+    implementation "androidx.datastore:datastore-preferences:1.2.1"
     /*System splash (Android 12+ API + back-port)*/
-    implementation "androidx.core:core-splashscreen:1.0.1"
+    implementation "androidx.core:core-splashscreen:1.2.0"
     debugImplementation "com.squareup.leakcanary:leakcanary-android:2.14"
     /*Unit tests (JVM, no Android runtime). Run via `./gradlew test`.*/
     testImplementation "junit:junit:4.13.2"
