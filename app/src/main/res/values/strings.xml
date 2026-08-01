@@ -26,11 +26,11 @@
     <string name="revived_banner">Hồi sinh!</string>
     <!-- Task 25: Booster synergy banners -->
     <string name="synergy_shield_weapon_title">Khiên + Hỏa lực!</string>
-    <string name="synergy_shield_weapon_desc">+15% sát thương</string>
+    <string name="synergy_shield_weapon_desc" formatted="false">+15% sát thương</string>
     <string name="synergy_magnet_supercharge_title">Kinh tế!</string>
-    <string name="synergy_magnet_supercharge_desc">+25% giá trị khoáng vật</string>
+    <string name="synergy_magnet_supercharge_desc" formatted="false">+25% giá trị khoáng vật</string>
     <string name="synergy_vampire_dmg_title">Hút máu!</string>
-    <string name="synergy_vampire_dmg_desc">+10% hút máu</string>
+    <string name="synergy_vampire_dmg_desc" formatted="false">+10% hút máu</string>
     <!-- Task 31: Overdrive bullet-time meter -->
     <string name="overdrive_active_label">OVERDRIVE!</string>
     <!-- 17c Daily challenge -->

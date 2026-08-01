@@ -23,11 +23,11 @@
     <string name="revived_banner">Revived!</string>
     <!-- Task 25: Booster synergy banners -->
     <string name="synergy_shield_weapon_title">Shield + Firepower!</string>
-    <string name="synergy_shield_weapon_desc">+15% damage</string>
+    <string name="synergy_shield_weapon_desc" formatted="false">+15% damage</string>
     <string name="synergy_magnet_supercharge_title">Economy Boost!</string>
-    <string name="synergy_magnet_supercharge_desc">+25% mineral value</string>
+    <string name="synergy_magnet_supercharge_desc" formatted="false">+25% mineral value</string>
     <string name="synergy_vampire_dmg_title">Lifesteal!</string>
-    <string name="synergy_vampire_dmg_desc">+10% lifesteal</string>
+    <string name="synergy_vampire_dmg_desc" formatted="false">+10% lifesteal</string>
     <!-- Task 31: Overdrive bullet-time meter -->
     <string name="overdrive_active_label">OVERDRIVE!</string>
     <string name="daily_challenge_label">Daily Challenge</string>
