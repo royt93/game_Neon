@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.scale
 import com.tranphuloi.neon.common.PathPool
 
 /**
@@ -74,6 +75,33 @@ fun DrawScope.drawShipVector(
             drawMyShape(color, laserBoosterEnabled)
         com.tranphuloi.neon.ui.game.ship.shape.ShipShape.PHAP ->
             drawPhapShape(color, laserBoosterEnabled)
+    }
+}
+
+/**
+ * Task 33 — silhouette tàu dung hợp: nửa trên vẽ [shapeA] (màu [colorA]), nửa
+ * dưới vẽ [shapeB] (màu [colorB]), mỗi nửa tái dùng dispatch [drawShipVector]
+ * có sẵn theo shape. Generic cho MỌI cặp (không viết code riêng từng cặp) —
+ * tránh bùng nổ tổ hợp C(22,2)=231 cặp có thể.
+ *
+ * Audit fix (C7) — mỗi tàu được vẽ TOÀN VẸN (không crop) rồi co theo chiều
+ * dọc còn 50% để vừa nửa canvas của nó. clipRect ngang cũ cắt luôn phần
+ * cockpit/cánh/nòng súng/đuôi lửa nằm gần đường giữa vì hình được vẽ tính
+ * theo toàn bộ canvas (cx = w/2, cy = h/2) — co lại thay vì cắt giữ nguyên
+ * mọi chi tiết, chỉ đổi tỉ lệ.
+ */
+fun DrawScope.drawFusionShipVector(
+    colorA: Color,
+    colorB: Color,
+    laserBoosterEnabled: Boolean,
+    shapeA: com.tranphuloi.neon.ui.game.ship.shape.ShipShape,
+    shapeB: com.tranphuloi.neon.ui.game.ship.shape.ShipShape,
+) {
+    scale(scaleX = 1f, scaleY = 0.5f, pivot = Offset(size.width / 2f, 0f)) {
+        drawShipVector(colorA, laserBoosterEnabled, shapeA)
+    }
+    scale(scaleX = 1f, scaleY = 0.5f, pivot = Offset(size.width / 2f, size.height)) {
+        drawShipVector(colorB, laserBoosterEnabled, shapeB)
     }
 }
 

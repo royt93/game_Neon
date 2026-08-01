@@ -39,10 +39,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.tranphuloi.neon.R
 import com.tranphuloi.neon.common.NeonActionBar
 import com.tranphuloi.neon.common.NeonBgDeep
 import com.tranphuloi.neon.common.NeonBgEdge
@@ -59,9 +61,11 @@ import com.tranphuloi.neon.data.LocalMetaProgression
 import com.tranphuloi.neon.data.LocalSettings
 import com.tranphuloi.neon.data.MetaProgressionRepository
 import com.tranphuloi.neon.data.ShopItem
+import com.tranphuloi.neon.ui.game.ship.fusion.FusionSession
 import com.tranphuloi.neon.ui.game.ship.shape.ShipShape
 import com.tranphuloi.neon.ui.game.ship.shape.ShipShapeColorMap
 import com.tranphuloi.neon.ui.game.ship.shape.ShipShopLogic
+import com.tranphuloi.neon.ui.game.ship.shape.fusedStats
 import com.tranphuloi.neon.ui.game.state.EffectiveStats
 import com.tranphuloi.neon.ui.game.world.drawShipVector
 import com.tranphuloi.neon.utils.Logger
@@ -789,6 +793,15 @@ private fun ShipTab(
     val discountRank = allRanks[EffectiveStats.META_KEY_SHIP_UNLOCK_DISCOUNT] ?: 0
     // Task 03 — XP mỗi tàu để hiển thị level + bonus (chỉ ảnh hưởng survivability).
     val allShipXp by meta.allShipXp.collectAsState(initial = emptyMap())
+    // Task 33 — tàu dung hợp (fusion partner); FusionSession là singleton
+    // tiến-trình (không persist), mirror local state để Compose recompose
+    // khi người chơi chọn/bỏ trong Shop.
+    var fusionPartner by remember { mutableStateOf(FusionSession.partner) }
+    // Audit fix (C2) — 1 điểm ghi duy nhất, tránh 3 nơi set riêng lẻ bị lệch nhau.
+    fun setFusionPartner(value: ShipShape?) {
+        fusionPartner = value
+        if (value == null) FusionSession.clear() else FusionSession.partner = value
+    }
 
     // Migration (threshold-gate → purchase): grant the currently-selected ship
     // for free so it stays usable. Idempotent (grantNodeFree no-ops if owned),
@@ -841,8 +854,78 @@ private fun ShipTab(
             onSelect = {
                 Logger.d("Shop ship: select ${shape.key}")
                 scope.launch { settings.setSelectedShipShape(shape) }
+                // Task 33 — đổi tàu chính thì bỏ dung hợp cũ (tránh partner == chính).
+                if (fusionPartner == shape) {
+                    setFusionPartner(null)
+                }
             },
         )
+    }
+
+    // Task 33 — chọn tàu dung hợp thứ 2 (đã sở hữu, khác tàu chính). Chỉ hiện
+    // khi sở hữu ≥2 tàu, nếu không sẽ chẳng có partner nào để chọn.
+    // Audit fix (C8) — tránh recompute mỗi lần ShipTab recompose không liên quan.
+    val ownedPartnerShapes = remember(selectedShape, allRanks) {
+        ShipShape.entries.filter {
+            it != selectedShape && ShipShopLogic.isOwned(it, allRanks)
+        }
+    }
+    if (ownedPartnerShapes.isNotEmpty()) {
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = stringResource(id = R.string.ship_fusion_title),
+            style = TextStyle(color = NeonCyan, fontSize = 13.sp, fontWeight = FontWeight.Black),
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+        )
+        Row(
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 4.dp),
+        ) {
+            ownedPartnerShapes.forEach { shape ->
+                val active = fusionPartner == shape
+                val color = Color(ShipShapeColorMap.argbFor(shape))
+                Box(
+                    modifier = Modifier
+                        .padding(end = 6.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (active) color.copy(alpha = 0.3f) else Color(0xFF161C28))
+                        .border(
+                            BorderStroke(1.dp, color.copy(alpha = if (active) 1f else 0.4f)),
+                            RoundedCornerShape(8.dp),
+                        )
+                        .clickable {
+                            setFusionPartner(if (active) null else shape)
+                        }
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                ) {
+                    Text(
+                        text = shape.displayName,
+                        style = TextStyle(color = color, fontSize = 11.sp, fontWeight = FontWeight.Black),
+                    )
+                }
+            }
+        }
+        fusionPartner?.let { partner ->
+            val fused = fusedStats(selectedShape, partner)
+            Text(
+                text = stringResource(
+                    id = R.string.ship_fusion_preview,
+                    fused.hpMul, fused.speedMul, fused.damageMul,
+                ),
+                style = TextStyle(color = Color(0xFFB0C0D0), fontSize = 11.sp),
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+            )
+            Text(
+                text = stringResource(id = R.string.ship_fusion_clear),
+                style = TextStyle(color = NeonMagenta, fontSize = 11.sp, fontWeight = FontWeight.Black),
+                modifier = Modifier
+                    .clickable {
+                        setFusionPartner(null)
+                    }
+                    .padding(horizontal = 4.dp, vertical = 4.dp),
+            )
+        }
     }
 }
 

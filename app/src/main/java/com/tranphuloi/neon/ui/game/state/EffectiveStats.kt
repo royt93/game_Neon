@@ -150,10 +150,14 @@ data class EffectiveStats(
             val metaLife = 1f + metaLifeRank * META_LIFETIME_PER_RANK
 
             // Round 73 (Wave 8 — ShipShape wiring) — ship shape stat mul
-            // applied AFTER mod + meta + before caps.
-            val shipHpMul = ctx.shipShape.hpMul
-            val shipSpeedMul = ctx.shipShape.speedMul
-            val shipDamageMul = ctx.shipShape.damageMul
+            // applied AFTER mod + meta + before caps. Task 33 — nếu có tàu
+            // dung hợp, dùng trung bình cộng 2 tàu thay vì tàu chính riêng lẻ.
+            val shipStats = ctx.fusionPartner?.let {
+                com.tranphuloi.neon.ui.game.ship.shape.fusedStats(ctx.shipShape, it)
+            }
+            val shipHpMul = shipStats?.hpMul ?: ctx.shipShape.hpMul
+            val shipSpeedMul = shipStats?.speedMul ?: ctx.shipShape.speedMul
+            val shipDamageMul = shipStats?.damageMul ?: ctx.shipShape.damageMul
 
             // Task 10 (audit→9.5) — buff vĩnh viễn PRESTIGE (+4%/cấp).
             // Áp NGOÀI cap gốc: base stat coerce như cũ (giữ cân bằng gốc) rồi nhân

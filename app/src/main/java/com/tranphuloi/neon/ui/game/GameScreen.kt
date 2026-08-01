@@ -795,6 +795,7 @@ fun GameScreen(
                 lastBossHitMillis = gameState.lastBossHitMillis,
                 lastBossHitX = gameState.lastBossHitX,
                 lastBossHitY = gameState.lastBossHitY,
+                fusionPartner = gameState.fusionPartner,
                 modifier = Modifier
                     .weight(1f)
                     .layout { measurable, constraints ->

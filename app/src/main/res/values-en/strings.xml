@@ -97,4 +97,9 @@
     <string name="buff_sloth_desc">Score ×1.6, speed -30%</string>
     <string name="buff_reckless_name">Reckless</string>
     <string name="buff_reckless_desc">+50% magnet radius, -25% HP</string>
+
+    <!-- Task 33: ship fusion -->
+    <string name="ship_fusion_title">Ship fusion</string>
+    <string name="ship_fusion_preview">HP x%1$.2f · SPD x%2$.2f · DMG x%3$.2f</string>
+    <string name="ship_fusion_clear">✕ Clear fusion</string>
 </resources>

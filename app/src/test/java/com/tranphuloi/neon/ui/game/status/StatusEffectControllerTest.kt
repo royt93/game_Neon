@@ -42,6 +42,51 @@ class StatusEffectControllerTest {
     }
 
     @Test
+    fun `applyWithChain applies the effect regardless of chainable`() {
+        val c = StatusEffectController()
+        c.applyWithChain("e1", StatusEffect.STUN, now, hitX = 0f, hitY = 0f)
+        assertEquals(setOf(StatusEffect.STUN), c.effectsFor("e1"))
+    }
+
+    @Test
+    fun `applyWithChain triggers chainSpreadHandler for chainable effects`() {
+        val c = StatusEffectController()
+        var invokedEnemyId: String? = null
+        var invokedType: StatusEffect? = null
+        c.chainSpreadHandler = { enemyId, type, _, _, _ ->
+            invokedEnemyId = enemyId
+            invokedType = type
+        }
+        c.applyWithChain("e1", StatusEffect.BURN, now, hitX = 10f, hitY = 20f)
+        assertEquals(
+            "chainable effect (BURN) must trigger chainSpreadHandler / hiệu ứng có thể lan (BURN) phải trigger chainSpreadHandler",
+            "e1" to StatusEffect.BURN,
+            invokedEnemyId to invokedType,
+        )
+    }
+
+    @Test
+    fun `applyWithChain does not trigger chainSpreadHandler for non-chainable effects`() {
+        val c = StatusEffectController()
+        var invoked = 0
+        c.chainSpreadHandler = { _, _, _, _, _ -> invoked++ }
+        c.applyWithChain("e1", StatusEffect.STUN, now, hitX = 0f, hitY = 0f)
+        c.applyWithChain("e1", StatusEffect.CORROSION, now, hitX = 0f, hitY = 0f)
+        assertEquals(
+            "non-chainable effects (STUN/CORROSION) must not trigger chainSpreadHandler / hiệu ứng không lan (STUN/CORROSION) không được trigger chainSpreadHandler",
+            0,
+            invoked,
+        )
+    }
+
+    @Test
+    fun `applyWithChain is safe when chainSpreadHandler is null`() {
+        val c = StatusEffectController()
+        c.applyWithChain("e1", StatusEffect.BURN, now, hitX = 0f, hitY = 0f)
+        assertEquals(setOf(StatusEffect.BURN), c.effectsFor("e1"))
+    }
+
+    @Test
     fun `isSlowed and isStunned false when not applied`() {
         val c = StatusEffectController()
         assertFalse(c.isSlowed("missing"))

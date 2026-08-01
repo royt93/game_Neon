@@ -98,4 +98,9 @@
     <string name="buff_sloth_desc">Điểm ×1.6, tốc độ -30%</string>
     <string name="buff_reckless_name">Liều lĩnh</string>
     <string name="buff_reckless_desc">+50% bán kính hút, -25% HP</string>
+
+    <!-- Task 33: ship fusion -->
+    <string name="ship_fusion_title">Dung hợp tàu</string>
+    <string name="ship_fusion_preview">HP x%1$.2f · Tốc x%2$.2f · DMG x%3$.2f</string>
+    <string name="ship_fusion_clear">✕ Bỏ dung hợp</string>
 </resources>

@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 // Round 72 — LocalContext + Coil imports removed cùng với GIF explosion migration.
@@ -71,6 +72,34 @@ import com.tranphuloi.neon.ui.game.ship.ship.Ship
 import com.tranphuloi.neon.ui.game.spaceObject.SpaceObjectUI
 // Round 72 — rememberImageLoader removed; no more Coil-loaded assets in GameWorld.
 import com.tranphuloi.neon.utils.Logger
+
+/**
+ * Task 33 audit fix (C6) — shared by the main-ship and CLONE_BOOSTER
+ * phantom-twin draw sites, which previously duplicated this branch verbatim.
+ */
+private fun DrawScope.drawShipOrFusion(
+    baseColor: Color,
+    fusionColor: Color?,
+    fusionShape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape?,
+    baseShape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape,
+    laserBoosterEnabled: Boolean,
+) {
+    if (fusionShape != null && fusionColor != null) {
+        drawFusionShipVector(
+            colorA = baseColor,
+            colorB = fusionColor,
+            laserBoosterEnabled = laserBoosterEnabled,
+            shapeA = baseShape,
+            shapeB = fusionShape,
+        )
+    } else {
+        drawShipVector(
+            color = baseColor,
+            laserBoosterEnabled = laserBoosterEnabled,
+            shape = baseShape,
+        )
+    }
+}
 
 @Composable
 fun GameWorld(
@@ -102,6 +131,13 @@ fun GameWorld(
     lastBossHitMillis: Long = 0L,
     lastBossHitX: Float = 0f,
     lastBossHitY: Float = 0f,
+    /**
+     * Task 33 audit fix (C1) — pre-resolved fusion partner from GameState
+     * (already trial + ownership gated via RunContext.fusionPartner). Do NOT
+     * read FusionSession.partner directly here — GameWorld has no access to
+     * the allRanks/TrialSession state needed to re-derive eligibility.
+     */
+    fusionPartner: com.tranphuloi.neon.ui.game.ship.shape.ShipShape? = null,
     modifier: Modifier = Modifier,
 ) {
 
@@ -126,6 +162,14 @@ fun GameWorld(
     val selectedShipShape by settings.selectedShipShape.collectAsState(
         initial = com.tranphuloi.neon.ui.game.ship.shape.ShipShape.FIGHTER,
     )
+    // Task 33 — tàu dung hợp (nếu có): nửa thân dưới vẽ selectedShipShape, nửa
+    // trên vẽ fusionShape (màu riêng theo ShipShapeColorMap để phân biệt).
+    // Audit fix (C1) — dùng giá trị đã resolve sẵn từ GameState (đã qua guard
+    // trial + ownership), KHÔNG đọc thẳng FusionSession.partner ở đây nữa.
+    val fusionShape = fusionPartner?.takeIf { it != selectedShipShape }
+    val fusionColor = fusionShape?.let {
+        Color(com.tranphuloi.neon.ui.game.ship.shape.ShipShapeColorMap.argbFor(it))
+    }
     // Round 77 (R77g) — camera zoom level scale toàn entity render.
     val cameraZoom by settings.cameraZoom.collectAsState(
         initial = com.tranphuloi.neon.data.CameraZoom.MEDIUM,
@@ -441,10 +485,12 @@ fun GameWorld(
                         radiusFactor = 1.5f + glowBoost * 0.4f + chargeBoost * 0.6f,
                     )
             ) {
-                drawShipVector(
-                    color = shipGlowColor,
+                drawShipOrFusion(
+                    baseColor = shipGlowColor,
+                    fusionColor = fusionColor,
+                    fusionShape = fusionShape,
+                    baseShape = selectedShipShape,
                     laserBoosterEnabled = ship.laserBoosterEnabled,
-                    shape = selectedShipShape,
                 )
             }
         }
@@ -476,11 +522,21 @@ fun GameWorld(
                             scaleX = 1f - bankFrac * 0.22f
                         }
                 ) {
-                    drawShipVector(
-                        color = shipGlowColor,
-                        laserBoosterEnabled = ship.laserBoosterEnabled,
-                        shape = selectedShipShape,
-                    )
+                    if (fusionShape != null && fusionColor != null) {
+                        drawFusionShipVector(
+                            colorA = shipGlowColor,
+                            colorB = fusionColor,
+                            laserBoosterEnabled = ship.laserBoosterEnabled,
+                            shapeA = selectedShipShape,
+                            shapeB = fusionShape,
+                        )
+                    } else {
+                        drawShipVector(
+                            color = shipGlowColor,
+                            laserBoosterEnabled = ship.laserBoosterEnabled,
+                            shape = selectedShipShape,
+                        )
+                    }
                 }
             }
         }

@@ -30,6 +30,13 @@ data class RunContext(
     /** Round 73 (Wave 8) — selected ship shape. FIGHTER mặc định. */
     val shipShape: ShipShape = ShipShape.FIGHTER,
     /**
+     * Task 33 — tàu dung hợp thứ 2 (null = không dung hợp). Khi có giá trị,
+     * EffectiveStats.compute() dùng fusedStats(shipShape, fusionPartner) thay
+     * vì stat riêng của shipShape. Không ảnh hưởng ability/passive/XP — các
+     * hệ thống đó vẫn dùng shipShape (tàu chính).
+     */
+    val fusionPartner: ShipShape? = null,
+    /**
      * Task 03 — hệ số nhân HP từ LEVEL của tàu đang dùng (1.0 = chưa level / L1).
      * Đọc 1 lần lúc init (ShipXpLevels.hpBonusMulForXp), nhân vào hpMul ở
      * EffectiveStats.compute. Tách khỏi shipShape.hpMul (stat cố định của tàu).

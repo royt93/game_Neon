@@ -277,6 +277,27 @@ class EffectiveStatsTest {
         assertEquals(1.10f, s.damageMul, EPS)
     }
 
+    // ─── Task 33 — ship fusion (fusionPartner averages base stat multipliers) ───
+
+    @Test
+    fun `fusionPartner null keeps solo shipShape stats unchanged`() {
+        val s = EffectiveStats.compute(RunContext(shipShape = ShipShape.TANK, fusionPartner = null))
+        assertEquals(1.5f, s.hpMul, EPS)
+        assertEquals(0.75f, s.speedMul, EPS)
+        assertEquals(0.95f, s.damageMul, EPS)
+    }
+
+    @Test
+    fun `fusionPartner averages hp speed damage with primary shipShape`() {
+        val s = EffectiveStats.compute(
+            RunContext(shipShape = ShipShape.FIGHTER, fusionPartner = ShipShape.TANK),
+        )
+        // FIGHTER (1.0, 1.0, 1.0) averaged with TANK (1.5, 0.75, 0.95).
+        assertEquals((1f + 1.5f) / 2f, s.hpMul, EPS)
+        assertEquals((1f + 0.75f) / 2f, s.speedMul, EPS)
+        assertEquals((1f + 0.95f) / 2f, s.damageMul, EPS)
+    }
+
     // ─── Task 03 — ship LEVEL hp bonus (shipLevelHpMul) propagation ───
 
     @Test

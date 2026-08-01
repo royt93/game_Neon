@@ -303,6 +303,7 @@ private fun buildGameState(p: GameStateBuildParams): GameState {
         maxComboReached = p.maxComboReached,
         stagesReached = p.stageIndex,
         shipShape = p.runContext.shipShape,
+        fusionPartner = p.runContext.fusionPartner,
         // Round 77 audit fix — reactive cameraZoom (collectAsState above).
         cameraZoom = p.liveCameraZoom,
         // Wave 12 round 3 — UI shows earned + purchased-reserve total.
@@ -2270,6 +2271,12 @@ data class GameState(
     /** Round 76 (R76d) — selected ship shape, exposed for HUD badge. */
     val shipShape: com.tranphuloi.neon.ui.game.ship.shape.ShipShape =
         com.tranphuloi.neon.ui.game.ship.shape.ShipShape.FIGHTER,
+    /**
+     * Task 33 audit fix (C1) — pre-resolved fusion partner (already trial +
+     * ownership gated, see [com.tranphuloi.neon.ui.game.state.RunContext.fusionPartner]).
+     * GameWorld must render from this, not re-derive eligibility itself.
+     */
+    val fusionPartner: com.tranphuloi.neon.ui.game.ship.shape.ShipShape? = null,
     /** Round 77 audit fix — exposed camera zoom for GameScreen drag coord conversion. */
     val cameraZoom: com.tranphuloi.neon.data.CameraZoom =
         com.tranphuloi.neon.data.CameraZoom.MEDIUM,
@@ -2729,12 +2736,22 @@ private fun rememberRunSetupBundle(
         val shipXp = kotlinx.coroutines.runBlocking { metaRepo.shipXp(resolvedShape.key).first() }
         // Task 10 — đọc cấp prestige 1 lần → buff vĩnh viễn (prestigeMul).
         val prestigeLvl = kotlinx.coroutines.runBlocking { metaRepo.prestigeLevel.first() }
+        val allRanks = kotlinx.coroutines.runBlocking { metaRepo.allRanks.first() }
+        // Task 33 — tàu dung hợp (nếu có): thử tàu (trial) ưu tiên hơn, và bỏ qua
+        // nếu partner không còn sở hữu (dữ liệu cũ/lạ) hoặc trùng tàu chính.
+        val isTrialShip = com.tranphuloi.neon.ui.game.trial.TrialSession.spec is com.tranphuloi.neon.ui.game.trial.TrialSpec.Ship
+        val fusionPartner = if (!isTrialShip) {
+            com.tranphuloi.neon.ui.game.ship.fusion.FusionSession.partner?.takeIf {
+                it != resolvedShape && com.tranphuloi.neon.ui.game.ship.shape.ShipShopLogic.isOwned(it, allRanks)
+            }
+        } else null
         com.tranphuloi.neon.ui.game.state.RunContext(
             mode = runMode,
             modifier = runModifier,
             difficulty = kotlinx.coroutines.runBlocking { settingsRepo.difficulty.first() },
-            metaUpgrades = kotlinx.coroutines.runBlocking { metaRepo.allRanks.first() },
+            metaUpgrades = allRanks,
             shipShape = resolvedShape,
+            fusionPartner = fusionPartner,
             shipLevelHpMul = com.tranphuloi.neon.ui.game.ship.shape.ShipXpLevels.hpBonusMulForXp(shipXp),
             shipLevel = com.tranphuloi.neon.ui.game.ship.shape.ShipXpLevels.levelForXp(shipXp),
             prestigeMul = com.tranphuloi.neon.data.prestigeMultiplier(prestigeLvl),
